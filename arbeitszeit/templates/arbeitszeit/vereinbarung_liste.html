@@ -1,0 +1,299 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meine Vereinbarungen - Arbeitszeitverwaltung</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a4d2e;
+            --primary-light: #2d6a4f;
+            --accent: #f77f00;
+            --bg: #faf9f6;
+            --card-bg: #ffffff;
+            --text: #1f2421;
+            --text-secondary: #52796f;
+            --border: #d6e4df;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .back-link {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-family: 'Fraunces', serif;
+            font-size: 2rem;
+            color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(26, 77, 46, 0.3);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-entwurf { background: #e2e3e5; color: #383d41; }
+        .badge-beantragt { background: #fff3cd; color: #856404; }
+        .badge-genehmigt { background: #d4edda; color: #155724; }
+        .badge-abgelehnt { background: #f8d7da; color: #721c24; }
+        .badge-aktiv { background: #d1ecf1; color: #0c5460; }
+        .badge-beendet { background: #e2e3e5; color: #383d41; }
+
+        .card-body {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .card-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-info-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .card-info-value {
+            font-size: 1rem;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .card-footer {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .card-body {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">AZ</div>
+                <h1>Meine Vereinbarungen</h1>
+            </div>
+            <a href="{% url 'arbeitszeit:dashboard' %}" class="back-link">← Zurück</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Arbeitszeitvereinbarungen</h1>
+            <a href="{% url 'arbeitszeit:vereinbarung_erstellen' %}" class="btn btn-primary">+ Neue Vereinbarung</a>
+        </div>
+
+        {% if vereinbarungen %}
+            {% for vereinbarung in vereinbarungen %}
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">{{ vereinbarung.get_antragsart_display }}</h3>
+                        <span class="badge badge-{{ vereinbarung.status }}">
+                            {{ vereinbarung.get_status_display }}
+                        </span>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="card-info">
+                            <span class="card-info-label">Typ</span>
+                            <span class="card-info-value">{{ vereinbarung.get_arbeitszeit_typ_display }}</span>
+                        </div>
+
+                        {% if vereinbarung.wochenstunden %}
+                            <div class="card-info">
+                                <span class="card-info-label">Wochenstunden</span>
+                                <span class="card-info-value">{{ vereinbarung.wochenstunden }} Stunden</span>
+                            </div>
+                        {% endif %}
+
+                        <div class="card-info">
+                            <span class="card-info-label">Gültig ab</span>
+                            <span class="card-info-value">{{ vereinbarung.gueltig_ab|date:"d.m.Y" }}</span>
+                        </div>
+
+                        {% if vereinbarung.gueltig_bis %}
+                            <div class="card-info">
+                                <span class="card-info-label">Gültig bis</span>
+                                <span class="card-info-value">{{ vereinbarung.gueltig_bis|date:"d.m.Y" }}</span>
+                            </div>
+                        {% endif %}
+
+                        <div class="card-info">
+                            <span class="card-info-label">Telearbeit</span>
+                            <span class="card-info-value">{% if vereinbarung.telearbeit %}Ja{% else %}Nein{% endif %}</span>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <a href="{% url 'arbeitszeit:vereinbarung_detail' vereinbarung.pk %}" class="btn btn-primary btn-small">
+                            Details ansehen
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="card">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <h3>Noch keine Vereinbarungen</h3>
+                    <p style="margin-top: 0.5rem;">Erstellen Sie Ihre erste Arbeitszeitvereinbarung</p>
+                    <a href="{% url 'arbeitszeit:vereinbarung_erstellen' %}" class="btn btn-primary" style="margin-top: 1.5rem;">
+                        Erste Vereinbarung erstellen
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

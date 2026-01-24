@@ -1,0 +1,460 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vereinbarung Details - Arbeitszeitverwaltung</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a4d2e;
+            --primary-light: #2d6a4f;
+            --accent: #f77f00;
+            --bg: #faf9f6;
+            --card-bg: #ffffff;
+            --text: #1f2421;
+            --text-secondary: #52796f;
+            --border: #d6e4df;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .back-link {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-family: 'Fraunces', serif;
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+        }
+
+        .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-entwurf { background: #e2e3e5; color: #383d41; }
+        .badge-beantragt { background: #fff3cd; color: #856404; }
+        .badge-genehmigt { background: #d4edda; color: #155724; }
+        .badge-abgelehnt { background: #f8d7da; color: #721c24; }
+        .badge-aktiv { background: #d1ecf1; color: #0c5460; }
+        .badge-beendet { background: #e2e3e5; color: #383d41; }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .days-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .days-table th,
+        .days-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .days-table th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+        }
+
+        .days-table tfoot td {
+            border-top: 3px solid var(--primary);
+            border-bottom: none;
+            font-weight: 700;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 2rem;
+        }
+
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2rem;
+            top: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: -1.75rem;
+            top: 12px;
+            width: 2px;
+            height: calc(100% - 12px);
+            background: var(--border);
+        }
+
+        .timeline-item:last-child::after {
+            display: none;
+        }
+
+        .timeline-date {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-status {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-user {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .timeline-note {
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+            background: var(--bg);
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">AZ</div>
+                <h1>Vereinbarung Details</h1>
+            </div>
+            <a href="{% url 'arbeitszeit:vereinbarung_liste' %}" class="back-link">← Zurück zur Liste</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">{{ vereinbarung.get_antragsart_display }}</h1>
+                <p class="page-subtitle">Erstellt am {{ vereinbarung.created_at|date:"d.m.Y" }}</p>
+            </div>
+            <span class="badge badge-{{ vereinbarung.status }}">
+                {{ vereinbarung.get_status_display }}
+            </span>
+        </div>
+
+        <!-- Hauptinformationen -->
+        <div class="card">
+            <h3 class="card-title">Arbeitszeitvereinbarung</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Mitarbeiter</span>
+                    <span class="info-value">{{ vereinbarung.mitarbeiter.vollname }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Antragsart</span>
+                    <span class="info-value">{{ vereinbarung.get_antragsart_display }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Art der Verteilung</span>
+                    <span class="info-value">{{ vereinbarung.get_arbeitszeit_typ_display }}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Gültig ab</span>
+                    <span class="info-value">{{ vereinbarung.gueltig_ab|date:"d.m.Y" }}</span>
+                </div>
+
+                {% if vereinbarung.gueltig_bis %}
+                    <div class="info-item">
+                        <span class="info-label">Gültig bis</span>
+                        <span class="info-value">{{ vereinbarung.gueltig_bis|date:"d.m.Y" }}</span>
+                    </div>
+                {% else %}
+                    <div class="info-item">
+                        <span class="info-label">Gültig bis</span>
+                        <span class="info-value">Unbefristet</span>
+                    </div>
+                {% endif %}
+
+                <div class="info-item">
+                    <span class="info-label">Telearbeit</span>
+                    <span class="info-value">{% if vereinbarung.telearbeit %}✓ Ja{% else %}✗ Nein{% endif %}</span>
+                </div>
+
+                {% if vereinbarung.beendigung_beantragt %}
+                    <div class="info-item">
+                        <span class="info-label">Beendigung beantragt</span>
+                        <span class="info-value">{{ vereinbarung.beendigung_datum|date:"d.m.Y" }}</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if vereinbarung.bemerkungen %}
+                <div style="margin-top: 1.5rem;">
+                    <span class="info-label">Bemerkungen</span>
+                    <p style="margin-top: 0.5rem;">{{ vereinbarung.bemerkungen }}</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- ARBEITSZEIT DETAILS - Prominent -->
+        {% if vereinbarung.arbeitszeit_typ %}
+            <div class="card" style="background: linear-gradient(135deg, rgba(26, 77, 46, 0.05) 0%, rgba(45, 106, 79, 0.05) 100%); border: 2px solid var(--primary);">
+                <h3 class="card-title" style="color: var(--primary);">⏰ Arbeitszeit-Details</h3>
+                
+                {% if vereinbarung.arbeitszeit_typ == 'regelmaessig' and vereinbarung.wochenstunden %}
+                    <!-- Regelmäßige Arbeitszeit -->
+                    <div style="text-align: center; padding: 2rem 0;">
+                        <div style="font-size: 3rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">
+                            {{ vereinbarung.wochenstunden }} h
+                        </div>
+                        <div style="font-size: 1.25rem; color: var(--text-secondary); margin-bottom: 2rem;">
+                            pro Woche
+                        </div>
+
+                        {% if vereinbarung.tagesarbeitszeit %}
+                            <div style="padding: 1.5rem; background: white; border-radius: 8px; display: inline-block; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;">
+                                    Durchschnittlich pro Tag
+                                </div>
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--accent);">
+                                    {{ vereinbarung.tagesarbeitszeit }}
+                                </div>
+                                <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                    (bei 5-Tage-Woche)
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                {% elif vereinbarung.arbeitszeit_typ == 'individuell' %}
+                    <!-- Individuelle Verteilung wird unten in eigener Card angezeigt -->
+                    <div style="text-align: center; padding: 1.5rem 0;">
+                        <div style="font-size: 1.25rem; color: var(--text-secondary);">
+                            📅 Individuelle Wochenverteilung
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                            Siehe Details unten
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Individuelle Tagesarbeitszeiten mit Summe -->
+        {% if tagesarbeitszeiten %}
+            <div class="card">
+                <h3 class="card-title">📅 Wochenverteilung (Individuell)</h3>
+                <table class="days-table">
+                    <thead>
+                        <tr>
+                            <th>Wochentag</th>
+                            <th style="text-align: right;">Arbeitszeit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tag in tagesarbeitszeiten %}
+                            <tr>
+                                <td><strong>{{ tag.get_wochentag_display }}</strong></td>
+                                <td style="text-align: right; font-size: 1.1rem;"><strong>{{ tag.formatierte_zeit }}</strong></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="border-top: 3px solid var(--primary); background: rgba(26, 77, 46, 0.05);">
+                            <td style="padding: 1rem;"><strong>Summe pro Woche</strong></td>
+                            <td style="text-align: right; padding: 1rem;">
+                                <strong style="font-size: 1.5rem; color: var(--primary);">
+                                    {% if vereinbarung.get_wochenstunden_summe %}
+                                        {{ vereinbarung.get_wochenstunden_summe }}
+                                    {% else %}
+                                        {% widthratio tagesarbeitszeiten|length 1 1 as total_hours %}
+                                        {{ total_hours }}:00h
+                                    {% endif %}
+                                </strong>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        {% endif %}
+
+        <!-- Genehmigung -->
+        {% if vereinbarung.genehmigt_von %}
+            <div class="card">
+                <h3 class="card-title">Genehmigung</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Genehmigt von</span>
+                        <span class="info-value">{{ vereinbarung.genehmigt_von.get_full_name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Genehmigt am</span>
+                        <span class="info-value">{{ vereinbarung.genehmigt_am|date:"d.m.Y H:i" }}</span>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Historie -->
+        {% if historie %}
+            <div class="card">
+                <h3 class="card-title">Verlauf</h3>
+                <div class="timeline">
+                    {% for eintrag in historie %}
+                        <div class="timeline-item">
+                            <div class="timeline-date">{{ eintrag.aenderung_am|date:"d.m.Y H:i" }}</div>
+                            <div class="timeline-status">
+                                {{ eintrag.alter_status|capfirst }} → {{ eintrag.neuer_status|capfirst }}
+                            </div>
+                            {% if eintrag.aenderung_durch %}
+                                <div class="timeline-user">
+                                    von {{ eintrag.aenderung_durch.get_full_name|default:eintrag.aenderung_durch.username }}
+                                </div>
+                            {% endif %}
+                            {% if eintrag.bemerkung %}
+                                <div class="timeline-note">{{ eintrag.bemerkung }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
