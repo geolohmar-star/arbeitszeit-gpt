@@ -799,22 +799,14 @@ def admin_vereinbarung_docx_export(request, pk):
     return response
 @login_required
 def admin_vereinbarung_pdf_export(request, pk):
-    """Generiert ein PDF-Dokument mit allen Stammdaten"""
+    """Generiert ein PDF mit WeasyPrint (Render-kompatibel)"""
     from django.http import HttpResponse
+    from django.template.loader import render_to_string
+    from weasyprint import HTML
     from django.db.models import Case, When, IntegerField
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import cm
-    from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-    import io
-    from datetime import datetime
     
     if not request.user.is_staff:
-        messages.error(request, "Sie haben keine Berechtigung für diese Aktion.")
+        messages.error(request, "Keine Berechtigung.")
         return redirect('arbeitszeit:dashboard')
     
     vereinbarung = get_object_or_404(Arbeitszeitvereinbarung, pk=pk)
@@ -834,221 +826,25 @@ def admin_vereinbarung_pdf_export(request, pk):
         )
     ).order_by('sort_order')
     
-    # PDF in Memory erstellen
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=2*cm,
-        leftMargin=2*cm,
-        topMargin=2*cm,
-        bottomMargin=2*cm
-    )
+    # Context für Template
+    context = {
+        'vereinbarung': vereinbarung,
+        'tagesarbeitszeiten': tagesarbeitszeiten,
+    }
     
-    # Styles
-    styles = getSampleStyleSheet()
+    # Rendere HTML aus Template
+    html_string = render_to_string('arbeitszeit/pdf_vereinbarung.html', context)
     
-    # Custom Styles
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=16,
-        textColor=colors.HexColor('#1a4d2e'),
-        spaceAfter=20,
-        alignment=TA_CENTER
-    )
+    # Konvertiere zu PDF
+    html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+    pdf = html.write_pdf()
     
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=14,
-        textColor=colors.HexColor('#1a4d2e'),
-        spaceAfter=12,
-        spaceBefore=12
-    )
-    
-    normal_style = styles['Normal']
-    
-    # Story (Inhalt)
-    story = []
-    
-    # Titel
-    story.append(Paragraph('Arbeitszeitvereinbarung', title_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    # Betreff
-    betreff_text = 'Flexible Arbeitszeit'
-    if vereinbarung.antragsart == 'weiterbewilligung':
-        betreff_text += ' - Weiterbewilligung'
-    elif vereinbarung.antragsart == 'verringerung':
-        betreff_text += ' - Verringerung'
-    elif vereinbarung.antragsart == 'erhoehung':
-        betreff_text += ' - Erhöhung'
-    elif vereinbarung.antragsart == 'beendigung':
-        betreff_text += ' - Beendigung'
-    
-    story.append(Paragraph(f'<b>Betreff:</b> {betreff_text}', normal_style))
-    story.append(Spacer(1, 0.5*cm))
-    
-    # Stammdaten Tabelle
-    story.append(Paragraph('Stammdaten', heading_style))
-    
-    stammdaten_data = [
-        ['Personalnummer:', vereinbarung.mitarbeiter.personalnummer],
-        ['Name:', vereinbarung.mitarbeiter.nachname],
-        ['Vorname:', vereinbarung.mitarbeiter.vorname],
-        ['Vollständiger Name:', vereinbarung.mitarbeiter.vollname],
-        ['Abteilung:', vereinbarung.mitarbeiter.abteilung],
-        ['Standort:', vereinbarung.mitarbeiter.get_standort_display()],
-        ['Eintrittsdatum:', vereinbarung.mitarbeiter.eintrittsdatum.strftime('%d.%m.%Y')],
-    ]
-    
-    stammdaten_table = Table(stammdaten_data, colWidths=[5*cm, 10*cm])
-    stammdaten_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F5E9')),
-        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#1a4d2e')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-    ]))
-    
-    story.append(stammdaten_table)
-    story.append(Spacer(1, 0.7*cm))
-    
-    # Vereinbarungsdetails
-    story.append(Paragraph('Vereinbarungsdetails', heading_style))
-    
-    vereinbarung_data = [
-        ['Antragsart:', vereinbarung.get_antragsart_display()],
-        ['Status:', vereinbarung.get_status_display()],
-        ['Beantragt am:', vereinbarung.created_at.strftime('%d.%m.%Y %H:%M') + ' Uhr'],
-    ]
-    
-    if vereinbarung.arbeitszeit_typ:
-        vereinbarung_data.append(['Arbeitszeit-Typ:', vereinbarung.get_arbeitszeit_typ_display()])
-    
-    vereinbarung_data.extend([
-        ['Gültig ab:', vereinbarung.gueltig_ab.strftime('%d.%m.%Y')],
-        ['Gültig bis:', vereinbarung.gueltig_bis.strftime('%d.%m.%Y') if vereinbarung.gueltig_bis else 'unbefristet'],
-        ['Telearbeit:', 'Ja' if vereinbarung.telearbeit else 'Nein'],
-    ])
-    
-    if vereinbarung.genehmigt_von:
-        vereinbarung_data.extend([
-            ['Genehmigt von:', vereinbarung.genehmigt_von.get_full_name()],
-            ['Genehmigt am:', vereinbarung.genehmigt_am.strftime('%d.%m.%Y %H:%M') + ' Uhr'],
-        ])
-    
-    vereinbarung_table = Table(vereinbarung_data, colWidths=[5*cm, 10*cm])
-    vereinbarung_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#E8F5E9')),
-        ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#1a4d2e')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-    ]))
-    
-    story.append(vereinbarung_table)
-    story.append(Spacer(1, 0.7*cm))
-    
-    # Arbeitszeit-Details
-    if vereinbarung.wochenstunden:
-        story.append(Paragraph('Arbeitszeit', heading_style))
-        story.append(Paragraph(
-            f'<b>{vereinbarung.wochenstunden} Stunden pro Woche</b>',
-            normal_style
-        ))
-        story.append(Spacer(1, 0.5*cm))
-    
-    # Wochenverteilung (falls vorhanden)
-    if tagesarbeitszeiten.exists():
-        story.append(Paragraph('Wochenverteilung', heading_style))
-        
-        # Tabelle für Wochenverteilung
-        wochen_data = [['Wochentag', 'Arbeitszeit']]
-        
-        for tag in tagesarbeitszeiten:
-            wochen_data.append([
-                tag.get_wochentag_display(),
-                tag.formatierte_zeit
-            ])
-        
-        # Summe berechnen
-        if hasattr(vereinbarung, 'get_wochenstunden_summe') and vereinbarung.get_wochenstunden_summe:
-            wochen_data.append(['Summe pro Woche', vereinbarung.get_wochenstunden_summe])
-        
-        wochen_table = Table(wochen_data, colWidths=[7.5*cm, 7.5*cm])
-        wochen_table.setStyle(TableStyle([
-            # Header
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a4d2e')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
-            ('TOPPADDING', (0, 0), (-1, 0), 10),
-            
-            # Daten-Zeilen
-            ('ALIGN', (0, 1), (0, -2), 'LEFT'),
-            ('ALIGN', (1, 1), (1, -2), 'RIGHT'),
-            ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
-            ('TOPPADDING', (0, 1), (-1, -1), 8),
-            
-            # Summen-Zeile (letzte Zeile)
-            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#E8F5E9')),
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-            ('ALIGN', (1, -1), (1, -1), 'RIGHT'),
-            
-            # Grid
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ]))
-        
-        story.append(wochen_table)
-        story.append(Spacer(1, 0.7*cm))
-    
-    # Gültigkeitstext
-    gueltig_bis_text = vereinbarung.gueltig_bis.strftime('%d.%m.%Y') if vereinbarung.gueltig_bis else 'unbefristet'
-    story.append(Paragraph(
-        f'Diese Vereinbarung gilt vom {vereinbarung.gueltig_ab.strftime("%d.%m.%Y")} bis {gueltig_bis_text}.',
-        normal_style
-    ))
-    story.append(Spacer(1, 1*cm))
-    
-    # Bemerkungen (falls vorhanden)
-    if vereinbarung.bemerkungen:
-        story.append(Paragraph('Bemerkungen', heading_style))
-        story.append(Paragraph(vereinbarung.bemerkungen, normal_style))
-        story.append(Spacer(1, 0.5*cm))
-    
-    # Grußformel und Unterschrift
-    story.append(Spacer(1, 1*cm))
-    story.append(Paragraph('Mit freundlichen Grüßen', normal_style))
-    story.append(Spacer(1, 2*cm))
-    story.append(Paragraph('_______________________________', normal_style))
-    story.append(Paragraph('Unterschrift', normal_style))
-    
-    # Footer mit Erstellungsdatum
-    story.append(Spacer(1, 2*cm))
-    story.append(Paragraph(
-        f'<i>Erstellt am: {datetime.now().strftime("%d.%m.%Y um %H:%M Uhr")}</i>',
-        ParagraphStyle('Footer', parent=normal_style, fontSize=8, textColor=colors.grey)
-    ))
-    
-    # PDF erstellen
-    doc.build(story)
-    
-    # PDF als Download zurückgeben
-    buffer.seek(0)
-    response = HttpResponse(buffer.read(), content_type='application/pdf')
+    # Als Download zurückgeben
+    response = HttpResponse(pdf, content_type='application/pdf')
     filename = f"Arbeitszeitvereinbarung_{vereinbarung.mitarbeiter.nachname}_{vereinbarung.pk}.pdf"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    return response
     
     return response
 @login_required
