@@ -1,80 +1,141 @@
 """
 Django Views für Arbeitszeitverwaltung
 """
-from pydoc import doc
+import io
+from collections import defaultdict
+from datetime import datetime, date
+
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.db.models import Sum, Case, When, IntegerField
+from django.http import HttpResponse
+from django.template.loader import render_to_string
 from django.utils import timezone
-from django.db.models import Q, Sum
-from datetime import datetime, timedelta
+# WICHTIG: Import für den Template-Filter-Workaround
+from django.template.defaulttags import register
 
 from .models import (
-    Mitarbeiter, Arbeitszeitvereinbarung, Tagesarbeitszeit,
-    ArbeitszeitHistorie, Zeiterfassung, Urlaubsanspruch
+    Mitarbeiter,
+    Arbeitszeitvereinbarung,
+    Tagesarbeitszeit,
+    ArbeitszeitHistorie,
+    Zeiterfassung,
+    Urlaubsanspruch,
 )
-from .forms import ArbeitszeitvereinbarungForm, TagesarbeitszeitFormSet
-from django.contrib.auth import login
-from django.contrib.auth.models import User
-from django.shortcuts import render, redirect
-from django.contrib import messages
 from .forms import RegisterForm
-from .models import Mitarbeiter
 
+# --- CUSTOM TEMPLATE FILTER (WORKAROUND) ---
+@register.filter(name='mod')
+def mod(value, arg):
+    try:
+        return int(value) % int(arg)
+    except (ValueError, TypeError):
+        return 0
 
+# --- HELPER FUNKTIONEN ---
 
+def _get_wochentag_sortierung():
+    return Case(
+        When(wochentag='montag', then=1),
+        When(wochentag='dienstag', then=2),
+        When(wochentag='mittwoch', then=3),
+        When(wochentag='donnerstag', then=4),
+        When(wochentag='freitag', then=5),
+        When(wochentag='samstag', then=6),
+        When(wochentag='sonntag', then=7),
+        default=99,
+        output_field=IntegerField(),
+    )
 
+def zeitwert_to_str(minuten):
+    """Minuten in HH:MM umwandeln."""
+    if minuten is None:
+        return "0:00"
+    stunden = minuten // 60
+    rest_minuten = minuten % 60
+    return f"{stunden}:{rest_minuten:02d}"
+
+def get_zeitoptionen():
+    zeitoptionen = [{'value': 0, 'label': 'Frei'}]
+    for hour in range(2, 13):
+        for minute in range(0, 60, 15):
+            if hour == 12 and minute > 15:
+                break
+            value = hour * 60 + minute
+            label = f"{hour:02d}:{minute:02d}"
+            zeitoptionen.append({'value': value, 'label': label})
+    return zeitoptionen
+
+# --- VIEWS ---
+
+def vereinbarung_detail(request, pk):
+    vereinbarung = get_object_or_404(Arbeitszeitvereinbarung, pk=pk)
+
+    # Arbeitszeiten laden und sortieren
+    arbeitszeiten = vereinbarung.tagesarbeitszeiten.annotate(
+        sort_order=_get_wochentag_sortierung()
+    ).order_by('woche', 'sort_order')
+    
+    # Gruppieren
+    temp_grouped = defaultdict(list)
+    for ta in arbeitszeiten:
+        ta.display_zeit = zeitwert_to_str(ta.zeitwert)
+        temp_grouped[ta.woche].append(ta)
+
+    # Struktur für Template bauen: { woche: { 'tage': [...], 'summe': 'HH:MM' } }
+    wochen_daten = {}
+    for woche, tage in temp_grouped.items():
+        gesamt_minuten = sum(t.zeitwert for t in tage if t.zeitwert)
+        wochen_daten[woche] = {
+            'tage': tage,
+            'summe': zeitwert_to_str(gesamt_minuten)
+        }
+
+    historie = ArbeitszeitHistorie.objects.filter(vereinbarung=vereinbarung).order_by('aenderung_am')
+
+    context = {
+        'vereinbarung': vereinbarung,
+        'wochen_daten': wochen_daten, # Neuer Name für strukturierte Daten
+        'historie': historie,
+    }
+    return render(request, 'arbeitszeit/vereinbarung_detail.html', context)
 
 
 @login_required
 def dashboard(request):
-    """Dashboard mit Routing für verschiedene Rollen"""
-    
-    # Prüfe Mitarbeiter-Rolle
-    if hasattr(request.user, 'mitarbeiter'):
-        rolle = request.user.mitarbeiter.rolle
-        
-        # Sachbearbeiter → Admin-Dashboard
+    user = request.user
+    if hasattr(user, 'mitarbeiter'):
+        rolle = user.mitarbeiter.rolle
         if rolle == 'sachbearbeiter':
             return redirect('arbeitszeit:admin_dashboard')
-        
-        # Schichtplaner → Schichtplan-Dashboard
         if rolle == 'schichtplaner':
             return redirect('schichtplan:dashboard')
     
-    # Normale Mitarbeiter → Mitarbeiter-Dashboard
-    # Mitarbeiter-Profil holen oder erstellen
-    try:
-        mitarbeiter = request.user.mitarbeiter
-    except Mitarbeiter.DoesNotExist:
-        from datetime import date
-        mitarbeiter = Mitarbeiter.objects.create(
-            user=request.user,
-            personalnummer=f'MA{request.user.id:04d}',
-            vorname=request.user.first_name or 'Vorname',
-            nachname=request.user.last_name or 'Nachname',
-            abteilung='Allgemein',
-            standort='siegburg',
-            eintrittsdatum=date.today(),
-            aktiv=True
-        )
+    mitarbeiter, created = Mitarbeiter.objects.get_or_create(
+        user=user,
+        defaults={
+            'personalnummer': f'MA{user.id:04d}',
+            'vorname': user.first_name or 'Vorname',
+            'nachname': user.last_name or 'Nachname',
+            'abteilung': 'Allgemein',
+            'standort': 'siegburg',
+            'eintrittsdatum': date.today(),
+            'aktiv': True
+        }
+    )
+    if created:
         messages.info(request, "Ihr Mitarbeiter-Profil wurde erstellt.")
     
-    # Aktuelle Vereinbarung
     aktuelle_vereinbarung = mitarbeiter.get_aktuelle_vereinbarung()
+    letzte_erfassungen = mitarbeiter.zeiterfassungen.all().order_by('-datum')[:10]
     
-    # Letzte Zeiterfassungen
-    letzte_erfassungen = mitarbeiter.zeiterfassungen.all()[:10]
-    
-    # Urlaubsanspruch für aktuelles Jahr
     aktuelles_jahr = timezone.now().year
-    try:
-        urlaubsanspruch = mitarbeiter.urlaubsansprueche.get(jahr=aktuelles_jahr)
-    except Urlaubsanspruch.DoesNotExist:
-        urlaubsanspruch = None
+    urlaubsanspruch = mitarbeiter.urlaubsansprueche.filter(jahr=aktuelles_jahr).first()
     
-    # Alle Vereinbarungen
-    alle_vereinbarungen = mitarbeiter.arbeitszeitvereinbarungen.all()[:5]
+    alle_vereinbarungen = mitarbeiter.arbeitszeitvereinbarungen.all().order_by('-created_at')[:5]
     
     context = {
         'mitarbeiter': mitarbeiter,
@@ -82,162 +143,94 @@ def dashboard(request):
         'letzte_erfassungen': letzte_erfassungen,
         'urlaubsanspruch': urlaubsanspruch,
         'alle_vereinbarungen': alle_vereinbarungen,
-        'user': request.user,
+        'user': user,
     }
-       
     return render(request, 'arbeitszeit/dashboard.html', context)
 
 
 @login_required
 def vereinbarung_erstellen(request):
-    """Neue Arbeitszeitvereinbarung erstellen"""
     try:
         mitarbeiter = request.user.mitarbeiter
     except Mitarbeiter.DoesNotExist:
-        messages.error(request, "Sie sind keinem Mitarbeiter zugeordnet.")
-        return redirect('admin:index')
+        messages.error(request, "Kein Mitarbeiterprofil gefunden.")
+        return redirect('arbeitszeit:dashboard')
+
+    tage_list = ['montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag']
     
     if request.method == 'POST':
         antragsart = request.POST.get('antragsart')
-        
-        # Basisvereinbarung erstellen
-        vereinbarung = Arbeitszeitvereinbarung(
+        arbeitszeit_typ = request.POST.get('arbeitszeit_typ')
+        gueltig_ab = request.POST.get('gueltig_ab')
+        gueltig_bis = request.POST.get('gueltig_bis') or None
+        telearbeit = bool(request.POST.get('telearbeit'))
+
+        vereinbarung = Arbeitszeitvereinbarung.objects.create(
             mitarbeiter=mitarbeiter,
             antragsart=antragsart,
-            gueltig_ab=request.POST.get(f"{antragsart}_datum"),
-            telearbeit=request.POST.get(f"{antragsart}_telearbeit") == 'on',
+            arbeitszeit_typ=arbeitszeit_typ,
+            gueltig_ab=gueltig_ab,
+            gueltig_bis=gueltig_bis,
+            telearbeit=telearbeit,
             status='beantragt'
         )
-        
-        # WICHTIG: Bei Beendigung keine Arbeitszeit-Felder setzen!
-        if antragsart == 'beendigung':
-            # Bei Beendigung nur Beendigungsdatum setzen
-            vereinbarung.beendigung_beantragt = True
-            vereinbarung.beendigung_datum = vereinbarung.gueltig_ab
-        else:
-            # Nur bei NICHT-Beendigung Arbeitszeit-Felder verarbeiten
-            arbeitszeit_typ = request.POST.get('arbeitszeit_typ')
-            vereinbarung.arbeitszeit_typ = arbeitszeit_typ
-            
-            if arbeitszeit_typ == 'regelmaessig':
-                # Regelmäßige Arbeitszeit
-                prefix = antragsart
-                vereinbarung.wochenstunden = request.POST.get(f"{prefix}_stunden")
-        
-        vereinbarung.save()
-        
-        # Nur bei NICHT-Beendigung und individuell: Tagesarbeitszeiten speichern
-        if antragsart != 'beendigung' and request.POST.get('arbeitszeit_typ') == 'individuell':
-            prefix = antragsart
-            tage = ['montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag']
-            
-            for tag in tage:
-                zeitwert = request.POST.get(f"{prefix}_{tag}")
-                if zeitwert:
-                    Tagesarbeitszeit.objects.create(
-                        vereinbarung=vereinbarung,
-                        wochentag=tag,
-                        zeitwert=int(zeitwert)
-                    )
-        
-        # Gültigkeitsdatum (nur bei NICHT-Beendigung)
-        if antragsart != 'beendigung':
-            gueltig_bis = request.POST.get('gueltig_bis')
-            if gueltig_bis:
-                vereinbarung.gueltig_bis = gueltig_bis
-        
-        vereinbarung.save()
-        
-        # Historie erstellen
-        ArbeitszeitHistorie.objects.create(
-            vereinbarung=vereinbarung,
-            aenderung_durch=request.user,
-            alter_status='entwurf',
-            neuer_status='beantragt',
-            bemerkung=f'{vereinbarung.get_antragsart_display()} erstellt und beantragt'
-        )
-        
-        # Erfolgsmeldu ng angepasst an Antragsart
-        if antragsart == 'beendigung':
-            messages.success(request, 'Beendigung wurde erfolgreich beantragt.')
-        else:
-            messages.success(request, 'Arbeitszeitvereinbarung wurde erfolgreich beantragt.')
-        
-        return redirect('arbeitszeit:dashboard')
-    
-    context = {
-        'mitarbeiter': mitarbeiter,
-    }
-    
-    return render(request, 'arbeitszeit/vereinbarung_form.html', context)
 
-@login_required
-def vereinbarung_detail(request, pk):
-    """Details einer Arbeitszeitvereinbarung anzeigen"""
-    from django.db.models import Case, When, IntegerField
-    
-    try:
-        mitarbeiter = request.user.mitarbeiter
-    except Mitarbeiter.DoesNotExist:
-        messages.error(request, "Sie sind keinem Mitarbeiter zugeordnet.")
-        return redirect('admin:index')
-    
-    vereinbarung = get_object_or_404(
-        Arbeitszeitvereinbarung,
-        pk=pk,
-        mitarbeiter=mitarbeiter
-    )
-    
-    # Tagesarbeitszeiten mit korrekter Sortierung
-    tagesarbeitszeiten = vereinbarung.tagesarbeitszeiten.annotate(
-        sort_order=Case(
-            When(wochentag='montag', then=1),
-            When(wochentag='dienstag', then=2),
-            When(wochentag='mittwoch', then=3),
-            When(wochentag='donnerstag', then=4),
-            When(wochentag='freitag', then=5),
-            When(wochentag='samstag', then=6),
-            When(wochentag='sonntag', then=7),
-            default=99,
-            output_field=IntegerField(),
-        )
-    ).order_by('sort_order')
-    
-    # Historie laden
-    historie = vereinbarung.historie.all()
-    
-    context = {
-        'vereinbarung': vereinbarung,
-        'tagesarbeitszeiten': tagesarbeitszeiten,
-        'historie': historie,
-    }
-    
-    return render(request, 'arbeitszeit/vereinbarung_detail.html', context)
-    
-    # Historie laden
-    historie = vereinbarung.historie.all()
-    
-    context = {
-        'vereinbarung': vereinbarung,
-        'tagesarbeitszeiten': tagesarbeitszeiten,
-        'historie': historie,
-    }
-    
-    return render(request, 'arbeitszeit/vereinbarung_detail.html', context)
+        if arbeitszeit_typ == 'individuell':
+            week = 1
+            while True:
+                found_in_week = False
+                for tag in tage_list:
+                    key = f'neuantrag_{tag}_{week}'
+                    if key in request.POST:
+                        found_in_week = True
+                        zeitwert_str = request.POST.get(key)
+                        if zeitwert_str:
+                            try:
+                                stunden, minuten = map(int, zeitwert_str.split(':'))
+                                wert = stunden * 60 + minuten
+                                Tagesarbeitszeit.objects.create(
+                                    vereinbarung=vereinbarung,
+                                    wochentag=tag,
+                                    zeitwert=wert,
+                                    woche=week
+                                )
+                            except ValueError:
+                                continue
+                
+                if not found_in_week:
+                    break
+                week += 1
+        else:
+            try:
+                wochenstunden = float(request.POST.get('wochenstunden', 0))
+            except ValueError:
+                wochenstunden = 0
+            
+            minuten_pro_tag = int((wochenstunden * 60) / 5)
+            
+            for tag in tage_list:
+                Tagesarbeitszeit.objects.create(
+                    vereinbarung=vereinbarung,
+                    wochentag=tag,
+                    zeitwert=minuten_pro_tag,
+                    woche=1
+                )
+
+        messages.success(request, "Die Arbeitszeitvereinbarung wurde beantragt.")
+        return redirect('arbeitszeit:dashboard')
+
+    return render(request, 'arbeitszeit/vereinbarung_form.html', {'tage_list': tage_list})
 
 
 @login_required
 def vereinbarung_liste(request):
-    """Liste aller Vereinbarungen eines Mitarbeiters"""
     try:
         mitarbeiter = request.user.mitarbeiter
     except Mitarbeiter.DoesNotExist:
-        messages.error(request, "Sie sind keinem Mitarbeiter zugeordnet.")
-        return redirect('admin:index')
+        return redirect('arbeitszeit:dashboard')
     
-    vereinbarungen = mitarbeiter.arbeitszeitvereinbarungen.all()
+    vereinbarungen = mitarbeiter.arbeitszeitvereinbarungen.all().order_by('-created_at')
     
-    # Filter nach Status
     status_filter = request.GET.get('status')
     if status_filter:
         vereinbarungen = vereinbarungen.filter(status=status_filter)
@@ -247,184 +240,128 @@ def vereinbarung_liste(request):
         'vereinbarungen': vereinbarungen,
         'status_filter': status_filter,
     }
-    
     return render(request, 'arbeitszeit/vereinbarung_liste.html', context)
 
 
 @login_required
 def zeiterfassung_erstellen(request):
-    """Tageszeit erfassen"""
     try:
         mitarbeiter = request.user.mitarbeiter
     except Mitarbeiter.DoesNotExist:
-        messages.error(request, "Sie sind keinem Mitarbeiter zugeordnet.")
-        return redirect('admin:index')
+        return redirect('arbeitszeit:dashboard')
     
-    # Standarddatum: heute
     datum = request.POST.get('datum', timezone.now().date())
     
     if request.method == 'POST':
+        pause = request.POST.get('pause_minuten', '0')
+        if not pause.isdigit():
+            pause = 0
+            
         Zeiterfassung.objects.update_or_create(
             mitarbeiter=mitarbeiter,
             datum=datum,
             defaults={
                 'arbeitsbeginn': request.POST.get('arbeitsbeginn') or None,
                 'arbeitsende': request.POST.get('arbeitsende') or None,
-                'pause_minuten': int(request.POST.get('pause_minuten', 0)),
+                'pause_minuten': int(pause),
                 'art': request.POST.get('art', 'buero'),
                 'bemerkung': request.POST.get('bemerkung', ''),
             }
         )
-        
         messages.success(request, 'Zeiterfassung wurde gespeichert.')
         return redirect('arbeitszeit:zeiterfassung_uebersicht')
     
-    # Vorhandene Erfassung laden
-    try:
-        erfassung = Zeiterfassung.objects.get(mitarbeiter=mitarbeiter, datum=datum)
-    except Zeiterfassung.DoesNotExist:
-        erfassung = None
+    erfassung = Zeiterfassung.objects.filter(mitarbeiter=mitarbeiter, datum=datum).first()
     
     context = {
         'mitarbeiter': mitarbeiter,
         'datum': datum,
         'erfassung': erfassung,
     }
-    
     return render(request, 'arbeitszeit/zeiterfassung_form.html', context)
 
 
 @login_required
 def zeiterfassung_uebersicht(request):
-    """Übersicht der Zeiterfassungen"""
     try:
         mitarbeiter = request.user.mitarbeiter
     except Mitarbeiter.DoesNotExist:
-        messages.error(request, "Sie sind keinem Mitarbeiter zugeordnet.")
-        return redirect('admin:index')
+        return redirect('arbeitszeit:dashboard')
     
-    # Datum-Filter
     jahr = int(request.GET.get('jahr', timezone.now().year))
     monat = int(request.GET.get('monat', timezone.now().month))
     
-    # Erfassungen für den Monat
     erfassungen = mitarbeiter.zeiterfassungen.filter(
         datum__year=jahr,
         datum__month=monat
-    )
+    ).order_by('datum')
     
-    # Statistiken
-    gesamt_minuten = erfassungen.aggregate(
-        total=Sum('arbeitszeit_minuten')
-    )['total'] or 0
-    
-    gesamt_stunden = gesamt_minuten // 60
-    gesamt_min = gesamt_minuten % 60
+    gesamt_minuten = erfassungen.aggregate(total=Sum('arbeitszeit_minuten'))['total'] or 0
     
     context = {
         'mitarbeiter': mitarbeiter,
         'erfassungen': erfassungen,
         'jahr': jahr,
         'monat': monat,
-        'gesamt_arbeitszeit': f"{gesamt_stunden}:{gesamt_min:02d}h",
+        'gesamt_arbeitszeit': zeitwert_to_str(gesamt_minuten) + "h",
     }
-    
     return render(request, 'arbeitszeit/zeiterfassung_uebersicht.html', context)
 
 
-# Admin/Vorgesetzten-Views
+# --- ADMIN VIEWS ---
+
 @login_required
 def admin_dashboard(request):
-    """Admin Dashboard mit Übersicht und Statistiken"""
     if not request.user.is_staff:
         messages.error(request, "Sie haben keine Berechtigung für diese Seite.")
         return redirect('arbeitszeit:dashboard')
     
-    from django.utils import timezone
-    from datetime import datetime, timedelta
-    
-    # Statistiken sammeln
-    
-    # Offene Anträge
-    offene_antraege = Arbeitszeitvereinbarung.objects.filter(
-        status='beantragt'
-    ).count()
-    
-    # Gesamt Mitarbeiter
-    gesamt_mitarbeiter = Mitarbeiter.objects.filter(aktiv=True).count()
-    
-    # Genehmigte Vereinbarungen diesen Monat
     heute = timezone.now()
     monatsanfang = heute.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    genehmigte_vereinbarungen = Arbeitszeitvereinbarung.objects.filter(
-        status='genehmigt',
-        genehmigt_am__gte=monatsanfang
-    ).count()
     
-    # Aktive Vereinbarungen
-    aktive_vereinbarungen = Arbeitszeitvereinbarung.objects.filter(
-        status='aktiv'
-    ).count()
-    
-    # Letzte Aktivitäten (neueste Anträge)
-    letzte_aktivitaeten = Arbeitszeitvereinbarung.objects.filter(
-        created_at__gte=heute.replace(hour=0, minute=0, second=0, microsecond=0)
-    ).order_by('-created_at')[:5]
-    
-    # Mitarbeiter nach Standort
-    mitarbeiter_siegburg = Mitarbeiter.objects.filter(
-        aktiv=True,
-        standort='siegburg'
-    ).count()
-    
-    mitarbeiter_bonn = Mitarbeiter.objects.filter(
-        aktiv=True,
-        standort='bonn'
-    ).count()
-    
-    context = {
-        'offene_antraege': offene_antraege,
-        'gesamt_mitarbeiter': gesamt_mitarbeiter,
-        'genehmigte_vereinbarungen': genehmigte_vereinbarungen,
-        'aktive_vereinbarungen': aktive_vereinbarungen,
-        'letzte_aktivitaeten': letzte_aktivitaeten,
-        'mitarbeiter_siegburg': mitarbeiter_siegburg,
-        'mitarbeiter_bonn': mitarbeiter_bonn,
+    stats = {
+        'offene_antraege': Arbeitszeitvereinbarung.objects.filter(status='beantragt').count(),
+        'gesamt_mitarbeiter': Mitarbeiter.objects.filter(aktiv=True).count(),
+        'genehmigte_vereinbarungen': Arbeitszeitvereinbarung.objects.filter(
+            status='genehmigt', genehmigt_am__gte=monatsanfang
+        ).count(),
+        'aktive_vereinbarungen': Arbeitszeitvereinbarung.objects.filter(status='aktiv').count(),
+        'mitarbeiter_siegburg': Mitarbeiter.objects.filter(aktiv=True, standort='siegburg').count(),
+        'mitarbeiter_bonn': Mitarbeiter.objects.filter(aktiv=True, standort='bonn').count(),
     }
     
+    letzte_aktivitaeten = Arbeitszeitvereinbarung.objects.filter(
+        created_at__gte=heute.date()
+    ).select_related('mitarbeiter').order_by('-created_at')[:5]
+    
+    context = {**stats, 'letzte_aktivitaeten': letzte_aktivitaeten}
     return render(request, 'arbeitszeit/admin_dashboard.html', context)
+
 
 @login_required
 def admin_vereinbarungen_genehmigen(request):
-    """Liste offener UND aller Anträge zur Genehmigung"""
     if not request.user.is_staff:
-        messages.error(request, "Sie haben keine Berechtigung für diese Seite.")
         return redirect('arbeitszeit:dashboard')
     
-    # Offene Anträge
     offene_antraege = Arbeitszeitvereinbarung.objects.filter(
         status='beantragt'
     ).select_related('mitarbeiter').order_by('-created_at')
     
-    # Alle Vereinbarungen
-    alle_vereinbarungen = Arbeitszeitvereinbarung.objects.all(
-    ).select_related('mitarbeiter').order_by('-created_at')
+    alle_vereinbarungen = Arbeitszeitvereinbarung.objects.select_related(
+        'mitarbeiter'
+    ).order_by('-created_at')
     
     context = {
         'offene_antraege': offene_antraege,
         'alle_vereinbarungen': alle_vereinbarungen,
     }
-    
     return render(request, 'arbeitszeit/admin_vereinbarungen.html', context)
 
 
 @login_required
 def admin_vereinbarung_genehmigen(request, pk):
-    """Einzelne Vereinbarung genehmigen oder ablehnen"""
-    from django.db.models import Case, When, IntegerField
-    
+    """Einzelne Vereinbarung genehmigen (Detailansicht für Admin)"""
     if not request.user.is_staff:
-        messages.error(request, "Sie haben keine Berechtigung für diese Aktion.")
         return redirect('arbeitszeit:dashboard')
     
     vereinbarung = get_object_or_404(Arbeitszeitvereinbarung, pk=pk)
@@ -432,7 +369,6 @@ def admin_vereinbarung_genehmigen(request, pk):
     if request.method == 'POST':
         aktion = request.POST.get('aktion')
         bemerkung = request.POST.get('bemerkung', '')
-        
         alter_status = vereinbarung.status
         
         if aktion == 'genehmigen':
@@ -440,18 +376,15 @@ def admin_vereinbarung_genehmigen(request, pk):
             vereinbarung.genehmigt_von = request.user
             vereinbarung.genehmigt_am = timezone.now()
             messages.success(request, 'Vereinbarung wurde genehmigt.')
-        
         elif aktion == 'aktivieren':
             vereinbarung.status = 'aktiv'
             messages.success(request, 'Vereinbarung wurde aktiviert.')
-        
         elif aktion == 'ablehnen':
             vereinbarung.status = 'abgelehnt'
             messages.warning(request, 'Vereinbarung wurde abgelehnt.')
         
         vereinbarung.save()
         
-        # Historie erstellen
         ArbeitszeitHistorie.objects.create(
             vereinbarung=vereinbarung,
             aenderung_durch=request.user,
@@ -459,85 +392,69 @@ def admin_vereinbarung_genehmigen(request, pk):
             neuer_status=vereinbarung.status,
             bemerkung=bemerkung
         )
-        
         return redirect('arbeitszeit:admin_vereinbarungen')
     
-    # Tagesarbeitszeiten mit korrekter Sortierung
+    # Sortierung mittels Helper
     tagesarbeitszeiten = vereinbarung.tagesarbeitszeiten.annotate(
-        sort_order=Case(
-            When(wochentag='montag', then=1),
-            When(wochentag='dienstag', then=2),
-            When(wochentag='mittwoch', then=3),
-            When(wochentag='donnerstag', then=4),
-            When(wochentag='freitag', then=5),
-            When(wochentag='samstag', then=6),
-            When(wochentag='sonntag', then=7),
-            default=99,
-            output_field=IntegerField(),
-        )
-    ).order_by('sort_order')
+        sort_order=_get_wochentag_sortierung()
+    ).order_by('woche', 'sort_order')
+    
+    temp_grouped = defaultdict(list)
+    for tag in tagesarbeitszeiten:
+        tag.display_zeit = zeitwert_to_str(tag.zeitwert)
+        temp_grouped[tag.woche].append(tag)
+    
+    # Auch hier: Strukturierte Daten mit Summe
+    wochen_daten = {}
+    for woche, tage in temp_grouped.items():
+        gesamt_minuten = sum(t.zeitwert for t in tage if t.zeitwert)
+        wochen_daten[woche] = {
+            'tage': tage,
+            'summe': zeitwert_to_str(gesamt_minuten)
+        }
     
     context = {
         'vereinbarung': vereinbarung,
-        'tagesarbeitszeiten': tagesarbeitszeiten,
+        'wochen_daten': wochen_daten,
+        'zeitoptionen': get_zeitoptionen(),
     }
-    
     return render(request, 'arbeitszeit/admin_vereinbarung_detail.html', context)
 
 
 @login_required
 def mitarbeiter_uebersicht(request):
-    """Übersicht aller Mitarbeiter (nur für Vorgesetzte)"""
+    is_schichtplaner = hasattr(request.user, 'mitarbeiter') and request.user.mitarbeiter.rolle == 'schichtplaner'
     
-    # Berechtigung prüfen
-    if not request.user.is_staff:
-        # Prüfe ob Schichtplaner
-        if not (hasattr(request.user, 'mitarbeiter') and 
-                request.user.mitarbeiter.rolle == 'schichtplaner'):
-            messages.error(request, "Sie haben keine Berechtigung für diese Seite.")
-            return redirect('arbeitszeit:dashboard')
+    if not (request.user.is_staff or is_schichtplaner):
+        messages.error(request, "Keine Berechtigung.")
+        return redirect('arbeitszeit:dashboard')
     
-    # Mitarbeiter filtern
-    if request.user.is_staff:
-        # Admins sehen alle Mitarbeiter
-        mitarbeiter_liste = Mitarbeiter.objects.filter(aktiv=True)
-    else:
-        # Schichtplaner sehen nur ihre eigene Abteilung
+    mitarbeiter_liste = Mitarbeiter.objects.filter(aktiv=True)
+    
+    if not request.user.is_staff and is_schichtplaner:
         eigene_abteilung = request.user.mitarbeiter.abteilung
-        mitarbeiter_liste = Mitarbeiter.objects.filter(
-            aktiv=True,
-            abteilung=eigene_abteilung
-        )
+        mitarbeiter_liste = mitarbeiter_liste.filter(abteilung=eigene_abteilung)
     
-    # Filter nach Abteilung (für Admins)
     abteilung_filter = request.GET.get('abteilung')
+    standort_filter = request.GET.get('standort')
+    
     if abteilung_filter and request.user.is_staff:
         mitarbeiter_liste = mitarbeiter_liste.filter(abteilung=abteilung_filter)
     
-    # Filter nach Standort
-    standort_filter = request.GET.get('standort')
     if standort_filter:
         mitarbeiter_liste = mitarbeiter_liste.filter(standort=standort_filter)
 
     context = {
         'mitarbeiter_liste': mitarbeiter_liste,
-        'mitarbeiter': mitarbeiter_liste,  # ← Für Kompatibilität hinzufügen
         'abteilung_filter': abteilung_filter,
         'standort_filter': standort_filter,
-        'anzahl_siegburg': mitarbeiter_liste.filter(standort='siegburg').count(),  # ← NEU
-        'anzahl_bonn': mitarbeiter_liste.filter(standort='bonn').count(),  # ← NEU
+        'anzahl_siegburg': mitarbeiter_liste.filter(standort='siegburg').count(),
+        'anzahl_bonn': mitarbeiter_liste.filter(standort='bonn').count(),
     }
-        
     return render(request, 'arbeitszeit/mitarbeiter_uebersicht.html', context)
-
-from django.contrib.auth import login
-from django.contrib.auth.models import User
-from .forms import RegisterForm
-
 
 
 def register(request):
-    """Registrierungsansicht für neue Benutzer"""
     if request.user.is_authenticated:
         return redirect('arbeitszeit:dashboard')
 
@@ -545,7 +462,6 @@ def register(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             try:
-                # Benutzer erstellen
                 user = User.objects.create_user(
                     username=form.cleaned_data['username'],
                     email=form.cleaned_data['email'],
@@ -553,8 +469,7 @@ def register(request):
                     first_name=form.cleaned_data['vorname'],
                     last_name=form.cleaned_data['nachname'],
                 )
-
-                # Mitarbeiter erstellen
+                
                 Mitarbeiter.objects.create(
                     user=user,
                     personalnummer=form.cleaned_data['personalnummer'],
@@ -565,8 +480,7 @@ def register(request):
                     eintrittsdatum=form.cleaned_data['eintrittsdatum'],
                     aktiv=True
                 )
-
-                # Automatisch einloggen
+                
                 login(request, user)
                 messages.success(request, 'Registrierung erfolgreich! Willkommen!')
                 return redirect('arbeitszeit:dashboard')
@@ -579,313 +493,255 @@ def register(request):
         form = RegisterForm()
 
     return render(request, 'arbeitszeit/register.html', {'form': form})
+
+
 @login_required
 def admin_vereinbarung_loeschen(request, pk):
-    """Vereinbarung löschen (nur für Vorgesetzte)"""
     if not request.user.is_staff:
-        messages.error(request, "Sie haben keine Berechtigung für diese Aktion.")
+        messages.error(request, "Keine Berechtigung.")
         return redirect('arbeitszeit:dashboard')
     
     vereinbarung = get_object_or_404(Arbeitszeitvereinbarung, pk=pk)
     
     if request.method == 'POST':
-        mitarbeiter_name = vereinbarung.mitarbeiter.vollname
-        antragsart = vereinbarung.get_antragsart_display()
-        
-        # Lösche die Vereinbarung
+        name = vereinbarung.mitarbeiter.vollname
+        art = vereinbarung.get_antragsart_display()
         vereinbarung.delete()
-        
-        messages.success(
-            request, 
-            f'Vereinbarung von {mitarbeiter_name} ({antragsart}) wurde erfolgreich gelöscht.'
-        )
-        
-        return redirect('arbeitszeit:admin_vereinbarungen')
+        messages.success(request, f'Vereinbarung von {name} ({art}) wurde gelöscht.')
     
-    # Falls GET-Request, redirect zur Übersicht
     return redirect('arbeitszeit:admin_vereinbarungen')
 
 
 @login_required
 def admin_vereinbarung_docx_export(request, pk):
-    """Generiert ein DOCX-Dokument für eine Arbeitszeitvereinbarung - NUR Python"""
-    from django.http import HttpResponse
-    from django.db.models import Case, When, IntegerField
-    from docx import Document
-    from docx.shared import Pt, Inches, RGBColor
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
-    from docx.oxml.ns import qn
-    from docx.oxml import OxmlElement
-    import io
-    
+    """Generiert ein DOCX-Dokument mit Wochen-Gruppierung."""
+    try:
+        from docx import Document
+        from docx.shared import Pt, Inches, RGBColor
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+    except ImportError:
+        messages.error(request, "Das Modul 'python-docx' ist nicht installiert.")
+        return redirect('arbeitszeit:admin_vereinbarung_genehmigen', pk=pk)
+
     if not request.user.is_staff:
-        messages.error(request, "Sie haben keine Berechtigung für diese Aktion.")
         return redirect('arbeitszeit:dashboard')
     
     vereinbarung = get_object_or_404(Arbeitszeitvereinbarung, pk=pk)
     
-    # Tagesarbeitszeiten mit korrekter Sortierung
+    # 1. Laden und Sortieren
     tagesarbeitszeiten = vereinbarung.tagesarbeitszeiten.annotate(
-        sort_order=Case(
-            When(wochentag='montag', then=1),
-            When(wochentag='dienstag', then=2),
-            When(wochentag='mittwoch', then=3),
-            When(wochentag='donnerstag', then=4),
-            When(wochentag='freitag', then=5),
-            When(wochentag='samstag', then=6),
-            When(wochentag='sonntag', then=7),
-            default=99,
-            output_field=IntegerField(),
-        )
-    ).order_by('sort_order')
+        sort_order=_get_wochentag_sortierung()
+    ).order_by('woche', 'sort_order')
     
-    # Dokument erstellen
+    # 2. Gruppieren nach Wochen
+    from collections import defaultdict
+    wochen_daten = defaultdict(list)
+    for tag in tagesarbeitszeiten:
+        wochen_daten[tag.woche].append(tag)
+    
+    # --- DOKUMENT START ---
     doc = Document()
     
-    # Seitenränder (A4, 1 Zoll Ränder)
-    sections = doc.sections
-    for section in sections:
-        section.page_height = Inches(11.69)  # A4 Höhe
-        section.page_width = Inches(8.27)    # A4 Breite
-        section.top_margin = Inches(1)
-        section.bottom_margin = Inches(1)
-        section.left_margin = Inches(1)
-        section.right_margin = Inches(1)
+    # Layout
+    section = doc.sections[0]
+    section.page_height = Inches(11.69) # A4
+    section.page_width = Inches(8.27)
+    section.top_margin = Inches(1)
     
-    # Standard-Schriftart
     style = doc.styles['Normal']
-    font = style.font
-    font.name = 'Arial'
-    font.size = Pt(12)
+    style.font.name = 'Arial'
+    style.font.size = Pt(11)
     
-    # Leerzeilen für Anschrift (3-4 Zeilen)
-    for i in range(4):
-        doc.add_paragraph()
+    # Kopfbereich (Leerzeilen)
+    for _ in range(4): doc.add_paragraph()
     
-    # Betreff (fett)
-    betreff_text = 'Flexible Arbeitszeit'
-    if vereinbarung.antragsart == 'weiterbewilligung':
-        betreff_text += ' - Weiterbewilligung'
-    elif vereinbarung.antragsart == 'verringerung':
-        betreff_text += ' - Verringerung'
-    elif vereinbarung.antragsart == 'erhoehung':
-        betreff_text += ' - Erhöhung'
-    elif vereinbarung.antragsart == 'beendigung':
-        betreff_text += ' - Beendigung'
+    # Betreff
+    betreff_suffix = {
+        'weiterbewilligung': ' - Weiterbewilligung',
+        'verringerung': ' - Verringerung',
+        'erhoehung': ' - Erhöhung',
+        'beendigung': ' - Beendigung'
+    }.get(vereinbarung.antragsart, '')
     
     p = doc.add_paragraph()
-    run = p.add_run(f'Betreff: {betreff_text}')
+    run = p.add_run(f'Betreff: Flexible Arbeitszeit{betreff_suffix}')
     run.bold = True
     run.font.size = Pt(12)
     
-    doc.add_paragraph()  # Leerzeile
+    doc.add_paragraph()
     
-    # Antragsart (größer und fett)
-    p = doc.add_paragraph()
-    run = p.add_run(vereinbarung.get_antragsart_display())
-    run.bold = True
-    run.font.size = Pt(14)
+    # Stammdaten kurz auflisten
+    doc.add_paragraph(f"Mitarbeiter: {vereinbarung.mitarbeiter.vollname}")
+    doc.add_paragraph(f"Antragsart: {vereinbarung.get_antragsart_display()}")
     
-    # Wochensumme
-    if vereinbarung.wochenstunden:
-        wochensumme_text = f'{vereinbarung.wochenstunden} Stunden pro Woche'
-    else:
-        wochensumme_text = 'Individuelle Wochenverteilung'
-
-    doc.add_paragraph(wochensumme_text)
-
-        
-    # Gültigkeit
     gueltig_bis = vereinbarung.gueltig_bis.strftime('%d.%m.%Y') if vereinbarung.gueltig_bis else 'unbefristet'
     doc.add_paragraph(f'Gültig: {vereinbarung.gueltig_ab.strftime("%d.%m.%Y")} bis {gueltig_bis}')
     
-    doc.add_paragraph()  # Leerzeile
+    doc.add_paragraph('\nSehr geehrte Damen und Herren,\n')
+    doc.add_paragraph('hiermit wird die folgende Arbeitszeitvereinbarung getroffen:\n')
     
-    # Anrede
-    doc.add_paragraph('Sehr geehrte Damen und Herren,')
-    doc.add_paragraph()
-    
-    # Einleitungstext
-    doc.add_paragraph('hiermit wird die folgende Arbeitszeitvereinbarung getroffen:')
-    doc.add_paragraph()
-    
-    # Wenn Tagesarbeitszeiten vorhanden, Tabelle erstellen
-    if tagesarbeitszeiten.exists():
-        # Überschrift
+    # --- WOCHENVERTEILUNG GENERIEREN ---
+    if wochen_daten:
         p = doc.add_paragraph()
-        run = p.add_run('Wochenverteilung:')
-        run.bold = True
+        p.add_run('Wochenverteilung:').bold = True
         
-        # Tabelle erstellen
-        table = doc.add_table(rows=1, cols=2)
-        table.style = 'Light Grid Accent 1'
-        
-        # Header-Zeile
-        hdr_cells = table.rows[0].cells
-        hdr_cells[0].text = 'Wochentag'
-        hdr_cells[1].text = 'Arbeitszeit'
-        
-        # Header formatieren (grün, weiß, fett)
-        for cell in hdr_cells:
-            # Hintergrundfarbe grün
-            shading_elm = OxmlElement('w:shd')
-            shading_elm.set(qn('w:fill'), '1a4d2e')
-            cell._element.get_or_add_tcPr().append(shading_elm)
+        # Schleife über die Wochen (Woche 1, Woche 2, etc.)
+        for woche in sorted(wochen_daten.keys()):
+            tage = wochen_daten[woche]
             
-            # Text weiß und fett
-            for paragraph in cell.paragraphs:
-                for run in paragraph.runs:
-                    run.font.color.rgb = RGBColor(255, 255, 255)
-                    run.bold = True
-        
-        # Rechtsbündig für "Arbeitszeit"
-        hdr_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        
-        # Daten-Zeilen
-        for tag in tagesarbeitszeiten:
-            row_cells = table.add_row().cells
-            row_cells[0].text = tag.get_wochentag_display()
-            row_cells[1].text = tag.formatierte_zeit
-            row_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        
-        # Summen-Zeile (falls vorhanden)
-        if hasattr(vereinbarung, 'get_wochenstunden_summe') and vereinbarung.get_wochenstunden_summe:
-            row_cells = table.add_row().cells
-            row_cells[0].text = 'Summe pro Woche'
-            row_cells[1].text = vereinbarung.get_wochenstunden_summe
+            # Überschrift für die Woche
+            p = doc.add_paragraph()
+            run = p.add_run(f"Woche {woche}")
+            run.bold = True
+            run.font.color.rgb = RGBColor(26, 77, 46) # Dunkelgrün
             
-            # Formatierung: fett und hellgrüner Hintergrund
+            # Tabelle erstellen
+            table = doc.add_table(rows=1, cols=2)
+            table.style = 'Table Grid'
+            
+            # Header Zeile
+            hdr_cells = table.rows[0].cells
+            hdr_cells[0].text = 'Wochentag'
+            hdr_cells[1].text = 'Arbeitszeit'
+            
+            # Header Styling (Grüner Hintergrund)
+            for cell in hdr_cells:
+                shading_elm = OxmlElement('w:shd')
+                shading_elm.set(qn('w:fill'), '1a4d2e')
+                cell._element.get_or_add_tcPr().append(shading_elm)
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.color.rgb = RGBColor(255, 255, 255)
+                        run.bold = True
+            
+            hdr_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            
+            # Datenzeilen
+            wochen_summe = 0
+            for tag in tage:
+                row_cells = table.add_row().cells
+                row_cells[0].text = tag.get_wochentag_display()
+                row_cells[1].text = zeitwert_to_str(tag.zeitwert) + " h"
+                row_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+                
+                if tag.zeitwert:
+                    wochen_summe += tag.zeitwert
+
+            # Summenzeile pro Woche hinzufügen
+            row_cells = table.add_row().cells
+            row_cells[0].text = "Summe"
+            row_cells[1].text = zeitwert_to_str(wochen_summe) + " h"
+            
+            # Summenzeile fett machen & Hintergrund grau
             for cell in row_cells:
                 shading_elm = OxmlElement('w:shd')
-                shading_elm.set(qn('w:fill'), 'E8F5E9')
+                shading_elm.set(qn('w:fill'), 'F0F0F0') # Hellgrau
                 cell._element.get_or_add_tcPr().append(shading_elm)
-                
                 for paragraph in cell.paragraphs:
                     for run in paragraph.runs:
                         run.bold = True
-            
             row_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        
-        doc.add_paragraph()  # Leerzeile nach Tabelle
-    
-    # Gültigkeitstext
+
+            doc.add_paragraph() # Abstand zur nächsten Woche
+            
+    # --- ENDE DOKUMENT ---
+
     doc.add_paragraph(f'Diese Vereinbarung gilt vom {vereinbarung.gueltig_ab.strftime("%d.%m.%Y")} bis {gueltig_bis}.')
-    doc.add_paragraph()
+    doc.add_paragraph('\nMit freundlichen Grüßen\n\n\n_______________________________\nUnterschrift')
     
-    # Grußformel
-    doc.add_paragraph()
-    doc.add_paragraph('Mit freundlichen Grüßen')
-    doc.add_paragraph()
-    doc.add_paragraph()
-    doc.add_paragraph()
-    
-    # Unterschriftenfeld
-    p = doc.add_paragraph('_______________________________')
-    p = doc.add_paragraph('Unterschrift')
-    
-    # Dokument in Memory speichern
     file_stream = io.BytesIO()
     doc.save(file_stream)
     file_stream.seek(0)
     
-    # Als Download zurückgeben
     response = HttpResponse(
         file_stream.read(),
         content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     )
-    filename = f"Arbeitszeitvereinbarung_{vereinbarung.mitarbeiter.nachname}_{vereinbarung.pk}.docx"
+    filename = f"Arbeitszeit_{vereinbarung.mitarbeiter.nachname}_{vereinbarung.pk}.docx"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    
     return response
+
+
 @login_required
 def admin_vereinbarung_pdf_export(request, pk):
-    """Generiert ein PDF mit WeasyPrint (Render-kompatibel)"""
-    from django.http import HttpResponse
-    from django.template.loader import render_to_string
-    from weasyprint import HTML
-    from django.db.models import Case, When, IntegerField
-    
+    try:
+        from weasyprint import HTML
+    except ImportError:
+        messages.error(request, "Das Modul 'weasyprint' ist nicht installiert.")
+        return redirect('arbeitszeit:admin_vereinbarung_genehmigen', pk=pk)
+
     if not request.user.is_staff:
-        messages.error(request, "Keine Berechtigung.")
         return redirect('arbeitszeit:dashboard')
     
     vereinbarung = get_object_or_404(Arbeitszeitvereinbarung, pk=pk)
     
-    # Tagesarbeitszeiten mit korrekter Sortierung
+    # Daten laden und sortieren
     tagesarbeitszeiten = vereinbarung.tagesarbeitszeiten.annotate(
-        sort_order=Case(
-            When(wochentag='montag', then=1),
-            When(wochentag='dienstag', then=2),
-            When(wochentag='mittwoch', then=3),
-            When(wochentag='donnerstag', then=4),
-            When(wochentag='freitag', then=5),
-            When(wochentag='samstag', then=6),
-            When(wochentag='sonntag', then=7),
-            default=99,
-            output_field=IntegerField(),
-        )
-    ).order_by('sort_order')
+        sort_order=_get_wochentag_sortierung()
+    ).order_by('woche', 'sort_order')
     
-    # Context für Template
+    # DATEN GRUPPIEREN (Wichtig für die "Kästen" pro Woche)
+    from collections import defaultdict
+    temp_grouped = defaultdict(list)
+    
+    for tag in tagesarbeitszeiten:
+        # Zeit für Anzeige vorbereiten
+        tag.display_zeit = zeitwert_to_str(tag.zeitwert)
+        temp_grouped[tag.woche].append(tag)
+    
+    # Strukturierte Daten mit Summen erstellen
+    wochen_daten = {}
+    # sorted(temp_grouped.keys()) sorgt dafür, dass Woche 1 vor Woche 2 kommt
+    for woche in sorted(temp_grouped.keys()):
+        tage = temp_grouped[woche]
+        gesamt_minuten = sum(t.zeitwert for t in tage if t.zeitwert)
+        wochen_daten[woche] = {
+            'tage': tage,
+            'summe': zeitwert_to_str(gesamt_minuten)
+        }
+    
     context = {
         'vereinbarung': vereinbarung,
-        'tagesarbeitszeiten': tagesarbeitszeiten,
+        'wochen_daten': wochen_daten,  # Das ist neu für das PDF
     }
     
-    # Rendere HTML aus Template
     html_string = render_to_string('arbeitszeit/pdf_vereinbarung.html', context)
-    
-    # Konvertiere zu PDF
     html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
     pdf = html.write_pdf()
     
-    # Als Download zurückgeben
     response = HttpResponse(pdf, content_type='application/pdf')
-    filename = f"Arbeitszeitvereinbarung_{vereinbarung.mitarbeiter.nachname}_{vereinbarung.pk}.pdf"
+    filename = f"Arbeitszeit_{vereinbarung.mitarbeiter.nachname}_{vereinbarung.pk}.pdf"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    
     return response
-    
-    return response
+
+
 @login_required
 def mitarbeiter_detail(request, pk):
-    """Detail/Bearbeiten eines Mitarbeiters"""
     mitarbeiter = get_object_or_404(Mitarbeiter, pk=pk)
     
-    # Berechtigung prüfen
-    if not (request.user.is_staff or 
-            (hasattr(request.user, 'mitarbeiter') and 
-             request.user.mitarbeiter.rolle == 'schichtplaner')):
+    is_schichtplaner = hasattr(request.user, 'mitarbeiter') and request.user.mitarbeiter.rolle == 'schichtplaner'
+    if not (request.user.is_staff or is_schichtplaner):
         messages.error(request, "Keine Berechtigung.")
         return redirect('arbeitszeit:dashboard')
     
     if request.method == 'POST':
-        # Basis
         mitarbeiter.schichtplan_kennung = request.POST.get('schichtplan_kennung', '')
         mitarbeiter.kann_tagschicht = 'kann_tagschicht' in request.POST
         mitarbeiter.kann_nachtschicht = 'kann_nachtschicht' in request.POST
+        mitarbeiter.nachtschicht_nur_wochenende = 'nachtschicht_nur_wochenende' in request.POST
+        mitarbeiter.nur_zusatzdienste_wochentags = 'nur_zusatzdienste_wochentags' in request.POST
+        mitarbeiter.verfuegbarkeit = request.POST.get('verfuegbarkeit', 'voll')
+        mitarbeiter.schichtplan_einschraenkungen = request.POST.get('schichtplan_einschraenkungen', '')
         
-        # NEU: Wochenenden
         try:
             mitarbeiter.max_wochenenden_pro_monat = int(request.POST.get('max_wochenenden_pro_monat', 4))
         except ValueError:
             mitarbeiter.max_wochenenden_pro_monat = 4
         
-        # NEU: Spezielle Regeln
-        mitarbeiter.nachtschicht_nur_wochenende = 'nachtschicht_nur_wochenende' in request.POST
-        mitarbeiter.nur_zusatzdienste_wochentags = 'nur_zusatzdienste_wochentags' in request.POST
-        
-        # NEU: Verfügbarkeit
-        mitarbeiter.verfuegbarkeit = request.POST.get('verfuegbarkeit', 'voll')
-        
-        # NEU: Freitext
-        mitarbeiter.schichtplan_einschraenkungen = request.POST.get('schichtplan_einschraenkungen', '')
-        
         mitarbeiter.save()
-        
-        messages.success(request, f"✅ {mitarbeiter.vollname} aktualisiert!")
+        messages.success(request, f"Mitarbeiter {mitarbeiter.vollname} aktualisiert!")
         return redirect('schichtplan:mitarbeiter_uebersicht')
     
-    return render(request, 'arbeitszeit/mitarbeiter_detail.html', {
-        'mitarbeiter': mitarbeiter
-    })
+    return render(request, 'arbeitszeit/mitarbeiter_detail.html', {'mitarbeiter': mitarbeiter})

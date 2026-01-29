@@ -2,581 +2,301 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neue Arbeitszeitvereinbarung</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #1a4d2e;
-            --primary-light: #2d6a4f;
-            --accent: #f77f00;
-            --bg: #faf9f6;
-            --card-bg: #ffffff;
-            --text: #1f2421;
-            --text-secondary: #52796f;
-            --border: #d6e4df;
-            --success: #28a745;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-        }
-
-        .header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            color: white;
-            padding: 1.5rem 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .header-content {
-            max-width: 1000px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-family: 'Fraunces', serif;
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-
-        .nav-link {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            transition: opacity 0.2s;
-        }
-
-        .nav-link:hover {
-            opacity: 0.8;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .page-title {
-            font-family: 'Fraunces', serif;
-            font-size: 2.5rem;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .page-subtitle {
-            color: var(--text-secondary);
-            margin-bottom: 2rem;
-            font-size: 1.1rem;
-        }
-
-        .form-card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            margin-bottom: 1.5rem;
-        }
-
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid var(--border);
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-            color: var(--text);
-        }
-
-        .required {
-            color: #dc3545;
-        }
-
-        .help-text {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-top: 0.25rem;
-        }
-
-        .radio-group, .checkbox-group {
-            display: grid;
-            gap: 1rem;
-        }
-
-        .radio-option, .checkbox-option {
-            display: flex;
-            align-items: flex-start;
-            padding: 1rem;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .radio-option:hover, .checkbox-option:hover {
-            border-color: var(--primary);
-            background: rgba(26, 77, 46, 0.02);
-        }
-
-        .radio-option input[type="radio"],
-        .checkbox-option input[type="checkbox"] {
-            margin-right: 1rem;
-            width: 20px;
-            height: 20px;
-            accent-color: var(--primary);
-            cursor: pointer;
-        }
-
-        .option-content {
-            flex: 1;
-        }
-
-        .option-title {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-        }
-
-        .input-field {
-            width: 100%;
-            padding: 0.75rem;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            font-size: 1rem;
-            font-family: 'DM Sans', sans-serif;
-            transition: border-color 0.2s;
-        }
-
-        .input-field:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .days-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-
-        .day-input {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .day-label {
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-        }
-
-        select.input-field {
-            cursor: pointer;
-        }
-
-        .conditional-section {
-            display: none;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px dashed var(--border);
-        }
-
-        .conditional-section.active {
-            display: block;
-        }
-
-        .form-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-            margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 2px solid var(--border);
-        }
-
-        .btn {
-            padding: 0.875rem 2rem;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-light);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(26, 77, 46, 0.3);
-        }
-
-        .btn-secondary {
-            background: var(--border);
-            color: var(--text);
-        }
-
-        .btn-secondary:hover {
-            background: #c0d4cc;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
-            }
-
-            .page-title {
-                font-size: 2rem;
-            }
-
-            .form-card {
-                padding: 1.5rem;
-            }
-
-            .days-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .form-actions {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neue Arbeitszeitvereinbarung</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600&display=swap" rel="stylesheet">
+<style>
+/* --- Styles wie vorher, keine Änderungen nötig --- */
+body { font-family: 'DM Sans', sans-serif; background: #faf9f6; color: #1f2421; min-height: 100vh;}
+.header {background: linear-gradient(135deg,#1a4d2e 0%,#2d6a4f 100%);color:white;padding:1.5rem 2rem;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.header-content {max-width:1000px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;}
+.logo {font-family:'Fraunces',serif;font-size:1.5rem;font-weight:600;}
+.nav-link {color:white;text-decoration:none;font-weight:500;transition:opacity 0.2s;}
+.nav-link:hover {opacity:0.8;}
+.container {max-width:900px;margin:0 auto;padding:2rem;}
+.page-title {font-family:'Fraunces',serif;font-size:2.5rem;color:#1a4d2e;margin-bottom:0.5rem;}
+.page-subtitle {color:#52796f;margin-bottom:2rem;font-size:1.1rem;}
+.form-card {background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.08);margin-bottom:1.5rem;}
+.section-title {font-size:1.25rem;font-weight:600;color:#1a4d2e;margin-bottom:1.5rem;padding-bottom:0.75rem;border-bottom:2px solid #d6e4df;}
+.form-group {margin-bottom:1.5rem;}
+.form-label {display:block;font-weight:600;margin-bottom:0.75rem;color:#1f2421;}
+.required {color:#dc3545;}
+.help-text {font-size:0.875rem;color:#52796f;margin-top:0.25rem;}
+.radio-group,.checkbox-group {display:grid;gap:1rem;}
+.radio-option,.checkbox-option {display:flex;align-items:flex-start;padding:1rem;border:2px solid #d6e4df;border-radius:8px;cursor:pointer;transition:all 0.2s;}
+.radio-option:hover,.checkbox-option:hover {border-color:#1a4d2e;background:rgba(26,77,46,0.02);}
+.radio-option input[type="radio"],.checkbox-option input[type="checkbox"] {margin-right:1rem;width:20px;height:20px;accent-color:#1a4d2e;cursor:pointer;}
+.option-content {flex:1;}
+.option-title {font-weight:600;margin-bottom:0.25rem;}
+.input-field {width:100%;padding:0.75rem;border:2px solid #d6e4df;border-radius:8px;font-size:1rem;font-family:'DM Sans',sans-serif;transition:border-color 0.2s;}
+.input-field:focus {outline:none;border-color:#1a4d2e;}
+.form-actions {display:flex;gap:1rem;justify-content:flex-end;margin-top:2rem;padding-top:2rem;border-top:2px solid #d6e4df;}
+.btn {padding:0.875rem 2rem;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;}
+.btn-primary {background:#1a4d2e;color:white;}
+.btn-primary:hover {background:#2d6a4f;transform:translateY(-2px);box-shadow:0 4px 12px rgba(26,77,46,0.3);}
+.btn-secondary {background:#d6e4df;color:#1f2421;}
+.btn-secondary:hover {background:#c0d4cc;}
+.time-input {font-family:'Courier New',monospace;font-size:1.1rem;text-align:center;letter-spacing:2px;}
+.time-input:focus {border-color:#1a4d2e;box-shadow:0 0 5px rgba(26,77,46,0.3);}
+</style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">⏰ Arbeitszeitverwaltung</div>
-            <a href="{% url 'arbeitszeit:dashboard' %}" class="nav-link">← Zurück zum Dashboard</a>
+<!-- Header -->
+<div class="header">
+    <div class="header-content">
+        <div class="logo">⏰ Arbeitszeitverwaltung</div>
+        <a href="{% url 'arbeitszeit:dashboard' %}" class="nav-link">← Zurück zum Dashboard</a>
+    </div>
+</div>
+
+<div class="container">
+<h1 class="page-title">Neue Arbeitszeitvereinbarung</h1>
+<p class="page-subtitle">Beantragen Sie eine Änderung Ihrer Arbeitszeit</p>
+
+<form method="post" id="vereinbarung-form">
+{% csrf_token %}
+
+<!-- 1. Antragsart -->
+<div class="form-card">
+<h2 class="section-title">1. Art des Antrags <span class="required">*</span></h2>
+<div class="radio-group">
+  <label class="radio-option">
+    <input type="radio" name="antragsart" value="weiterbewilligung" required>
+    <div class="option-content">
+      <div class="option-title">✓ Weiterbewilligung</div>
+      <div class="help-text">Verlängerung der bestehenden Vereinbarung</div>
+    </div>
+  </label>
+  <label class="radio-option">
+    <input type="radio" name="antragsart" value="verringerung">
+    <div class="option-content">
+      <div class="option-title">↓ Verringerung</div>
+      <div class="help-text">Reduzierung der Arbeitszeit</div>
+    </div>
+  </label>
+  <label class="radio-option">
+    <input type="radio" name="antragsart" value="erhoehung">
+    <div class="option-content">
+      <div class="option-title">↑ Erhöhung</div>
+      <div class="help-text">Aufstockung der Arbeitszeit</div>
+    </div>
+  </label>
+  <label class="radio-option">
+    <input type="radio" name="antragsart" value="beendigung">
+    <div class="option-content">
+      <div class="option-title">✕ Beendigung</div>
+      <div class="help-text">Beendigung der aktuellen Vereinbarung</div>
+    </div>
+  </label>
+</div>
+</div>
+
+<!-- 2. Arbeitszeit-Typ (nicht für Beendigung) -->
+<div class="form-card" id="arbeitszeit-card">
+<h2 class="section-title">2. Art der Arbeitszeitverteilung <span class="required">*</span></h2>
+<div class="radio-group">
+  <label class="radio-option">
+    <input type="radio" name="arbeitszeit_typ" value="regelmaessig" id="radio-regelmaessig">
+    <div class="option-content">
+      <div class="option-title">📅 Regelmäßig</div>
+      <div class="help-text">Gleiche Stundenzahl jeden Tag</div>
+    </div>
+  </label>
+  <label class="radio-option">
+    <input type="radio" name="arbeitszeit_typ" value="individuell" id="radio-individuell">
+    <div class="option-content">
+      <div class="option-title">🗓️ Individuell</div>
+      <div class="help-text">Unterschiedliche Stunden pro Tag</div>
+    </div>
+  </label>
+</div>
+
+<!-- Regelmäßig -->
+<div id="regelmaessig-section" class="conditional-section">
+<div class="form-group">
+<label for="wochenstunden" class="form-label">Wochenstunden <span class="required">*</span></label>
+<input type="number" id="wochenstunden" name="wochenstunden" class="input-field" min="1" max="48" step="0.5" placeholder="z.B. 40">
+<div class="help-text">Anzahl der wöchentlichen Arbeitsstunden</div>
+</div>
+</div>
+
+
+<!-- Individuell -->
+<div id="individuell-section" class="conditional-section" style="display:none;">
+    <p class="help-text">Geben Sie für jeden Tag die gewünschte Arbeitszeit ein:</p>
+    
+    <div id="weeks-container">
+      <div class="week" data-week="1">
+        <div class="week-header">
+          <!-- WICHTIG: Hier die Klasse "week-title" hinzufügen -->
+          <h3 class="week-title">Woche 1</h3>
+          <button type="button" class="remove-week">✕</button>
         </div>
+        
+        {% for tag in tage_list %}
+        <div class="day-input">
+            <label class="day-label">{{ tag|capfirst }}</label>
+            <input type="time" name="neuantrag_{{ tag }}_1" class="input-field time-input">
+        </div>
+        {% endfor %}
+      </div>
     </div>
+    
+    <button type="button" id="add-week" class="btn btn-secondary" style="margin-top: 1rem;">+ Woche hinzufügen</button>
+</div>
 
-    <!-- Main Content -->
-    <div class="container">
-        <h1 class="page-title">Neue Arbeitszeitvereinbarung</h1>
-        <p class="page-subtitle">Beantragen Sie eine Änderung Ihrer Arbeitszeit</p>
+<!-- 3. Gültigkeit / Beendigung -->
+<div class="form-card">
+<h2 class="section-title" id="gueltigkeits-title">3. Gültigkeit</h2>
+<div class="form-group">
+<label for="datum_input" class="form-label" id="datum-label">Gültig ab <span class="required">*</span></label>
+<input type="date" id="datum_input" name="gueltig_ab" class="input-field" required>
+<div class="help-text" id="datum-help">Datum, ab dem die Vereinbarung gültig ist</div>
+</div>
+<div class="form-group" id="gueltig-bis-group">
+<label for="gueltig_bis" class="form-label">Gültig bis (optional)</label>
+<input type="date" id="gueltig_bis" name="gueltig_bis" class="input-field">
+<div class="help-text">Leer lassen für unbefristet</div>
+</div>
+</div>
 
-        <form method="post" id="vereinbarung-form">
-            {% csrf_token %}
+<!-- 4. Telearbeit -->
+<div class="form-card">
+<h2 class="section-title">4. Arbeitsort</h2>
+<div class="checkbox-group">
+<label class="checkbox-option">
+<input type="checkbox" name="telearbeit" id="telearbeit">
+<div class="option-content">
+<div class="option-title">🏠 In Telearbeit</div>
+<div class="help-text">Teilweise von zu Hause arbeiten</div>
+</div>
+</label>
+</div>
+</div>
 
-            <!-- 1. Antragsart -->
-            <div class="form-card">
-                <h2 class="section-title">1. Art des Antrags <span class="required">*</span></h2>
-                
-                <div class="radio-group">
-                    <label class="radio-option">
-                        <input type="radio" name="antragsart" value="weiterbewilligung" required>
-                        <div class="option-content">
-                            <div class="option-title">✓ Weiterbewilligung</div>
-                            <div class="help-text">Verlängerung der bestehenden Vereinbarung</div>
-                        </div>
-                    </label>
+<!-- Buttons -->
+<div class="form-actions">
+<a href="{% url 'arbeitszeit:dashboard' %}" class="btn btn-secondary">Abbrechen</a>
+<button type="submit" class="btn btn-primary">Vereinbarung beantragen</button>
+</div>
+</form>
+</div>
 
-                    <label class="radio-option">
-                        <input type="radio" name="antragsart" value="verringerung">
-                        <div class="option-content">
-                            <div class="option-title">↓ Verringerung</div>
-                            <div class="help-text">Reduzierung der Arbeitszeit</div>
-                        </div>
-                    </label>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  
+  // --- 1. Antragsart Toggle (Beendigung vs. Neu) ---
+  const antragsartRadios = document.querySelectorAll('input[name="antragsart"]');
+  if (antragsartRadios.length > 0) {
+      antragsartRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+          const arbeitszeitCard = document.getElementById('arbeitszeit-card');
+          const gueltigkeitTitle = document.getElementById('gueltigkeits-title');
+          const datumLabel = document.getElementById('datum-label');
+          const datumHelp = document.getElementById('datum-help');
+          const datumInput = document.getElementById('datum_input');
+          const gueltigBisGroup = document.getElementById('gueltig-bis-group');
 
-                    <label class="radio-option">
-                        <input type="radio" name="antragsart" value="erhoehung">
-                        <div class="option-content">
-                            <div class="option-title">↑ Erhöhung</div>
-                            <div class="help-text">Aufstockung der Arbeitszeit</div>
-                        </div>
-                    </label>
+          if (!arbeitszeitCard) return; // Sicherheitscheck
 
-                    <label class="radio-option">
-                        <input type="radio" name="antragsart" value="beendigung">
-                        <div class="option-content">
-                            <div class="option-title">✕ Beendigung</div>
-                            <div class="help-text">Beendigung der aktuellen Vereinbarung</div>
-                        </div>
-                    </label>
-                </div>
-            </div>
-
-            <!-- 2. Arbeitszeit-Typ (ausgeblendet bei Beendigung) -->
-            <div class="form-card" id="arbeitszeit-card">
-                <h2 class="section-title">2. Art der Arbeitszeitverteilung <span class="required">*</span></h2>
-                
-                <div class="radio-group">
-                    <label class="radio-option">
-                        <input type="radio" name="arbeitszeit_typ" value="regelmaessig" id="radio-regelmaessig">
-                        <div class="option-content">
-                            <div class="option-title">📅 Regelmäßig</div>
-                            <div class="help-text">Gleiche Stundenzahl jeden Tag (z.B. 8h/Tag = 40h/Woche)</div>
-                        </div>
-                    </label>
-
-                    <label class="radio-option">
-                        <input type="radio" name="arbeitszeit_typ" value="individuell" id="radio-individuell">
-                        <div class="option-content">
-                            <div class="option-title">🗓️ Individuelle Wochenverteilung</div>
-                            <div class="help-text">Unterschiedliche Stunden pro Tag (z.B. Mo-Do 8h, Fr 4h)</div>
-                        </div>
-                    </label>
-                </div>
-
-                <!-- Regelmäßige Arbeitszeit -->
-                <div id="regelmaessig-section" class="conditional-section">
-                    <div class="form-group">
-                        <label for="wochenstunden" class="form-label">
-                            Wochenstunden <span class="required">*</span>
-                        </label>
-                        <input 
-                            type="number" 
-                            id="wochenstunden" 
-                            name="wochenstunden_input"
-                            class="input-field"
-                            min="1" 
-                            max="48" 
-                            step="0.5"
-                            placeholder="z.B. 40"
-                        >
-                        <div class="help-text">Anzahl der wöchentlichen Arbeitsstunden (z.B. 20, 30, 40)</div>
-                    </div>
-                </div>
-
-                <!-- Individuelle Arbeitszeit -->
-                <div id="individuell-section" class="conditional-section">
-                    <p class="help-text" style="margin-bottom: 1rem;">Geben Sie für jeden Tag die gewünschte Arbeitszeit an:</p>
-                    
-                    <div class="days-grid">
-                        <div class="day-input">
-                            <label for="montag" class="day-label">Montag</label>
-                            <select name="montag_input" id="montag" class="input-field">
-                                <option value="">Frei</option>
-                                <option value="400">4:00h</option>
-                                <option value="500">5:00h</option>
-                                <option value="600">6:00h</option>
-                                <option value="700">7:00h</option>
-                                <option value="730">7:30h</option>
-                                <option value="800">8:00h</option>
-                                <option value="830">8:30h</option>
-                                <option value="900">9:00h</option>
-                                <option value="1000">10:00h</option>
-                            </select>
-                        </div>
-
-                        <div class="day-input">
-                            <label for="dienstag" class="day-label">Dienstag</label>
-                            <select name="dienstag_input" id="dienstag" class="input-field">
-                                <option value="">Frei</option>
-                                <option value="400">4:00h</option>
-                                <option value="500">5:00h</option>
-                                <option value="600">6:00h</option>
-                                <option value="700">7:00h</option>
-                                <option value="730">7:30h</option>
-                                <option value="800">8:00h</option>
-                                <option value="830">8:30h</option>
-                                <option value="900">9:00h</option>
-                                <option value="1000">10:00h</option>
-                            </select>
-                        </div>
-
-                        <div class="day-input">
-                            <label for="mittwoch" class="day-label">Mittwoch</label>
-                            <select name="mittwoch_input" id="mittwoch" class="input-field">
-                                <option value="">Frei</option>
-                                <option value="400">4:00h</option>
-                                <option value="500">5:00h</option>
-                                <option value="600">6:00h</option>
-                                <option value="700">7:00h</option>
-                                <option value="730">7:30h</option>
-                                <option value="800">8:00h</option>
-                                <option value="830">8:30h</option>
-                                <option value="900">9:00h</option>
-                                <option value="1000">10:00h</option>
-                            </select>
-                        </div>
-
-                        <div class="day-input">
-                            <label for="donnerstag" class="day-label">Donnerstag</label>
-                            <select name="donnerstag_input" id="donnerstag" class="input-field">
-                                <option value="">Frei</option>
-                                <option value="400">4:00h</option>
-                                <option value="500">5:00h</option>
-                                <option value="600">6:00h</option>
-                                <option value="700">7:00h</option>
-                                <option value="730">7:30h</option>
-                                <option value="800">8:00h</option>
-                                <option value="830">8:30h</option>
-                                <option value="900">9:00h</option>
-                                <option value="1000">10:00h</option>
-                            </select>
-                        </div>
-
-                        <div class="day-input">
-                            <label for="freitag" class="day-label">Freitag</label>
-                            <select name="freitag_input" id="freitag" class="input-field">
-                                <option value="">Frei</option>
-                                <option value="400">4:00h</option>
-                                <option value="500">5:00h</option>
-                                <option value="600">6:00h</option>
-                                <option value="700">7:00h</option>
-                                <option value="730">7:30h</option>
-                                <option value="800">8:00h</option>
-                                <option value="830">8:30h</option>
-                                <option value="900">9:00h</option>
-                                <option value="1000">10:00h</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. Gültigkeit -->
-            <div class="form-card" id="gueltigkeits-card">
-                <h2 class="section-title" id="gueltigkeits-title">3. Gültigkeit</h2>
-                
-                <div class="form-group">
-                    <label for="gueltig_ab" class="form-label" id="datum-label">
-                        Gültig ab <span class="required">*</span>
-                    </label>
-                    <input 
-                        type="date" 
-                        id="gueltig_ab" 
-                        name="datum_input"
-                        class="input-field"
-                        required
-                    >
-                    <div class="help-text" id="datum-help">Datum, ab dem die Vereinbarung gültig sein soll</div>
-                </div>
-
-                <div class="form-group" id="gueltig-bis-group">
-                    <label for="gueltig_bis" class="form-label">Gültig bis (optional)</label>
-                    <input 
-                        type="date" 
-                        id="gueltig_bis" 
-                        name="gueltig_bis"
-                        class="input-field"
-                    >
-                    <div class="help-text">Leer lassen für unbefristete Vereinbarung</div>
-                </div>
-            </div>
-
-            <!-- 4. Telearbeit -->
-            <div class="form-card">
-                <h2 class="section-title">4. Arbeitsort</h2>
-                
-                <div class="checkbox-group">
-                    <label class="checkbox-option">
-                        <input type="checkbox" name="telearbeit_input" id="telearbeit">
-                        <div class="option-content">
-                            <div class="option-title">🏠 In Telearbeit</div>
-                            <div class="help-text">Ich möchte (teilweise) von zu Hause arbeiten</div>
-                        </div>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Form Actions -->
-            <div class="form-actions">
-                <a href="{% url 'arbeitszeit:dashboard' %}" class="btn btn-secondary">Abbrechen</a>
-                <button type="submit" class="btn btn-primary">Vereinbarung beantragen</button>
-            </div>
-        </form>
-    </div>
-
-    <script>
-        // Antragsart handling
-        document.querySelectorAll('input[name="antragsart"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                const arbeitszeitCard = document.getElementById('arbeitszeit-card');
-                const gueltigkeitTitle = document.getElementById('gueltigkeits-title');
-                const datumLabel = document.getElementById('datum-label');
-                const datumHelp = document.getElementById('datum-help');
-                const gueltigBisGroup = document.getElementById('gueltig-bis-group');
-                const datumInput = document.getElementById('gueltig_ab');
-                
-                if (this.value === 'beendigung') {
-                    // Bei Beendigung: Arbeitszeit ausblenden
-                    arbeitszeitCard.style.display = 'none';
-                    gueltigkeitTitle.textContent = '2. Beendigungsdatum';
-                    datumLabel.innerHTML = 'Beendigung zum <span class="required">*</span>';
-                    datumHelp.textContent = 'Datum, zu dem die Vereinbarung beendet werden soll';
-                    gueltigBisGroup.style.display = 'none';
-                    
-                    // Field names für Beendigung
-                    datumInput.name = 'beendigung_datum';
-                    document.getElementById('telearbeit').name = 'beendigung_telearbeit';
-                } else {
-                    // Normale Anträge: Alles anzeigen
-                    arbeitszeitCard.style.display = 'block';
-                    gueltigkeitTitle.textContent = '3. Gültigkeit';
-                    datumLabel.innerHTML = 'Gültig ab <span class="required">*</span>';
-                    datumHelp.textContent = 'Datum, ab dem die Vereinbarung gültig sein soll';
-                    gueltigBisGroup.style.display = 'block';
-                    
-                    // Field names basierend auf Antragsart
-                    datumInput.name = this.value + '_datum';
-                    document.getElementById('telearbeit').name = this.value + '_telearbeit';
-                    document.getElementById('wochenstunden').name = this.value + '_stunden';
-                    
-                    // Update day names
-                    ['montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag'].forEach(tag => {
-                        document.getElementById(tag).name = this.value + '_' + tag;
-                    });
-                }
-            });
+          if (this.value === 'beendigung') {
+            arbeitszeitCard.style.display = 'none';
+            if(gueltigkeitTitle) gueltigkeitTitle.textContent = '2. Beendigungsdatum';
+            if(datumLabel) datumLabel.innerHTML = 'Beendigung zum <span class="required">*</span>';
+            if(datumHelp) datumHelp.textContent = 'Datum, zu dem die Vereinbarung beendet werden soll';
+            if(gueltigBisGroup) gueltigBisGroup.style.display = 'none';
+            if(datumInput) datumInput.name = 'beendigung_datum';
+          } else {
+            arbeitszeitCard.style.display = 'block';
+            if(gueltigkeitTitle) gueltigkeitTitle.textContent = '3. Gültigkeit';
+            if(datumLabel) datumLabel.innerHTML = 'Gültig ab <span class="required">*</span>';
+            if(datumHelp) datumHelp.textContent = 'Datum, ab dem die Vereinbarung gültig ist';
+            if(gueltigBisGroup) gueltigBisGroup.style.display = 'block';
+            if(datumInput) datumInput.name = 'gueltig_ab';
+          }
         });
+      });
+  }
 
-        // Arbeitszeit-Typ handling
-        document.getElementById('radio-regelmaessig').addEventListener('change', function() {
-            if (this.checked) {
-                document.getElementById('regelmaessig-section').classList.add('active');
-                document.getElementById('individuell-section').classList.remove('active');
-                document.getElementById('wochenstunden').required = true;
+  // --- 2. Arbeitszeit-Typ Toggle (Regelmäßig vs. Individuell) ---
+  const regelRadio = document.getElementById('radio-regelmaessig');
+  const indivRadio = document.getElementById('radio-individuell');
+  const regelSection = document.getElementById('regelmaessig-section');
+  const indivSection = document.getElementById('individuell-section');
+
+  function toggleArbeitszeit() {
+    if (regelRadio && regelRadio.checked) {
+      if(regelSection) regelSection.style.display = 'block';
+      if(indivSection) indivSection.style.display = 'none';
+    } else if (indivRadio && indivRadio.checked) {
+      if(indivSection) indivSection.style.display = 'block';
+      if(regelSection) regelSection.style.display = 'none';
+    }
+  }
+
+  if (regelRadio && indivRadio) {
+      regelRadio.addEventListener('change', toggleArbeitszeit);
+      indivRadio.addEventListener('change', toggleArbeitszeit);
+      // Initial ausführen
+      toggleArbeitszeit();
+  }
+
+  // --- 3. Wochen hinzufügen Logik ---
+  const addWeekBtn = document.getElementById('add-week');
+  const weeksContainer = document.getElementById('weeks-container');
+  
+  // Zähler initialisieren basierend auf vorhandenen Wochen
+  let weekCount = document.querySelectorAll('.week').length;
+
+  // Erste Woche: Löschen-Button ausblenden
+  const firstRemoveBtn = document.querySelector('.week .remove-week');
+  if (firstRemoveBtn) {
+      firstRemoveBtn.style.display = 'none';
+  }
+
+  if (addWeekBtn && weeksContainer) {
+    addWeekBtn.addEventListener('click', () => {
+        weekCount++;
+        
+        // Die erste Woche als Vorlage nehmen
+        const originalWeek = weeksContainer.querySelector('.week');
+        const newWeek = originalWeek.cloneNode(true);
+        
+        // Attribute aktualisieren
+        newWeek.dataset.week = weekCount;
+        
+        // Titel aktualisieren (sucht nach .week-title)
+        const titleElement = newWeek.querySelector('.week-title');
+        if (titleElement) {
+            titleElement.textContent = `Woche ${weekCount}`;
+        }
+        
+        // Inputs bereinigen und Namen aktualisieren
+        newWeek.querySelectorAll('input').forEach(input => {
+            input.value = ''; // Inhalt leeren
+            // Name anpassen: neuantrag_montag_1 -> neuantrag_montag_2
+            const parts = input.name.split('_');
+            if (parts.length >= 3) {
+                // parts[0] = neuantrag, parts[1] = wochentag
+                input.name = `${parts[0]}_${parts[1]}_${weekCount}`;
             }
         });
 
-        document.getElementById('radio-individuell').addEventListener('change', function() {
-            if (this.checked) {
-                document.getElementById('individuell-section').classList.add('active');
-                document.getElementById('regelmaessig-section').classList.remove('active');
-                document.getElementById('wochenstunden').required = false;
-            }
-        });
+        // Löschen-Button für die neue Woche aktivieren
+        const removeBtn = newWeek.querySelector('.remove-week');
+        if (removeBtn) {
+            removeBtn.style.display = 'inline-block'; // Sichtbar machen
+            removeBtn.onclick = function() {
+                newWeek.remove();
+                // Optional: Nummerierung neu berechnen, hier aber nicht zwingend nötig
+            };
+        }
 
-        // Set today as default date
-        document.addEventListener('DOMContentLoaded', function() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('gueltig_ab').value = today;
-        });
-    </script>
+        weeksContainer.appendChild(newWeek);
+    });
+  }
+});
+</script>
 </body>
 </html>

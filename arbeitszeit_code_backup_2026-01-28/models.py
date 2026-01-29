@@ -344,21 +344,14 @@ class Arbeitszeitvereinbarung(models.Model):
     
 
 
-from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
-
 class Tagesarbeitszeit(models.Model):
-    """
-    Speichert die Arbeitszeit für einen einzelnen Wochentag einer Arbeitszeitvereinbarung.
-    Zeitwert wird als HMM gespeichert (z.B. 830 für 08:30).
-    """
-
+    """Individuelle Arbeitszeit pro Wochentag"""
     vereinbarung = models.ForeignKey(
-        'Arbeitszeitvereinbarung',
-        related_name="tagesarbeitszeiten",
-        on_delete=models.CASCADE
+        Arbeitszeitvereinbarung,
+        on_delete=models.CASCADE,
+        related_name='tagesarbeitszeiten'
     )
-
+    
     WOCHENTAG_CHOICES = [
         ('montag', 'Montag'),
         ('dienstag', 'Dienstag'),
@@ -368,50 +361,43 @@ class Tagesarbeitszeit(models.Model):
         ('samstag', 'Samstag'),
         ('sonntag', 'Sonntag'),
     ]
-    wochentag = models.CharField(max_length=10, choices=WOCHENTAG_CHOICES)
+    wochentag = models.CharField(max_length=15, choices=WOCHENTAG_CHOICES)
     
     # Zeitwert im Format HMM (z.B. 830 für 8:30)
     zeitwert = models.IntegerField(
-        validators=[MinValueValidator(0), MaxValueValidator(2359)]
+        validators=[MinValueValidator(200), MaxValueValidator(1200)]
     )
-
-    woche = models.IntegerField(default=1)  # z. B. 1 oder 2
-
+    
     class Meta:
         verbose_name = "Tagesarbeitszeit"
         verbose_name_plural = "Tagesarbeitszeiten"
-        unique_together = ['vereinbarung', 'wochentag', 'woche']
-        ordering = ['woche', 'wochentag']
-
-    def __str__(self):
-        if self.zeitwert is None:
-            return f"{self.get_wochentag_display()}: —"
-        return f"{self.get_wochentag_display()}: {self.formatierte_zeit}"
-
+        ordering = ['wochentag']
+        unique_together = ['vereinbarung', 'wochentag']
     
-    def formatierte_zeit(self):
-        """
-        Wandelt den gespeicherten HMM-Zeitwert in HH:MM um.
-        Beispiel: 830 -> 08:30
-        """
-        if self.zeitwert is None:
-            return "—"
-        stunden = self.zeitwert // 100
-        minuten = self.zeitwert % 100
-        return f"{stunden:02d}:{minuten:02d}"
-
+    def __str__(self):
+        return f"{self.get_wochentag_display()}: {self.stunden}:{self.minuten:02d}h"
+    
     @property
-    def zeit_in_minuten(self):
-        """
-        Gibt die Arbeitszeit in Minuten zurück, z.B. 08:30 -> 510
-        Nützlich für Summenberechnungen.
-        """
-        if self.zeitwert is None:
-            return 0
+    def stunden(self):
+        """Extrahiert Stunden aus Zeitwert"""
+        return self.zeitwert // 100
+    
+    @property
+    def minuten(self):
+        """Extrahiert Minuten aus Zeitwert"""
+        return self.zeitwert % 100
+    
+    @property
+    def formatierte_zeit(self):
+        """Gibt die Zeit formatiert zurück, z.B. '08:30' oder 'Frei'"""
+        if self.zeitwert == 0:
+            return 'Frei'
+        
+        # Format: 830 → 08:30
         stunden = self.zeitwert // 100
         minuten = self.zeitwert % 100
-        return stunden * 60 + minuten
-
+        
+        return f"{stunden:02d}:{minuten:02d}"
 
 class ArbeitszeitHistorie(models.Model):
     """Historie aller Änderungen an Arbeitszeitvereinbarungen"""

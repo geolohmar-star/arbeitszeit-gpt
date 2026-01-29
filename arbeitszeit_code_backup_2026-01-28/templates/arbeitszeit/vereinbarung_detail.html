@@ -376,43 +376,42 @@
             </div>
         {% endif %}
 
-
-        
-        <!-- Wochenverteilung nach Wochen -->
-        {% if wochen_daten %}
-            {% for woche, data in wochen_daten.items %}
-                <div class="card">
-                    <h3 class="card-title">📅 Woche {{ woche }}</h3>
-                    <table class="days-table">
-                        <thead>
-                            <tr>
-                                <th>Wochentag</th>
-                                <th style="text-align: right;">Arbeitszeit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {% for tag in data.tage %}
+        <!-- Individuelle Tagesarbeitszeiten mit Summe -->
+        {% if tagesarbeitszeiten %}
+            <div class="card">
+                <h3 class="card-title">📅 Wochenverteilung (Individuell)</h3>
+                <table class="days-table">
+                    <thead>
+                        <tr>
+                            <th>Wochentag</th>
+                            <th style="text-align: right;">Arbeitszeit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tag in tagesarbeitszeiten %}
                             <tr>
                                 <td><strong>{{ tag.get_wochentag_display }}</strong></td>
-                                <td style="text-align: right; font-size: 1.1rem;">
-                                    <!-- Verwenden von display_zeit aus der View -->
-                                    <strong>{{ tag.display_zeit }}</strong>
-                                </td>
+                                <td style="text-align: right; font-size: 1.1rem;"><strong>{{ tag.formatierte_zeit }}</strong></td>
                             </tr>
                         {% endfor %}
-                        </tbody>
-                        <tfoot>
-                            <tr>
-                                <td><strong>Summe pro Woche</strong></td>
-                                <td style="text-align: right;">
-                                    <!-- Verwenden der in der View berechneten Summe -->
-                                    {{ data.summe }} h
-                                </td>
-                            </tr>
-                        </tfoot>
-                        </table>
-                </div>
-            {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="border-top: 3px solid var(--primary); background: rgba(26, 77, 46, 0.05);">
+                            <td style="padding: 1rem;"><strong>Summe pro Woche</strong></td>
+                            <td style="text-align: right; padding: 1rem;">
+                                <strong style="font-size: 1.5rem; color: var(--primary);">
+                                    {% if vereinbarung.get_wochenstunden_summe %}
+                                        {{ vereinbarung.get_wochenstunden_summe }}
+                                    {% else %}
+                                        {% widthratio tagesarbeitszeiten|length 1 1 as total_hours %}
+                                        {{ total_hours }}:00h
+                                    {% endif %}
+                                </strong>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
         {% endif %}
 
         <!-- Genehmigung -->

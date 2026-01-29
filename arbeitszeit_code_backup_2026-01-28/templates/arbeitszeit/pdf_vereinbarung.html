@@ -143,38 +143,24 @@
     <p><strong>{{ vereinbarung.wochenstunden }} Stunden pro Woche</strong></p>
     {% endif %}
     
-    {% if wochen_daten %}
+    {% if tagesarbeitszeiten %}
     <h2>Wochenverteilung</h2>
-    
-    {% for woche, data in wochen_daten.items %}
-        <!-- Kasten für die Woche -->
-        <div style="margin-bottom: 1cm; page-break-inside: avoid;">
-            <h3 style="margin-bottom: 5px; color: #1a4d2e;">Woche {{ woche }}</h3>
-            
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 60%;">Wochentag</th>
-                        <th style="text-align: right;">Arbeitszeit</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for tag in data.tage %}
-                    <tr>
-                        <td>{{ tag.get_wochentag_display }}</td>
-                        <td style="text-align: right;">{{ tag.display_zeit }} h</td>
-                    </tr>
-                    {% endfor %}
-                    
-                    <!-- Summenzeile pro Woche -->
-                    <tr style="background-color: #f0f0f0;">
-                        <td><strong>Summe Woche {{ woche }}</strong></td>
-                        <td style="text-align: right;"><strong>{{ data.summe }} h</strong></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    {% endfor %}
+    <table>
+        <thead>
+            <tr>
+                <th>Wochentag</th>
+                <th style="text-align: right;">Arbeitszeit</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tag in tagesarbeitszeiten %}
+            <tr>
+                <td>{{ tag.get_wochentag_display }}</td>
+                <td style="text-align: right;">{{ tag.formatierte_zeit }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     {% endif %}
     
     <p style="margin-top: 2cm;">
@@ -198,3 +184,4 @@
     </div>
 </body>
 </html>
+
