@@ -10,7 +10,46 @@ from .models import (
     Zeiterfassung, Urlaubsanspruch
 )
 
+#WorkCalendar
+import calendar
 
+#WorkCalendar
+class SollStundenBerechnungForm(forms.Form):
+    """Form zur Berechnung der Soll-Stunden"""
+    
+    jahr = forms.IntegerField(
+        label="Jahr",
+        initial=timezone.now().year,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'min': 2020,
+            'max': 2030
+        })
+    )
+    
+    monat = forms.ChoiceField(
+        label="Monat",
+        choices=[(i, calendar.month_name[i]) for i in range(1, 13)],
+        initial=timezone.now().month,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    mitarbeiter = forms.ModelMultipleChoiceField(
+        queryset=None,  # Wird in __init__ gesetzt
+        required=False,
+        label="Mitarbeiter",
+        help_text="Leer lassen für alle aktiven Mitarbeiter",
+        widget=forms.CheckboxSelectMultiple
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from arbeitszeit.models import Mitarbeiter
+        
+        self.fields['mitarbeiter'].queryset = Mitarbeiter.objects.filter(
+            aktiv=True
+        ).order_by('nachname', 'vorname')
+        
 class ArbeitszeitvereinbarungForm(forms.ModelForm):
     """Formular für Arbeitszeitvereinbarung"""
     

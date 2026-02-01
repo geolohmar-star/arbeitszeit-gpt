@@ -376,26 +376,25 @@
         <!-- Statistics Cards -->
         <div class="stats-grid">
             <!-- Aktuelle Arbeitszeit -->
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-title">Aktuelle Arbeitszeit</div>
-                    <div class="stat-icon">⏰</div>
-                </div>
+           <div class="stat-card">
+    <div class="stat-header">
+        <div class="stat-title">Aktuelle Arbeitszeit</div>
+        <div class="stat-icon">⏰</div>
+            </div>
                 {% if aktuelle_vereinbarung %}
-                    {% if aktuelle_vereinbarung.wochenstunden %}
-                        <div class="stat-value">{{ aktuelle_vereinbarung.wochenstunden }}h</div>
-                        <div class="stat-label">Wochenstunden</div>
-                    {% elif aktuelle_vereinbarung.arbeitszeit_typ == 'individuell' %}
-                        {% if aktuelle_vereinbarung.get_wochenstunden_summe %}
-                            <div class="stat-value">{{ aktuelle_vereinbarung.get_wochenstunden_summe }}</div>
-                            <div class="stat-label">pro Woche (individuell)</div>
-                        {% else %}
-                            <div class="stat-value">Individuell</div>
-                            <div class="stat-label">Wochenverteilung</div>
-                        {% endif %}
+                    {# Wir nutzen unsere neue Property, die beide Typen berechnet #}
+                    {% if aktuelle_vereinbarung.get_wochenstunden_summe %}
+                        <div class="stat-value">{{ aktuelle_vereinbarung.get_wochenstunden_summe }}</div>
+                        <div class="stat-label">
+                            {% if aktuelle_vereinbarung.arbeitszeit_typ == 'regelmaessig' %}
+                                Wochenstunden (Regulär)
+                            {% else %}
+                                Wochenstunden (Individuell)
+                            {% endif %}
+                        </div>
                     {% else %}
-                        <div class="stat-value">{{ aktuelle_vereinbarung.get_antragsart_display }}</div>
-                        <div class="stat-label">{{ aktuelle_vereinbarung.get_status_display }}</div>
+                        <div class="stat-value">Keine Daten</div>
+                        <div class="stat-label">Bitte Zeiten nachpflegen</div>
                     {% endif %}
                 {% else %}
                     <div class="stat-value">-</div>

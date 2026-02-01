@@ -1,0 +1,126 @@
+import pandas as pd
+from ortools.sat.python import cp_model
+
+# ==========================================
+# 1. DATEN SIMULATION (Das kommt später aus deiner DB/Excel)
+# ==========================================
+
+# Mitarbeiter
+employees = ['Müller', 'Meier', 'Schulze']
+# Schichten (F=Früh, S=Spät, N=Nacht, X=Frei)
+shifts = ['F', 'S', 'N', 'X']
+days = ['Mo', 'Di', 'Mi', 'Do', 'Fr'] # Planung für eine Woche
+
+# Historische Daten (Simulation von Excel-Importen)
+# Müller macht fast immer Früh, Meier fast immer Spät
+history_data = [
+    {'Mitarbeiter': 'Müller', 'Tag': 'Mo', 'Schicht': 'F'},
+    {'Mitarbeiter': 'Müller', 'Tag': 'Di', 'Schicht': 'F'},
+    {'Mitarbeiter': 'Meier',  'Tag': 'Mo', 'Schicht': 'S'},
+    {'Mitarbeiter': 'Meier',  'Tag': 'Di', 'Schicht': 'S'},
+    {'Mitarbeiter': 'Schulze','Tag': 'Mo', 'Schicht': 'N'},
+    # ... hier wären hunderte Zeilen aus der Vergangenheit
+]
+df_history = pd.DataFrame(history_data)
+
+# Mitarbeiter Präferenzen (Aus dem Profil)
+# Format: (Mitarbeiter, Tag, Schicht, Penalty_Kosten)
+# Hohe Kosten = Will ich nicht. Negative Kosten = Will ich unbedingt.
+preferences = {
+    ('Müller', 'Fr', 'N'): 100,  # Müller hasst Nachtschicht am Freitag
+    ('Schulze', 'Mo', 'F'): 50,  # Schulze mag Montags nicht früh aufstehen
+}
+
+# ==========================================
+# 2. ANALYSE PHASE (Lernen aus der Historie)
+# ==========================================
+
+print("--- Analysiere Historie ---")
+# Wir berechnen: Wie oft hat Mitarbeiter M an Wochentag D die Schicht S gemacht?
+# Das Ergebnis nutzen wir als "Bonus" für den Solver (negative Kosten).
+history_weights = {}
+
+# Einfaches Zählen der Kombinationen
+counts = df_history.groupby(['Mitarbeiter', 'Tag', 'Schicht']).size().reset_index(name='count')
+
+for _, row in counts.iterrows():
+    # Je öfter es vorkam, desto höher der "Rabatt" (negative Kosten)
+    # Beispiel: Wenn Müller 10x Montags Früh hatte, kriegt er -10 Punkte "Kosten" -> Solver bevorzugt das.
+    key = (row['Mitarbeiter'], row['Tag'], row['Schicht'])
+    history_weights[key] = -1 * int(row['count']) * 5  # Faktor 5 zur Gewichtung
+
+print(f"Gelerntes Muster (Auszug): {list(history_weights.items())[:3]}")
+
+
+# ==========================================
+# 3. SOLVER MODELLIERUNG (Google OR-Tools)
+# ==========================================
+
+model = cp_model.CpModel()
+vars_schichten = {} # Unsere Entscheidungsvariablen
+
+# A. Variablen erstellen
+for emp in employees:
+    for d in days:
+        for s in shifts:
+            # Boolsche Variable: Arbeitet 'emp' an Tag 'd' in Schicht 's'? (1=Ja, 0=Nein)
+            vars_schichten[(emp, d, s)] = model.NewBoolVar(f'{emp}_{d}_{s}')
+
+# B. Hard Constraints (Regeln, die nicht gebrochen werden dürfen)
+for emp in employees:
+    for d in days:
+        # Jeder Mitarbeiter darf pro Tag nur GENAU EINE Schicht haben (oder Frei)
+        model.Add(sum(vars_schichten[(emp, d, s)] for s in shifts) == 1)
+
+# Bedarf (Beispiel): Jeden Tag muss min. 1 Früh und 1 Spät da sein
+for d in days:
+    model.Add(sum(vars_schichten[(e, d, 'F')] for e in employees) >= 1)
+    model.Add(sum(vars_schichten[(e, d, 'S')] for e in employees) >= 1)
+
+# C. Soft Constraints (Kostenfunktion minimieren)
+objective_terms = []
+
+for emp in employees:
+    for d in days:
+        for s in shifts:
+            weight = 0
+            
+            # 1. Kosten aus Präferenzen (Profil)
+            if (emp, d, s) in preferences:
+                weight += preferences[(emp, d, s)]
+            
+            # 2. Bonus aus Historie (Gewohnheit)
+            # Wenn der Solver das wählt, was in der Historie oft vorkam, sinken die Kosten
+            if (emp, d, s) in history_weights:
+                weight += history_weights[(emp, d, s)]
+            
+            # Term zur Zielfunktion hinzufügen: Variable * Gewicht
+            objective_terms.append(vars_schichten[(emp, d, s)] * weight)
+
+# Wir wollen die "Strafkosten" minimieren
+model.Minimize(sum(objective_terms))
+
+# ==========================================
+# 4. LÖSUNG FINDEN
+# ==========================================
+
+solver = cp_model.CpSolver()
+status = solver.Solve(model)
+
+print("\n--- Ergebnis Schichtplan ---")
+if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
+    # Header
+    print(f"{'Mitarbeiter':<12} | " + " | ".join(days))
+    print("-" * 50)
+    
+    for emp in employees:
+        plan_row = []
+        for d in days:
+            for s in shifts:
+                if solver.Value(vars_schichten[(emp, d, s)]) == 1:
+                    plan_row.append(s)
+        print(f"{emp:<12} | " + " | ".join(plan_row))
+        
+    print(f"\nGesamte Penalty-Kosten (niedriger ist besser): {solver.ObjectiveValue()}")
+else:
+    print("Keine Lösung gefunden! Überprüfe die Hard-Constraints.")

@@ -8,49 +8,187 @@ from .models import (
     Zeiterfassung
 )
 
+#Workcalendar
+from .models import MonatlicheArbeitszeitSoll
+from django.utils.html import format_html
+import calendar
+
+#WorkCalendar
+@admin.register(MonatlicheArbeitszeitSoll)
+class MonatlicheArbeitszeitSollAdmin(admin.ModelAdmin):
+    list_display = [
+        'mitarbeiter',
+        'jahr',
+        'get_monat_name',
+        'wochenstunden',
+        'arbeitstage_effektiv',
+        'feiertage_anzahl',
+        'get_soll_stunden_formatiert',
+        'berechnet_am'
+    ]
+    
+    list_filter = [
+        'jahr',
+        'monat',
+        'mitarbeiter__abteilung',
+    ]
+    
+    search_fields = [
+        'mitarbeiter__nachname',
+        'mitarbeiter__vorname',
+        'mitarbeiter__personalnummer'
+    ]
+    
+    readonly_fields = [
+        'arbeitstage_gesamt',
+        'feiertage_anzahl',
+        'arbeitstage_effektiv',
+        'soll_stunden',
+        'get_feiertage_display',
+        'berechnet_am'
+    ]
+    
+    fieldsets = (
+        ('Mitarbeiter & Zeitraum', {
+            'fields': ('mitarbeiter', 'jahr', 'monat')
+        }),
+        ('Berechnete Werte', {
+            'fields': (
+                'wochenstunden',
+                'arbeitstage_gesamt',
+                'feiertage_anzahl',
+                'arbeitstage_effektiv',
+                'soll_stunden',
+            )
+        }),
+        ('Feiertage', {
+            'fields': ('get_feiertage_display',),
+            'classes': ('collapse',)
+        }),
+        ('Meta', {
+            'fields': ('berechnet_am',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['neu_berechnen']
+    
+    def get_monat_name(self, obj):
+        return calendar.month_name[obj.monat]
+    get_monat_name.short_description = 'Monat'
+    
+    def get_soll_stunden_formatiert(self, obj):
+        return obj.soll_stunden_formatiert
+    get_soll_stunden_formatiert.short_description = 'Soll-Stunden'
+    
+    def get_feiertage_display(self, obj):
+        """Zeigt Feiertage formatiert an"""
+        if not obj.feiertage_liste:
+            return "Keine Feiertage"
+        
+        html = "<ul>"
+        for ft in obj.feiertage_liste:
+            html += f"<li><strong>{ft['datum']}</strong> ({ft['wochentag']}): {ft['name']}</li>"
+        html += "</ul>"
+        
+        return format_html(html)
+    get_feiertage_display.short_description = 'Feiertage im Monat'
+    
+    def neu_berechnen(self, request, queryset):
+        """Admin-Action: Neu berechnen"""
+        count = 0
+        for obj in queryset:
+            MonatlicheArbeitszeitSoll.berechne_und_speichere(
+                obj.mitarbeiter,
+                obj.jahr,
+                obj.monat
+            )
+            count += 1
+        
+        self.message_user(
+            request,
+            f"{count} Soll-Stunden erfolgreich neu berechnet!"
+        )
+    neu_berechnen.short_description = "Soll-Stunden neu berechnen"
+
 @admin.register(Mitarbeiter)
 class MitarbeiterAdmin(admin.ModelAdmin):
     list_display = [
         'personalnummer', 
-        'vollname', 
-        'abteilung', 
+        'nachname', 
+        'vorname',
+        'get_wochenstunden_display',
         'schichtplan_kennung',
-        'rolle', 
+        'schicht_typ',  # NEU
+        'verfuegbarkeit',
         'aktiv'
     ]
     
     list_filter = [
         'aktiv', 
-        'rolle', 
-        'abteilung',
-        'kann_tagschicht',
-        'kann_nachtschicht',
-        'verfuegbarkeit',
+        'standort', 
+        'rolle',
+        'schicht_typ',  # NEU
+        'verfuegbarkeit'
     ]
     
-    search_fields = ['vorname', 'nachname', 'personalnummer', 'schichtplan_kennung']
-    
     fieldsets = (
-        ('Persönliche Daten', {
-            'fields': ('user', 'vorname', 'nachname', 'personalnummer')  # ← email ENTFERNT!
+        ('Basisdaten', {
+            'fields': (
+                'user', 'personalnummer', 'vorname', 'nachname',
+                'abteilung', 'standort', 'rolle', 'eintrittsdatum', 'aktiv'
+            )
         }),
-        ('Arbeitsplatz', {
-            'fields': ('abteilung', 'standort', 'rolle', 'aktiv')
-        }),
-        ('Schichtplan-Präferenzen', {
+        ('Schichtplan-Zuordnung', {
             'fields': (
                 'schichtplan_kennung',
+                'schicht_typ',  # NEU
+            )
+        }),
+        ('Schichtfähigkeiten', {
+            'fields': (
                 'kann_tagschicht',
                 'kann_nachtschicht',
-                'max_wochenenden_pro_monat',
+                'nur_zusatzarbeiten',
+            )
+        }),
+        ('Präferenzen & Einschränkungen', {
+            'fields': (
+                'verfuegbarkeit',
                 'nachtschicht_nur_wochenende',
                 'nur_zusatzdienste_wochentags',
-                'verfuegbarkeit',
+                'max_wochenenden_pro_monat',
+                'max_schichten_pro_monat',
+                'max_aufeinanderfolgende_tage',
+                'planungs_prioritaet',
+            )
+        }),
+        ('Bemerkungen', {
+            'fields': (
+                'schichtplan_bemerkungen',
                 'schichtplan_einschraenkungen',
             ),
             'classes': ('collapse',)
         }),
     )
+    def get_wochenstunden_display(self, obj):
+        """Zeigt aktuelle Wochenstunden mit Warnung wenn keine Vereinbarung"""
+        wochenstunden = obj.get_wochenstunden()
+        
+        if wochenstunden:
+            return format_html(
+                '<span style="color: green;">{}h/Woche</span>',
+                wochenstunden
+            )
+        else:
+            return format_html(
+                '<span style="color: red;" title="{}">⚠️ Keine</span>',
+                "Keine Arbeitszeitvereinbarung"
+            )  # ← MIT Platzhalter {} und Wert
+            
+    get_wochenstunden_display.short_description = 'Wochenstunden'
+    get_wochenstunden_display.admin_order_field = 'arbeitszeitvereinbarungen__wochenstunden'
+
 
 
 class TagesarbeitszeitInline(admin.TabularInline):

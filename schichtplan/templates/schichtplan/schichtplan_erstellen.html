@@ -14,6 +14,7 @@
                     <form method="post">
                         {% csrf_token %}
                         
+                        <!-- Standard Felder -->
                         <div class="mb-3">
                             <label for="{{ form.name.id_for_label }}" class="form-label">
                                 {{ form.name.label }}
@@ -58,6 +59,20 @@
                             </label>
                             {{ form.bemerkungen }}
                         </div>
+
+                        <!-- NEU: KI-Vorschlag Box -->
+                        <div class="alert alert-light border mb-4" role="alert" style="background-color: #f8f9fa;">
+                            <div class="form-check form-switch">
+                                {{ form.vorschlag_generieren }}
+                                <label class="form-check-label fw-bold text-success" for="{{ form.vorschlag_generieren.id_for_label }}">
+                                    {{ form.vorschlag_generieren.label }}
+                                </label>
+                            </div>
+                            <small class="text-muted ms-4 d-block">
+                                Das System analysiert die letzten 6 Monate und erstellt einen optimierten Dienstplan unter Berücksichtigung von Ruhezeiten.
+                            </small>
+                        </div>
+                        <!-- ENDE NEU -->
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                             <a href="{% url 'schichtplan:dashboard' %}" class="btn btn-secondary">

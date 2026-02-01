@@ -1,6 +1,7 @@
 """
 Django Views für Arbeitszeitverwaltung
 """
+from django.db.models.functions import Length
 import io
 from collections import defaultdict
 from datetime import datetime, date
@@ -12,6 +13,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models import Sum, Case, When, IntegerField
 from django.http import HttpResponse
+import csv
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
 from django.template.loader import render_to_string
 from django.utils import timezone
 # WICHTIG: Import für den Template-Filter-Workaround
@@ -19,6 +23,7 @@ from django.template.defaulttags import register
 
 from .models import (
     Mitarbeiter,
+    MonatlicheArbeitszeitSoll,
     Arbeitszeitvereinbarung,
     Tagesarbeitszeit,
     ArbeitszeitHistorie,
@@ -26,6 +31,486 @@ from .models import (
     Urlaubsanspruch,
 )
 from .forms import RegisterForm
+
+#WorkCalendar
+from django.db.models import Sum, Avg, Count
+from decimal import Decimal
+import calendar
+from .forms import SollStundenBerechnungForm
+from django.utils.html import format_html
+#Jahresübersicht Sol Stunden
+import csv
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+
+
+#WorkCalendar
+@login_required
+def soll_stunden_jahresuebersicht(request):
+    """Jahresübersicht mit Export"""
+    heute = timezone.now().date()
+    jahr = int(request.GET.get('jahr', heute.year))
+    export = request.GET.get('export')
+    
+    # Nur Mitarbeiter mit Schichtplan-Kennung MA1-MA15
+    mitarbeiter_liste = Mitarbeiter.objects.filter(
+        aktiv=True,
+        schichtplan_kennung__regex=r'^MA([1-9]|1[0-5])$'
+    ).exclude(
+        schichtplan_kennung=''
+    ).order_by(
+        Length('schichtplan_kennung'),  # MA1 vor MA10
+        'schichtplan_kennung'
+    )
+    
+    # Daten sammeln
+    daten = []
+    
+    for ma in mitarbeiter_liste:
+        soll_monate = MonatlicheArbeitszeitSoll.objects.filter(
+            mitarbeiter=ma,
+            jahr=jahr
+        ).order_by('monat')
+        
+        # Dict mit Monat -> Soll-Stunden
+        monate_dict = {s.monat: float(s.soll_stunden) for s in soll_monate}
+        jahressumme = sum(monate_dict.values())
+        
+        daten.append({
+            'mitarbeiter': ma,
+            'monate': monate_dict,
+            'jahressumme': jahressumme,
+            'durchschnitt': jahressumme / len(monate_dict) if monate_dict else 0,
+        })
+    
+    # Export?
+    if export == 'excel':
+        return _export_excel(daten, jahr)
+    elif export == 'csv':
+        return _export_csv(daten, jahr)
+    
+    # Normal rendern
+    context = {
+        'jahr': jahr,
+        'daten': daten,
+        'monatsnamen': [calendar.month_abbr[i] for i in range(1, 13)],
+        'vorheriges_jahr': jahr - 1,
+        'naechstes_jahr': jahr + 1,
+    }
+    
+    return render(request, 'arbeitszeit/soll_stunden_jahresuebersicht.html', context)
+
+
+def _export_excel(daten, jahr):
+    """Excel Export"""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"Soll-Stunden {jahr}"
+    
+    # Header
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True)
+    
+    headers = ['Mitarbeiter', 'Kennung'] + \
+              [calendar.month_abbr[i] for i in range(1, 13)] + \
+              ['Summe', 'Durchschnitt']
+    
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(1, col, header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center')
+    
+    # Daten
+    for row, item in enumerate(daten, 2):
+        ws.cell(row, 1, item['mitarbeiter'].vollname)
+        ws.cell(row, 2, item['mitarbeiter'].schichtplan_kennung or '-')
+        
+        for monat in range(1, 13):
+            wert = item['monate'].get(monat, 0)
+            ws.cell(row, monat + 2, wert)
+        
+        ws.cell(row, 15, item['jahressumme'])
+        ws.cell(row, 16, item['durchschnitt'])
+    
+    # Spaltenbreiten
+    ws.column_dimensions['A'].width = 25
+    ws.column_dimensions['B'].width = 10
+    
+    # Response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=Soll-Stunden_{jahr}.xlsx'
+    wb.save(response)
+    return response
+
+
+def _export_csv(daten, jahr):
+    """CSV Export"""
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename=Soll-Stunden_{jahr}.csv'
+    response.write('\ufeff')  # BOM für Excel
+    
+    writer = csv.writer(response, delimiter=';')
+    
+    # Header
+    headers = ['Mitarbeiter', 'Kennung'] + \
+              [calendar.month_name[i] for i in range(1, 13)] + \
+              ['Summe', 'Durchschnitt']
+    writer.writerow(headers)
+    
+    # Daten
+    for item in daten:
+        row = [
+            item['mitarbeiter'].vollname,
+            item['mitarbeiter'].schichtplan_kennung or '-',
+        ]
+        
+        for monat in range(1, 13):
+            wert = item['monate'].get(monat, 0)
+            row.append(str(wert).replace('.', ','))
+        
+        row.append(str(item['jahressumme']).replace('.', ','))
+        row.append(str(item['durchschnitt']).replace('.', ','))
+        
+        writer.writerow(row)
+    
+    return response
+
+
+## ⚡ 4. Automatische Berechnung bei Login
+
+### arbeitszeit/signals.py (NEU ERSTELLEN)
+
+from django.contrib.auth.signals import user_logged_in
+from django.dispatch import receiver
+from django.utils import timezone
+from .models import MonatlicheArbeitszeitSoll
+
+
+@receiver(user_logged_in)
+def auto_berechne_soll_stunden(sender, request, user, **kwargs):
+    """Berechnet Soll-Stunden automatisch beim Login"""
+    if not hasattr(user, 'mitarbeiter'):
+        return
+    
+    heute = timezone.now().date()
+    
+    # Prüfe ob schon berechnet
+    existiert = MonatlicheArbeitszeitSoll.objects.filter(
+        mitarbeiter=user.mitarbeiter,
+        jahr=heute.year,
+        monat=heute.month
+    ).exists()
+    
+    if not existiert:
+        try:
+            MonatlicheArbeitszeitSoll.berechne_und_speichere(
+                user.mitarbeiter,
+                heute.year,
+                heute.month
+            )
+        except Exception as e:
+            print(f"Auto-Berechnung fehlgeschlagen: {e}")
+            
+@login_required
+def soll_stunden_dashboard(request):
+    """
+    Dashboard: Übersicht aller Soll-Stunden des aktuellen Monats
+    """
+    heute = timezone.now().date()
+    jahr = request.GET.get('jahr', heute.year)
+    monat = request.GET.get('monat', heute.month)
+    
+    try:
+        jahr = int(jahr)
+        monat = int(monat)
+    except ValueError:
+        jahr = heute.year
+        monat = heute.month
+    
+    # Hole alle Soll-Stunden für diesen Monat
+    soll_stunden_liste = MonatlicheArbeitszeitSoll.objects.filter(
+        jahr=jahr,
+        monat=monat,
+        mitarbeiter__aktiv=True
+    ).select_related('mitarbeiter').order_by('mitarbeiter__nachname')
+    
+    # Wenn keine Daten vorhanden, automatisch berechnen
+    if not soll_stunden_liste.exists():
+        messages.info(
+            request,
+            f"Keine Daten für {calendar.month_name[monat]} {jahr}. "
+            f"Berechne automatisch..."
+        )
+        MonatlicheArbeitszeitSoll.berechne_fuer_alle_mitarbeiter(jahr, monat)
+        
+        # Neu laden
+        soll_stunden_liste = MonatlicheArbeitszeitSoll.objects.filter(
+            jahr=jahr,
+            monat=monat,
+            mitarbeiter__aktiv=True
+        ).select_related('mitarbeiter').order_by('mitarbeiter__nachname')
+    
+    # Statistiken berechnen
+    stats = soll_stunden_liste.aggregate(
+        gesamt_soll=Sum('soll_stunden'),
+        durchschnitt=Avg('soll_stunden'),
+        anzahl=Count('id')
+    )
+    
+    # Gesamtarbeitstage
+    if soll_stunden_liste.exists():
+        beispiel = soll_stunden_liste.first()
+        arbeitstage_info = {
+            'gesamt': beispiel.arbeitstage_gesamt,
+            'feiertage': beispiel.feiertage_anzahl,
+            'effektiv': beispiel.arbeitstage_effektiv,
+            'feiertage_liste': beispiel.feiertage_liste
+        }
+    else:
+        arbeitstage_info = None
+    
+    # Navigation: Vorheriger/Nächster Monat
+    if monat == 1:
+        vorheriger = {'jahr': jahr - 1, 'monat': 12}
+    else:
+        vorheriger = {'jahr': jahr, 'monat': monat - 1}
+    
+    if monat == 12:
+        naechster = {'jahr': jahr + 1, 'monat': 1}
+    else:
+        naechster = {'jahr': jahr, 'monat': monat + 1}
+    
+    context = {
+        'jahr': jahr,
+        'monat': monat,
+        'monat_name': calendar.month_name[monat],
+        'soll_stunden_liste': soll_stunden_liste,
+        'stats': stats,
+        'arbeitstage_info': arbeitstage_info,
+        'vorheriger': vorheriger,
+        'naechster': naechster,
+        'ist_aktueller_monat': (jahr == heute.year and monat == heute.month),
+    }
+    
+    return render(request, 'arbeitszeit/soll_stunden_dashboard.html', context)
+
+
+@login_required
+def soll_stunden_berechnen(request):
+    """
+    View: Manuelle Berechnung der Soll-Stunden.
+    Zeigt sanfte Warnungen für Mitarbeiter ohne Vereinbarung.
+    """
+    if request.method == 'POST':
+        form = SollStundenBerechnungForm(request.POST)
+        
+        if form.is_valid():
+            jahr = form.cleaned_data['jahr']
+            monat = int(form.cleaned_data['monat'])
+            mitarbeiter_qs = form.cleaned_data.get('mitarbeiter')
+            
+            if not mitarbeiter_qs:
+                # Nur Mitarbeiter mit Schichtplan-Kennung MA1-MA15
+                mitarbeiter_qs = Mitarbeiter.objects.filter(
+                    aktiv=True,
+                    schichtplan_kennung__regex=r'^MA([1-9]|1[0-5])$'  # MA1 bis MA15
+                 
+                ).exclude(
+                    schichtplan_kennung=''  # Ausschließen ohne Kennung
+                )
+            
+            # Zähler
+            erfolge = 0
+            fehler = []
+            
+            # Berechne für jeden Mitarbeiter
+            for ma in mitarbeiter_qs:
+                try:
+                    # Versuche Berechnung
+                    MonatlicheArbeitszeitSoll.berechne_und_speichere(ma, jahr, monat)
+                    erfolge += 1
+                    
+                except ValueError as e:
+                    # Keine Vereinbarung oder keine Wochenstunden
+                    fehler.append({
+                        'mitarbeiter': ma,
+                        'fehler': str(e),
+                        'typ': 'keine_vereinbarung'
+                    })
+                    
+                except Exception as e:
+                    # Anderer unerwarteter Fehler
+                    fehler.append({
+                        'mitarbeiter': ma,
+                        'fehler': f"Unerwarteter Fehler: {str(e)}",
+                        'typ': 'anderer_fehler'
+                    })
+            
+            # Meldungen zusammenstellen
+            monat_name = calendar.month_name[monat]
+            
+            # Erfolgsmeldung
+            if erfolge > 0:
+                messages.success(
+                    request,
+                    f"✅ Soll-Stunden für {erfolge} Mitarbeiter erfolgreich berechnet "
+                    f"({monat_name} {jahr})"
+                )
+            
+            # Warnungen für Fehler
+            if fehler:
+                # Gruppiere nach Typ
+                ohne_vereinbarung = [f for f in fehler if f['typ'] == 'keine_vereinbarung']
+                andere_fehler = [f for f in fehler if f['typ'] == 'anderer_fehler']
+                
+                if ohne_vereinbarung:
+                    fehler_liste = "<ul>" + "".join([
+                        f"<li><strong>{f['mitarbeiter'].nachname}, {f['mitarbeiter'].vorname}</strong> "
+                        f"(ID: {f['mitarbeiter'].pk})</li>"
+                        for f in ohne_vereinbarung
+                    ]) + "</ul>"
+                    
+                    messages.warning(
+                        request,
+                        format_html(
+                            "⚠️ <strong>{} Mitarbeiter ohne Arbeitszeitvereinbarung übersprungen:</strong><br>{}"
+                            "<br><small>Bitte erstelle Vereinbarungen mit Status 'Aktiv' oder 'Genehmigt' "
+                            "im <a href='/admin/arbeitszeit/arbeitszeitvereinbarung/add/' target='_blank'>Admin</a>.</small>",
+                            len(ohne_vereinbarung),
+                            fehler_liste
+                        )
+                    )
+                
+                if andere_fehler:
+                    fehler_liste = "<ul>" + "".join([
+                        f"<li><strong>{f['mitarbeiter'].nachname}, {f['mitarbeiter'].vorname}:</strong> "
+                        f"{f['fehler']}</li>"
+                        for f in andere_fehler
+                    ]) + "</ul>"
+                    
+                    messages.error(
+                        request,
+                        format_html(
+                            "❌ <strong>{} Mitarbeiter mit Fehlern:</strong><br>{}",
+                            len(andere_fehler),
+                            fehler_liste
+                        )
+                    )
+            
+            # Keine Erfolge und keine Fehler?
+            if erfolge == 0 and not fehler:
+                messages.info(
+                    request,
+                    "ℹ️ Keine Mitarbeiter für die Berechnung ausgewählt."
+                )
+            
+            return redirect('arbeitszeit:soll_stunden_dashboard')
+    
+    else:
+        form = SollStundenBerechnungForm()
+    
+    context = {
+        'form': form,
+    }
+    
+    return render(request, 'arbeitszeit/soll_stunden_berechnen.html', context)
+
+
+@login_required
+def mitarbeiter_soll_uebersicht(request, pk):
+    """
+    Detailansicht: Soll-Stunden eines Mitarbeiters über mehrere Monate
+    """
+    
+    # Prüfe Berechtigung
+    # Berechtigung: Staff ODER Schichtplaner
+    if not (request.user.is_staff or 
+            (hasattr(request.user, 'mitarbeiter') and 
+             request.user.mitarbeiter.rolle == 'schichtplaner')):
+        messages.error(request, "Keine Berechtigung.")
+        return redirect('arbeitszeit:dashboard')
+    
+    mitarbeiter = get_object_or_404(Mitarbeiter, pk=pk)
+    
+    # Schichtplaner: Nur eigene Abteilung
+    if (hasattr(request.user, 'mitarbeiter') and 
+        request.user.mitarbeiter.rolle == 'schichtplaner' and
+        mitarbeiter.abteilung != request.user.mitarbeiter.abteilung):
+        messages.error(request, "Sie können nur Mitarbeiter Ihrer Abteilung einsehen.")
+        return redirect('arbeitszeit:soll_stunden_dashboard')
+    
+    heute = timezone.now().date()
+    
+    jahr = int(request.GET.get('jahr', timezone.now().year))
+    
+    # Hole Soll-Stunden für das ganze Jahr
+    soll_stunden_jahr = MonatlicheArbeitszeitSoll.objects.filter(
+        mitarbeiter=mitarbeiter,
+        jahr=jahr
+    ).order_by('monat')
+    
+    # Wenn keine Daten vorhanden, für aktuellen Monat berechnen
+    if not soll_stunden_jahr.exists():
+        MonatlicheArbeitszeitSoll.berechne_und_speichere(
+            mitarbeiter, 
+            heute.year, 
+            heute.month
+        )
+        soll_stunden_jahr = MonatlicheArbeitszeitSoll.objects.filter(
+            mitarbeiter=mitarbeiter,
+            jahr=jahr
+        ).order_by('monat')
+    
+    # Statistiken
+    stats = soll_stunden_jahr.aggregate(
+        gesamt_jahr=Sum('soll_stunden'),
+        durchschnitt=Avg('soll_stunden'),
+        monate_berechnet=Count('id')
+    )
+    
+    # Aktuelle Vereinbarung
+    vereinbarung = mitarbeiter.get_aktuelle_vereinbarung()
+    
+    context = {
+        'mitarbeiter': mitarbeiter,
+        'jahr': jahr,
+        'soll_stunden_jahr': soll_stunden_jahr,
+        'stats': stats,
+        'vereinbarung': vereinbarung,
+        'vorheriges_jahr': jahr - 1,
+        'naechstes_jahr': jahr + 1,
+    }
+    
+    return render(request, 'arbeitszeit/mitarbeiter_soll_uebersicht.html', context)
+
+#####Soll Stunden 
+@login_required
+
+def mitarbeiter_ohne_vereinbarung(request):
+    """
+    Zeigt alle Mitarbeiter ohne gültige Arbeitszeitvereinbarung.
+    """
+    heute = timezone.now().date()
+    
+    alle_mitarbeiter = Mitarbeiter.objects.filter(aktiv=True)
+    ohne_vereinbarung = []
+    
+    for ma in alle_mitarbeiter:
+        wochenstunden = ma.get_wochenstunden(heute)
+        if wochenstunden is None:
+            ohne_vereinbarung.append(ma)
+    
+    context = {
+        'mitarbeiter_ohne_vereinbarung': ohne_vereinbarung,
+        'anzahl': len(ohne_vereinbarung),
+    }
+    
+    return render(request, 'arbeitszeit/mitarbeiter_ohne_vereinbarung.html', context)
+
+
 
 # --- CUSTOM TEMPLATE FILTER (WORKAROUND) ---
 @register.filter(name='mod')
@@ -150,76 +635,120 @@ def dashboard(request):
 
 @login_required
 def vereinbarung_erstellen(request):
+    """Neue Arbeitszeitvereinbarung erstellen"""
     try:
         mitarbeiter = request.user.mitarbeiter
     except Mitarbeiter.DoesNotExist:
-        messages.error(request, "Kein Mitarbeiterprofil gefunden.")
-        return redirect('arbeitszeit:dashboard')
-
-    tage_list = ['montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag']
+        messages.error(request, "Sie sind keinem Mitarbeiter zugeordnet.")
+        return redirect('admin:index')
+    
+    # Tage-Liste für Template
+    tage_list = ['montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag']  # ← NEU!
     
     if request.method == 'POST':
         antragsart = request.POST.get('antragsart')
-        arbeitszeit_typ = request.POST.get('arbeitszeit_typ')
-        gueltig_ab = request.POST.get('gueltig_ab')
-        gueltig_bis = request.POST.get('gueltig_bis') or None
-        telearbeit = bool(request.POST.get('telearbeit'))
-
-        vereinbarung = Arbeitszeitvereinbarung.objects.create(
+        
+        # Basisvereinbarung erstellen
+        vereinbarung = Arbeitszeitvereinbarung(
             mitarbeiter=mitarbeiter,
             antragsart=antragsart,
-            arbeitszeit_typ=arbeitszeit_typ,
-            gueltig_ab=gueltig_ab,
-            gueltig_bis=gueltig_bis,
-            telearbeit=telearbeit,
+            gueltig_ab=request.POST.get('gueltig_ab'),
+            telearbeit=request.POST.get('telearbeit') == 'on',
             status='beantragt'
         )
-
-        if arbeitszeit_typ == 'individuell':
+        
+        # Bei Beendigung keine Arbeitszeit
+        if antragsart == 'beendigung':
+            vereinbarung.beendigung_beantragt = True
+            vereinbarung.beendigung_datum = vereinbarung.gueltig_ab
+        else:
+            arbeitszeit_typ = request.POST.get('arbeitszeit_typ')
+            vereinbarung.arbeitszeit_typ = arbeitszeit_typ
+            
+            if arbeitszeit_typ == 'regelmaessig':
+                vereinbarung.wochenstunden = request.POST.get('wochenstunden')
+        
+        vereinbarung.save()
+        
+        # Tagesarbeitszeiten speichern (individuell)
+        if antragsart != 'beendigung' and request.POST.get('arbeitszeit_typ') == 'individuell':
+            gesamt_minuten = 0
+            
+            # Suche nach Wochen (neuantrag_montag_1, neuantrag_montag_2, etc.)
             week = 1
             while True:
                 found_in_week = False
-                for tag in tage_list:
-                    key = f'neuantrag_{tag}_{week}'
-                    if key in request.POST:
-                        found_in_week = True
-                        zeitwert_str = request.POST.get(key)
-                        if zeitwert_str:
-                            try:
-                                stunden, minuten = map(int, zeitwert_str.split(':'))
-                                wert = stunden * 60 + minuten
-                                Tagesarbeitszeit.objects.create(
-                                    vereinbarung=vereinbarung,
-                                    wochentag=tag,
-                                    zeitwert=wert,
-                                    woche=week
-                                )
-                            except ValueError:
-                                continue
                 
+                for tag in tage_list:
+                    # Suche nach neuantrag_montag_1 (MIT _1, _2, etc.)
+                    zeitwert_str = request.POST.get(f'neuantrag_{tag}_{week}')
+                    
+                    if zeitwert_str:
+                        found_in_week = True
+                        try:
+                            # Erwarte HH:MM Format vom type="time" Input
+                            if ':' in zeitwert_str:
+                                stunden, minuten = map(int, zeitwert_str.split(':'))
+                            else:
+                                # Fallback: HMM Format
+                                wert = int(zeitwert_str)
+                                stunden = wert // 100
+                                minuten = wert % 100
+                            
+                            wert_minuten = stunden * 60 + minuten
+                            
+                            # Speichere als HMM für Kompatibilität
+                            wert_hmm = stunden * 100 + minuten
+                            
+                            Tagesarbeitszeit.objects.create(
+                                vereinbarung=vereinbarung,
+                                wochentag=tag,
+                                zeitwert=wert_hmm
+                            )
+                            
+                            gesamt_minuten += wert_minuten
+                            
+                        except (ValueError, AttributeError) as e:
+                            print(f"Fehler bei {tag} Woche {week}: {e}")
+                            continue
+                
+                # Keine Daten mehr in dieser Woche? → Abbruch
                 if not found_in_week:
                     break
+                    
                 week += 1
-        else:
-            try:
-                wochenstunden = float(request.POST.get('wochenstunden', 0))
-            except ValueError:
-                wochenstunden = 0
             
-            minuten_pro_tag = int((wochenstunden * 60) / 5)
-            
-            for tag in tage_list:
-                Tagesarbeitszeit.objects.create(
-                    vereinbarung=vereinbarung,
-                    wochentag=tag,
-                    zeitwert=minuten_pro_tag,
-                    woche=1
-                )
-
-        messages.success(request, "Die Arbeitszeitvereinbarung wurde beantragt.")
+            # Wochenstunden berechnen
+            if gesamt_minuten > 0:
+                vereinbarung.wochenstunden = round(gesamt_minuten / 60, 2)
+                vereinbarung.save()
+        
+        # Gültigkeit
+        if antragsart != 'beendigung':
+            gueltig_bis = request.POST.get('gueltig_bis')
+            if gueltig_bis:
+                vereinbarung.gueltig_bis = gueltig_bis
+        
+        vereinbarung.save()
+        
+        # Historie
+        ArbeitszeitHistorie.objects.create(
+            vereinbarung=vereinbarung,
+            aenderung_durch=request.user,
+            alter_status='entwurf',
+            neuer_status='beantragt',
+            bemerkung=f'{vereinbarung.get_antragsart_display()} erstellt und beantragt'
+        )
+        
+        messages.success(request, 'Arbeitszeitvereinbarung wurde erfolgreich beantragt.')
         return redirect('arbeitszeit:dashboard')
-
-    return render(request, 'arbeitszeit/vereinbarung_form.html', {'tage_list': tage_list})
+    
+    context = {
+        'mitarbeiter': mitarbeiter,
+        'tage_list': tage_list,  # ← NEU!
+    }
+    
+    return render(request, 'arbeitszeit/vereinbarung_form.html', context)
 
 
 @login_required

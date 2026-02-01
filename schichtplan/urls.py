@@ -8,7 +8,7 @@ urlpatterns = [
     path('', views.planer_dashboard, name='dashboard'),
     
     # Schichtplan
-    path('erstellen/', views.schichtplan_erstellen, name='erstellen'),
+    path('erstellen/', views.SchichtplanCreateView.as_view(), name='erstellen'),
     path('<int:pk>/', views.schichtplan_detail, name='detail'),
     
     # Excel-Import

@@ -30,4 +30,26 @@ urlpatterns = [
     # Dokumente
     path('verwaltung/vereinbarung/<int:pk>/docx/', views.admin_vereinbarung_docx_export, name='admin_vereinbarung_docx'),
     path('verwaltung/vereinbarung/<int:pk>/pdf/', views.admin_vereinbarung_pdf_export, name='admin_vereinbarung_pdf'),
+
+     # Soll-Stunden
+    path(
+        'soll-stunden/',
+        views.soll_stunden_dashboard,
+        name='soll_stunden_dashboard'
+    ),
+    path(
+        'soll-stunden/berechnen/',
+        views.soll_stunden_berechnen,
+        name='soll_stunden_berechnen'
+    ),
+    path(
+        'soll-stunden/jahresuebersicht/',
+        views.soll_stunden_jahresuebersicht,
+        name='soll_stunden_jahresuebersicht'
+    ),
+    path(
+        'mitarbeiter/<int:pk>/soll-stunden/',
+        views.mitarbeiter_soll_uebersicht,
+        name='mitarbeiter_soll_uebersicht'
+    ),
 ]

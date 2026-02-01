@@ -8,6 +8,215 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
+#WorkCalendar
+from decimal import Decimal
+import calendar
+from workalendar.europe import NorthRhineWestphalia
+
+#WorkCalendar
+class MonatlicheArbeitszeitSoll(models.Model):
+    """
+    Berechnet und speichert Soll-Arbeitsstunden pro Mitarbeiter und Monat.
+    Berücksichtigt Feiertage in NRW.
+    """
+    
+    mitarbeiter = models.ForeignKey(
+        'Mitarbeiter',
+        on_delete=models.CASCADE,
+        related_name='monatliche_soll_zeiten'
+    )
+    
+    jahr = models.IntegerField(verbose_name="Jahr")
+    monat = models.IntegerField(
+        verbose_name="Monat",
+        help_text="1=Januar, 12=Dezember"
+    )
+    
+    # Berechnete Werte
+    arbeitstage_gesamt = models.IntegerField(
+        verbose_name="Arbeitstage gesamt",
+        help_text="Alle Werktage (Mo-Fr) im Monat"
+    )
+    
+    feiertage_anzahl = models.IntegerField(
+        default=0,
+        verbose_name="Anzahl Feiertage",
+        help_text="Feiertage in NRW, die auf Werktage fallen"
+    )
+    
+    arbeitstage_effektiv = models.IntegerField(
+        verbose_name="Effektive Arbeitstage",
+        help_text="Arbeitstage minus Feiertage"
+    )
+    
+    wochenstunden = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        verbose_name="Wochenstunden",
+        help_text="Vertragliche Wochenstunden des Mitarbeiters"
+    )
+    
+    soll_stunden = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        verbose_name="Soll-Stunden",
+        help_text="Berechnete Soll-Arbeitsstunden für diesen Monat"
+    )
+    
+    # Zusatzinfos
+    feiertage_liste = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Feiertage",
+        help_text="Liste der Feiertage mit Datum und Name"
+    )
+    
+    berechnet_am = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Monatliches Arbeitszeitlimit"
+        verbose_name_plural = "Monatliche Arbeitszeitlimits"
+        unique_together = ['mitarbeiter', 'jahr', 'monat']
+        ordering = ['jahr', 'monat', 'mitarbeiter']
+    
+    def __str__(self):
+        monat_name = calendar.month_name[self.monat]
+        return f"{self.mitarbeiter.vollname} - {monat_name} {self.jahr}: {self.soll_stunden}h"
+    
+    @classmethod
+    def berechne_und_speichere(cls, mitarbeiter, jahr, monat):
+        """
+        Berechnet die Soll-Stunden für einen Mitarbeiter und Monat.
+        Holt Wochenstunden aus der aktuell gültigen Vereinbarung!
+        
+        Args:
+            mitarbeiter: Mitarbeiter-Objekt
+            jahr: Jahr (z.B. 2026)
+            monat: Monat (1-12)
+        
+        Returns:
+            MonatlicheArbeitszeitSoll-Objekt
+        
+        Raises:
+            ValueError: Wenn keine gültige Vereinbarung gefunden wird
+        """
+        import datetime
+        import calendar
+        from decimal import Decimal
+        from workalendar.europe import NorthRhineWestphalia
+        
+        # 1. Hole Wochenstunden aus aktueller Vereinbarung
+        # Stichtag = Mitte des Monats (falls Vereinbarung im Monat wechselt)
+        stichtag = datetime.date(jahr, monat, 15)
+        
+        # Hole Vereinbarung zum Stichtag
+        vereinbarung = mitarbeiter.get_aktuelle_vereinbarung(stichtag)
+        
+        if not vereinbarung:
+            raise ValueError(
+                f"Keine gültige Arbeitszeitvereinbarung für {mitarbeiter.vollname} "
+                f"im {calendar.month_name[monat]} {jahr} gefunden! "
+                f"Bitte erstelle eine Vereinbarung mit Status 'Genehmigt'."
+            )
+        
+        if not vereinbarung.wochenstunden:
+            raise ValueError(
+                f"Vereinbarung für {mitarbeiter.vollname} hat keine Wochenstunden! "
+                f"Bitte ergänze die Wochenstunden in Vereinbarung #{vereinbarung.pk}."
+            )
+        
+        wochenstunden = vereinbarung.wochenstunden
+        
+        # 2. Berechne Arbeitstage und Feiertage
+        cal = NorthRhineWestphalia()
+        _, letzter_tag = calendar.monthrange(jahr, monat)
+        
+        arbeitstage_gesamt = 0
+        feiertage = []
+        
+        for tag in range(1, letzter_tag + 1):
+            datum = datetime.date(jahr, monat, tag)
+            wochentag = datum.weekday()
+            
+            # Nur Werktage (Mo-Fr) zählen
+            if wochentag < 5:
+                arbeitstage_gesamt += 1
+                
+                # Prüfe ob Feiertag
+                if cal.is_holiday(datum):
+                    feiertag_name = cal.get_holiday_label(datum)
+                    feiertage.append({
+                        'datum': datum.isoformat(),
+                        'name': feiertag_name,
+                        'wochentag': calendar.day_name[wochentag]
+                    })
+        
+        feiertage_anzahl = len(feiertage)
+        arbeitstage_effektiv = arbeitstage_gesamt - feiertage_anzahl
+        
+        # 3. Berechne Soll-Stunden
+        # Formel: (Wochenstunden / 5 Tage) × Effektive Arbeitstage
+        tagesstunden = wochenstunden / Decimal('5')
+        soll_stunden = tagesstunden * Decimal(str(arbeitstage_effektiv))
+        
+        # Runde auf 2 Nachkommastellen
+        soll_stunden = soll_stunden.quantize(Decimal('0.01'))
+        
+        # 4. Speichern oder aktualisieren
+        obj, created = cls.objects.update_or_create(
+            mitarbeiter=mitarbeiter,
+            jahr=jahr,
+            monat=monat,
+            defaults={
+                'arbeitstage_gesamt': arbeitstage_gesamt,
+                'feiertage_anzahl': feiertage_anzahl,
+                'arbeitstage_effektiv': arbeitstage_effektiv,
+                'wochenstunden': wochenstunden,  # ← Aus Vereinbarung!
+                'soll_stunden': soll_stunden,
+                'feiertage_liste': feiertage,
+            }
+        )
+        
+        return obj
+    
+    @classmethod
+    def berechne_fuer_alle_mitarbeiter(cls, jahr, monat):
+        """
+        Berechnet Soll-Stunden für alle aktiven Mitarbeiter.
+        
+        Args:
+            jahr: Jahr
+            monat: Monat (1-12)
+        
+        Returns:
+            Liste der erstellten/aktualisierten Objekte
+        """
+        from arbeitszeit.models import Mitarbeiter
+        
+        aktive_mitarbeiter = Mitarbeiter.objects.filter(aktiv=True)
+        ergebnisse = []
+        
+        for ma in aktive_mitarbeiter:
+            obj = cls.berechne_und_speichere(ma, jahr, monat)
+            ergebnisse.append(obj)
+        
+        return ergebnisse
+    
+    @property
+    def soll_stunden_formatiert(self):
+        """Gibt Soll-Stunden als String zurück (z.B. '168:00h')"""
+        stunden = int(self.soll_stunden)
+        minuten = int((self.soll_stunden - stunden) * 60)
+        return f"{stunden}:{minuten:02d}h"
+    
+    @property
+    def monat_name(self):
+        """Gibt Monatsnamen zurück"""
+        return calendar.month_name[self.monat]
+    
+
+
+
 class Mitarbeiter(models.Model):
     
 
@@ -43,6 +252,104 @@ class Mitarbeiter(models.Model):
         ('normal', 'Normal'),
         ('hoch', 'Hoch - Präferenzen bevorzugt berücksichtigen'),
     ]
+    SCHICHT_TYP_CHOICES = [
+        ('typ_a', 'Typ A - Normale Planung'),
+        ('typ_b', 'Typ B - Min. 4T + 4N pro Monat'),
+    ]
+    
+    schicht_typ = models.CharField(
+        max_length=10,
+        choices=SCHICHT_TYP_CHOICES,
+        default='typ_a',
+        verbose_name="Schichttyp",
+        help_text="Typ A: Normale Planung | Typ B: Mind. 4 Tag- UND 4 Nachtschichten/Monat"
+    )
+    #### Soll ZEITEN FÜR MITARBEITER ####
+    def get_aktuelle_vereinbarung(self, stichtag=None):
+        """Holt die zum Stichtag gültige Arbeitszeitvereinbarung."""
+        from django.utils import timezone
+        from django.db.models import Q
+        
+        if stichtag is None:
+            stichtag = timezone.now().date()
+        
+        return self.arbeitszeitvereinbarungen.filter(
+            status__in=['aktiv', 'genehmigt'],  # ← Beide Status akzeptieren!
+            gueltig_ab__lte=stichtag
+        ).filter(
+            Q(gueltig_bis__isnull=True) | Q(gueltig_bis__gte=stichtag)
+        ).order_by('-gueltig_ab').first()
+        
+    def get_wochenstunden(self, stichtag=None):
+        """
+        Holt die Wochenstunden aus der aktuellen Vereinbarung.
+        
+        Args:
+            stichtag (date): Datum für das die Wochenstunden gelten sollen
+        
+        Returns:
+            Decimal: Wochenstunden oder None wenn keine Vereinbarung
+        """
+        vereinbarung = self.get_aktuelle_vereinbarung(stichtag)
+        
+        if vereinbarung:
+            return vereinbarung.wochenstunden
+        
+        return None
+    
+    def get_aktuelle_arbeitszeit_info(self):
+        """
+        Gibt Informationen zur aktuellen Arbeitszeit zurück.
+        Wird im Dashboard verwendet.
+        
+        Returns:
+            dict mit 'vereinbarung', 'wochenstunden', 'antragsart', etc.
+        """
+        vereinbarung = self.get_aktuelle_vereinbarung()
+        
+        if vereinbarung:
+            return {
+                'vereinbarung': vereinbarung,
+                'wochenstunden': vereinbarung.wochenstunden,
+                'antragsart': vereinbarung.get_antragsart_display(),
+                'status': vereinbarung.get_status_display(),
+                'gueltig_ab': vereinbarung.gueltig_ab,
+                'gueltig_bis': vereinbarung.gueltig_bis,
+                'ist_befristet': vereinbarung.gueltig_bis is not None,
+            }
+        
+        return None
+    #WorkCalendar
+    def get_soll_stunden_monat(self, jahr, monat):
+        """
+        Gibt Soll-Stunden für einen bestimmten Monat zurück.
+        Berechnet automatisch, wenn noch nicht vorhanden.
+        
+        Args:
+            jahr: Jahr (z.B. 2025)
+            monat: Monat (1-12)
+        
+        Returns:
+            Decimal: Soll-Stunden
+        """
+        from arbeitszeit.models import MonatlicheArbeitszeitSoll
+        
+        soll = MonatlicheArbeitszeitSoll.objects.filter(
+            mitarbeiter=self,
+            jahr=jahr,
+            monat=monat
+        ).first()
+        
+        if not soll:
+            # Automatisch berechnen
+            soll = MonatlicheArbeitszeitSoll.berechne_und_speichere(self, jahr, monat)
+        
+        return soll.soll_stunden
+    
+    def get_soll_stunden_aktueller_monat(self):
+        """Gibt Soll-Stunden für den aktuellen Monat zurück"""
+        heute = timezone.now().date()
+        return self.get_soll_stunden_monat(heute.year, heute.month)
    
     # === BASISDATEN ===
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -206,18 +513,28 @@ class Mitarbeiter(models.Model):
         return f"{self.vorname} {self.nachname}"
     
     
-    def get_aktuelle_vereinbarung(self):
-        """Gibt die aktuell gültige Vereinbarung zurück"""
+    def get_aktuelle_vereinbarung(self, stichtag=None):
+        """
+        Holt die zum Stichtag gültige Arbeitszeitvereinbarung.
+        
+        Args:
+            stichtag (date): Optional, Standard ist heute
+        
+        Returns:
+            Arbeitszeitvereinbarung oder None
+        """
         from django.utils import timezone
-        heute = timezone.now().date()
+        from django.db.models import Q
+        
+        if stichtag is None:
+            stichtag = timezone.now().date()
         
         return self.arbeitszeitvereinbarungen.filter(
-            status='aktiv',
-            gueltig_ab__lte=heute
+            status__in=['aktiv', 'genehmigt'],
+            gueltig_ab__lte=stichtag
         ).filter(
-            Q(gueltig_bis__isnull=True) | Q(gueltig_bis__gte=heute)
-        ).first()
-
+            Q(gueltig_bis__isnull=True) | Q(gueltig_bis__gte=stichtag)
+        ).order_by('-gueltig_ab').first()
 
 class Arbeitszeitvereinbarung(models.Model):
     """Arbeitszeitvereinbarung für einen Mitarbeiter"""
@@ -296,30 +613,30 @@ class Arbeitszeitvereinbarung(models.Model):
     def __str__(self):
         return f"{self.mitarbeiter.vollname} - {self.get_antragsart_display()} ({self.gueltig_ab})"
     
+
+   
     @property
     def get_wochenstunden_summe(self):
-    
-    # Regelmäßige Arbeitszeit
-        if self.arbeitszeit_typ == 'regelmaessig' and self.wochenstunden:
+        # 1. PRIORITÄT: Wenn Einzeltage (Montag, Dienstag...) existieren, nimm diese!
+        tage = self.tagesarbeitszeiten.all()
+        if tage.exists():
+            total_minuten = sum(t.zeit_in_minuten for t in tage)
+            anzahl_wochen = tage.values('woche').distinct().count() or 1
+            minuten_pro_woche = total_minuten / anzahl_wochen
+            
+            stunden = int(minuten_pro_woche // 60)
+            minuten = int(round(minuten_pro_woche % 60))
+            return f"{stunden}:{minuten:02d}h"
+
+        # 2. PRIORITÄT: Wenn keine Einzeltage da sind, nimm das Feld 'wochenstunden'
+        if self.wochenstunden and self.wochenstunden > 0:
             stunden = int(self.wochenstunden)
-            minuten = int((self.wochenstunden - stunden) * 60)
+            minuten = int(round((self.wochenstunden - stunden) * 60))
             return f"{stunden}:{minuten:02d}h"
 
-    # Individuelle Verteilung
-        if self.arbeitszeit_typ == 'individuell':
-            tage = self.tagesarbeitszeiten.all()
-            if not tage.exists():
-                return None
-
-            total_minuten = sum(
-                (t.stunden * 60 + t.minuten) for t in tage
-            )
-            stunden = total_minuten // 60
-            minuten = total_minuten % 60
-            return f"{stunden}:{minuten:02d}h"
-
-        return None
-    
+        # 3. FALLBACK: Wenn gar nichts gefunden wurde
+        return "0:00h"
+        
     @property
     def ist_aktiv(self):
         """Prüft, ob die Vereinbarung aktuell aktiv ist"""
@@ -334,13 +651,33 @@ class Arbeitszeitvereinbarung(models.Model):
     
     @property
     def tagesarbeitszeit(self):
-        """Berechnet die durchschnittliche Tagesarbeitszeit (nur für regelmäßig)"""
+        """Berechnet die durchschnittliche Tagesarbeitszeit für beide Typen"""
+        total_wochen_minuten = 0
+
+        # Fall 1: Regelmäßige Arbeitszeit
         if self.arbeitszeit_typ == 'regelmaessig' and self.wochenstunden:
-            tageszeit = float(self.wochenstunden) / 5
-            stunden = int(tageszeit)
-            minuten = int((tageszeit - stunden) * 60)
+            # Wochenstunden (Decimal) in Minuten umrechnen
+            total_wochen_minuten = float(self.wochenstunden) * 60
+
+        # Fall 2: Individuelle Verteilung
+        elif self.arbeitszeit_typ == 'individuell':
+            tage = self.tagesarbeitszeiten.all()
+            if tage.exists():
+                summe_minuten = sum(t.zeit_in_minuten for t in tage)
+                anzahl_wochen = tage.values('woche').distinct().count() or 1
+                # Durchschnittliche Minuten pro Woche
+                total_wochen_minuten = summe_minuten / anzahl_wochen
+
+        # Berechnung des Tagesdurchschnitts (basierend auf einer 5-Tage-Woche)
+        if total_wochen_minuten > 0:
+            # Wochenminuten durch 5 Tage teilen
+            tages_minuten = total_wochen_minuten / 5
+            
+            stunden = int(tages_minuten // 60)
+            minuten = int(round(tages_minuten % 60))
             return f"{stunden}:{minuten:02d}h"
-        return None
+
+        return "0:00h"
     
 
 
@@ -387,7 +724,16 @@ class Tagesarbeitszeit(models.Model):
         if self.zeitwert is None:
             return f"{self.get_wochentag_display()}: —"
         return f"{self.get_wochentag_display()}: {self.formatierte_zeit}"
+    
 
+    @property
+    def stunden(self):
+        # Wenn zeitwert 468 ist: 468 // 60 = 7
+        return self.zeitwert // 60
+    @property
+    def minuten(self):
+        # Wenn zeitwert 468 ist: 468 % 60 = 48
+        return self.zeitwert % 60
     
     def formatierte_zeit(self):
         """
@@ -396,21 +742,12 @@ class Tagesarbeitszeit(models.Model):
         """
         if self.zeitwert is None:
             return "—"
-        stunden = self.zeitwert // 100
-        minuten = self.zeitwert % 100
-        return f"{stunden:02d}:{minuten:02d}"
+        return f"{self.stunden:02d}:{self.minuten:02d}"
 
     @property
     def zeit_in_minuten(self):
-        """
-        Gibt die Arbeitszeit in Minuten zurück, z.B. 08:30 -> 510
-        Nützlich für Summenberechnungen.
-        """
-        if self.zeitwert is None:
-            return 0
-        stunden = self.zeitwert // 100
-        minuten = self.zeitwert % 100
-        return stunden * 60 + minuten
+        # Da der Wert schon in Minuten vorliegt, einfach zurückgeben
+        return self.zeitwert if self.zeitwert else 0
 
 
 class ArbeitszeitHistorie(models.Model):
@@ -547,3 +884,74 @@ class Zeiterfassung(models.Model):
 
         if stunden < 0 or stunden > 24:
             raise ValidationError("Ungültige Stundenzahl")
+        
+        
+#####Soll Zeit Berechnung mit Feiertagen #####        
+@classmethod
+def berechne_und_speichere(cls, mitarbeiter, jahr, monat):
+    """
+    Berechnet die Soll-Stunden für einen Mitarbeiter und Monat.
+    Verwendet die tatsächliche Arbeitszeitvereinbarung!
+    """
+    from decimal import Decimal
+    import calendar
+    from workalendar.europe import NorthRhineWestphalia
+    
+    # 1. Hole Wochenstunden aus Vereinbarung
+    # Stichtag = Mitte des Monats (für den Fall dass sich was ändert)
+    stichtag = datetime.date(jahr, monat, 15)
+    
+    wochenstunden = mitarbeiter.get_wochenstunden(stichtag)
+    
+    if wochenstunden is None:
+        raise ValueError(
+            f"Keine gültige Arbeitszeitvereinbarung für {mitarbeiter.vollname} "
+            f"im {calendar.month_name[monat]} {jahr} gefunden!"
+        )
+    
+    # 2. Berechne Arbeitstage und Feiertage
+    cal = NorthRhineWestphalia()
+    _, letzter_tag = calendar.monthrange(jahr, monat)
+    
+    arbeitstage_gesamt = 0
+    feiertage = []
+    
+    for tag in range(1, letzter_tag + 1):
+        datum = datetime.date(jahr, monat, tag)
+        wochentag = datum.weekday()
+        
+        if wochentag < 5:  # Mo-Fr
+            arbeitstage_gesamt += 1
+            
+            if cal.is_holiday(datum):
+                feiertag_name = cal.get_holiday_label(datum)
+                feiertage.append({
+                    'datum': datum.isoformat(),
+                    'name': feiertag_name,
+                    'wochentag': calendar.day_name[wochentag]
+                })
+    
+    feiertage_anzahl = len(feiertage)
+    arbeitstage_effektiv = arbeitstage_gesamt - feiertage_anzahl
+    
+    # 3. Berechne Soll-Stunden
+    tagesstunden = wochenstunden / Decimal('5')
+    soll_stunden = tagesstunden * Decimal(str(arbeitstage_effektiv))
+    soll_stunden = soll_stunden.quantize(Decimal('0.01'))
+    
+    # 4. Speichern
+    obj, created = cls.objects.update_or_create(
+        mitarbeiter=mitarbeiter,
+        jahr=jahr,
+        monat=monat,
+        defaults={
+            'arbeitstage_gesamt': arbeitstage_gesamt,
+            'feiertage_anzahl': feiertage_anzahl,
+            'arbeitstage_effektiv': arbeitstage_effektiv,
+            'wochenstunden': wochenstunden,  # ← Tatsächliche Wochenstunden!
+            'soll_stunden': soll_stunden,
+            'feiertage_liste': feiertage,
+        }
+    )
+    
+    return obj

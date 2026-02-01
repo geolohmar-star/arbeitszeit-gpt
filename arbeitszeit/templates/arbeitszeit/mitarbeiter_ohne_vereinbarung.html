@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>⚠️ Mitarbeiter ohne Arbeitszeitvereinbarung</h2>
+    
+    {% if anzahl == 0 %}
+    <div class="alert alert-success">
+        ✅ Alle aktiven Mitarbeiter haben eine gültige Arbeitszeitvereinbarung!
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        <strong>{{ anzahl }} Mitarbeiter</strong> haben keine gültige Arbeitszeitvereinbarung.
+        Ohne Vereinbarung können keine Soll-Stunden berechnet werden!
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Mitarbeiter</th>
+                        <th>Personalnummer</th>
+                        <th>Abteilung</th>
+                        <th>Aktion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ma in mitarbeiter_ohne_vereinbarung %}
+                    <tr>
+                        <td>{{ ma.vollname }}</td>
+                        <td>{{ ma.personalnummer }}</td>
+                        <td>{{ ma.abteilung }}</td>
+                        <td>
+                            <a href="{% url 'admin:arbeitszeit_arbeitszeitvereinbarung_add' %}?mitarbeiter={{ ma.pk }}" 
+                               class="btn btn-sm btn-primary" 
+                               target="_blank">
+                                ➕ Vereinbarung erstellen
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

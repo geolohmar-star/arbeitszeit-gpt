@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Schichttyp, Schichtplan, Schicht, Schichtwunsch, Schichttausch
+from arbeitszeit.models import Mitarbeiter
 
 
 @admin.register(Schichttyp)
@@ -25,3 +26,4 @@ class SchichtwunschAdmin(admin.ModelAdmin):
 @admin.register(Schichttausch)
 class SchichttauschAdmin(admin.ModelAdmin):
     list_display = ['urspruengliche_schicht', 'status']
+

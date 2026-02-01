@@ -1,0 +1,452 @@
+# schichtplan/services.py - MIT ALLEN PRÄFERENZEN
+"""
+KI-gestützte Schichtplan-Generierung mit OR-Tools
+VOLLSTÄNDIG ANGEPASST für Mitarbeiter-Präferenzen
+"""
+
+import datetime
+import calendar
+from collections import defaultdict
+from ortools.sat.python import cp_model
+from django.db.models import Q
+from schichtplan.models import Schicht, Schichttyp, Schichtplan
+
+
+class SchichtplanGenerator:
+    def __init__(self, mitarbeiter_queryset):
+        """
+        Initialisiert den Generator mit gefilterter Mitarbeiter-Liste.
+        Nur Mitarbeiter mit Kennung MA1-MA15 werden übergeben.
+        """
+        self.mitarbeiter_list = list(mitarbeiter_queryset)
+        self.ma_map = {ma.id: ma for ma in self.mitarbeiter_list}
+        
+        # Schichttypen laden
+        try:
+            self.type_t = Schichttyp.objects.get(kuerzel='T')
+            self.type_n = Schichttyp.objects.get(kuerzel='N')
+        except Schichttyp.DoesNotExist:
+            raise Exception(
+                "Schichttypen 'T' und 'N' müssen in der Datenbank existieren."
+            )
+
+        self.target_shifts = [self.type_t, self.type_n]
+        
+        # Präferenzen laden
+        self._load_preferences()
+
+    def _load_preferences(self):
+        """
+        Lädt alle relevanten Präferenzen aus dem Mitarbeiter-Model.
+        """
+        print("   Lade Mitarbeiter-Präferenzen...")
+        
+        self.preferences = {}
+        
+        for ma in self.mitarbeiter_list:
+            pref = {
+                # HARD CONSTRAINTS (müssen eingehalten werden)
+                'kann_tagschicht': ma.kann_tagschicht,
+                'kann_nachtschicht': ma.kann_nachtschicht,
+                'nachtschicht_nur_wochenende': ma.nachtschicht_nur_wochenende,
+                'nur_zusatzdienste_wochentags': ma.nur_zusatzdienste_wochentags,
+                'max_wochenenden_pro_monat': ma.max_wochenenden_pro_monat,
+                'max_schichten_pro_monat': ma.max_schichten_pro_monat or 999,
+                'max_aufeinanderfolgende_tage': ma.max_aufeinanderfolgende_tage,
+                
+                # Verfügbarkeit
+                'verfuegbarkeit': ma.verfuegbarkeit,
+                
+                # SOFT CONSTRAINTS (sollten optimiert werden)
+                'planungs_prioritaet': ma.planungs_prioritaet,
+            }
+            
+            self.preferences[ma.id] = pref
+            
+            # Debug-Ausgabe
+            if ma.nachtschicht_nur_wochenende:
+                print(f"      → {ma.schichtplan_kennung}: Nachtschicht NUR Wochenende")
+            if ma.nur_zusatzdienste_wochentags:
+                print(f"      → {ma.schichtplan_kennung}: Wochentags NUR Zusatzdienste")
+            if not ma.kann_nachtschicht:
+                print(f"      → {ma.schichtplan_kennung}: KEINE Nachtschichten")
+            if ma.verfuegbarkeit == 'wochenende_only':
+                print(f"      → {ma.schichtplan_kennung}: NUR Wochenende")
+            if ma.verfuegbarkeit == 'wochentags_only':
+                print(f"      → {ma.schichtplan_kennung}: NUR Wochentags")
+
+    def _analysiere_historie(self, referenz_datum):
+        """Liest alte Schichten und lernt Muster"""
+        print("--- Analysiere historische Daten ---")
+        
+        historische_schichten = Schicht.objects.filter(
+            datum__lt=referenz_datum
+        ).select_related('mitarbeiter', 'schichttyp')
+        
+        print(f"   Gefunden: {historische_schichten.count()} historische Schichten")
+        
+        learned_rules = defaultdict(int)
+        
+        for schicht in historische_schichten:
+            alter_tage = (referenz_datum - schicht.datum).days
+            
+            # Zeit-Gewichtung
+            if alter_tage < 35:
+                gewicht = 3
+            elif alter_tage < 90:
+                gewicht = 2
+            else:
+                gewicht = 1
+            
+            wd = schicht.datum.isoweekday()
+            kuerzel = schicht.schichttyp.kuerzel
+            
+            # Mapping
+            if kuerzel.startswith('Z') or kuerzel == 'T':
+                mapped_kuerzel = 'T'
+            elif kuerzel == 'N':
+                mapped_kuerzel = 'N'
+            else:
+                continue
+            
+            key = (schicht.mitarbeiter.id, wd, mapped_kuerzel)
+            learned_rules[key] += gewicht
+
+        final_weights = {}
+        for key, score in learned_rules.items():
+            final_weights[key] = -5 * score
+        
+        print(f"   Gelernte Regeln: {len(final_weights)} Muster")
+        
+        return final_weights
+
+    def _hole_uebergangs_status(self, start_datum):
+        """Prüft Schichten vom Vortag"""
+        letzter_tag = start_datum - datetime.timedelta(days=1)
+        schichten_gestern = Schicht.objects.filter(datum=letzter_tag)
+        
+        last_shifts = {}
+        for s in schichten_gestern:
+            last_shifts[s.mitarbeiter.id] = s.schichttyp.kuerzel
+        
+        if last_shifts:
+            print(f"   Übergangsdaten: {len(last_shifts)} Mitarbeiter hatten am {letzter_tag} Dienst")
+        
+        return last_shifts
+
+    def generiere_vorschlag(self, neuer_schichtplan_obj):
+        """
+        Hauptfunktion: Erstellt optimierten Schichtplan.
+        Berücksichtigt ALLE Präferenzen aus dem Mitarbeiter-Model.
+        """
+        start_datum = neuer_schichtplan_obj.start_datum
+        
+        # Ende-Datum ermitteln
+        if hasattr(neuer_schichtplan_obj, 'ende_datum') and neuer_schichtplan_obj.ende_datum:
+            ende_datum = neuer_schichtplan_obj.ende_datum
+        else:
+            last_day = calendar.monthrange(start_datum.year, start_datum.month)[1]
+            ende_datum = start_datum.replace(day=last_day)
+        
+        # Tages-Liste erstellen
+        current = start_datum
+        tage_liste = []
+        
+        while current <= ende_datum:
+            tage_liste.append(current)
+            current += datetime.timedelta(days=1)
+
+        print(f"Generiere Plan für {len(tage_liste)} Tage ({start_datum} bis {tage_liste[-1]})...")
+
+        # Daten laden
+        learned_rules = self._analysiere_historie(start_datum)
+        last_shifts = self._hole_uebergangs_status(start_datum)
+        
+        # Solver Setup
+        model = cp_model.CpModel()
+        vars_schichten = {}
+
+        # ====================================================================
+        # A. VARIABLEN ERSTELLEN
+        # ====================================================================
+        
+        print(f"Erstelle Variablen für {len(self.mitarbeiter_list)} Mitarbeiter...")
+        
+        for ma in self.mitarbeiter_list:
+            for tag in tage_liste:
+                for stype in self.target_shifts:
+                    var_name = f'{ma.id}_{tag}_{stype.kuerzel}'
+                    vars_schichten[(ma.id, tag, stype.kuerzel)] = model.NewBoolVar(var_name)
+                
+                vars_schichten[(ma.id, tag, 'Frei')] = model.NewBoolVar(f'{ma.id}_{tag}_Frei')
+
+        # ====================================================================
+        # B. HARD CONSTRAINTS - BASIS-REGELN
+        # ====================================================================
+        
+        print("Definiere Basis-Constraints...")
+        
+        # 1. Genau ein Zustand pro Tag
+        for ma in self.mitarbeiter_list:
+            for tag in tage_liste:
+                all_options = [vars_schichten[(ma.id, tag, st.kuerzel)] for st in self.target_shifts]
+                all_options.append(vars_schichten[(ma.id, tag, 'Frei')])
+                model.Add(sum(all_options) == 1)
+
+        # 2. Ruhezeit: Kein T direkt nach N
+        for ma in self.mitarbeiter_list:
+            for i in range(len(tage_liste) - 1):
+                heute = tage_liste[i]
+                morgen = tage_liste[i+1]
+                model.Add(
+                    vars_schichten[(ma.id, morgen, 'T')] == 0
+                ).OnlyEnforceIf(vars_schichten[(ma.id, heute, 'N')])
+
+        # 3. Übergang vom Vormonat
+        if tage_liste:
+            erster_tag = tage_liste[0]
+            for ma_id, last_k in last_shifts.items():
+                if last_k == 'N':
+                    if (ma_id, erster_tag, 'T') in vars_schichten:
+                        model.Add(vars_schichten[(ma_id, erster_tag, 'T')] == 0)
+
+        # ====================================================================
+        # C. HARD CONSTRAINTS - MITARBEITER-PRÄFERENZEN
+        # ====================================================================
+        
+        print("Definiere Präferenz-Constraints...")
+        
+        for ma in self.mitarbeiter_list:
+            pref = self.preferences[ma.id]
+            
+            # ================================================================
+            # C.1 KANN NICHT TAGSCHICHT
+            # ================================================================
+            if not pref['kann_tagschicht']:
+                for tag in tage_liste:
+                    model.Add(vars_schichten[(ma.id, tag, 'T')] == 0)
+                print(f"   → {ma.schichtplan_kennung}: Keine Tagschichten")
+            
+            # ================================================================
+            # C.2 KANN NICHT NACHTSCHICHT
+            # ================================================================
+            if not pref['kann_nachtschicht']:
+                for tag in tage_liste:
+                    model.Add(vars_schichten[(ma.id, tag, 'N')] == 0)
+                print(f"   → {ma.schichtplan_kennung}: Keine Nachtschichten")
+            
+            # ================================================================
+            # C.3 NACHTSCHICHT NUR WOCHENENDE
+            # ================================================================
+            if pref['nachtschicht_nur_wochenende']:
+                for tag in tage_liste:
+                    # Montag=0, Sonntag=6
+                    if tag.weekday() < 4:  # Mo-Do
+                        model.Add(vars_schichten[(ma.id, tag, 'N')] == 0)
+                print(f"   → {ma.schichtplan_kennung}: Nachtschicht nur Fr/Sa/So")
+            
+            # ================================================================
+            # C.4 NUR ZUSATZDIENSTE WOCHENTAGS
+            # ================================================================
+            if pref['nur_zusatzdienste_wochentags']:
+                for tag in tage_liste:
+                    if tag.weekday() < 4:  # Mo-Do
+                        # Keine regulären Schichten
+                        model.Add(vars_schichten[(ma.id, tag, 'T')] == 0)
+                        model.Add(vars_schichten[(ma.id, tag, 'N')] == 0)
+                print(f"   → {ma.schichtplan_kennung}: Wochentags nur Zusatzdienste")
+            
+            # ================================================================
+            # C.5 VERFÜGBARKEIT: NUR WOCHENENDE
+            # ================================================================
+            if pref['verfuegbarkeit'] == 'wochenende_only':
+                for tag in tage_liste:
+                    if tag.weekday() < 4:  # Mo-Do
+                        model.Add(vars_schichten[(ma.id, tag, 'T')] == 0)
+                        model.Add(vars_schichten[(ma.id, tag, 'N')] == 0)
+                print(f"   → {ma.schichtplan_kennung}: Nur Wochenende (Fr/Sa/So)")
+            
+            # ================================================================
+            # C.6 VERFÜGBARKEIT: NUR WOCHENTAGS
+            # ================================================================
+            if pref['verfuegbarkeit'] == 'wochentags_only':
+                for tag in tage_liste:
+                    if tag.weekday() >= 5:  # Sa/So
+                        model.Add(vars_schichten[(ma.id, tag, 'T')] == 0)
+                        model.Add(vars_schichten[(ma.id, tag, 'N')] == 0)
+                print(f"   → {ma.schichtplan_kennung}: Nur Wochentags (Mo-Fr)")
+            
+            # ================================================================
+            # C.7 MAX WOCHENENDEN PRO MONAT
+            # ================================================================
+            max_we = pref['max_wochenenden_pro_monat']
+            
+            # Finde alle Wochenenden im Planungszeitraum
+            wochenenden = []
+            current_we = None
+            
+            for tag in tage_liste:
+                if tag.weekday() >= 5:  # Sa oder So
+                    week_num = tag.isocalendar()[1]
+                    if current_we != week_num:
+                        current_we = week_num
+                        wochenenden.append([])
+                    wochenenden[-1].append(tag)
+            
+            if max_we < len(wochenenden):
+                # Mitarbeiter darf nur an max_we Wochenenden arbeiten
+                we_vars = []
+                for we_tage in wochenenden:
+                    # Variable: Hat MA an diesem Wochenende gearbeitet?
+                    we_var = model.NewBoolVar(f'{ma.id}_we_{we_tage[0]}')
+                    
+                    # Wenn MA an irgendeinem Tag des WE arbeitet, ist we_var = 1
+                    schichten_am_we = []
+                    for tag in we_tage:
+                        for stype in self.target_shifts:
+                            schichten_am_we.append(vars_schichten[(ma.id, tag, stype.kuerzel)])
+                    
+                    # we_var ist 1, wenn mindestens eine Schicht am WE
+                    model.Add(sum(schichten_am_we) >= 1).OnlyEnforceIf(we_var)
+                    model.Add(sum(schichten_am_we) == 0).OnlyEnforceIf(we_var.Not())
+                    
+                    we_vars.append(we_var)
+                
+                # Summe aller WE-Einsätze <= max_we
+                model.Add(sum(we_vars) <= max_we)
+                
+                if max_we == 0:
+                    print(f"   → {ma.schichtplan_kennung}: KEINE Wochenenden")
+                else:
+                    print(f"   → {ma.schichtplan_kennung}: Max {max_we} Wochenenden")
+            
+            # ================================================================
+            # C.8 MAX SCHICHTEN PRO MONAT
+            # ================================================================
+            if pref['max_schichten_pro_monat'] < 999:
+                alle_schichten = []
+                for tag in tage_liste:
+                    for stype in self.target_shifts:
+                        alle_schichten.append(vars_schichten[(ma.id, tag, stype.kuerzel)])
+                
+                model.Add(sum(alle_schichten) <= pref['max_schichten_pro_monat'])
+                print(f"   → {ma.schichtplan_kennung}: Max {pref['max_schichten_pro_monat']} Schichten/Monat")
+            
+            # ================================================================
+            # C.9 MAX AUFEINANDERFOLGENDE TAGE
+            # ================================================================
+            max_tage = pref['max_aufeinanderfolgende_tage']
+            
+            for i in range(len(tage_liste) - max_tage):
+                # Prüfe Fenster von max_tage+1 Tagen
+                fenster = []
+                for j in range(max_tage + 1):
+                    tag = tage_liste[i + j]
+                    for stype in self.target_shifts:
+                        fenster.append(vars_schichten[(ma.id, tag, stype.kuerzel)])
+                
+                # In diesem Fenster darf nicht an allen Tagen gearbeitet werden
+                model.Add(sum(fenster) <= max_tage)
+
+        # ====================================================================
+        # D. MINDESTBESETZUNG
+        # ====================================================================
+        
+        print("Definiere Mindestbesetzung...")
+        
+        for tag in tage_liste:
+            model.Add(sum(vars_schichten[(m.id, tag, 'T')] for m in self.mitarbeiter_list) >= 1)
+            model.Add(sum(vars_schichten[(m.id, tag, 'N')] for m in self.mitarbeiter_list) >= 1)
+
+        # ====================================================================
+        # E. SOFT CONSTRAINTS (Optimierung)
+        # ====================================================================
+        
+        print("Definiere Optimierungsziel...")
+        
+        objective_terms = []
+        
+        for ma in self.mitarbeiter_list:
+            pref = self.preferences[ma.id]
+            
+            for tag in tage_liste:
+                wd = tag.isoweekday()
+                
+                for stype in self.target_shifts:
+                    kuerzel = stype.kuerzel
+                    score = 0
+                    
+                    # 1. Historische Muster
+                    hist_key = (ma.id, wd, kuerzel)
+                    if hist_key in learned_rules:
+                        score += learned_rules[hist_key]
+                    
+                    # 2. Planungs-Priorität
+                    if pref['planungs_prioritaet'] == 'hoch':
+                        # Verstärke historische Muster
+                        score *= 1.5
+                    elif pref['planungs_prioritaet'] == 'niedrig':
+                        # Schwäche historische Muster ab
+                        score *= 0.5
+                    
+                    objective_terms.append(vars_schichten[(ma.id, tag, kuerzel)] * int(score))
+
+        model.Minimize(sum(objective_terms))
+
+        # ====================================================================
+        # F. LÖSEN
+        # ====================================================================
+        
+        print("Starte Solver...")
+        
+        solver = cp_model.CpSolver()
+        solver.parameters.max_time_in_seconds = 15.0  # Längeres Timeout für komplexe Constraints
+        
+        status = solver.Solve(model)
+        
+        # ====================================================================
+        # G. ERGEBNISSE SPEICHERN
+        # ====================================================================
+        
+        ergebnis_count = 0
+        
+        if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
+            print(f"Lösung gefunden! Status: {solver.StatusName(status)}")
+            
+            for ma in self.mitarbeiter_list:
+                for tag in tage_liste:
+                    if solver.Value(vars_schichten[(ma.id, tag, 'T')]) == 1:
+                        Schicht.objects.create(
+                            schichtplan=neuer_schichtplan_obj,
+                            mitarbeiter=ma,
+                            datum=tag,
+                            schichttyp=self.type_t
+                        )
+                        ergebnis_count += 1
+                    
+                    elif solver.Value(vars_schichten[(ma.id, tag, 'N')]) == 1:
+                        Schicht.objects.create(
+                            schichtplan=neuer_schichtplan_obj,
+                            mitarbeiter=ma,
+                            datum=tag,
+                            schichttyp=self.type_n
+                        )
+                        ergebnis_count += 1
+            
+            print(f"Erfolgreich {ergebnis_count} Schichten in DB gespeichert.")
+            
+        else:
+            error_msg = (
+                "Keine gültige Lösung gefunden!\n"
+                "Mögliche Ursachen:\n"
+                "- Zu wenige Mitarbeiter für Mindestbesetzung\n"
+                "- Zu restriktive Präferenzen (z.B. alle wollen keine Nachtschicht)\n"
+                "- Widersprüchliche Constraints\n"
+                "- Zeitlimit zu kurz (15s)\n\n"
+                "Lösungsvorschläge:\n"
+                "- Mindestbesetzung reduzieren\n"
+                "- Präferenzen lockern\n"
+                "- Mehr Mitarbeiter hinzufügen"
+            )
+            print(error_msg)
+            raise Exception(error_msg)

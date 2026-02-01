@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+
+{% block title %}Jahresübersicht {{ jahr }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .jahr-matrix { font-size: 0.85rem; }
+    .jahr-matrix th { background: #f8f9fa; font-weight: 600; }
+    .monat-col { min-width: 65px; text-align: center; }
+    .summe-col { background: #e3f2fd; font-weight: bold; }
+    @media print { .no-print { display: none; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4 no-print">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>📊 Jahresübersicht Soll-Stunden {{ jahr }}</h2>
+                <div class="btn-group">
+                    <a href="?jahr={{ vorheriges_jahr }}" class="btn btn-outline-secondary">« {{ vorheriges_jahr }}</a>
+                    <button class="btn btn-primary disabled">{{ jahr }}</button>
+                    <a href="?jahr={{ naechstes_jahr }}" class="btn btn-outline-secondary">{{ naechstes_jahr }} »</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aktionen -->
+    <div class="row mb-3 no-print">
+        <div class="col-md-12">
+            <a href="{% url 'arbeitszeit:soll_stunden_dashboard' %}" class="btn btn-secondary">📅 Dashboard</a>
+            <a href="?jahr={{ jahr }}&export=excel" class="btn btn-success">📥 Excel Export</a>
+            <a href="?jahr={{ jahr }}&export=csv" class="btn btn-outline-success">📄 CSV Export</a>
+            <button onclick="window.print()" class="btn btn-outline-primary">🖨️ Drucken</button>
+        </div>
+    </div>
+
+    <!-- Matrix-Tabelle -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover jahr-matrix mb-0">
+                            <thead>
+                                <tr class="table-light">
+                                    <th>Mitarbeiter</th>
+                                    <th class="text-center">Kennung</th>
+                                    {% for i in "123456789012" %}
+                                    <th class="monat-col">{{ forloop.counter }}</th>
+                                    {% endfor %}
+                                    <th class="summe-col text-center">Summe</th>
+                                    <th class="summe-col text-center">Ø</th>
+                                </tr>
+                                <tr style="font-size: 0.75rem;">
+                                    <th colspan="2"></th>
+                                    {% for name in monatsnamen %}
+                                    <th class="monat-col">{{ name }}</th>
+                                    {% endfor %}
+                                    <th colspan="2"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in daten %}
+                                <tr>
+                                    <td><strong>{{ item.mitarbeiter.vollname }}</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary">{{ item.mitarbeiter.schichtplan_kennung|default:"-" }}</span>
+                                    </td>
+                                    {% for monat in "123456789012" %}
+                                    <td class="monat-col">
+                                        {% with m=forloop.counter %}
+                                        {% if m in item.monate %}
+                                            {{ item.monate|get_item:m|floatformat:0 }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    {% endfor %}
+                                    <td class="summe-col text-center">
+                                        <strong class="text-primary">{{ item.jahressumme|floatformat:0 }}h</strong>
+                                    </td>
+                                    <td class="summe-col text-center">
+                                        {{ item.durchschnitt|floatformat:0 }}h
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="15" class="text-center py-5">
+                                        <p class="text-muted">Keine Daten für {{ jahr }}</p>
+                                        <a href="{% url 'arbeitszeit:soll_stunden_berechnen' %}" class="btn btn-primary">🔄 Jetzt berechnen</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info -->
+    <div class="row mt-3 no-print">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <strong>📋 Hinweis:</strong> Alle Angaben in Stunden. 
+                Berechnung: (Wochenstunden ÷ 5) × Effektive Arbeitstage (Mo-Fr minus Feiertage NRW).
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

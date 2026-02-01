@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Soll-Stunden - {{ mitarbeiter.vollname }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'arbeitszeit:soll_stunden_dashboard' %}">Soll-Stunden</a>
+                    </li>
+                    <li class="breadcrumb-item active">{{ mitarbeiter.vollname }}</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>👤 {{ mitarbeiter.vollname }}</h2>
+                <div>
+                    <a href="?jahr={{ vorheriges_jahr }}" class="btn btn-outline-secondary">
+                        « {{ vorheriges_jahr }}
+                    </a>
+                    <span class="btn btn-primary disabled">{{ jahr }}</span>
+                    <a href="?jahr={{ naechstes_jahr }}" class="btn btn-outline-secondary">
+                        {{ naechstes_jahr }} »
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mitarbeiter-Info -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <h6 class="text-muted">Personalnummer</h6>
+                            <p>{{ mitarbeiter.personalnummer }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="text-muted">Abteilung</h6>
+                            <p>{{ mitarbeiter.abteilung }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="text-muted">Wochenstunden</h6>
+                            <p>
+                                {% if vereinbarung %}
+                                    <strong>{{ vereinbarung.wochenstunden }}h</strong>
+                                {% else %}
+                                    <span class="text-muted">Keine Vereinbarung</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6 class="text-muted">Status</h6>
+                            <p>
+                                {% if mitarbeiter.aktiv %}
+                                    <span class="badge bg-success">Aktiv</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inaktiv</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Jahres-Statistik -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h6 class="text-muted">Gesamt {{ jahr }}</h6>
+                    <h2 class="text-primary">
+                        {{ stats.gesamt_jahr|default:0|floatformat:2 }}h
+                    </h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h6 class="text-muted">Durchschnitt/Monat</h6>
+                    <h2 class="text-success">
+                        {{ stats.durchschnitt|default:0|floatformat:2 }}h
+                    </h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h6 class="text-muted">Berechnete Monate</h6>
+                    <h2 class="text-info">
+                        {{ stats.monate_berechnet|default:0 }} / 12
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monatsübersicht -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📅 Monatsübersicht {{ jahr }}</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Monat</th>
+                                    <th class="text-center">Arbeitstage gesamt</th>
+                                    <th class="text-center">Feiertage</th>
+                                    <th class="text-center">Effektive Tage</th>
+                                    <th class="text-center">Soll-Stunden</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for soll in soll_stunden_jahr %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ soll.monat_name }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        {{ soll.arbeitstage_gesamt }}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if soll.feiertage_anzahl > 0 %}
+                                            <span class="badge bg-danger">{{ soll.feiertage_anzahl }}</span>
+                                        {% else %}
+                                            <span class="text-muted">0</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <strong>{{ soll.arbeitstage_effektiv }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <strong class="text-primary">
+                                            {{ soll.soll_stunden_formatiert }}
+                                        </strong>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        Keine Daten für {{ jahr }} vorhanden
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            {% if soll_stunden_jahr %}
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="4" class="text-end">Gesamt:</th>
+                                    <th class="text-center text-primary">
+                                        {{ stats.gesamt_jahr|default:0|floatformat:2 }}h
+                                    </th>
+                                </tr>
+                            </tfoot>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

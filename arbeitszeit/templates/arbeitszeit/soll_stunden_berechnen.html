@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Soll-Stunden berechnen{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">🔄 Soll-Arbeitsstunden berechnen</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Info-Box -->
+                    <div class="alert alert-info">
+                        <strong>ℹ️ Hinweis:</strong> 
+                        <ul class="mb-0">
+                            <li>Die Berechnung berücksichtigt automatisch NRW-Feiertage</li>
+                            <li>Wochenstunden werden aus der aktuellen Arbeitszeitvereinbarung geholt</li>
+                            <li>Mitarbeiter ohne Vereinbarung werden übersprungen (mit Warnung)</li>
+                        </ul>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="{{ form.jahr.id_for_label }}" class="form-label">
+                                    {{ form.jahr.label }}
+                                </label>
+                                {{ form.jahr }}
+                                {% if form.jahr.errors %}
+                                    <div class="text-danger">{{ form.jahr.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="{{ form.monat.id_for_label }}" class="form-label">
+                                    {{ form.monat.label }}
+                                </label>
+                                {{ form.monat }}
+                                {% if form.monat.errors %}
+                                    <div class="text-danger">{{ form.monat.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                {{ form.mitarbeiter.label }}
+                            </label>
+                            <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                                {{ form.mitarbeiter }}
+                            </div>
+                            <small class="text-muted">
+                                {{ form.mitarbeiter.help_text }}
+                            </small>
+                            {% if form.mitarbeiter.errors %}
+                                <div class="text-danger">{{ form.mitarbeiter.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'arbeitszeit:soll_stunden_dashboard' %}" 
+                               class="btn btn-secondary">
+                                Abbrechen
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                ✅ Berechnen
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Beispielrechnung -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">📐 Beispielrechnung</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Mitarbeiter mit 39h/Woche im Januar 2026:</strong></p>
+                    <ul class="mb-0">
+                        <li>Arbeitstage (Mo-Fr): 21 Tage</li>
+                        <li>Feiertage (Neujahr): 1 Tag</li>
+                        <li>Effektive Arbeitstage: <strong>20 Tage</strong></li>
+                        <li>Berechnung: (39h ÷ 5 Tage) × 20 Tage</li>
+                        <li>Soll-Stunden: <strong class="text-success">156,00h</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
