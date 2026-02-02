@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% load wunsch_filters %}
+
+{% block title %}Wunsch-Übersicht - {{ periode.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>📊 Wunsch-Übersicht (Schichtplaner)</h2>
+            <p class="text-muted mb-0">
+                {{ periode.name }} - {{ periode.fuer_monat|date:"F Y" }}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'schichtplan:wuensche_genehmigen' periode.pk %}" class="btn btn-warning">
+                ✅ Genehmigungen ({{ stats.offen_genehmigung }})
+            </a>
+            <a href="{% url 'schichtplan:wunsch_kalender' periode.pk %}" class="btn btn-primary">
+                📅 Kalender
+            </a>
+            <a href="{% url 'schichtplan:dashboard' %}" class="btn btn-outline-secondary">
+                ← Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistiken -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card text-center border-primary">
+                <div class="card-body py-3">
+                    <h6 class="text-muted mb-2">Gesamt</h6>
+                    <h2 class="text-primary mb-0">{{ stats.gesamt }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-danger">
+                <div class="card-body py-3">
+                    <h6 class="text-muted mb-2">Urlaube</h6>
+                    <h2 class="text-danger mb-0">{{ stats.urlaube }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-dark">
+                <div class="card-body py-3">
+                    <h6 class="text-muted mb-2">Gar nichts</h6>
+                    <h2 class="text-dark mb-0">{{ stats.gar_nichts }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-warning">
+                <div class="card-body py-3">
+                    <h6 class="text-muted mb-2">Offen</h6>
+                    <h2 class="text-warning mb-0">{{ stats.offen_genehmigung }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-success">
+                <div class="card-body py-3">
+                    <h6 class="text-muted mb-2">Genehmigt</h6>
+                    <h2 class="text-success mb-0">{{ stats.genehmigt }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center" style="background-color: #e7f1ff;">
+                <div class="card-body py-3">
+                    <h6 class="text-muted mb-2">Mitarbeiter</h6>
+                    <h2 class="text-info mb-0">{{ alle_mitarbeiter|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info-Box -->
+    <div class="card mb-4 border-info">
+        <div class="card-body py-3">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <strong>ℹ️ Legende:</strong>
+                    <span class="badge bg-danger ms-3">U</span> Urlaub
+                    <span class="badge bg-primary ms-2">2</span> Kein Tag/Nacht OK
+                    <span class="badge bg-warning text-dark ms-2">3</span> Keine Nacht/Tag OK
+                    <span class="badge bg-success ms-2">T</span> Tag
+                    <span class="badge ms-2" style="background-color: #6f42c1; color: white;">N</span> Nacht
+                    <span class="badge bg-dark ms-2">X</span> Gar nichts
+                    <span class="badge ms-2" style="background-color: #fd7e14; color: white;">+</span> Zusatz
+                </div>
+                <div class="col-md-4 text-end">
+                    <small class="text-muted">
+                        <strong>⏳</strong> = Wartet auf Genehmigung
+                        <strong>✅</strong> = Genehmigt
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wünsche-Tabelle -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">📋 Wünsche nach Mitarbeiter (MA1-MA15)</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 120px;">MA</th>
+                            <th style="width: 150px;">Name</th>
+                            <th>Wünsche</th>
+                            <th class="text-center" style="width: 80px;">Anzahl</th>
+                            <th class="text-center" style="width: 120px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ma in sortierte_ma %}
+                        <tr>
+                            <td>
+                                <strong>{{ ma.schichtplan_kennung }}</strong>
+                            </td>
+                            <td>
+                                <small>{{ ma.vollname }}</small>
+                            </td>
+                            <td>
+                                {% with ma_wuensche=wuensche_nach_ma|get_item:ma %}
+                                    {% if ma_wuensche %}
+                                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; max-height: 60px; overflow-y: auto;">
+                                            {% for wunsch in ma_wuensche %}
+                                                <span class="badge" 
+                                                      style="background-color: {{ wunsch.farbe }}; color: white; font-size: 0.75rem; cursor: help;"
+                                                      title="{{ wunsch.datum|date:'d.m.Y (l)' }} - {{ wunsch.get_wunsch_display }}{% if wunsch.begruendung %} | {{ wunsch.begruendung }}{% endif %}">
+                                                    {{ wunsch.datum|date:"d.m." }}
+                                                    {% if wunsch.wunsch == 'urlaub' %}U
+                                                    {% elif wunsch.wunsch == 'kein_tag_aber_nacht' %}2
+                                                    {% elif wunsch.wunsch == 'keine_nacht_aber_tag' %}3
+                                                    {% elif wunsch.wunsch == 'tag_bevorzugt' %}T
+                                                    {% elif wunsch.wunsch == 'nacht_bevorzugt' %}N
+                                                    {% elif wunsch.wunsch == 'gar_nichts' %}X
+                                                    {% elif wunsch.wunsch == 'zusatzarbeit' %}+
+                                                    {% endif %}
+                                                    {% if wunsch.benoetigt_genehmigung and not wunsch.genehmigt %}⏳{% elif wunsch.genehmigt %}✅{% endif %}
+                                                </span>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <em class="text-muted small">Keine Wünsche</em>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td class="text-center">
+                                {% with ma_wuensche=wuensche_nach_ma|get_item:ma %}
+                                    {% if ma_wuensche %}
+                                        <span class="badge bg-secondary">{{ ma_wuensche|length }}</span>
+                                    {% else %}
+                                        <span class="text-muted">0</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td class="text-center">
+                                {% with ma_wuensche=wuensche_nach_ma|get_item:ma %}
+                                    {% if ma_wuensche %}
+                                        <span class="badge bg-success">✓</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">-</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer text-muted">
+            <small>
+                💡 <strong>Tipp:</strong> Fahren Sie mit der Maus über die Badges um Details zu sehen.
+                Klicken Sie auf "Kalender" für die Gesamtübersicht.
+            </small>
+        </div>
+    </div>
+</div>
+
+<style>
+.border-primary, .border-danger, .border-dark, 
+.border-warning, .border-success, .border-info {
+    border-width: 2px !important;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.card-body .d-flex,
+.card-body div[style*="display: flex"] {
+    scrollbar-width: thin;
+}
+
+.card-body div[style*="overflow-y: auto"]::-webkit-scrollbar {
+    height: 4px;
+}
+
+.card-body div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+</style>
+{% endblock %}

@@ -11,6 +11,9 @@
             <p class="text-muted mb-0">
                 {{ monat_name }} {{ periode.fuer_monat.year }}
                 <span class="badge bg-success ms-2">{{ periode.get_status_display }}</span>
+                {% if is_planer %}
+                    <span class="badge bg-danger ms-2">Modus: Schichtplaner</span>
+                {% endif %}
             </p>
         </div>
         <a href="{% url 'schichtplan:wunschperioden_liste' %}" class="btn btn-secondary">
@@ -18,7 +21,7 @@
         </a>
     </div>
 
-    <!-- Legende -->
+    <!-- Legende (bleibt gleich) -->
     <div class="card mb-3">
         <div class="card-body py-2">
             <div class="row small">
@@ -44,6 +47,7 @@
                             {% for ma in alle_mitarbeiter %}
                             <th class="text-center" style="min-width: 60px;">
                                 {{ ma.schichtplan_kennung }}
+                                {# Markierung für den eingeloggten User #}
                                 {% if ma.pk == mitarbeiter.pk %}
                                 <br><span class="badge bg-success" style="font-size: 0.7rem;">Ich</span>
                                 {% endif %}
@@ -61,40 +65,45 @@
                             </td>
                             
                             {% for ma in alle_mitarbeiter %}
+                            {# Eigene Spalte gelb markieren #}
                             <td class="text-center p-2" 
-                                style="{% if ma.pk == mitarbeiter.pk %}background-color: #fff3cd; border-left: 3px solid #ffc107;{% endif %}">
+                                style="{% if ma.pk == mitarbeiter.pk %}background-color: #fff3cd; border-left: 2px solid #ffc107;{% endif %}">
                                 
-                                {# Zeige alle Wünsche - durchsuche Liste #}
+                                {# 1. Vorhandene Wünsche anzeigen #}
                                 {% for wunsch in tag.wuensche %}
                                     {% if wunsch.mitarbeiter.pk == ma.pk %}
-                                        {# TREFFER! Zeige Badge mit richtiger Farbe #}
                                         {% if wunsch.wunsch == 'urlaub' %}
-                                            <span class="badge bg-danger" title="{{ wunsch.get_wunsch_display }}{% if wunsch.begruendung %} - {{ wunsch.begruendung }}{% endif %}">U</span>
+                                            <span class="badge bg-danger" title="Urlaub">U</span>
                                         {% elif wunsch.wunsch == 'kein_tag_aber_nacht' %}
-                                            <span class="badge bg-primary" title="{{ wunsch.get_wunsch_display }}{% if wunsch.begruendung %} - {{ wunsch.begruendung }}{% endif %}">2</span>
+                                            <span class="badge bg-primary" title="Kein Tag, Nacht OK">2</span>
                                         {% elif wunsch.wunsch == 'keine_nacht_aber_tag' %}
-                                            <span class="badge bg-warning text-dark" title="{{ wunsch.get_wunsch_display }}{% if wunsch.begruendung %} - {{ wunsch.begruendung }}{% endif %}">3</span>
+                                            <span class="badge bg-warning text-dark" title="Keine Nacht, Tag OK">3</span>
                                         {% elif wunsch.wunsch == 'tag_bevorzugt' %}
-                                            <span class="badge bg-success" title="{{ wunsch.get_wunsch_display }}{% if wunsch.begruendung %} - {{ wunsch.begruendung }}{% endif %}">T</span>
+                                            <span class="badge bg-success" title="Tag bevorzugt">T</span>
                                         {% elif wunsch.wunsch == 'nacht_bevorzugt' %}
-                                            <span class="badge" style="background-color: #6f42c1; color: white;" title="{{ wunsch.get_wunsch_display }}{% if wunsch.begruendung %} - {{ wunsch.begruendung }}{% endif %}">N</span>
+                                            <span class="badge" style="background-color: #6f42c1; color: white;" title="Nacht bevorzugt">N</span>
                                         {% elif wunsch.wunsch == 'gar_nichts' %}
-                                            <span class="badge bg-dark" title="{{ wunsch.get_wunsch_display }}{% if wunsch.begruendung %} - {{ wunsch.begruendung }}{% endif %}">X</span>
+                                            <span class="badge bg-dark" title="Gar nichts">X</span>
                                         {% elif wunsch.wunsch == 'zusatzarbeit' %}
-                                            <span class="badge" style="background-color: #fd7e14; color: white;" title="{{ wunsch.get_wunsch_display }}{% if wunsch.begruendung %} - {{ wunsch.begruendung }}{% endif %}">+</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary" title="{{ wunsch.get_wunsch_display }}">?</span>
+                                            <span class="badge" style="background-color: #fd7e14; color: white;" title="Zusatzarbeit">+</span>
                                         {% endif %}
                                     {% endif %}
                                 {% endfor %}
                                 
-                                {# Wenn eigener MA und offen: + Button #}
-                                {% if ma.pk == mitarbeiter.pk and periode.ist_offen %}
-                                    <a href="{% url 'schichtplan:wunsch_eingeben' periode.pk %}?datum={{ tag.datum }}" 
-                                    class="btn btn-sm btn-outline-primary" 
-                                    style="font-size: 0.7rem; padding: 0.1rem 0.3rem;">
-                                        +
-                                    </a>
+                                {# 2. Eingabe-Buttons (Die entscheidende Änderung) #}
+                                {% if periode.ist_offen %}
+                                    {# Logik: Wenn eigene Spalte ODER User ist Schichtplaner/Admin #}
+                                    {% if ma.pk == mitarbeiter.pk or user.is_staff or is_planer %}
+                                        <div class="mt-1">
+                                            <a href="{% url 'schichtplan:wunsch_eingeben' periode.pk %}?datum={{ tag.datum|date:'Y-m-d' }}&mitarbeiter_id={{ ma.pk }}" 
+                                               class="btn btn-sm {% if ma.pk != mitarbeiter.pk %}btn-outline-warning{% else %}btn-outline-primary{% endif %}" 
+                                               style="font-size: 0.7rem; padding: 0.05rem 0.2rem;"
+                                               title="Wunsch für {{ ma.schichtplan_kennung }} bearbeiten">
+                                                {# Stift für andere MA (Planer-Modus), Plus für sich selbst #}
+                                                {% if ma.pk != mitarbeiter.pk %}✎{% else %}+{% endif %}
+                                            </a>
+                                        </div>
+                                    {% endif %}
                                 {% endif %}
                             </td>
                             {% endfor %}
@@ -108,25 +117,13 @@
 
     <!-- Info -->
     <div class="alert alert-info mt-3">
-        <strong>💡 Transparenz:</strong> Alle MA1-MA15 sehen die Wünsche der anderen.
-        <br>
-        <small>Klicken Sie auf das "+" um einen Wunsch einzutragen oder zu bearbeiten.</small>
+        <strong>💡 Hinweise:</strong>
+        <ul class="mb-0 small">
+            <li>Klicken Sie auf <strong>+</strong> oder <strong>✎</strong>, um Wünsche zu verwalten.</li>
+            {% if is_planer %}
+                <li>Als <strong>Schichtplaner</strong> können Sie Wünsche für alle Mitarbeiter eintragen.</li>
+            {% endif %}
+        </ul>
     </div>
 </div>
-
-<style>
-.table-secondary {
-    background-color: rgba(108, 117, 125, 0.1) !important;
-}
-
-.badge {
-    cursor: help;
-    min-width: 25px;
-    display: inline-block;
-}
-
-td[style*="background-color: #fff3cd"] {
-    font-weight: 500;
-}
-</style>
 {% endblock %}

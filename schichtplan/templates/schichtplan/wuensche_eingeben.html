@@ -27,6 +27,10 @@
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
+                        <!-- WICHTIG: Die ID des Mitarbeiters mitschicken -->
+                        <input type="hidden" name="mitarbeiter_id" value="{{ target_mitarbeiter.id }}">
+
+                        <h4>Wunsch für: <span class="text-primary">{{ target_mitarbeiter.schichtplan_kennung }}</span></h4>
                         
                         <!-- Wunsch-Kategorie -->
                         <div class="mb-4">

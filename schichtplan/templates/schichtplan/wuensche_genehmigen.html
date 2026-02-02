@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Wünsche genehmigen - {{ periode.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>✅ Wünsche genehmigen</h2>
+            <p class="text-muted mb-0">
+                {{ periode.name }} - {{ periode.fuer_monat|date:"F Y" }}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'schichtplan:wunsch_kalender' periode.pk %}" class="btn btn-secondary">
+                📅 Zum Kalender
+            </a>
+            <a href="{% url 'schichtplan:dashboard' %}" class="btn btn-outline-secondary">
+                ← Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistiken -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">Offen</h6>
+                    <h2 class="text-warning">{{ stats.offen }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">Genehmigt</h6>
+                    <h2 class="text-success">{{ stats.genehmigt }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h6 class="text-muted">Gesamt</h6>
+                    <h2 class="text-primary">{{ stats.gesamt }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center" style="background-color: #f8f9fa;">
+                <div class="card-body">
+                    <h6 class="text-muted">Fortschritt</h6>
+                    <h2 class="text-info">
+                        {% if stats.gesamt > 0 %}
+                            {{ stats.genehmigt|floatformat:0 }}/{{ stats.gesamt }}
+                        {% else %}
+                            0/0
+                        {% endif %}
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info-Box -->
+    {% if offene_wuensche %}
+        <div class="alert alert-info">
+            <strong>ℹ️ Hinweise:</strong>
+            <ul class="mb-0 mt-2">
+                <li><strong>Urlaub (U)</strong> und <strong>Gar nichts (X)</strong> benötigen eine Genehmigung</li>
+                <li>Alle anderen Wünsche werden automatisch berücksichtigt</li>
+                <li>Genehmigte Wünsche sollten bei der Schichtplanung beachtet werden</li>
+            </ul>
+        </div>
+    {% endif %}
+
+    <!-- Offene Wünsche -->
+    {% if offene_wuensche %}
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    ⏳ Offene Genehmigungen ({{ offene_wuensche|length }})
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mitarbeiter</th>
+                                <th>Datum</th>
+                                <th>Wunsch</th>
+                                <th>Begründung</th>
+                                <th>Eingereicht am</th>
+                                <th class="text-center">Aktion</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for wunsch in offene_wuensche %}
+                            <tr>
+                                <td>
+                                    <strong>{{ wunsch.mitarbeiter.vollname }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ wunsch.mitarbeiter.schichtplan_kennung }}</small>
+                                </td>
+                                <td>
+                                    <strong>{{ wunsch.datum|date:"d.m.Y" }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ wunsch.datum|date:"l" }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge" style="background-color: {{ wunsch.farbe }}; color: white; font-size: 0.9rem; padding: 0.5rem;">
+                                        {{ wunsch.get_wunsch_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if wunsch.begruendung %}
+                                        <small>{{ wunsch.begruendung|truncatewords:15 }}</small>
+                                    {% else %}
+                                        <em class="text-muted">Keine Begründung</em>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ wunsch.erstellt_am|date:"d.m.Y H:i" }} Uhr</small>
+                                </td>
+                                <td class="text-center">
+                                    <form method="post" style="display: inline-block;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="wunsch_id" value="{{ wunsch.pk }}">
+                                        
+                                        <button type="submit" name="action" value="genehmigen" 
+                                                class="btn btn-sm btn-success"
+                                                onclick="return confirm('Wunsch genehmigen?');">
+                                            ✅ Genehmigen
+                                        </button>
+                                        
+                                        <button type="submit" name="action" value="ablehnen" 
+                                                class="btn btn-sm btn-danger"
+                                                onclick="return confirm('Wunsch ablehnen? Der Wunsch wird gelöscht!');">
+                                            ❌ Ablehnen
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- Keine offenen Wünsche -->
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div style="font-size: 4rem; opacity: 0.3;">
+                    ✅
+                </div>
+                <h4 class="text-muted mt-3">Alle Wünsche sind bearbeitet!</h4>
+                <p class="text-muted">
+                    Aktuell gibt es keine offenen Genehmigungsanfragen für diese Periode.
+                </p>
+                <a href="{% url 'schichtplan:wunsch_kalender' periode.pk %}" class="btn btn-primary mt-3">
+                    📅 Zum Wunschkalender
+                </a>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Bereits genehmigte Wünsche (ausklappbar) -->
+    {% if stats.genehmigt > 0 %}
+    <div class="card mt-4">
+        <div class="card-header" style="background-color: #d1e7dd;">
+            <h6 class="mb-0">
+                <a class="text-decoration-none text-success" data-bs-toggle="collapse" href="#genehmigteWuensche">
+                    ✅ Bereits genehmigte Wünsche ({{ stats.genehmigt }}) 
+                    <i class="bi bi-chevron-down"></i>
+                </a>
+            </h6>
+        </div>
+        <div class="collapse" id="genehmigteWuensche">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Mitarbeiter</th>
+                                <th>Datum</th>
+                                <th>Wunsch</th>
+                                <th>Genehmigt von</th>
+                                <th>Genehmigt am</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for wunsch in periode.schichtwunsch_set.all %}
+                                {% if wunsch.genehmigt %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ wunsch.mitarbeiter.schichtplan_kennung }}</strong>
+                                        {{ wunsch.mitarbeiter.vollname }}
+                                    </td>
+                                    <td>{{ wunsch.datum|date:"d.m.Y" }}</td>
+                                    <td>
+                                        <span class="badge" style="background-color: {{ wunsch.farbe }}; color: white;">
+                                            {{ wunsch.get_wunsch_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if wunsch.genehmigt_von %}
+                                            {{ wunsch.genehmigt_von.username }}
+                                        {% else %}
+                                            <em class="text-muted">Unbekannt</em>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if wunsch.genehmigt_am %}
+                                            {{ wunsch.genehmigt_am|date:"d.m.Y H:i" }} Uhr
+                                        {% else %}
+                                            <em class="text-muted">-</em>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.btn-success:hover {
+    transform: scale(1.05);
+}
+
+.btn-danger:hover {
+    transform: scale(1.05);
+}
+</style>
+{% endblock %}

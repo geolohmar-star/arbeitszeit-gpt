@@ -43,7 +43,7 @@ except ImportError:
 #Wunschplan
 from datetime import datetime, timedelta
 from calendar import monthrange
-
+from django.utils import timezone 
 
 
 
@@ -52,25 +52,34 @@ from calendar import monthrange
 # HELPER FUNKTIONEN
 # ============================================================================
 def ist_schichtplaner(user):
-    # Wenn du als Admin eingeloggt bist, darfst du immer alles
+    # DEBUG: Zeigt im Terminal an, wer gerade prüft
+    if user.is_anonymous:
+        return False
+    
+    # 1. Admin/Superuser (funktioniert immer)
     if user.is_superuser or user.is_staff:
         return True
     
-    # Ansonsten prüfe die Rolle im Mitarbeiter-Profil
-    if hasattr(user, 'mitarbeiter'):
-        return user.mitarbeiter.rolle == 'schichtplaner'
+    # 2. Gruppen-Prüfung (WICHTIG: Name muss exakt stimmen)
+    # Wir prüfen, ob der User in der Gruppe "Schichtplaner" ist
+    ergebnis = user.groups.filter(name='Schichtplaner').exists()
     
-    return False
+    # DEBUG-Ausgabe für dich im Terminal:
+    print(f"--- Berechtigungs-Check für {user.username} ---")
+    print(f"Ist Staff: {user.is_staff}")
+    print(f"In Gruppe Schichtplaner: {ergebnis}")
+    
+    return ergebnis
 
-def ist_schichtplaner(user):
-    """Prüft, ob der User Schichtplaner-Rechte hat"""
-    if user.is_staff or user.is_superuser:
-        return True
-    
-    if hasattr(user, 'mitarbeiter'):
-        return user.mitarbeiter.rolle == 'schichtplaner'
-    
-    return False
+#def ist_schichtplaner(user):
+#    """Prüft, ob der User Schichtplaner-Rechte hat"""
+#    if user.is_staff or user.is_superuser:
+#        return True
+#    
+#    if hasattr(user, 'mitarbeiter'):
+#        return user.mitarbeiter.rolle == 'schichtplaner'
+#    
+#    return False
 
 
 def get_planbare_mitarbeiter():
@@ -553,56 +562,63 @@ def wunsch_perioden_liste(request):
 @login_required
 def wunsch_eingeben(request, periode_id):
     """
-    Formular zum Eintragen/Bearbeiten von Wünschen für einen Tag.
+    Formular zum Eintragen/Bearbeiten von Wünschen.
+    Erlaubt Schichtplanern, Wünsche für beliebige MA einzutragen.
     """
     
+    # 1. Grund-Berechtigung: Ist es ein Schichtplaner?
+    is_planer = ist_schichtplaner(request.user) # Ich nehme an, die Funktion existiert bei dir
     
-    # Berechtigungsprüfung
-    if not hasattr(request.user, 'mitarbeiter'):
-        messages.error(request, "❌ Kein Mitarbeiter-Profil gefunden.")
-        return redirect('arbeitszeit:dashboard')
+    # 2. Ziel-Mitarbeiter bestimmen
+    # Schichtplaner können eine mitarbeiter_id via GET/POST übergeben
+    target_ma_id = request.GET.get('mitarbeiter_id') or request.POST.get('mitarbeiter_id')
     
-    mitarbeiter = request.user.mitarbeiter
-    gueltige_kennungen = [f'MA{i}' for i in range(1, 16)]
-    
-    if mitarbeiter.schichtplan_kennung not in gueltige_kennungen:
-        messages.error(request, "❌ Nur Mitarbeiter MA1-MA15 können Wünsche eintragen.")
-        return redirect('arbeitszeit:dashboard')
-    
+    if is_planer and target_ma_id:
+        # Admin-Modus: Nimm den MA aus dem Parameter
+        mitarbeiter = get_object_or_404(Mitarbeiter, pk=target_ma_id)
+    else:
+        # Normaler Modus oder Planer schreibt für sich selbst:
+        if not hasattr(request.user, 'mitarbeiter'):
+            messages.error(request, "❌ Kein Mitarbeiter-Profil gefunden.")
+            return redirect('arbeitszeit:dashboard')
+        
+        mitarbeiter = request.user.mitarbeiter
+        
+        # Prüfung für normale MA (MA1-MA15)
+        gueltige_kennungen = [f'MA{i}' for i in range(1, 16)]
+        if not is_planer and mitarbeiter.schichtplan_kennung not in gueltige_kennungen:
+            messages.error(request, "❌ Nur MA1-MA15 können Wünsche eintragen.")
+            return redirect('arbeitszeit:dashboard')
+
+    # Periode laden
     periode = get_object_or_404(SchichtwunschPeriode, pk=periode_id)
     
-    # Prüfe ob Periode offen ist
+    # Status-Check
     if not periode.ist_offen:
-        messages.warning(
-            request, 
-            f"⚠️ Die Wunschperiode '{periode.name}' ist nicht mehr offen. "
-            f"Status: {periode.get_status_display()}"
-        )
+        messages.warning(request, f"⚠️ Wunschperiode '{periode.name}' ist geschlossen.")
         return redirect('schichtplan:wunschperioden_liste')
     
-    # Datum aus GET-Parameter
+    # Datum parsen
     datum_str = request.GET.get('datum')
     if not datum_str:
         messages.error(request, "❌ Kein Datum angegeben.")
         return redirect('schichtplan:wunsch_kalender', periode_id=periode.pk)
     
     try:
-        # Datum parsen - mehrere Formate versuchen
         try:
             wunsch_datum = datetime.strptime(datum_str, '%Y-%m-%d').date()
         except ValueError:
-            # Versuche deutsches Format
             wunsch_datum = datetime.strptime(datum_str, '%d. %B %Y').date()
     except ValueError:
-        messages.error(request, f"❌ Ungültiges Datumsformat: {datum_str}")
+        messages.error(request, f"❌ Ungültiges Datum: {datum_str}")
         return redirect('schichtplan:wunsch_kalender', periode_id=periode.pk)
     
-    # Prüfe ob Datum im Monat liegt
+    # Monat-Check
     if wunsch_datum.month != periode.fuer_monat.month or wunsch_datum.year != periode.fuer_monat.year:
         messages.error(request, "❌ Datum liegt nicht im Wunsch-Monat.")
         return redirect('schichtplan:wunsch_kalender', periode_id=periode.pk)
     
-    # Lade oder erstelle Wunsch
+    # Lade oder erstelle Wunsch für den TARGET-Mitarbeiter
     wunsch, created = Schichtwunsch.objects.get_or_create(
         periode=periode,
         mitarbeiter=mitarbeiter,
@@ -610,6 +626,7 @@ def wunsch_eingeben(request, periode_id):
         defaults={'wunsch': 'tag_bevorzugt'}
     )
     
+    # Speichern (POST)
     if request.method == 'POST':
         wunsch_kategorie = request.POST.get('wunsch')
         begruendung = request.POST.get('begruendung', '')
@@ -621,30 +638,33 @@ def wunsch_eingeben(request, periode_id):
             
             messages.success(
                 request,
-                f"✅ Wunsch für {wunsch_datum.strftime('%d.%m.%Y')} gespeichert: "
-                f"{wunsch.get_wunsch_display()}"
+                f"✅ Wunsch für {mitarbeiter.schichtplan_kennung} am {wunsch_datum.strftime('%d.%m.%Y')} gespeichert."
             )
-            
             return redirect('schichtplan:wunsch_kalender', periode_id=periode.pk)
     
-    # Zeige andere Wünsche für diesen Tag (Transparenz!)
+    # Andere Wünsche (Transparenz)
     andere_wuensche = Schichtwunsch.objects.filter(
         periode=periode,
         datum=wunsch_datum
     ).exclude(
-        mitarbeiter=mitarbeiter
+        mitarbeiter=mitarbeiter # Schließe den MA aus, für den gerade eingetragen wird
     ).select_related('mitarbeiter').order_by('mitarbeiter__schichtplan_kennung')
     
+    # Für Admins: Liste aller MA für ein evtl. Dropdown mitschicken
+    alle_mitarbeiter = Mitarbeiter.objects.all().order_by('schichtplan_kennung') if is_planer else None
+
     context = {
         'periode': periode,
         'wunsch': wunsch,
         'wunsch_datum': wunsch_datum,
         'andere_wuensche': andere_wuensche,
         'wunsch_kategorien': Schichtwunsch.WUNSCH_KATEGORIEN,
+        'is_planer': is_planer,
+        'alle_mitarbeiter': alle_mitarbeiter,
+        'target_mitarbeiter': mitarbeiter,
     }
     
     return render(request, 'schichtplan/wuensche_eingeben.html', context)
-
 
 
 @login_required
@@ -815,6 +835,7 @@ def wunsch_kalender(request, periode_id):
     if not (ist_schichtplaner(request.user) or mitarbeiter.schichtplan_kennung in gueltige_kennungen):
         messages.error(request, "❌ Nur MA1-MA15 können Wünsche einsehen.")
         return redirect('arbeitszeit:dashboard')
+    is_planer = ist_schichtplaner(request.user)
     
     # Lade Periode
     periode = get_object_or_404(SchichtwunschPeriode, pk=periode_id)
@@ -897,6 +918,7 @@ def wunsch_kalender(request, periode_id):
     
     context = {
         'periode': periode,
+        'is_planer': is_planer, 
         'kalender_daten': kalender_daten,
         'mitarbeiter': mitarbeiter,
         'alle_mitarbeiter': planbare_ma,
@@ -910,41 +932,45 @@ def wunsch_kalender(request, periode_id):
 
 @login_required
 def wunsch_loeschen(request, wunsch_id):
-    """
-    Löscht einen eigenen Wunsch.
-    Mitarbeiter können nur ihre eigenen Wünsche löschen.
-    """
-    
-    
+    # 1. Wunsch holen
     wunsch = get_object_or_404(Schichtwunsch, pk=wunsch_id)
+    periode_id = wunsch.periode.pk
     
-    # Prüfe Berechtigung - Nur eigener Wunsch!
-    if not hasattr(request.user, 'mitarbeiter'):
-        messages.error(request, "❌ Kein Mitarbeiter-Profil gefunden.")
-        return redirect('arbeitszeit:dashboard')
+    # 2. Berechtigung: Schichtplaner-Funktion aufrufen
+    ist_planer = ist_schichtplaner(request.user)
     
-    if wunsch.mitarbeiter != request.user.mitarbeiter:
-        messages.error(request, "❌ Sie können nur Ihre eigenen Wünsche löschen!")
-        return redirect('schichtplan:wunschperioden_liste')
-    
-    periode_id = wunsch.periode.pk if wunsch.periode else None
-    
-    if request.method == 'POST':
-        wunsch.delete()
-        messages.success(request, "✅ Wunsch wurde gelöscht.")
-        
-        if periode_id:
-            return redirect('schichtplan:wunsch_kalender', periode_id=periode_id)
-        else:
-            return redirect('schichtplan:wunschperioden_liste')
-    
-    # GET: Zeige Bestätigungsseite
-    context = {
-        'wunsch': wunsch,
-    }
-    
-    return render(request, 'schichtplan/wunsch_loeschen_confirm.html', context)
+    # 3. Berechtigung: Besitzer
+    ist_besitzer = False
+    # Wir prüfen nur auf 'mitarbeiter', wenn der User auch eins hat
+    if hasattr(request.user, 'mitarbeiter') and wunsch.mitarbeiter:
+        if wunsch.mitarbeiter == request.user.mitarbeiter:
+            ist_besitzer = True
 
+    # 4. SICHERHEITS-ABBRUCH
+    # Wenn ist_planer True ist, wird dieser Block übersprungen!
+    if not (ist_planer or ist_besitzer):
+        messages.error(request, f"❌ Keine Berechtigung. (Planer-Status: {ist_planer})")
+        return redirect('schichtplan:wunsch_kalender', periode_id=periode_id)
+
+    # 5. DER LÖSCHVORGANG
+    if request.method == 'POST':
+        ma_kennung = wunsch.mitarbeiter.schichtplan_kennung if wunsch.mitarbeiter else "Unbekannt"
+        
+        print(f"Lösche jetzt Wunsch #{wunsch.id} durch {request.user.username}")
+        wunsch.delete()
+        
+        if ist_planer and not ist_besitzer:
+            messages.success(request, f"✅ Schichtplaner-Aktion: Wunsch für {ma_kennung} wurde gelöscht.")
+        else:
+            messages.success(request, "✅ Ihr Wunsch wurde gelöscht.")
+            
+        return redirect('schichtplan:wunsch_kalender', periode_id=periode_id)
+
+    # Falls GET: Bestätigungsseite anzeigen
+    return render(request, 'schichtplan/wunsch_loeschen_confirm.html', {
+        'wunsch': wunsch,
+        'ist_planer': ist_planer
+    })
 
 @login_required
 def wuensche_schichtplaner_uebersicht(request, periode_id):

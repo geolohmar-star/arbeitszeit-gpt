@@ -4,10 +4,11 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="row mb-4">
+    <!-- Header -->
+    <div class="row mb-4 align-items-center">
         <div class="col">
             <h1>📅 Schichtplan Dashboard</h1>
-            <p class="text-muted">Willkommen im Schichtplan-Management</p>
+            <p class="text-muted mb-0">Willkommen im Schichtplan-Management</p>
         </div>
         <div class="col-auto">
             <a href="{% url 'schichtplan:erstellen' %}" class="btn btn-success">
@@ -22,38 +23,79 @@
     <!-- Statistiken -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Aktive Pläne</h5>
-                    <h2>{{ aktive_plaene }}</h2>
-                    <small>Veröffentlicht</small>
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Aktive Pläne</h6>
+                    <h2 class="text-success mb-1">{{ aktive_plaene }}</h2>
+                    <small class="text-muted">Veröffentlicht</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Entwürfe</h5>
-                    <h2>{{ entwuerfe }}</h2>
-                    <small>In Bearbeitung</small>
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Entwürfe</h6>
+                    <h2 class="text-warning mb-1">{{ entwuerfe }}</h2>
+                    <small class="text-muted">In Bearbeitung</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Mitarbeiter</h5>
-                    <h2>{{ mitarbeiter_zugeordnet }}/{{ mitarbeiter_gesamt }}</h2>
-                    <small>Zugeordnet</small>
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Mitarbeiter</h6>
+                    <h2 class="text-info mb-1">{{ mitarbeiter_zugeordnet }}/{{ mitarbeiter_gesamt }}</h2>
+                    <small class="text-muted">Zugeordnet</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card" style="background: #1a4d2e; color: white;">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Gesamt</h6>
+                    <h2 class="text-primary mb-1">{{ schichtplaene.count }}</h2>
+                    <small class="text-muted">Schichtpläne</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wunsch-Verwaltung Sektion -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">🗓️ Wunsch-Verwaltung</h5>
+                </div>
                 <div class="card-body">
-                    <h5 class="card-title">Gesamt</h5>
-                    <h2>{{ schichtplaene.count }}</h2>
-                    <small>Schichtpläne</small>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <p class="mb-3">
+                                <strong>Verwalten Sie die Schichtwünsche Ihrer Mitarbeiter:</strong>
+                            </p>
+                            <ul class="mb-0">
+                                <li>Wunschperioden erstellen und verwalten</li>
+                                <li>Wünsche von MA1-MA15 einsehen (Transparenz!)</li>
+                                <li>Urlaubs- und Verfügbarkeitsanfragen genehmigen</li>
+                                <li>Wünsche bei der Schichtplanung berücksichtigen</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'schichtplan:wunschperioden_liste' %}" class="btn btn-primary">
+                                    📅 Alle Wunschperioden
+                                </a>
+                                <a href="{% url 'schichtplan:wunsch_kalender' 1 %}" class="btn btn-outline-primary">
+                                    📊 Wunsch-Kalender ansehen
+                                </a>
+                            </div>
+                            <div class="alert alert-info mt-3 mb-0 py-2 px-3">
+                                <small>
+                                    <strong>💡 Tipp:</strong> Als Schichtplaner können Sie auch für Mitarbeiter Wünsche eintragen!
+                                </small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -61,22 +103,22 @@
 
     <!-- Schichtpläne -->
     <div class="card">
-        <div class="card-header" style="background: #1a4d2e; color: white;">
+        <div class="card-header bg-secondary text-white">
             <h5 class="mb-0">📋 Alle Schichtpläne</h5>
         </div>
         <div class="card-body">
             {% if schichtplaene %}
                 <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
                             <tr>
                                 <th>Name</th>
                                 <th>Zeitraum</th>
-                                <th>Tage</th>
-                                <th>Schichten</th>
-                                <th>Status</th>
+                                <th class="text-center">Tage</th>
+                                <th class="text-center">Schichten</th>
+                                <th class="text-center">Status</th>
                                 <th>Erstellt</th>
-                                <th>Aktionen</th>
+                                <th class="text-center">Aktionen</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -84,21 +126,31 @@
                             <tr>
                                 <td>
                                     <strong>{{ plan.name }}</strong>
+                                    {% if plan.bemerkungen %}
+                                    <br>
+                                    <small class="text-muted">{{ plan.bemerkungen|truncatewords:10 }}</small>
+                                    {% endif %}
                                 </td>
                                 <td>
-                                    {{ plan.start_datum|date:"d.m.Y" }} - {{ plan.ende_datum|date:"d.m.Y" }}
+                                    <small>
+                                        {{ plan.start_datum|date:"d.m.Y" }}
+                                        <br>
+                                        {{ plan.ende_datum|date:"d.m.Y" }}
+                                    </small>
                                 </td>
-                                <td>
-                                    <span class="badge bg-secondary">{{ plan.anzahl_tage }} Tage</span>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">{{ plan.anzahl_tage }}</span>
                                 </td>
-                                <td>
-                                    <span class="badge bg-primary">{{ plan.anzahl_schichten }} Schichten</span>
+                                <td class="text-center">
+                                    <span class="badge bg-primary">{{ plan.anzahl_schichten }}</span>
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     {% if plan.status == 'entwurf' %}
-                                        <span class="badge bg-warning">Entwurf</span>
+                                        <span class="badge bg-warning text-dark">📝 Entwurf</span>
                                     {% elif plan.status == 'veroeffentlicht' %}
-                                        <span class="badge bg-success">Veröffentlicht</span>
+                                        <span class="badge bg-success">✅ Veröffentlicht</span>
+                                    {% elif plan.status == 'archiviert' %}
+                                        <span class="badge bg-secondary">📦 Archiviert</span>
                                     {% else %}
                                         <span class="badge bg-secondary">{{ plan.get_status_display }}</span>
                                     {% endif %}
@@ -107,21 +159,21 @@
                                     <small class="text-muted">
                                         {{ plan.erstellt_am|date:"d.m.Y" }}
                                         {% if plan.erstellt_von %}
-                                            <br>von {{ plan.erstellt_von.get_full_name|default:plan.erstellt_von.username }}
+                                            <br>{{ plan.erstellt_von.get_full_name|default:plan.erstellt_von.username }}
                                         {% endif %}
                                     </small>
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     <div class="btn-group btn-group-sm" role="group">
                                         <a href="{% url 'schichtplan:detail' plan.pk %}" 
                                            class="btn btn-outline-primary" 
                                            title="Ansehen">
-                                            👁️
+                                            👁️ Ansehen
                                         </a>
                                         <a href="{% url 'schichtplan:excel_import' plan.pk %}" 
                                            class="btn btn-outline-success" 
                                            title="Excel importieren">
-                                            📥
+                                            📥 Import
                                         </a>
                                     </div>
                                 </td>
@@ -131,15 +183,90 @@
                     </table>
                 </div>
             {% else %}
-                <div class="alert alert-info">
-                    <h5>📋 Noch keine Schichtpläne</h5>
-                    <p>Erstelle deinen ersten Schichtplan!</p>
-                    <a href="{% url 'schichtplan:erstellen' %}" class="btn btn-success">
+                <div class="text-center py-5">
+                    <div style="font-size: 4rem; opacity: 0.3;">📋</div>
+                    <h4 class="text-muted mt-3">Noch keine Schichtpläne</h4>
+                    <p class="text-muted">Erstelle deinen ersten Schichtplan!</p>
+                    <a href="{% url 'schichtplan:erstellen' %}" class="btn btn-success btn-lg mt-3">
                         ➕ Jetzt erstellen
                     </a>
                 </div>
             {% endif %}
         </div>
     </div>
+
+    <!-- Schnellzugriff Footer -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">🚀 Schnellzugriff</h6>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'schichtplan:erstellen' %}" class="btn btn-sm btn-outline-success">
+                            ➕ Neuer Plan
+                        </a>
+                        <a href="{% url 'schichtplan:mitarbeiter_uebersicht' %}" class="btn btn-sm btn-outline-info">
+                            👥 Mitarbeiter
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">🗓️ Wünsche</h6>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'schichtplan:wunschperioden_liste' %}" class="btn btn-sm btn-outline-primary">
+                            📅 Perioden
+                        </a>
+                        <a href="#" class="btn btn-sm btn-outline-warning" onclick="alert('Wählen Sie zuerst eine Periode in der Perioden-Liste!')">
+                            ✅ Genehmigungen
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">📊 Import/Export</h6>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'schichtplan:excel_analyse' %}" class="btn btn-sm btn-outline-success">
+                            📥 Excel analysieren
+                        </a>
+                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                            📤 Export (Coming soon)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.border-success, .border-warning, 
+.border-info, .border-primary {
+    border-width: 2px !important;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+</style>
 {% endblock %}
