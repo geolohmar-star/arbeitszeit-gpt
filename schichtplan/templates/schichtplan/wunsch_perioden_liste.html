@@ -3,142 +3,230 @@
 {% block title %}Schichtwünsche{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- Header -->
-     <!-- In wunsch_perioden_liste.html -->
-{% if ist_planer %}
-    <div class="mb-4">
-        <a href="{% url 'schichtplan:periode_erstellen' %}" class="btn btn-primary">
-            ➕ Neue Wunschperiode anlegen
-        </a>
-    </div>
-{% endif %}
-
-{% if perioden %}
-    <!-- Deine Liste der Perioden -->
-{% else %}
-    <div class="alert alert-warning">
-        ⚠️ Keine Wunschperioden verfügbar...
-    </div>
-{% endif %}
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2>🗓️ Meine Schichtwünsche</h2>
-            <p class="text-muted">
-                Willkommen, {{ mitarbeiter.vollname }} ({{ mitarbeiter.schichtplan_kennung }})
+<div class="container py-5">
+    
+    <!-- HEADER & ACTIONS -->
+    <div class="row mb-5 align-items-center">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-2">
+                    <li class="breadcrumb-item"><a href="{% url 'arbeitszeit:dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Schichtwünsche</li>
+                </ol>
+            </nav>
+            <h1 class="display-5 fw-bold text-dark">🗓️ Meine Schichtwünsche</h1>
+            <p class="lead text-muted">
+                Hallo {{ mitarbeiter.vollname }}, hier kannst du deine Verfügbarkeiten verwalten.
             </p>
         </div>
-        <a href="{% url 'arbeitszeit:dashboard' %}" class="btn btn-secondary">
-            ← Zurück
-        </a>
+        <div class="col-md-4 text-md-end">
+            {% if ist_planer %}
+                <a href="{% url 'schichtplan:wunsch_perioden_liste' %}" class="btn btn-primary btn-lg shadow-sm">
+                    <i class="fas fa-plus-circle me-2"></i>Neue Periode
+                </a>
+            {% endif %}
+            <a href="{% url 'arbeitszeit:dashboard' %}" class="btn btn-outline-secondary btn-lg shadow-sm ms-2">
+                Zurück
+            </a>
+        </div>
     </div>
 
-    <!-- Info-Box -->
-    <div class="alert alert-info">
-        <h5>ℹ️ So funktioniert's:</h5>
-        <ol class="mb-0">
-            <li>Wähle eine Wunschperiode aus</li>
-            <li>Trage deine Wünsche für die einzelnen Tage ein</li>
-            <li>Alle Kollegen (MA1-MA15) können deine Wünsche sehen (Transparenz!)</li>
-            <li>Urlaub und "gar nichts möglich" benötigen eine Genehmigung</li>
-        </ol>
-    </div>
+    <div class="row">
+        <!-- LINKER BEREICH: PERIODEN-LISTE -->
+        <div class="col-lg-8">
+            {% if perioden %}
+                <div class="row">
+                    {% for periode in perioden %}
+                    <div class="col-12 mb-4">
+                        <div class="card h-100 border-0 shadow-sm status-card {% if periode.ist_offen %}status-open{% elif periode.status == 'veroeffentlicht' %}status-published{% else %}status-closed{% endif %}">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h3 class="h5 fw-bold mb-1">{{ periode.name }}</h3>
+                                        <span class="text-muted small">
+                                            <i class="far fa-calendar-alt me-1"></i> 
+                                            {{ periode.fuer_monat|date:"F Y" }}
+                                        </span>
+                                    </div>
+                                    {% if periode.ist_offen %}
+                                        <span class="badge rounded-pill bg-success-soft text-success px-3 py-2">
+                                            <span class="dot bg-success"></span> Offen bis {{ periode.eingabe_ende|date:"d.m." }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge rounded-pill bg-secondary-soft text-secondary px-3 py-2">
+                                            {{ periode.get_status_display }}
+                                        </span>
+                                    {% endif %}
+                                </div>
 
-    <!-- Perioden-Liste -->
-    {% if perioden %}
-        <div class="row">
-            {% for periode in perioden %}
-            <div class="col-md-6 mb-4">
-                <div class="card h-100 
-                    {% if periode.ist_offen %}border-success{% endif %}
-                    {% if periode.status == 'geschlossen' %}border-secondary{% endif %}
-                    {% if periode.status == 'veroeffentlicht' %}border-primary{% endif %}
-                ">
-                    <div class="card-header 
-                        {% if periode.ist_offen %}bg-success text-white{% endif %}
-                        {% if periode.status == 'geschlossen' %}bg-secondary text-white{% endif %}
-                        {% if periode.status == 'veroeffentlicht' %}bg-primary text-white{% endif %}
-                    ">
-                        <h5 class="mb-0">
-                            {{ periode.name }}
-                            {% if periode.ist_offen %}
-                                <span class="badge bg-light text-success float-end">OFFEN</span>
-                            {% else %}
-                                <span class="badge bg-light text-secondary float-end">{{ periode.get_status_display }}</span>
-                            {% endif %}
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="mb-2">
-                            <strong>📅 Monat:</strong> {{ periode.fuer_monat|date:"F Y" }}
-                        </p>
-                        <p class="mb-2">
-                            <strong>📝 Eingabe:</strong> 
-                            {{ periode.eingabe_start|date:"d.m.Y H:i" }} 
-                            bis 
-                            {{ periode.eingabe_ende|date:"d.m.Y H:i" }}
-                        </p>
-                        <p class="mb-3">
-                            <strong>✅ Meine Wünsche:</strong> 
-                            <span class="badge bg-primary">{{ periode.eigene_wuensche_count }}</span>
-                        </p>
-
-                        <div class="d-grid gap-2">
-                            {% if periode.ist_offen %}
-                                <a href="{% url 'schichtplan:wunsch_kalender' periode.pk %}" 
-                                   class="btn btn-success">
-                                    📝 Wünsche eintragen/bearbeiten
-                                </a>
-                            {% else %}
-                                <a href="{% url 'schichtplan:wunsch_kalender' periode.pk %}" 
-                                   class="btn btn-outline-primary">
-                                    👁️ Wünsche ansehen
-                                </a>
-                            {% endif %}
+                                <div class="row mt-4 align-items-center">
+                                    <div class="col-sm-4 mb-3 mb-sm-0">
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-box bg-primary-soft text-primary me-3">
+                                                <i class="fas fa-pen-fancy"></i>
+                                            </div>
+                                            <div>
+                                                <div class="small text-muted">Deine Wünsche</div>
+                                                <div class="fw-bold fs-5">{{ periode.eigene_wuensche_count }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4 mb-3 mb-sm-0">
+                                        {% if periode.anzahl_genehmigungen_offen > 0 %}
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-box bg-warning-soft text-warning me-3">
+                                                <i class="fas fa-clock"></i>
+                                            </div>
+                                            <div>
+                                                <div class="small text-muted">Wartend</div>
+                                                <div class="fw-bold fs-5">{{ periode.anzahl_genehmigungen_offen }}</div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-sm-4 text-sm-end">
+                                        {% if periode.ist_offen %}
+                                            <a href="{% url 'schichtplan:wunsch_kalender' periode.pk %}" class="btn btn-primary rounded-pill px-4">
+                                                Bearbeiten <i class="fas fa-arrow-right ms-2"></i>
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'schichtplan:wunsch_kalender' periode.pk %}" class="btn btn-outline-primary rounded-pill px-4">
+                                                Ansehen
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-footer text-muted small">
-                        <div class="d-flex justify-content-between">
-                            <span>Gesamt: {{ periode.anzahl_wuensche }} Wünsche</span>
-                            {% if periode.anzahl_genehmigungen_offen > 0 %}
-                                <span class="text-warning">
-                                    ⏳ {{ periode.anzahl_genehmigungen_offen }} warten auf Genehmigung
-                                </span>
-                            {% endif %}
-                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5 bg-white rounded shadow-sm border">
+                    <div class="mb-4">
+                        <span class="display-1 text-muted opacity-25">🗓️</span>
+                    </div>
+                    <h4>Keine Wunschperioden verfügbar</h4>
+                    <p class="text-muted">Aktuell gibt es keine Zeiträume für die Wunscheingabe.</p>
+                    {% if ist_planer %}
+                        <a href="{% url 'schichtplan:periode_erstellen' %}" class="btn btn-primary mt-2">
+                            🚀 Jetzt erste Periode erstellen
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- RECHTER BEREICH: INFO & STATS -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4 bg-light">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">ℹ️ Anleitung</h5>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-3 d-flex">
+                            <span class="badge bg-white text-primary shadow-sm me-3 h-100">1</span>
+                            <span>Wähle eine <strong>offene</strong> Wunschperiode aus.</span>
+                        </li>
+                        <li class="mb-3 d-flex">
+                            <span class="badge bg-white text-primary shadow-sm me-3 h-100">2</span>
+                            <span>Klicke auf die Tage im Kalender, um Schichten zu wählen.</span>
+                        </li>
+                        <li class="mb-3 d-flex">
+                            <span class="badge bg-white text-primary shadow-sm me-3 h-100">3</span>
+                            <span><strong>Transparenz:</strong> Alle Kollegen sehen die Wünsche für eine faire Planung.</span>
+                        </li>
+                        <li class="d-flex">
+                            <span class="badge bg-white text-primary shadow-sm me-3 h-100">4</span>
+                            <span>Urlaub/Sperrtage werden vom Planer geprüft.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            {% if ist_planer %}
+            <div class="card border-0 shadow-sm border-start border-primary border-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-2 text-primary">Planer-Bereich</h5>
+                    <p class="small text-muted mb-3">Du hast administrative Rechte für diese Ansicht.</p>
+                    <div class="d-grid gap-2">
+                        <a href="#" class="btn btn-sm btn-outline-primary text-start">
+                            <i class="fas fa-list-check me-2"></i> Alle Genehmigungen prüfen
+                        </a>
+                        <a href="#" class="btn btn-sm btn-outline-primary text-start">
+                            <i class="fas fa-file-export me-2"></i> Export für Schichtplan
+                        </a>
                     </div>
                 </div>
             </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="alert alert-warning py-4 text-center">
-            <h5>⚠️ Keine Wunschperioden verfügbar</h5>
-            <p class="mb-3">
-                Aktuell sind keine Perioden für Wunscheingaben geöffnet. 
-            </p>
-            
-            <!-- NEU: Call-to-Action für den Planer -->
-            {% if ist_planer %}
-                <hr>
-                <p>Sie sind als Schichtplaner angemeldet. Erstellen Sie jetzt die erste Periode:</p>
-                <a href="{% url 'schichtplan:periode_erstellen' %}" class="btn btn-primary">
-                    🚀 Erste Wunschperiode erstellen
-                </a>
-            {% else %}
-                <p class="mb-0 text-muted">Bitte wenden Sie sich an Ihren Schichtplaner.</p>
             {% endif %}
         </div>
-    {% endif %}
+    </div>
+</div>
 
 <style>
-.card {
-    transition: transform 0.2s, box-shadow 0.2s;
-}
+    /* Hintergrund & Body */
+    body {
+        background-color: #f8f9fa;
+    }
 
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
+    /* Cards */
+    .status-card {
+        transition: all 0.3s ease;
+        border-left: 5px solid transparent !important;
+    }
+    .status-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+    }
+    
+    /* Status-Farben */
+    .status-open { border-left-color: #198754 !important; }
+    .status-published { border-left-color: #0d6efd !important; }
+    .status-closed { border-left-color: #6c757d !important; }
+
+    /* Soft Colors für Badges & Icons */
+    .bg-success-soft { background-color: #e8f5e9; }
+    .bg-primary-soft { background-color: #eef2ff; }
+    .bg-warning-soft { background-color: #fff8e1; }
+    .bg-secondary-soft { background-color: #f1f3f5; }
+    
+    .text-success { color: #198754 !important; }
+    .text-primary { color: #0d6efd !important; }
+
+    /* Icons */
+    .icon-box {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 1.2rem;
+    }
+
+    /* Status Dot Animation */
+    .dot {
+        height: 8px;
+        width: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.4; }
+        100% { opacity: 1; }
+    }
+
+    /* Badges */
+    .badge {
+        font-weight: 500;
+        letter-spacing: 0.3px;
+    }
 </style>
+
+<!-- FontAwesome für die Icons (falls noch nicht in base.html) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 {% endblock %}

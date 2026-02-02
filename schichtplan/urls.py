@@ -23,32 +23,48 @@ urlpatterns = [
     path('schicht/<int:pk>/loeschen/', views.schicht_loeschen, name='schicht_loeschen'),
     
     # ========================================================================
-    # WUNSCH-SYSTEM (NEU!)
+    # WUNSCH-SYSTEM
     # ========================================================================
     
-    # Für Mitarbeiter (MA1-MA15)
+    # Listenansicht aller Perioden (für Planer und MA)
     path(
         'wuensche/',
-        views.wunsch_perioden_liste,  # ← KORRIGIERT!
+        views.wunsch_perioden_liste,
         name='wunschperioden_liste'
     ),
+    
+    # Kalenderansicht einer Periode
     path(
         'wuensche/periode/<int:periode_id>/kalender/',
         views.wunsch_kalender,
         name='wunsch_kalender'
     ),
+    
+    # Wunsch eingeben / bearbeiten
     path(
         'wuensche/periode/<int:periode_id>/eingeben/',
         views.wunsch_eingeben,
         name='wunsch_eingeben'
     ),
+    
+    # Wunsch löschen
     path(
         'wuensche/<int:wunsch_id>/loeschen/',
         views.wunsch_loeschen,
         name='wunsch_loeschen'
     ),
     
-    # Für Schichtplaner
+    # NEUE PERIODE ERSTELLEN (Korrektur: Nur ein Pfad, passend zum Dashboard-Button)
+    path(
+    'wuensche/periode/neu/', 
+    views.WunschPeriodeCreateView.as_view(), # Wir nutzen die Klasse!
+    name='wunschperiode_erstellen'           # Der Name für den Dashboard-Button
+    ),
+
+    # ========================================================================
+    # ADMIN / GENEHMIGUNGS-LOGIK
+    # ========================================================================
+    
     path(
         'wuensche/periode/<int:periode_id>/planer/',
         views.wuensche_schichtplaner_uebersicht,
@@ -64,7 +80,9 @@ urlpatterns = [
         views.wuensche_genehmigen,
         name='wuensche_genehmigen'
     ),
-    path('wuensche/periode/neu/', views.WunschPeriodeCreateView.as_view(), name='periode_erstellen'),
-    path('wuensche/', views.wunsch_perioden_liste, name='wunsch_perioden_liste')
-    
+    path(
+    'wuensche/', 
+    views.wunsch_perioden_liste, 
+    name='wunsch_perioden_liste'
+),
 ]

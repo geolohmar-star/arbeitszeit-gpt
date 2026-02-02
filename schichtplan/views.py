@@ -331,9 +331,14 @@ def excel_analyse_view(request):
 @login_required
 def planer_dashboard(request):
     """Dashboard für Schichtplaner"""
+    #if not ist_schichtplaner(request.user):
+    #    messages.error(request, "❌ Keine Berechtigung für diese Seite.")
+    #    return redirect('arbeitszeit:dashboard')
+    # Nutzt deine Funktion, um die Rolle zu prüfen
     if not ist_schichtplaner(request.user):
-        messages.error(request, "❌ Keine Berechtigung für diese Seite.")
-        return redirect('arbeitszeit:dashboard')
+        from django.contrib import messages
+        messages.error(request, "❌ Zugriff verweigert. Dieser Bereich ist nur für Schichtplaner.")
+        return redirect('schichtplan:wunsch_kalender_aktuell') # Schicke MA zum eigenen Kalender
     
     schichtplaene = Schichtplan.objects.all().order_by('-start_datum')
     
@@ -344,6 +349,11 @@ def planer_dashboard(request):
     planbare_ma = get_planbare_mitarbeiter()
     
     context = {
+        'is_planer': True,
+        'aktive_plaene': Schichtplan.objects.filter(status='veroeffentlicht').count(),
+        'entwuerfe': Schichtplan.objects.filter(status='entwurf').count(),
+        'schichtplaene': Schichtplan.objects.all().order_by('-erstellt_am'),
+        'mitarbeiter_gesamt': Mitarbeiter.objects.count(),
         'schichtplaene': schichtplaene,
         'aktive_plaene': aktive_plaene,
         'entwuerfe': entwuerfe,
@@ -1082,3 +1092,16 @@ def wunsch_genehmigen(request, wunsch_id):
     }
     
     return render(request, 'schichtplan/wunsch_genehmigen.html', context)
+
+@login_required
+def wunschperioden_liste(request):
+    # RIEGEL VOR: Nur Planer dürfen die Liste aller Perioden sehen
+    if not ist_schichtplaner(request.user):
+        messages.error(request, "Kein Zugriff auf die Perioden-Verwaltung.")
+        return redirect('schichtplan:wunsch_kalender_aktuell')
+
+    perioden = SchichtwunschPeriode.objects.all().order_by('-fuer_monat')
+    return render(request, 'schichtplan/wunsch_perioden_liste.html', {
+        'perioden': perioden,
+        'is_planer': True
+    })
