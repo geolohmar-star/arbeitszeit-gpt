@@ -403,6 +403,16 @@
                         </a>
                     </div>
                 </div>
+            {% elif is_kongos %}
+                <div class="card" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; margin-bottom: 2rem;">
+                    <div class="card-body" style="border: none;">
+                        <h3 style="color: white; margin-bottom: 0.5rem;">📅 Schichtplan</h3>
+                        <p style="opacity: 0.9; margin-bottom: 1rem;">Veröffentlichte Schichtpläne Ihrer Abteilung anzeigen</p>
+                        <a href="{% url 'schichtplan:dashboard' %}" class="btn" style="background: white; color: #0d6efd;">
+                            Schichtplan anzeigen →
+                        </a>
+                    </div>
+                </div>
             {% endif %}
         {% endif %}
 

@@ -10,6 +10,11 @@ urlpatterns = [
     # Schichtplan
     path('erstellen/', views.SchichtplanCreateView.as_view(), name='erstellen'),
     path('<int:pk>/', views.schichtplan_detail, name='detail'),
+    path('<int:pk>/zur-genehmigung/', views.schichtplan_zur_genehmigung, name='zur_genehmigung'),
+    path('<int:pk>/veroeffentlichen/', views.schichtplan_veroeffentlichen, name='veroeffentlichen'),
+    path('<int:pk>/uebersicht-detail/', views.schichtplan_uebersicht_detail, name='uebersicht_detail'),
+    path('<int:pk>/rueckgaengig/', views.schichtplan_rueckgaengig, name='rueckgaengig'),
+    path('<int:pk>/export-excel/', views.schichtplan_export_excel, name='export_excel'),
     
     # Excel-Import
     path('<int:pk>/import/', views.excel_import_view, name='excel_import'),
@@ -20,7 +25,10 @@ urlpatterns = [
     
     # Schichten
     path('<int:schichtplan_pk>/schicht-zuweisen/', views.schicht_zuweisen, name='schicht_zuweisen'),
+    path('<int:schichtplan_pk>/schicht-anlegen/', views.schicht_anlegen, name='schicht_anlegen'),
     path('schicht/<int:pk>/loeschen/', views.schicht_loeschen, name='schicht_loeschen'),
+    path('schicht/<int:pk>/bearbeiten/', views.schicht_bearbeiten, name='schicht_bearbeiten'),
+    path('schicht/<int:pk>/tauschen/', views.schicht_tauschen, name='schicht_tauschen'),
     
     # ========================================================================
     # WUNSCH-SYSTEM
@@ -32,7 +40,12 @@ urlpatterns = [
         views.wunsch_perioden_liste,
         name='wunschperioden_liste'
     ),
-    
+    # Redirect „aktueller Kalender“ → aktuelle/ nächste Wunschperiode oder Dashboard
+    path(
+        'wuensche/kalender-aktuell/',
+        views.wunsch_kalender_aktuell,
+        name='wunsch_kalender_aktuell'
+    ),
     # Kalenderansicht einer Periode
     path(
         'wuensche/periode/<int:periode_id>/kalender/',
@@ -85,4 +98,11 @@ urlpatterns = [
     views.wunsch_perioden_liste, 
     name='wunsch_perioden_liste'
 ),
+    
+    # Wunschperiode löschen
+    path(
+        'wuensche/periode/<int:periode_id>/loeschen/',
+        views.wunschperiode_loeschen,
+        name='wunschperiode_loeschen'
+    ),
 ]

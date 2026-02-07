@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Übersicht Detail – {{ schichtplan.name }}{% endblock %}
+
+{% block content %}
+<input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">📋 Übersicht Detail</h1>
+            <span class="text-muted small">{{ schichtplan.name }} · {{ schichtplan.start_datum|date:"d.m.Y" }} bis {{ schichtplan.ende_datum|date:"d.m.Y" }}</span>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <a href="{% url 'schichtplan:export_excel' schichtplan.pk %}" class="btn btn-success btn-sm">
+                <i class="bi bi-file-earmark-excel"></i> Excel Export
+            </a>
+            {% if kann_undo %}
+            <form action="{% url 'schichtplan:rueckgaengig' schichtplan.pk %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning btn-sm" title="Letzte Änderung rückgängig machen">
+                    ↩️ Rückgängig
+                </button>
+            </form>
+            {% endif %}
+            <a href="{% url 'schichtplan:detail' schichtplan.pk %}" class="btn btn-outline-secondary btn-sm">← Zurück zum Plan</a>
+        </div>
+    </div>
+
+    <!-- Änderungsprotokoll (wer was geändert hat) -->
+    <div class="card border shadow-sm mb-3">
+        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#protokoll-body" aria-expanded="false" style="cursor: pointer;">
+            <h6 class="mb-0">📜 Änderungsprotokoll</h6>
+            <span class="badge bg-secondary">{{ protokoll|length }} Einträge</span>
+        </div>
+        <div id="protokoll-body" class="collapse">
+            <div class="card-body py-2 small">
+                {% if protokoll %}
+                <ul class="list-unstyled mb-0">
+                    {% for e in protokoll %}
+                    <li class="py-1 border-bottom border-light {% if e.zurueckgenommen %}text-muted text-decoration-line-through{% endif %}">
+                        <span class="text-muted">{{ e.zeit|date:"d.m.Y H:i" }}</span>
+                        <strong>{% if e.user %}{{ e.user.get_full_name|default:e.user.username }}{% else %}—{% endif %}</strong>
+                        {{ e.get_aktion_display }}: {{ e.beschreibung }}
+                        {% if e.zurueckgenommen %}<span class="badge bg-secondary">rückgängig</span>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted mb-0">Noch keine Änderungen an diesem Plan.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if can_edit %}
+    <!-- Schicht hinzufügen: Auswahl + Mülleimer im Panel (beim Scrollen oben fixiert) -->
+    <div class="card border shadow-sm mb-3 schicht-panel-sticky">
+        <div class="card-header bg-light py-2">
+            <h6 class="mb-0">➕ Schicht hinzufügen</h6>
+        </div>
+        <div class="card-body py-2 d-flex align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <p class="text-muted small mb-0 me-2" style="max-width: 520px;">
+                    <strong>Bedienung:</strong> Symbol greifen und auf die gewünschte Zelle ziehen (leere Zelle = setzen). 
+                    Schichten tauschen: auf andere Schicht ziehen. Löschen: in den Mülleimer rechts ziehen.
+                </p>
+                <span class="text-muted small me-1">Schichten:</span>
+                {% for st in schichttypen_menu %}
+                <span class="badge schicht-neu-draggable {% if st.kuerzel == 'T' %}bg-warning text-dark{% elif st.kuerzel == 'N' %}bg-primary{% else %}bg-info text-dark{% endif %}" 
+                      draggable="true" data-schichttyp-kuerzel="{{ st.kuerzel }}" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">{{ st.kuerzel }}</span>
+                {% endfor %}
+                <span class="text-muted small ms-1 me-1">Markierungen:</span>
+                <span class="badge schicht-neu-draggable bg-secondary" draggable="true" data-schichttyp-kuerzel="U" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">U</span>
+                <span class="badge schicht-neu-draggable bg-danger" draggable="true" data-schichttyp-kuerzel="K" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">K</span>
+                <span class="badge schicht-neu-draggable bg-dark" draggable="true" data-schichttyp-kuerzel="AG" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">Z-AG</span>
+                <span class="text-muted small">(Urlaub · Krank · Zeitausgleich)</span>
+            </div>
+            <div id="schicht-trash" class="schicht-trash border border-danger rounded px-3 py-2 bg-light text-danger d-flex align-items-center ms-auto" title="Schicht oder Eintrag hierher ziehen zum Löschen" style="min-height: 38px; transition: background 0.2s, color 0.2s;">
+                <span class="d-inline-block">🗑️</span>
+                <span class="small ms-1">Zum Löschen hier ablegen</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <p class="text-muted small mb-3">
+        <strong>Legende:</strong> N = Nachtschicht · T = Tagschicht · Z = Zusatzdienste · U = Urlaub · K = Krank · AG = Z-AG Zeitausgleich
+        <span class="ms-3">Wochenenden: hellblau</span>
+        <span class="ms-2">Feiertage NRW: orange hinterlegt</span>
+        <span class="ms-3"><strong>Drag &amp; Drop:</strong> Schicht auf andere Schicht ziehen = Tauschen · Schicht in den Mülleimer ziehen = Löschen</span>
+    </p>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm table-hover mb-0">
+            <thead class="table-light schicht-thead-sticky">
+                <tr>
+                    <th style="min-width: 100px;">Tag</th>
+                    <th style="min-width: 80px;">Datum</th>
+                    {% for ma in mitarbeiter_liste %}
+                    <th class="text-center" style="min-width: 44px;" title="{{ ma.vollname }}">
+                        <strong>{{ ma.schichtplan_kennung }}</strong><br>
+                        <small class="text-muted" style="font-size: 0.7em;">{{ ma.vollname|truncatewords:2 }}</small>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in zeilen %}
+                <tr class="{% if row.ist_wochenende %}table-info{% endif %}" {% if row.feiertag_name %}style="background-color: #ffe4cc;"{% endif %}>
+                    <td class="align-middle">
+                        {{ row.datum|date:"l" }}
+                        {% if row.feiertag_name %}
+                        <br><small class="text-danger fw-bold" title="Feiertag NRW">{{ row.feiertag_name }}</small>
+                        {% endif %}
+                    </td>
+                    <td class="align-middle">
+                        <strong>{{ row.datum|date:"d.m." }}</strong>
+                    </td>
+                    {% for cell in row.zellen %}
+                    <td class="text-center align-middle schicht-cell {% if can_edit %}{% if cell.schicht_id %}schicht-drop-target{% endif %} schicht-neu-drop{% endif %}" style="min-width: 80px;" {% if can_edit %}data-ma-id="{{ cell.ma_id }}" data-datum="{{ row.datum|date:'Y-m-d' }}" {% if cell.schicht_id %}data-schicht-id="{{ cell.schicht_id }}"{% endif %}{% endif %}>
+                        {% if cell.value == 'N' %}
+                            {% if cell.schicht_id and can_edit %}
+                            <span class="badge bg-primary schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen zum Tauschen oder in den Mülleimer zum Löschen">N</span>
+                            {% else %}
+                            <span class="badge bg-primary" title="Nachtschicht">N</span>
+                            {% endif %}
+                        {% elif cell.value == 'T' %}
+                            {% if cell.schicht_id and can_edit %}
+                            <span class="badge bg-warning text-dark schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen zum Tauschen oder in den Mülleimer zum Löschen">T</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark" title="Tagschicht">T</span>
+                            {% endif %}
+                        {% elif cell.value == 'Z' %}
+                            {% if cell.schicht_id and can_edit %}
+                            <span class="badge bg-info text-dark schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen zum Tauschen oder in den Mülleimer zum Löschen">Z</span>
+                            {% else %}
+                            <span class="badge bg-info text-dark" title="Zusatzdienste">Z</span>
+                            {% endif %}
+                        {% elif cell.value == 'U' %}
+                            {% if cell.wunsch_id and can_edit %}
+                            <span class="badge bg-secondary wunsch-draggable" draggable="true" data-wunsch-id="{{ cell.wunsch_id }}" title="Ziehen in den Mülleimer zum Löschen">U</span>
+                            {% else %}
+                            <span class="badge bg-secondary" title="Urlaub">U</span>
+                            {% endif %}
+                        {% elif cell.value == 'K' %}
+                            {% if cell.wunsch_id and can_edit %}
+                            <span class="badge bg-danger wunsch-draggable" draggable="true" data-wunsch-id="{{ cell.wunsch_id }}" title="Ziehen in den Mülleimer zum Löschen">K</span>
+                            {% else %}
+                            <span class="badge bg-danger" title="Krank">K</span>
+                            {% endif %}
+                        {% elif cell.value == 'AG' %}
+                            {% if cell.wunsch_id and can_edit %}
+                            <span class="badge bg-dark wunsch-draggable" draggable="true" data-wunsch-id="{{ cell.wunsch_id }}" title="Ziehen in den Mülleimer zum Löschen">AG</span>
+                            {% else %}
+                            <span class="badge bg-dark" title="Z-AG Zeitausgleich">AG</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">–</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-light">
+                <tr class="border-top border-2">
+                    <td colspan="2" class="text-end align-middle fw-bold small">Soll / Ist (h)</td>
+                    {% for st in mitarbeiter_stunden %}
+                    <td class="text-center align-middle small py-2" style="min-width: 80px;">
+                        <span class="text-muted">Soll {{ st.soll|floatformat:1 }}</span><br>
+                        <span class="fw-bold">Ist {{ st.ist|floatformat:1 }}</span><br>
+                        <span class="{% if st.diff >= 0 %}text-success{% else %}text-danger{% endif %}">{% if st.diff >= 0 %}+{% endif %}{{ st.diff|floatformat:1 }}</span>
+                    </td>
+                    {% endfor %}
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<style>
+.schicht-panel-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+/* Tabellen-Header (Mitarbeiternamen) beim Scrollen unter dem Panel fixiert */
+.schicht-thead-sticky th {
+    position: sticky;
+    top: 120px; /* unter dem Panel „Schicht hinzufügen“ */
+    z-index: 1010;
+    background: #f8f9fa !important;
+    box-shadow: 0 1px 0 0 #dee2e6;
+}
+.schicht-draggable { cursor: grab; }
+.schicht-draggable:active { cursor: grabbing; }
+.wunsch-draggable { cursor: grab; }
+.wunsch-draggable:active { cursor: grabbing; }
+.schicht-drop-target { transition: background-color 0.15s; }
+.schicht-neu-draggable:active { cursor: grabbing; }
+.schicht-neu-drop { transition: background-color 0.15s; }
+</style>
+
+<script>
+(function() {
+    var deleteUrlTpl = "{% url 'schichtplan:schicht_loeschen' 0 %}";
+    var tauschUrlTpl = "{% url 'schichtplan:schicht_tauschen' 0 %}";
+    var wunschLoeschenUrlTpl = "{% url 'schichtplan:wunsch_loeschen' 0 %}";
+    var anlegenUrl = "{% url 'schichtplan:schicht_anlegen' schichtplan.pk %}";
+    var schichtplanPk = "{{ schichtplan.pk }}";
+    var nextParam = '?next=uebersicht_detail';
+    var csrf = document.getElementById('csrf-token') && document.getElementById('csrf-token').value;
+
+    function getCookie(name) {
+        var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? match[2] : '';
+    }
+    if (!csrf) csrf = getCookie('csrftoken');
+
+    function submitDelete(schichtId) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = deleteUrlTpl.replace('0', schichtId) + nextParam;
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'csrfmiddlewaretoken';
+        input.value = csrf;
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function submitWunschLoeschen(wunschId) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = wunschLoeschenUrlTpl.replace('0', wunschId) + '?next=uebersicht_detail&schichtplan_pk=' + schichtplanPk;
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'csrfmiddlewaretoken';
+        input.value = csrf;
+        form.appendChild(input);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function submitTausch(draggedId, targetId) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = tauschUrlTpl.replace('0', draggedId) + nextParam;
+        var input1 = document.createElement('input');
+        input1.type = 'hidden';
+        input1.name = 'csrfmiddlewaretoken';
+        input1.value = csrf;
+        form.appendChild(input1);
+        var input2 = document.createElement('input');
+        input2.type = 'hidden';
+        input2.name = 'schicht2_id';
+        input2.value = targetId;
+        form.appendChild(input2);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function submitSchichtAnlegen(maId, datum, kuerzel) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = anlegenUrl;
+        var fields = [
+            { name: 'csrfmiddlewaretoken', value: csrf },
+            { name: 'mitarbeiter_id', value: maId },
+            { name: 'datum', value: datum },
+            { name: 'schichttyp_kuerzel', value: kuerzel }
+        ];
+        fields.forEach(function(f) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = f.name;
+            input.value = f.value;
+            form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Ziehbare Symbole (neue Schicht / Markierung zuweisen)
+    document.querySelectorAll('.schicht-neu-draggable').forEach(function(el) {
+        el.addEventListener('dragstart', function(e) {
+            e.dataTransfer.setData('schicht_neu_typ', el.getAttribute('data-schichttyp-kuerzel'));
+            e.dataTransfer.setData('schicht_id', ''); // damit Zellen mit Schicht keinen Tausch auslösen
+            e.dataTransfer.effectAllowed = 'copy';
+            el.classList.add('opacity-50');
+        });
+        el.addEventListener('dragend', function(e) {
+            el.classList.remove('opacity-50');
+        });
+    });
+
+    // Leere Zellen: Drop-Ziel für „neue Schicht“
+    document.querySelectorAll('.schicht-neu-drop').forEach(function(td) {
+        td.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            if (e.dataTransfer.getData('schicht_neu_typ')) e.dataTransfer.dropEffect = 'copy';
+            td.classList.add('table-warning');
+        });
+        td.addEventListener('dragleave', function(e) {
+            td.classList.remove('table-warning');
+        });
+        td.addEventListener('drop', function(e) {
+            e.preventDefault();
+            td.classList.remove('table-warning');
+            var kuerzel = e.dataTransfer.getData('schicht_neu_typ');
+            var maId = td.getAttribute('data-ma-id');
+            var datum = td.getAttribute('data-datum');
+            if (kuerzel && maId && datum) submitSchichtAnlegen(maId, datum, kuerzel);
+        });
+    });
+
+    document.querySelectorAll('.schicht-draggable').forEach(function(el) {
+        el.addEventListener('dragstart', function(e) {
+            e.dataTransfer.setData('schicht_id', el.getAttribute('data-schicht-id'));
+            e.dataTransfer.setData('wunsch_id', '');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', el.textContent);
+            el.classList.add('opacity-50');
+        });
+        el.addEventListener('dragend', function(e) {
+            el.classList.remove('opacity-50');
+        });
+    });
+
+    document.querySelectorAll('.wunsch-draggable').forEach(function(el) {
+        el.addEventListener('dragstart', function(e) {
+            e.dataTransfer.setData('wunsch_id', el.getAttribute('data-wunsch-id'));
+            e.dataTransfer.setData('schicht_id', '');
+            e.dataTransfer.effectAllowed = 'move';
+            el.classList.add('opacity-50');
+        });
+        el.addEventListener('dragend', function(e) {
+            el.classList.remove('opacity-50');
+        });
+    });
+
+    document.querySelectorAll('.schicht-drop-target').forEach(function(td) {
+        td.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            td.classList.add('table-success');
+        });
+        td.addEventListener('dragleave', function(e) {
+            td.classList.remove('table-success');
+        });
+        td.addEventListener('drop', function(e) {
+            e.preventDefault();
+            td.classList.remove('table-success');
+            var draggedId = e.dataTransfer.getData('schicht_id');
+            var targetId = td.getAttribute('data-schicht-id');
+            if (!draggedId || !targetId || draggedId === targetId) return;
+            submitTausch(draggedId, targetId);
+        });
+    });
+
+    var trash = document.getElementById('schicht-trash');
+    if (trash) {
+        trash.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            trash.classList.add('bg-danger', 'text-white', 'border-2');
+        });
+        trash.addEventListener('dragleave', function(e) {
+            trash.classList.remove('bg-danger', 'text-white', 'border-2');
+        });
+        trash.addEventListener('drop', function(e) {
+            e.preventDefault();
+            trash.classList.remove('bg-danger', 'text-white', 'border-2');
+            var schichtId = e.dataTransfer.getData('schicht_id');
+            var wunschId = e.dataTransfer.getData('wunsch_id');
+            if (wunschId && confirm('Eintrag (Urlaub/Krank/Zeitausgleich) wirklich löschen?')) {
+                submitWunschLoeschen(wunschId);
+            } else if (schichtId && confirm('Schicht wirklich löschen?')) {
+                submitDelete(schichtId);
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

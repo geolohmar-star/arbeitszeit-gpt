@@ -165,6 +165,30 @@ class MitarbeiterAdmin(admin.ModelAdmin):
                 'keine_zusatzdienste',      # ← NEU
             )
         }),
+        ('Schichtplan-Kategorie & Besetzung', {
+            'fields': (
+                'kategorie',
+                'zaehlt_zur_tagbesetzung',
+                'zaehlt_zur_nachtbesetzung',
+                'wochenend_nachtdienst_block',
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Fixe Schichtzuordnung', {
+            'fields': (
+                'fixe_tag_wochentage',
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Schichtziele & Minima', {
+            'fields': (
+                'target_tagschichten_pro_monat',
+                'target_nachtschichten_pro_monat',
+                'min_tagschichten_pro_monat',
+                'min_nachtschichten_pro_monat',
+            ),
+            'classes': ('collapse',)
+        }),
         ('Bemerkungen', {
             'fields': (
                 'schichtplan_bemerkungen',

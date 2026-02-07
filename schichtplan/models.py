@@ -50,6 +50,7 @@ class Schichttyp(models.Model):
 class Schichtplan(models.Model):
     STATUS_CHOICES = [
         ('entwurf', 'Entwurf'),
+        ('zur_genehmigung', 'Zur Genehmigung'),
         ('veroeffentlicht', 'Veröffentlicht'),
         ('archiviert', 'Archiviert'),
     ]
@@ -149,6 +150,8 @@ class Schichtwunsch(models.Model):
         ('nacht_bevorzugt', '5 - Nacht bevorzugt'),
         ('gar_nichts', '6 - Gar nichts möglich'),
         ('zusatzarbeit', '7 - Zusatzarbeit'),
+        ('ausgleichstag', 'Z-AG Zeitausgleich'),
+        ('krank', 'K Krank'),
     ]
     
     periode = models.ForeignKey(SchichtwunschPeriode, on_delete=models.CASCADE, null=True, blank=True)
@@ -169,7 +172,7 @@ class Schichtwunsch(models.Model):
         ordering = ['datum', 'mitarbeiter']
 
     def save(self, *args, **kwargs):
-        self.benoetigt_genehmigung = self.wunsch in ['urlaub', 'gar_nichts']
+        # Keine automatische Genehmigungspflicht mehr
         super().save(*args, **kwargs)
 
 
@@ -220,3 +223,28 @@ class Schichttausch(models.Model):
         verbose_name = "Schichttausch"
         verbose_name_plural = "Schichttausche"
         ordering = ['-erstellt_am']
+
+
+# ============================================
+# 7. SCHICHTPLAN-ÄNDERUNGSPROTOKOLL (für Rückgängig)
+# ============================================
+class SchichtplanAenderung(models.Model):
+    AKTION_CHOICES = [
+        ('angelegt', 'Schicht/Markierung angelegt'),
+        ('geloescht', 'Schicht/Markierung gelöscht'),
+        ('getauscht', 'Schichten getauscht'),
+        ('bearbeitet', 'Schicht bearbeitet'),
+    ]
+    schichtplan = models.ForeignKey(Schichtplan, on_delete=models.CASCADE, related_name='aenderungsprotokoll')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    zeit = models.DateTimeField(auto_now_add=True)
+    aktion = models.CharField(max_length=20, choices=AKTION_CHOICES)
+    beschreibung = models.CharField(max_length=400)
+    # JSON mit Daten zum Rückgängig-Machen: z.B. {"schicht_id": 1} oder {"schicht1_id": 1, "schicht2_id": 2} oder {"mitarbeiter_id": 1, "datum": "2026-02-15", "schichttyp_id": 1}
+    undo_daten = models.JSONField(default=dict, blank=True)
+    zurueckgenommen = models.BooleanField(default=False)
+    
+    class Meta:
+        verbose_name = "Schichtplan-Änderung"
+        verbose_name_plural = "Schichtplan-Änderungen"
+        ordering = ['-zeit']

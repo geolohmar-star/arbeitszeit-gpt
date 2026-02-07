@@ -1,5 +1,8 @@
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -45,11 +48,10 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # Hier fügen wir den Pfad hinzu, damit Django ihn garantiert findet:
         'DIRS': [
             BASE_DIR / 'schichtplan' / 'templates',
         ],
-        'APP_DIRS': True,  # Das sorgt dafür, dass 'arbeitszeit/templates' weiterhin geht
+        'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -63,25 +65,49 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database - AUTOMATISCH lokal=SQLite, Render=PostgreSQL
+# Database - AUTOMATISCH lokal=SQLite, Render/Supabase=PostgreSQL
 if os.environ.get('DATABASE_URL'):
-    # Production: PostgreSQL auf Render
-    import dj_database_url
+    # Production/Supabase: PostgreSQL
     DATABASES = {
-        'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL'),
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'postgres',
+            'USER': 'postgres',
+            'PASSWORD': '*Roboter87360!#',
+            'HOST': 'db.uimkgpsvnueljiivcqoz.supabase.co',
+            'PORT': '5432',
+            'OPTIONS': {
+                'connect_timeout': 10,
+            },
+            'CONN_MAX_AGE': 600,
+            'CONN_HEALTH_CHECKS': True,
+        }
     }
 else:
-    # Development: SQLite lokal
+    # Development: SQLite lokal mit WAL-Mode
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
+            'OPTIONS': {
+                'timeout': 20,
+            },
         }
     }
+    
+    # WAL-Mode für SQLite aktivieren
+    def activate_wal_mode():
+        import sqlite3
+        db_path = BASE_DIR / 'db.sqlite3'
+        if db_path.exists():
+            conn = sqlite3.connect(db_path)
+            conn.execute('PRAGMA journal_mode=WAL;')
+            conn.close()
+    
+    try:
+        activate_wal_mode()
+    except Exception:
+        pass
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Schicht löschen – {{ schicht.mitarbeiter.schichtplan_kennung }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">🗑️ Schicht löschen?</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning border-warning">
+                        <p class="mb-1"><strong>👤 Mitarbeiter:</strong> {{ schicht.mitarbeiter.schichtplan_kennung }} ({{ schicht.mitarbeiter.vollname }})</p>
+                        <p class="mb-1"><strong>📅 Datum:</strong> {{ schicht.datum|date:"l, d.m.Y" }}</p>
+                        <p class="mb-0"><strong>Schichttyp:</strong> <span class="badge bg-secondary">{{ schicht.schichttyp.kuerzel }}</span> {{ schicht.schichttyp.name }}</p>
+                    </div>
+                    <p class="text-muted small">Die Löschung kann nicht rückgängig gemacht werden.</p>
+                    <form method="post" action="{% url 'schichtplan:schicht_loeschen' schicht.pk %}{% if next_url %}?next={{ next_url }}{% endif %}">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger">Schicht löschen</button>
+                            {% if next_url == 'uebersicht_detail' %}
+                            <a href="{% url 'schichtplan:uebersicht_detail' schichtplan_pk %}" class="btn btn-outline-secondary">Abbrechen</a>
+                            {% else %}
+                            <a href="{% url 'schichtplan:detail' schichtplan_pk %}" class="btn btn-outline-secondary">Abbrechen</a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

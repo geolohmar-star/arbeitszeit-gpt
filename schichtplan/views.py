@@ -9,7 +9,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.generic.edit import CreateView
 from django.urls import reverse_lazy
 from django.db import transaction
@@ -19,10 +19,12 @@ from collections import defaultdict
 from datetime import timedelta
 from calendar import day_name
 import tempfile
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 # Models
 from arbeitszeit.models import Mitarbeiter, MonatlicheArbeitszeitSoll
-from .models import Schichtplan, Schicht, Schichttyp, SchichtwunschPeriode, Schichtwunsch  # ← Schichtwunsch hinzufügen!
+from .models import Schichtplan, Schicht, Schichttyp, SchichtwunschPeriode, Schichtwunsch, SchichtplanAenderung
 
 
 # Forms
@@ -41,9 +43,14 @@ except ImportError:
         SchichtplanImporter = None
 
 #Wunschplan
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from calendar import monthrange
-from django.utils import timezone 
+from django.utils import timezone
+
+try:
+    from dateutil.easter import easter
+except ImportError:
+    easter = None 
 
 
 
@@ -70,6 +77,37 @@ def ist_schichtplaner(user):
     print(f"In Gruppe Schichtplaner: {ergebnis}")
     
     return ergebnis
+
+
+def ist_kongos_mitarbeiter(user):
+    """True wenn User ein Mitarbeiter der Abteilung Kongos ist (Zugriff auf veröffentlichte Pläne)."""
+    if user.is_anonymous:
+        return False
+    if not hasattr(user, 'mitarbeiter'):
+        return False
+    try:
+        return (user.mitarbeiter.abteilung or '').strip().lower() == 'kongos'
+    except Exception:
+        return False
+
+
+def darf_schichtplan_sehen(user, schichtplan):
+    """True wenn User den Plan sehen darf: Schichtplaner immer, Kongos nur bei veröffentlichtem Plan."""
+    if ist_schichtplaner(user):
+        return True
+    if schichtplan.status == 'veroeffentlicht' and ist_kongos_mitarbeiter(user):
+        return True
+    return False
+
+
+def darf_plan_bearbeiten(user, schichtplan):
+    """True wenn User den Plan bearbeiten darf (Schichten tauschen/löschen/hinzufügen): Schichtplaner immer, Kongos bei veröffentlichtem Plan (alle Änderungen werden protokolliert)."""
+    if ist_schichtplaner(user):
+        return True
+    if schichtplan.status == 'veroeffentlicht' and ist_kongos_mitarbeiter(user):
+        return True
+    return False
+
 
 #def ist_schichtplaner(user):
 #    """Prüft, ob der User Schichtplaner-Rechte hat"""
@@ -100,6 +138,71 @@ def get_planbare_mitarbeiter():
         verfuegbarkeit='dauerkrank'
     ).select_related('user')
 
+
+def get_nrw_feiertage(start_date, end_date):
+    """
+    Feiertage in NRW (Nordrhein-Westfalen) im angegebenen Zeitraum.
+    Returns: (set of date, dict date -> Bezeichnung)
+    """
+    feiertage_set = set()
+    feiertage_namen = {}
+    if not easter:
+        return feiertage_set, feiertage_namen
+
+    start = start_date if isinstance(start_date, date) else start_date
+    end = end_date if isinstance(end_date, date) else end_date
+    years = {start.year, end.year}
+    if start.month == 12 and end.month == 1:
+        years.add(start.year + 1)
+
+    for year in years:
+        # Fixe Feiertage
+        for d, name in [
+            (date(year, 1, 1), "Neujahr"),
+            (date(year, 5, 1), "Tag der Arbeit"),
+            (date(year, 10, 3), "Tag der Deutschen Einheit"),
+            (date(year, 11, 1), "Allerheiligen"),
+            (date(year, 12, 25), "1. Weihnachtsfeiertag"),
+            (date(year, 12, 26), "2. Weihnachtsfeiertag"),
+        ]:
+            if start <= d <= end:
+                feiertage_set.add(d)
+                feiertage_namen[d] = name
+
+        # Bewegliche Feiertage (Ostern)
+        ostersonntag = easter(year)
+        for delta, name in [
+            (-2, "Karfreitag"),
+            (1, "Ostermontag"),
+            (39, "Christi Himmelfahrt"),
+            (50, "Pfingstmontag"),
+            (60, "Fronleichnam"),
+        ]:
+            d = ostersonntag + timedelta(days=delta)
+            if start <= d <= end:
+                feiertage_set.add(d)
+                feiertage_namen[d] = name
+
+    return feiertage_set, feiertage_namen
+
+
+def _get_monat_pulldown_choices(anzahl_monate=24):
+    """Erstellt Choices für Monats-Pulldown: (iso_date, 'Januar 2026'), ... ab aktuellem Monat."""
+    MONATE_DE = ('', 'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+                 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember')
+    heute = date.today()
+    d = date(heute.year, heute.month, 1)
+    choices = [('', '–– Monat wählen ––')]
+    for _ in range(anzahl_monate):
+        label = f"{MONATE_DE[d.month]} {d.year}"
+        choices.append((d.isoformat(), label))
+        if d.month == 12:
+            d = date(d.year + 1, 1, 1)
+        else:
+            d = date(d.year, d.month + 1, 1)
+    return choices
+
+
 class WunschPeriodeCreateView(CreateView):
     model = SchichtwunschPeriode
     template_name = 'schichtplan/periode_form.html'
@@ -109,12 +212,14 @@ class WunschPeriodeCreateView(CreateView):
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         
-        # 1. Datumsauswahl (Nur Tag/Monat/Jahr)
-        form.fields['fuer_monat'].widget = forms.DateInput(
-            attrs={'type': 'date', 'class': 'form-control'}
+        # 1. Für Monat: Pulldown (Monat/Jahr)
+        form.fields['fuer_monat'].widget = forms.Select(
+            choices=_get_monat_pulldown_choices(),
+            attrs={'class': 'form-select'}
         )
+        form.fields['fuer_monat'].help_text = 'Wählen Sie den Monat, für den die Wünsche gelten.'
         
-        # 2. Datum mit Uhrzeit (Für den Eingabezeitraum)
+        # 2. Datum mit Uhrzeit (Eingabezeitraum)
         form.fields['eingabe_start'].widget = forms.DateTimeInput(
             attrs={'type': 'datetime-local', 'class': 'form-control'}
         )
@@ -122,9 +227,8 @@ class WunschPeriodeCreateView(CreateView):
             attrs={'type': 'datetime-local', 'class': 'form-control'}
         )
         
-        # Styling für die anderen Felder
         form.fields['name'].widget.attrs.update({'class': 'form-control'})
-        form.fields['status'].widget.attrs.update({'class': 'form-control'})
+        form.fields['status'].widget.attrs.update({'class': 'form-select'})
         
         return form
 
@@ -318,37 +422,39 @@ def excel_analyse_view(request):
 
 @login_required
 def planer_dashboard(request):
-    """Dashboard für Schichtplaner"""
-    #if not ist_schichtplaner(request.user):
-    #    messages.error(request, "❌ Keine Berechtigung für diese Seite.")
-    #    return redirect('arbeitszeit:dashboard')
-    # Nutzt deine Funktion, um die Rolle zu prüfen
-    if not ist_schichtplaner(request.user):
-        from django.contrib import messages
-        messages.error(request, "❌ Zugriff verweigert. Dieser Bereich ist nur für Schichtplaner.")
-        return redirect('schichtplan:wunsch_kalender_aktuell') # Schicke MA zum eigenen Kalender
-    
-    schichtplaene = Schichtplan.objects.all().order_by('-start_datum')
-    
-    aktive_plaene = schichtplaene.filter(status='veroeffentlicht').count()
-    entwuerfe = schichtplaene.filter(status='entwurf').count()
-    
-    # Zeige nur planbare Mitarbeiter in den Statistiken
-    planbare_ma = get_planbare_mitarbeiter()
-    
-    context = {
-        'is_planer': True,
-        'aktive_plaene': Schichtplan.objects.filter(status='veroeffentlicht').count(),
-        'entwuerfe': Schichtplan.objects.filter(status='entwurf').count(),
-        'schichtplaene': Schichtplan.objects.all().order_by('-erstellt_am'),
-        'mitarbeiter_gesamt': Mitarbeiter.objects.count(),
-        'schichtplaene': schichtplaene,
-        'aktive_plaene': aktive_plaene,
-        'entwuerfe': entwuerfe,
-        'mitarbeiter_gesamt': planbare_ma.count(),
-        'mitarbeiter_zugeordnet': planbare_ma.exclude(schichtplan_kennung='').count(),
-    }
-    
+    """Dashboard für Schichtplaner. Kongos-Mitarbeiter sehen nur veröffentlichte Pläne (Lesezugriff)."""
+    is_planer = ist_schichtplaner(request.user)
+    is_kongos = ist_kongos_mitarbeiter(request.user)
+
+    if not is_planer and not is_kongos:
+        messages.error(request, "❌ Zugriff verweigert. Dieser Bereich ist nur für Schichtplaner oder Abteilung Kongos.")
+        return redirect('schichtplan:wunsch_kalender_aktuell')
+
+    if is_planer:
+        schichtplaene = Schichtplan.objects.all().order_by('-start_datum')
+        planbare_ma = get_planbare_mitarbeiter()
+        context = {
+            'is_planer': True,
+            'is_kongos': False,
+            'aktive_plaene': schichtplaene.filter(status='veroeffentlicht').count(),
+            'entwuerfe': schichtplaene.filter(status='entwurf').count(),
+            'zur_genehmigung_count': schichtplaene.filter(status='zur_genehmigung').count(),
+            'schichtplaene': schichtplaene,
+            'mitarbeiter_gesamt': planbare_ma.count(),
+            'mitarbeiter_zugeordnet': planbare_ma.exclude(schichtplan_kennung='').count(),
+        }
+    else:
+        # Kongos: nur veröffentlichte Pläne anzeigen
+        schichtplaene = Schichtplan.objects.filter(status='veroeffentlicht').order_by('-start_datum')
+        context = {
+            'is_planer': False,
+            'is_kongos': True,
+            'schichtplaene': schichtplaene,
+            'aktive_plaene': schichtplaene.count(),
+            'entwuerfe': 0,
+            'zur_genehmigung_count': 0,
+        }
+
     return render(request, 'schichtplan/planer_dashboard.html', context)
 
 
@@ -385,11 +491,11 @@ def mitarbeiter_uebersicht(request):
 
 @login_required
 def schichtplan_detail(request, pk):
-    """Detail-Ansicht eines Schichtplans mit erweiterter Statistik"""
+    """Detail-Ansicht eines Schichtplans mit erweiterter Statistik. Kongos sehen nur veröffentlichte Pläne (lesend)."""
     schichtplan = get_object_or_404(Schichtplan, pk=pk)
 
-    if not ist_schichtplaner(request.user):
-        messages.error(request, "❌ Keine Berechtigung.")
+    if not darf_schichtplan_sehen(request.user, schichtplan):
+        messages.error(request, "❌ Keine Berechtigung für diesen Schichtplan.")
         return redirect('arbeitszeit:dashboard')
 
     # 1. Alle Schichten laden
@@ -443,7 +549,21 @@ def schichtplan_detail(request, pk):
             elif kuerzel == 'Z': c_z += 1
             
             # Stunden summieren
-            stunden = float(s.schichttyp.arbeitszeit_stunden) if s.schichttyp.arbeitszeit_stunden else stunden_defaults.get(kuerzel, 0)
+            # SPEZIALFALL MA7: Z-Schichten zählen wie Nachtschichten (12,25h)
+            if ma.schichtplan_kennung == 'MA7' and kuerzel == 'Z':
+                stunden = 12.25  # Gleich wie Nachtschicht
+            # ALLE MIT ARBEITSZEITVEREINBARUNG: Z-Schichten aus Vereinbarung (Tagesarbeitszeit)
+            elif kuerzel == 'Z':
+                # Hole aktuelle Vereinbarung und berechne Tagesarbeitszeit
+                vereinbarung = ma.get_aktuelle_vereinbarung(s.datum)
+                if vereinbarung and vereinbarung.wochenstunden:
+                    # Wochenstunden / 5 Tage = Tagesstunden
+                    stunden = float(vereinbarung.wochenstunden) / 5.0
+                else:
+                    # Fallback: Schichttyp-Dauer wenn keine Vereinbarung
+                    stunden = float(s.schichttyp.arbeitszeit_stunden) if s.schichttyp.arbeitszeit_stunden else stunden_defaults.get(kuerzel, 0)
+            else:
+                stunden = float(s.schichttyp.arbeitszeit_stunden) if s.schichttyp.arbeitszeit_stunden else stunden_defaults.get(kuerzel, 0)
             ist_stunden += stunden
             
             # Wochenende
@@ -485,14 +605,535 @@ def schichtplan_detail(request, pk):
         'mitarbeiter_stats': stats_list, # Das muss gefüllt sein!
         'schichttypen': Schichttyp.objects.filter(aktiv=True),
         'mitarbeiter_mapping': mitarbeiter_mapping,
+        'can_edit': ist_schichtplaner(request.user),
+        'user_is_staff': request.user.is_staff,
     }
 
     return render(request, 'schichtplan/schichtplan_detail.html', context)
 
 
 @login_required
+def schichtplan_zur_genehmigung(request, pk):
+    """Plan von Entwurf auf 'Zur Genehmigung' setzen (nur Schichtplaner, POST)."""
+    schichtplan = get_object_or_404(Schichtplan, pk=pk)
+    if not ist_schichtplaner(request.user):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('arbeitszeit:dashboard')
+    if schichtplan.status != 'entwurf':
+        messages.warning(request, f"Plan hat Status „{schichtplan.get_status_display()}“. Nur Entwürfe können zur Genehmigung gegeben werden.")
+        return redirect('schichtplan:detail', pk=pk)
+    if request.method != 'POST':
+        return redirect('schichtplan:detail', pk=pk)
+    schichtplan.status = 'zur_genehmigung'
+    schichtplan.save(update_fields=['status', 'aktualisiert_am'])
+    messages.success(request, "✅ Schichtplan wurde zur Genehmigung weitergeleitet.")
+    return redirect('schichtplan:detail', pk=pk)
+
+
+@login_required
+def schichtplan_veroeffentlichen(request, pk):
+    """Plan durch Admin genehmigen und veröffentlichen (nur Staff, POST)."""
+    schichtplan = get_object_or_404(Schichtplan, pk=pk)
+    if not request.user.is_staff:
+        messages.error(request, "❌ Nur Administratoren können Pläne veröffentlichen.")
+        return redirect('arbeitszeit:dashboard')
+    if schichtplan.status != 'zur_genehmigung':
+        messages.warning(request, f"Plan hat Status „{schichtplan.get_status_display()}“. Nur Pläne „Zur Genehmigung“ können veröffentlicht werden.")
+        return redirect('schichtplan:detail', pk=pk)
+    if request.method != 'POST':
+        return redirect('schichtplan:detail', pk=pk)
+    schichtplan.status = 'veroeffentlicht'
+    schichtplan.save(update_fields=['status', 'aktualisiert_am'])
+    messages.success(request, "✅ Schichtplan wurde genehmigt und veröffentlicht. Die Abteilung Kongos hat nun Zugriff.")
+    return redirect('schichtplan:detail', pk=pk)
+
+
+@login_required
+def schichtplan_uebersicht_detail(request, pk):
+    """
+    Tabellarische Übersicht: Zeilen = Tage, Spalten = MA1–MA15 (Vollname).
+    Zellen: N, T, Z, U, AG. Kongos haben Lesezugriff auf veröffentlichte Pläne.
+    """
+    schichtplan = get_object_or_404(Schichtplan, pk=pk)
+    if not darf_schichtplan_sehen(request.user, schichtplan):
+        messages.error(request, "❌ Keine Berechtigung für diesen Schichtplan.")
+        return redirect('arbeitszeit:dashboard')
+
+    # Mitarbeiter MA1–MA15, sortiert
+    alle_ma = get_planbare_mitarbeiter()
+    def ma_sort_key(ma):
+        k = ma.schichtplan_kennung or ''
+        if k.startswith('MA') and len(k) > 2:
+            try:
+                return int(k[2:])
+            except ValueError:
+                pass
+        return 999
+    mitarbeiter_liste = sorted(alle_ma, key=ma_sort_key)
+
+    # Tage des Plans
+    start = schichtplan.start_datum
+    ende = schichtplan.ende_datum
+    tage_liste = []
+    d = start
+    while d <= ende:
+        tage_liste.append(d)
+        d += timedelta(days=1)
+
+    # NRW-Feiertage im Planzeitraum
+    feiertage_set, feiertage_namen = get_nrw_feiertage(start, ende)
+
+    # Schichten: (ma_id, datum) -> Kürzel und Schicht-ID (für Löschen/Bearbeiten/Tauschen)
+    schichten = schichtplan.schichten.select_related('mitarbeiter', 'schichttyp')
+    zelle_schicht = {}
+    zelle_schicht_id = {}
+    for s in schichten:
+        key = (s.mitarbeiter_id, s.datum)
+        zelle_schicht[key] = s.schichttyp.kuerzel
+        zelle_schicht_id[key] = s.pk
+
+    # Wünsche U/K/AG: Sets und (ma_id, datum) -> wunsch_id für Löschen per Drag
+    wunsch_urlaub = Schichtwunsch.objects.filter(
+        datum__gte=start, datum__lte=ende,
+        mitarbeiter__in=mitarbeiter_liste,
+        wunsch__in=['urlaub', 'gar_nichts']
+    ).values_list('mitarbeiter_id', 'datum', 'pk')
+    urlaub_set = set((ma_id, datum) for ma_id, datum, _ in wunsch_urlaub)
+    zelle_wunsch_id = {(ma_id, datum): pk for ma_id, datum, pk in wunsch_urlaub}
+
+    wunsch_krank = Schichtwunsch.objects.filter(
+        datum__gte=start, datum__lte=ende,
+        mitarbeiter__in=mitarbeiter_liste,
+        wunsch='krank'
+    ).values_list('mitarbeiter_id', 'datum', 'pk')
+    krank_set = set((ma_id, datum) for ma_id, datum, _ in wunsch_krank)
+    for ma_id, datum, pk in wunsch_krank:
+        zelle_wunsch_id[(ma_id, datum)] = pk
+
+    wunsch_ausgleich = Schichtwunsch.objects.filter(
+        datum__gte=start, datum__lte=ende,
+        mitarbeiter__in=mitarbeiter_liste,
+        wunsch='ausgleichstag'
+    ).values_list('mitarbeiter_id', 'datum', 'pk')
+    ausgleich_set = set((ma_id, datum) for ma_id, datum, _ in wunsch_ausgleich)
+    for ma_id, datum, pk in wunsch_ausgleich:
+        zelle_wunsch_id[(ma_id, datum)] = pk
+
+    # Matrix: (ma_id, datum) -> 'N'|'T'|'Z'|'U'|'AG'|''
+    matrix = {}
+    for ma in mitarbeiter_liste:
+        for datum in tage_liste:
+            key = (ma.id, datum)
+            if key in zelle_schicht:
+                matrix[key] = zelle_schicht[key]
+            elif key in urlaub_set:
+                matrix[key] = 'U'
+            elif key in krank_set:
+                matrix[key] = 'K'
+            elif key in ausgleich_set:
+                matrix[key] = 'AG'
+            else:
+                matrix[key] = ''
+
+    # Zeilen = Tage: pro Zeile (datum, ist_wochenende, feiertag_name, [Zellen pro MA])
+    # Jede Zelle: {'value': ..., 'schicht_id': int|None, 'wunsch_id': int|None, 'ma_id': int}
+    zeilen = []
+    for datum in tage_liste:
+        ist_wochenende = datum.weekday() >= 5  # Sa=5, So=6
+        feiertag_name = feiertage_namen.get(datum, '')
+        zellen = []
+        for ma in mitarbeiter_liste:
+            key = (ma.id, datum)
+            val = matrix.get(key, '')
+            sid = zelle_schicht_id.get(key) if val in ('T', 'N', 'Z') else None
+            wid = zelle_wunsch_id.get(key) if val in ('U', 'K', 'AG') else None
+            zellen.append({'value': val, 'schicht_id': sid, 'wunsch_id': wid, 'ma_id': ma.id})
+        zeilen.append({
+            'datum': datum,
+            'ist_wochenende': ist_wochenende,
+            'feiertag_name': feiertag_name,
+            'zellen': zellen,
+        })
+
+    # Schichttypen T, N, Z für das „Schicht zuweisen“-Panel (Drag-Quelle)
+    schichttypen_menu = list(Schichttyp.objects.filter(kuerzel__in=['T', 'N', 'Z'], aktiv=True).order_by('kuerzel'))
+
+    # Soll- und Ist-Stunden pro MA wie auf Plan-Detailseite (für Abschlusszeile pro Spalte)
+    stunden_defaults = {'T': 12.25, 'N': 12.25, 'Z': 8.0}
+    mitarbeiter_stunden = []  # Liste (soll, ist, diff) in gleicher Reihenfolge wie mitarbeiter_liste
+    for ma in mitarbeiter_liste:
+        ma_schichten = [s for s in schichten if s.mitarbeiter_id == ma.id]
+        ist_stunden = 0.0
+        for s in ma_schichten:
+            kuerzel = s.schichttyp.kuerzel
+            if ma.schichtplan_kennung == 'MA7' and kuerzel == 'Z':
+                stunden = 12.25
+            elif kuerzel == 'Z':
+                vereinbarung = ma.get_aktuelle_vereinbarung(s.datum)
+                if vereinbarung and vereinbarung.wochenstunden:
+                    stunden = float(vereinbarung.wochenstunden) / 5.0
+                else:
+                    stunden = float(s.schichttyp.arbeitszeit_stunden) if s.schichttyp.arbeitszeit_stunden else stunden_defaults.get(kuerzel, 0)
+            else:
+                stunden = float(s.schichttyp.arbeitszeit_stunden) if s.schichttyp.arbeitszeit_stunden else stunden_defaults.get(kuerzel, 0)
+            ist_stunden += stunden
+        try:
+            soll_stunden = float(ma.get_soll_stunden_monat(start.year, start.month))
+        except Exception:
+            soll_stunden = 160.0
+        diff = ist_stunden - soll_stunden
+        mitarbeiter_stunden.append({'soll': soll_stunden, 'ist': ist_stunden, 'diff': diff})
+
+    protokoll = (
+        SchichtplanAenderung.objects.filter(schichtplan=schichtplan)
+        .select_related('user')
+        .order_by('-zeit')[:50]
+    )
+    letzte_aenderung = protokoll.first() if protokoll else None
+    can_edit = darf_plan_bearbeiten(request.user, schichtplan)
+    kann_undo = can_edit and letzte_aenderung and not letzte_aenderung.zurueckgenommen
+
+    context = {
+        'schichtplan': schichtplan,
+        'mitarbeiter_liste': mitarbeiter_liste,
+        'tage_liste': tage_liste,
+        'zeilen': zeilen,
+        'feiertage_namen': feiertage_namen,
+        'schichttypen_menu': schichttypen_menu,
+        'mitarbeiter_stunden': mitarbeiter_stunden,
+        'can_edit': can_edit,
+        'protokoll': protokoll,
+        'kann_undo': kann_undo,
+    }
+    return render(request, 'schichtplan/schichtplan_uebersicht_detail.html', context)
+
+
+@login_required
+def schichtplan_rueckgaengig(request, pk):
+    """Letzte Änderung an diesem Schichtplan rückgängig machen (Schichtplaner und Kongos bei veröff. Plan)."""
+    schichtplan = get_object_or_404(Schichtplan, pk=pk)
+    if not darf_plan_bearbeiten(request.user, schichtplan):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('schichtplan:dashboard')
+    if request.method != 'POST':
+        return redirect('schichtplan:uebersicht_detail', pk=pk)
+
+    letzte = (
+        SchichtplanAenderung.objects.filter(schichtplan=schichtplan, zurueckgenommen=False)
+        .order_by('-zeit')
+        .first()
+    )
+    if not letzte:
+        messages.warning(request, "Keine Änderung zum Rückgängigmachen vorhanden.")
+        return redirect('schichtplan:uebersicht_detail', pk=pk)
+
+    from datetime import datetime as dt
+    ud = letzte.undo_daten or {}
+
+    try:
+        with transaction.atomic():
+            if letzte.aktion == 'angelegt':
+                schicht_id = ud.get('schicht_id')
+                if schicht_id:
+                    Schicht.objects.filter(pk=schicht_id, schichtplan=schichtplan).delete()
+            elif letzte.aktion == 'geloescht':
+                ma_id = ud.get('mitarbeiter_id')
+                datum_str = ud.get('datum')
+                typ_id = ud.get('schichttyp_id')
+                if ma_id and datum_str and typ_id:
+                    datum = dt.strptime(datum_str, '%Y-%m-%d').date()
+                    ma = get_planbare_mitarbeiter().filter(pk=ma_id).first()
+                    typ = Schichttyp.objects.filter(pk=typ_id).first()
+                    if ma and typ and schichtplan.start_datum <= datum <= schichtplan.ende_datum:
+                        Schicht.objects.get_or_create(
+                            schichtplan=schichtplan,
+                            mitarbeiter_id=ma_id,
+                            datum=datum,
+                            defaults={'schichttyp_id': typ_id},
+                        )
+            elif letzte.aktion == 'getauscht':
+                s1_id = ud.get('schicht1_id')
+                s2_id = ud.get('schicht2_id')
+                if s1_id and s2_id:
+                    s1 = Schicht.objects.filter(pk=s1_id, schichtplan=schichtplan).first()
+                    s2 = Schicht.objects.filter(pk=s2_id, schichtplan=schichtplan).first()
+                    if s1 and s2:
+                        typ1, typ2 = s1.schichttyp_id, s2.schichttyp_id
+                        s1.schichttyp_id = typ2
+                        s2.schichttyp_id = typ1
+                        s1.save(update_fields=['schichttyp_id'])
+                        s2.save(update_fields=['schichttyp_id'])
+            letzte.zurueckgenommen = True
+            letzte.save(update_fields=['zurueckgenommen'])
+        messages.success(request, "✅ Letzte Änderung wurde rückgängig gemacht.")
+    except Exception as e:
+        messages.error(request, f"❌ Rückgängig fehlgeschlagen: {e}")
+    return redirect('schichtplan:uebersicht_detail', pk=pk)
+
+
+@login_required
+def schichtplan_export_excel(request, pk):
+    """Schichtplan (Übersicht: Tage × MA) als Excel exportieren. Kongos dürfen veröffentlichte Pläne exportieren."""
+    schichtplan = get_object_or_404(Schichtplan, pk=pk)
+    if not darf_schichtplan_sehen(request.user, schichtplan):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('schichtplan:dashboard')
+
+    alle_ma = get_planbare_mitarbeiter()
+    def ma_sort_key(ma):
+        k = ma.schichtplan_kennung or ''
+        if k.startswith('MA') and len(k) > 2:
+            try:
+                return int(k[2:])
+            except ValueError:
+                pass
+        return 999
+    mitarbeiter_liste = sorted(alle_ma, key=ma_sort_key)
+    start = schichtplan.start_datum
+    ende = schichtplan.ende_datum
+    tage_liste = []
+    d = start
+    while d <= ende:
+        tage_liste.append(d)
+        d += timedelta(days=1)
+
+    schichten = schichtplan.schichten.select_related('mitarbeiter', 'schichttyp')
+    zelle_schicht = {}
+    for s in schichten:
+        zelle_schicht[(s.mitarbeiter_id, s.datum)] = s.schichttyp.kuerzel
+
+    urlaub_set = set(Schichtwunsch.objects.filter(
+        datum__gte=start, datum__lte=ende, mitarbeiter__in=mitarbeiter_liste,
+        wunsch__in=['urlaub', 'gar_nichts']
+    ).values_list('mitarbeiter_id', 'datum'))
+    krank_set = set(Schichtwunsch.objects.filter(
+        datum__gte=start, datum__lte=ende, mitarbeiter__in=mitarbeiter_liste,
+        wunsch='krank'
+    ).values_list('mitarbeiter_id', 'datum'))
+    ausgleich_set = set(Schichtwunsch.objects.filter(
+        datum__gte=start, datum__lte=ende, mitarbeiter__in=mitarbeiter_liste,
+        wunsch='ausgleichstag'
+    ).values_list('mitarbeiter_id', 'datum'))
+
+    matrix = {}
+    for ma in mitarbeiter_liste:
+        for datum in tage_liste:
+            key = (ma.id, datum)
+            if key in zelle_schicht:
+                matrix[key] = zelle_schicht[key]
+            elif key in urlaub_set:
+                matrix[key] = 'U'
+            elif key in krank_set:
+                matrix[key] = 'K'
+            elif key in ausgleich_set:
+                matrix[key] = 'AG'
+            else:
+                matrix[key] = ''
+
+    stunden_defaults = {'T': 12.25, 'N': 12.25, 'Z': 8.0}
+    mitarbeiter_stunden = []
+    for ma in mitarbeiter_liste:
+        ma_schichten = [s for s in schichten if s.mitarbeiter_id == ma.id]
+        ist_stunden = 0.0
+        for s in ma_schichten:
+            kuerzel = s.schichttyp.kuerzel
+            if ma.schichtplan_kennung == 'MA7' and kuerzel == 'Z':
+                stunden = 12.25
+            elif kuerzel == 'Z':
+                vereinbarung = ma.get_aktuelle_vereinbarung(s.datum)
+                stunden = (float(vereinbarung.wochenstunden) / 5.0) if vereinbarung and vereinbarung.wochenstunden else (float(s.schichttyp.arbeitszeit_stunden) if s.schichttyp.arbeitszeit_stunden else stunden_defaults.get(kuerzel, 0))
+            else:
+                stunden = float(s.schichttyp.arbeitszeit_stunden) if s.schichttyp.arbeitszeit_stunden else stunden_defaults.get(kuerzel, 0)
+            ist_stunden += stunden
+        try:
+            soll_stunden = float(ma.get_soll_stunden_monat(start.year, start.month))
+        except Exception:
+            soll_stunden = 160.0
+        mitarbeiter_stunden.append({'soll': soll_stunden, 'ist': ist_stunden, 'diff': ist_stunden - soll_stunden})
+
+    # NRW-Feiertage und deutsche Wochentage für Markierungen
+    _, feiertage_namen = get_nrw_feiertage(start, ende)
+    wochentage_de = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+
+    # Farben (openpyxl: RRGGBB ohne #)
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True)
+    fill_wochenende = PatternFill(start_color="D1ECF1", end_color="D1ECF1", fill_type="solid")   # hellblau
+    fill_feiertag = PatternFill(start_color="FFE4CC", end_color="FFE4CC", fill_type="solid")    # hellorange
+    fill_t = PatternFill(start_color="FFD966", end_color="FFD966", fill_type="solid")           # gelb (Tagschicht)
+    fill_n = PatternFill(start_color="0D6EFD", end_color="0D6EFD", fill_type="solid")            # blau (Nacht)
+    fill_z = PatternFill(start_color="9EEAF9", end_color="9EEAF9", fill_type="solid")            # hellblau (Zusatz)
+    fill_u = PatternFill(start_color="ADB5BD", end_color="ADB5BD", fill_type="solid")           # grau (Urlaub)
+    fill_k = PatternFill(start_color="DC3545", end_color="DC3545", fill_type="solid")           # rot (Krank)
+    fill_ag = PatternFill(start_color="212529", end_color="212529", fill_type="solid")          # dunkel (Zeitausgleich)
+    font_hell = Font(color="FFFFFF")
+    zellen_farben = {'T': (fill_t, None), 'N': (fill_n, font_hell), 'Z': (fill_z, None), 'U': (fill_u, font_hell), 'K': (fill_k, font_hell), 'AG': (fill_ag, font_hell)}
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Schichtplan"[:31]
+
+    # Header-Zeile
+    headers = ['Tag', 'Datum'] + [ma.schichtplan_kennung for ma in mitarbeiter_liste]
+    for col, header in enumerate(headers, 1):
+        c = ws.cell(1, col, header)
+        c.fill = header_fill
+        c.font = header_font
+        c.alignment = Alignment(horizontal='center')
+
+    # Datenzeilen mit deutschen Wochentagen und farblichen Markierungen
+    for row_idx, datum in enumerate(tage_liste, 2):
+        ist_wochenende = datum.weekday() >= 5
+        ist_feiertag = datum in feiertage_namen
+        zeilen_fill = fill_feiertag if ist_feiertag else (fill_wochenende if ist_wochenende else None)
+
+        tag_name = wochentage_de[datum.weekday()]
+        if ist_feiertag:
+            tag_name = f"{tag_name} ({feiertage_namen[datum]})"
+        c1 = ws.cell(row_idx, 1, tag_name)
+        c2 = ws.cell(row_idx, 2, datum.strftime('%d.%m.%Y'))
+        if zeilen_fill:
+            c1.fill = zeilen_fill
+            c2.fill = zeilen_fill
+        for col_idx, ma in enumerate(mitarbeiter_liste, 3):
+            val = matrix.get((ma.id, datum), '')
+            cell = ws.cell(row_idx, col_idx, val if val else '')
+            if val and val in zellen_farben:
+                fill, font = zellen_farben[val]
+                cell.fill = fill
+                if font:
+                    cell.font = font
+            elif zeilen_fill:
+                cell.fill = zeilen_fill
+
+    # Abschlussstrich (dicker Rahmen) + Summenzeilen
+    num_cols = 2 + len(mitarbeiter_liste)
+    thin = Side(style='thin')
+    thick_top = Side(style='medium')
+    abschluss_border = Border(
+        left=thin, right=thin, top=thick_top, bottom=thin
+    )
+    footer_row = len(tage_liste) + 2
+    for col in range(1, num_cols + 1):
+        c = ws.cell(footer_row, col)
+        if col == 1:
+            c.value = 'Soll (h)'
+        elif col == 2:
+            c.value = ''
+        else:
+            c.value = round(mitarbeiter_stunden[col - 3]['soll'], 1)
+        c.border = abschluss_border
+    footer_row += 1
+    for col in range(1, num_cols + 1):
+        c = ws.cell(footer_row, col)
+        if col == 1:
+            c.value = 'Ist (h)'
+        elif col == 2:
+            c.value = ''
+        else:
+            c.value = round(mitarbeiter_stunden[col - 3]['ist'], 1)
+        c.border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    footer_row += 1
+    for col in range(1, num_cols + 1):
+        c = ws.cell(footer_row, col)
+        if col == 1:
+            c.value = 'Differenz (h)'
+        elif col == 2:
+            c.value = ''
+        else:
+            c.value = round(mitarbeiter_stunden[col - 3]['diff'], 1)
+        c.border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    ws.column_dimensions['A'].width = 10
+    ws.column_dimensions['B'].width = 12
+    for col in range(3, len(mitarbeiter_liste) + 3):
+        ws.column_dimensions[ws.cell(1, col).column_letter].width = 6
+
+    safe_name = "".join(c if c.isalnum() or c in " -_" else "_" for c in schichtplan.name)[:50]
+    filename = f"Schichtplan_{safe_name}_{start.year}-{start.month:02d}.xlsx"
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
+@login_required
+def schicht_anlegen(request, schichtplan_pk):
+    """Schicht oder Markierung (U/K/AG) per Drag&Drop anlegen. Schichtplaner und Kongos (bei veröff. Plan) – alle Änderungen protokolliert."""
+    schichtplan = get_object_or_404(Schichtplan, pk=schichtplan_pk)
+    if not darf_plan_bearbeiten(request.user, schichtplan):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('schichtplan:dashboard')
+    if request.method != 'POST':
+        return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+    ma_id = request.POST.get('mitarbeiter_id')
+    datum_str = request.POST.get('datum')
+    kuerzel = (request.POST.get('schichttyp_kuerzel') or '').strip().upper()
+    if not ma_id or not datum_str or not kuerzel:
+        messages.error(request, "❌ Ungültige Angaben (Mitarbeiter, Datum oder Typ fehlt).")
+        return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+    try:
+        datum = datetime.strptime(datum_str, '%Y-%m-%d').date()
+    except ValueError:
+        messages.error(request, "❌ Ungültiges Datum.")
+        return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+    if datum < schichtplan.start_datum or datum > schichtplan.ende_datum:
+        messages.error(request, "❌ Datum liegt außerhalb des Planzeitraums.")
+        return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+    ma = get_planbare_mitarbeiter().filter(pk=ma_id).first()
+    if not ma:
+        messages.error(request, "❌ Mitarbeiter nicht gefunden.")
+        return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+
+    # U = Urlaub, K = Krank, AG = Z-AG Zeitausgleich → Schichtwunsch anlegen/aktualisieren
+    if kuerzel in ('U', 'K', 'AG'):
+        wunsch_map = {'U': 'urlaub', 'K': 'krank', 'AG': 'ausgleichstag'}
+        wunsch = wunsch_map[kuerzel]
+        # Bestehende Schicht an diesem Tag entfernen (Plan zeigt dann U/K/AG)
+        Schicht.objects.filter(schichtplan=schichtplan, mitarbeiter_id=ma_id, datum=datum).delete()
+        wunsch_obj, created = Schichtwunsch.objects.update_or_create(
+            mitarbeiter_id=int(ma_id),
+            datum=datum,
+            defaults={
+                'wunsch': wunsch,
+                'periode': schichtplan.wunschperiode,
+                'genehmigt': True,
+            }
+        )
+        labels = {'U': 'Urlaub', 'K': 'Krank', 'AG': 'Z-AG Zeitausgleich'}
+        messages.success(request, f"✅ {labels[kuerzel]} für {ma.schichtplan_kennung} am {datum.strftime('%d.%m.%Y')} gesetzt.")
+        return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+
+    # T, N, Z → Schicht anlegen
+    if kuerzel not in ('T', 'N', 'Z'):
+        messages.error(request, "❌ Ungültiger Schichttyp.")
+        return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+    schichttyp = Schichttyp.objects.filter(kuerzel=kuerzel, aktiv=True).first()
+    if not schichttyp:
+        messages.error(request, f"❌ Schichttyp '{kuerzel}' nicht gefunden.")
+        return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+    # Optional: bestehenden Wunsch (Urlaub/Krank/AG) für diesen Tag entfernen, damit Schicht sichtbar ist
+    Schichtwunsch.objects.filter(mitarbeiter_id=ma_id, datum=datum, wunsch__in=['urlaub', 'gar_nichts', 'krank', 'ausgleichstag']).delete()
+    if Schicht.objects.filter(schichtplan=schichtplan, mitarbeiter_id=ma_id, datum=datum).exists():
+        messages.error(request, "❌ An diesem Tag hat die Person bereits eine Schicht.")
+        return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+    schicht = Schicht.objects.create(schichtplan=schichtplan, mitarbeiter=ma, datum=datum, schichttyp=schichttyp)
+    SchichtplanAenderung.objects.create(
+        schichtplan=schichtplan,
+        user=request.user,
+        aktion='angelegt',
+        beschreibung=f"{ma.schichtplan_kennung} {kuerzel} am {datum.strftime('%d.%m.%Y')} angelegt",
+        undo_daten={'schicht_id': schicht.pk},
+    )
+    messages.success(request, f"✅ Schicht {kuerzel} für {ma.schichtplan_kennung} am {datum.strftime('%d.%m.%Y')} angelegt.")
+    return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+
+
+@login_required
 def schicht_zuweisen(request, schichtplan_pk):
-    """Schicht manuell zuweisen"""
+    """Schicht manuell zuweisen (Formular-Seite)"""
     schichtplan = get_object_or_404(Schichtplan, pk=schichtplan_pk)
     
     if not ist_schichtplaner(request.user):
@@ -515,6 +1156,8 @@ def schicht_zuweisen(request, schichtplan_pk):
                         'schicht_id': schicht.pk,
                     })
                 
+                if request.GET.get('next') == 'uebersicht_detail':
+                    return redirect('schichtplan:uebersicht_detail', pk=schichtplan.pk)
                 return redirect('schichtplan:detail', pk=schichtplan.pk)
                 
             except Exception as e:
@@ -540,25 +1183,135 @@ def schicht_zuweisen(request, schichtplan_pk):
 
 @login_required
 def schicht_loeschen(request, pk):
-    """Schicht löschen"""
+    """Schicht löschen. Schichtplaner und Kongos (bei veröff. Plan) – protokolliert."""
     schicht = get_object_or_404(Schicht, pk=pk)
     
-    if not ist_schichtplaner(request.user):
+    if not darf_plan_bearbeiten(request.user, schicht.schichtplan):
         messages.error(request, "❌ Keine Berechtigung.")
         return redirect('schichtplan:dashboard')
     
     schichtplan_pk = schicht.schichtplan.pk
+    next_url = request.GET.get('next', '').strip()
     
     if request.method == 'POST':
+        undo_daten = {
+            'mitarbeiter_id': schicht.mitarbeiter_id,
+            'datum': schicht.datum.isoformat(),
+            'schichttyp_id': schicht.schichttyp_id,
+        }
+        schichtplan_obj = schicht.schichtplan
+        ma_kennung = schicht.mitarbeiter.schichtplan_kennung or ''
+        kuerzel = schicht.schichttyp.kuerzel
+        datum_str = schicht.datum.strftime('%d.%m.%Y')
         schicht.delete()
+        SchichtplanAenderung.objects.create(
+            schichtplan=schichtplan_obj,
+            user=request.user,
+            aktion='geloescht',
+            beschreibung=f"{ma_kennung} {kuerzel} am {datum_str} gelöscht",
+            undo_daten=undo_daten,
+        )
         messages.success(request, "✅ Schicht wurde gelöscht.")
+        if next_url == 'uebersicht_detail':
+            return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
         return redirect('schichtplan:detail', pk=schichtplan_pk)
     
     context = {
         'schicht': schicht,
+        'schichtplan_pk': schichtplan_pk,
+        'next_url': next_url,
     }
     
     return render(request, 'schichtplan/schicht_loeschen_confirm.html', context)
+
+
+@login_required
+def schicht_bearbeiten(request, pk):
+    """Schicht bearbeiten: Schichttyp und/oder Datum/Mitarbeiter ändern. Schichtplaner und Kongos – protokolliert."""
+    schicht = get_object_or_404(Schicht, pk=pk)
+    schichtplan = schicht.schichtplan
+    if not darf_plan_bearbeiten(request.user, schichtplan):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('schichtplan:dashboard')
+    next_uebersicht = request.GET.get('next') == 'uebersicht_detail'
+
+    if request.method == 'POST':
+        form = SchichtForm(request.POST, instance=schicht)
+        if form.is_valid():
+            try:
+                form.save()
+                messages.success(request, "✅ Schicht wurde aktualisiert.")
+                if next_uebersicht:
+                    return redirect('schichtplan:uebersicht_detail', pk=schichtplan.pk)
+                return redirect('schichtplan:detail', pk=schichtplan.pk)
+            except Exception as e:
+                messages.error(request, f"❌ Fehler: {e}")
+    else:
+        form = SchichtForm(instance=schicht)
+
+    form.fields['mitarbeiter'].queryset = get_planbare_mitarbeiter()
+    form.fields['datum'].widget.attrs['min'] = schichtplan.start_datum.isoformat()
+    form.fields['datum'].widget.attrs['max'] = schichtplan.ende_datum.isoformat()
+
+    context = {
+        'schicht': schicht,
+        'schichtplan': schichtplan,
+        'form': form,
+        'next_uebersicht': next_uebersicht,
+    }
+    return render(request, 'schichtplan/schicht_bearbeiten.html', context)
+
+
+@login_required
+def schicht_tauschen(request, pk):
+    """Zwei Schichten tauschen. Schichtplaner und Kongos (bei veröff. Plan) – protokolliert."""
+    schicht1 = get_object_or_404(Schicht, pk=pk)
+    schichtplan = schicht1.schichtplan
+    if not darf_plan_bearbeiten(request.user, schichtplan):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('schichtplan:dashboard')
+    next_uebersicht = request.GET.get('next') == 'uebersicht_detail'
+
+    # Alle anderen Schichten im selben Plan (für Dropdown)
+    andere_schichten = Schicht.objects.filter(schichtplan=schichtplan).exclude(pk=pk).select_related(
+        'mitarbeiter', 'schichttyp'
+    ).order_by('datum', 'mitarbeiter__schichtplan_kennung')
+
+    if request.method == 'POST':
+        schicht2_id = request.POST.get('schicht2_id')
+        if not schicht2_id:
+            messages.error(request, "❌ Bitte eine zweite Schicht auswählen.")
+        else:
+            schicht2 = Schicht.objects.filter(pk=schicht2_id, schichtplan=schichtplan).first()
+            if not schicht2:
+                messages.error(request, "❌ Ungültige Schicht.")
+            else:
+                # Tausch: Schichttypen der beiden Schichten vertauschen
+                with transaction.atomic():
+                    typ1, typ2 = schicht1.schichttyp_id, schicht2.schichttyp_id
+                    schicht1.schichttyp_id = typ2
+                    schicht2.schichttyp_id = typ1
+                    schicht1.save(update_fields=['schichttyp_id'])
+                    schicht2.save(update_fields=['schichttyp_id'])
+                    SchichtplanAenderung.objects.create(
+                        schichtplan=schichtplan,
+                        user=request.user,
+                        aktion='getauscht',
+                        beschreibung=f"{schicht1.mitarbeiter.schichtplan_kennung} {schicht1.schichttyp.kuerzel} ↔ {schicht2.mitarbeiter.schichtplan_kennung} {schicht2.schichttyp.kuerzel} am {schicht1.datum.strftime('%d.%m.')} getauscht",
+                        undo_daten={'schicht1_id': schicht1.pk, 'schicht2_id': schicht2.pk},
+                    )
+                messages.success(request, "✅ Schichten wurden getauscht.")
+                if next_uebersicht:
+                    return redirect('schichtplan:uebersicht_detail', pk=schichtplan.pk)
+                return redirect('schichtplan:detail', pk=schichtplan.pk)
+
+    context = {
+        'schicht1': schicht1,
+        'schichtplan': schichtplan,
+        'andere_schichten': andere_schichten,
+        'next_uebersicht': next_uebersicht,
+    }
+    return render(request, 'schichtplan/schicht_tauschen.html', context)
 
 
 @login_required
@@ -608,6 +1361,7 @@ def wunsch_perioden_liste(request):
     context = {
         'perioden': perioden,
         'mitarbeiter': mitarbeiter,
+        'ist_planer': ist_schichtplaner(request.user),
     }
     
     return render(request, 'schichtplan/wunsch_perioden_liste.html', context)
@@ -869,6 +1623,25 @@ def wuensche_genehmigen(request, periode_id):
     return render(request, 'schichtplan/wuensche_genehmigen.html', context)
 
 @login_required
+def wunsch_kalender_aktuell(request):
+    """Redirect auf die Kalenderansicht der aktuellen/ nächsten Wunschperiode oder aufs Dashboard."""
+    from datetime import date
+    heute = date.today()
+    # Aktuelle oder nächste Periode (fuer_monat >= aktueller Monat)
+    periode = (
+        SchichtwunschPeriode.objects.filter(fuer_monat__gte=heute.replace(day=1))
+        .order_by('fuer_monat')
+        .first()
+    )
+    if periode:
+        return redirect('schichtplan:wunsch_kalender', periode_id=periode.pk)
+    # Keine passende Periode: zur Wunsch-Übersicht (Planer) oder Dashboard
+    if ist_schichtplaner(request.user):
+        return redirect('schichtplan:wunschperioden_liste')
+    return redirect('arbeitszeit:dashboard')
+
+
+@login_required
 def wunsch_kalender(request, periode_id):
     """
     Kalenderansicht aller Wünsche einer Periode.
@@ -894,19 +1667,32 @@ def wunsch_kalender(request, periode_id):
     # Lade Periode
     periode = get_object_or_404(SchichtwunschPeriode, pk=periode_id)
     
-    # Lade ALLE MA1-MA15
-    planbare_ma = get_planbare_mitarbeiter()
+    # Lade ALLE MA1-MA15 und sortiere numerisch
+    planbare_ma_queryset = get_planbare_mitarbeiter()
+    
+    # Sortiere Mitarbeiter numerisch nach MA-Nummer (MA1-MA15)
+    def sortiere_ma_key(ma):
+        kennung = ma.schichtplan_kennung or ''
+        if kennung.startswith('MA') and len(kennung) > 2:
+            try:
+                nummer = int(kennung[2:])
+                return nummer
+            except ValueError:
+                pass
+        return 999  # Fallback für andere Kennungen
+    
+    planbare_ma = sorted(list(planbare_ma_queryset), key=sortiere_ma_key)
     
     print(f"\n🔍 DEBUG wunsch_kalender:")
     print(f"   Periode: {periode.name}")
     print(f"   Monat: {periode.fuer_monat}")
-    print(f"   Anzahl MA: {planbare_ma.count()}")
+    print(f"   Anzahl MA: {len(planbare_ma)}")
     
     # Lade alle Wünsche für diese Periode
     
     alle_wuensche = Schichtwunsch.objects.filter(
         periode=periode,
-        mitarbeiter__in=planbare_ma
+        mitarbeiter__in=planbare_ma_queryset
     ).select_related('mitarbeiter')
     
     print(f"   Anzahl Wünsche: {alle_wuensche.count()}")
@@ -921,6 +1707,13 @@ def wunsch_kalender(request, periode_id):
     letzter_tag = calendar.monthrange(monat_start.year, monat_start.month)[1]
     monat_ende = date(monat_start.year, monat_start.month, letzter_tag)
     
+    # Deutsche Wochentage und Monatsnamen
+    WOCHENTAGE_DE = ('Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag')
+    MONATE_DE = ('', 'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember')
+    
+    # NRW-Feiertage im Monat
+    feiertage_set, feiertage_namen = get_nrw_feiertage(monat_start, monat_ende)
+    
     print(f"   Zeitraum: {monat_start} bis {monat_ende}")
     
     kalender_daten = []
@@ -929,9 +1722,12 @@ def wunsch_kalender(request, periode_id):
     while current_date <= monat_ende:
         tag_wuensche = wuensche_nach_datum.get(current_date, [])
         
+        # Sortiere Wünsche nach MA-Nummer
+        tag_wuensche_sortiert = sorted(tag_wuensche, key=lambda w: sortiere_ma_key(w.mitarbeiter))
+        
         # Berechne Konflikte
-        urlaube = sum(1 for w in tag_wuensche if w.wunsch == 'urlaub')
-        gar_nichts = sum(1 for w in tag_wuensche if w.wunsch == 'gar_nichts')
+        urlaube = sum(1 for w in tag_wuensche_sortiert if w.wunsch == 'urlaub')
+        gar_nichts = sum(1 for w in tag_wuensche_sortiert if w.wunsch == 'gar_nichts')
         konflikt = None
         
         if urlaube + gar_nichts > 3:
@@ -942,41 +1738,30 @@ def wunsch_kalender(request, periode_id):
         
         kalender_daten.append({
             'datum': current_date,
-            'wochentag': calendar.day_name[current_date.weekday()],
+            'wochentag': WOCHENTAGE_DE[current_date.weekday()],
             'ist_wochenende': current_date.weekday() >= 5,
-            'wuensche': tag_wuensche,
+            'feiertag_name': feiertage_namen.get(current_date, ''),
+            'wuensche': tag_wuensche_sortiert,
             'konflikt': konflikt,
-            'hat_eigenen_wunsch': any(w.mitarbeiter == mitarbeiter for w in tag_wuensche),
+            'hat_eigenen_wunsch': any(w.mitarbeiter == mitarbeiter for w in tag_wuensche_sortiert),
         })
         
         current_date += timedelta(days=1)
     
     print(f"   Anzahl Kalendertage: {len(kalender_daten)}")
     
-    context = {
-        'periode': periode,
-        'kalender_daten': kalender_daten,
-        'mitarbeiter': mitarbeiter,
-        'alle_mitarbeiter': planbare_ma,
-        'monat_name': calendar.month_name[monat_start.month],
-    }
     # DEBUG vor return
     print(f"\n🔍 DEBUG Context:")
     print(f"   Anzahl kalender_daten: {len(kalender_daten)}")
-    print(f"   Anzahl alle_mitarbeiter: {planbare_ma.count()}")
-    print(f"   Erste 3 Tage:")
-    for tag in kalender_daten[:3]:
-        print(f"      {tag['datum']}: {len(tag['wuensche'])} Wünsche")
-        for w in tag['wuensche']:
-            print(f"         - {w.mitarbeiter.schichtplan_kennung}: {w.get_wunsch_display()}")
+    print(f"   Anzahl alle_mitarbeiter: {len(planbare_ma)}")
     
     context = {
         'periode': periode,
-        'is_planer': is_planer, 
+        'is_planer': is_planer,
         'kalender_daten': kalender_daten,
         'mitarbeiter': mitarbeiter,
         'alle_mitarbeiter': planbare_ma,
-        'monat_name': calendar.month_name[monat_start.month],
+        'monat_name': MONATE_DE[monat_start.month],
     }
     
     return render(request, 'schichtplan/wunsch_kalender.html', context)
@@ -988,42 +1773,48 @@ def wunsch_kalender(request, periode_id):
 def wunsch_loeschen(request, wunsch_id):
     # 1. Wunsch holen
     wunsch = get_object_or_404(Schichtwunsch, pk=wunsch_id)
-    periode_id = wunsch.periode.pk
-    
+    periode_id = wunsch.periode.pk if wunsch.periode else None
+    next_uebersicht = request.GET.get('next') == 'uebersicht_detail'
+    schichtplan_pk = request.GET.get('schichtplan_pk', '').strip()
+
     # 2. Berechtigung: Schichtplaner-Funktion aufrufen
     ist_planer = ist_schichtplaner(request.user)
-    
+
     # 3. Berechtigung: Besitzer
     ist_besitzer = False
-    # Wir prüfen nur auf 'mitarbeiter', wenn der User auch eins hat
     if hasattr(request.user, 'mitarbeiter') and wunsch.mitarbeiter:
         if wunsch.mitarbeiter == request.user.mitarbeiter:
             ist_besitzer = True
 
     # 4. SICHERHEITS-ABBRUCH
-    # Wenn ist_planer True ist, wird dieser Block übersprungen!
     if not (ist_planer or ist_besitzer):
         messages.error(request, f"❌ Keine Berechtigung. (Planer-Status: {ist_planer})")
-        return redirect('schichtplan:wunsch_kalender', periode_id=periode_id)
+        if next_uebersicht and schichtplan_pk:
+            return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+        if periode_id:
+            return redirect('schichtplan:wunsch_kalender', periode_id=periode_id)
+        return redirect('schichtplan:dashboard')
 
     # 5. DER LÖSCHVORGANG
     if request.method == 'POST':
         ma_kennung = wunsch.mitarbeiter.schichtplan_kennung if wunsch.mitarbeiter else "Unbekannt"
-        
-        print(f"Lösche jetzt Wunsch #{wunsch.id} durch {request.user.username}")
         wunsch.delete()
-        
         if ist_planer and not ist_besitzer:
             messages.success(request, f"✅ Schichtplaner-Aktion: Wunsch für {ma_kennung} wurde gelöscht.")
         else:
             messages.success(request, "✅ Ihr Wunsch wurde gelöscht.")
-            
-        return redirect('schichtplan:wunsch_kalender', periode_id=periode_id)
+        if next_uebersicht and schichtplan_pk:
+            return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+        if periode_id:
+            return redirect('schichtplan:wunsch_kalender', periode_id=periode_id)
+        return redirect('schichtplan:dashboard')
 
     # Falls GET: Bestätigungsseite anzeigen
     return render(request, 'schichtplan/wunsch_loeschen_confirm.html', {
         'wunsch': wunsch,
-        'ist_planer': ist_planer
+        'ist_planer': ist_planer,
+        'next_uebersicht': next_uebersicht,
+        'schichtplan_pk': schichtplan_pk,
     })
 
 @login_required
@@ -1066,12 +1857,18 @@ def wuensche_schichtplaner_uebersicht(request, periode_id):
     for wunsch in alle_wuensche:
         wuensche_nach_ma[wunsch.mitarbeiter].append(wunsch)
     
-    # Sortiere Mitarbeiter nach Kennung
-    from django.db.models.functions import Length
-    sortierte_ma = sorted(
-        wuensche_nach_ma.keys(),
-        key=lambda ma: (len(ma.schichtplan_kennung or ''), ma.schichtplan_kennung or '')
-    )
+    # Sortiere Mitarbeiter numerisch nach MA-Nummer (MA1-MA15)
+    def sortiere_ma(ma):
+        kennung = ma.schichtplan_kennung or ''
+        if kennung.startswith('MA') and len(kennung) > 2:
+            try:
+                nummer = int(kennung[2:])
+                return nummer
+            except ValueError:
+                pass
+        return 999  # Fallback für andere Kennungen
+    
+    sortierte_ma = sorted(wuensche_nach_ma.keys(), key=sortiere_ma)
     
     context = {
         'periode': periode,
@@ -1149,3 +1946,39 @@ def wunschperioden_liste(request):
         'perioden': perioden,
         'is_planer': True
     })
+
+@login_required
+def wunschperiode_loeschen(request, periode_id):
+    """
+    Löscht eine Wunschperiode inkl. aller zugehörigen Wünsche.
+    Nur für Schichtplaner.
+    """
+    if not ist_schichtplaner(request.user):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('arbeitszeit:dashboard')
+    
+    periode = get_object_or_404(SchichtwunschPeriode, pk=periode_id)
+    
+    if request.method == 'POST':
+        # Zähle Wünsche vor dem Löschen
+        anzahl_wuensche = Schichtwunsch.objects.filter(periode=periode).count()
+        periode_name = periode.name
+        
+        # Lösche Periode (CASCADE löscht automatisch alle Wünsche)
+        periode.delete()
+        
+        messages.success(
+            request,
+            f"✅ Wunschperiode '{periode_name}' wurde gelöscht ({anzahl_wuensche} Wünsche entfernt)."
+        )
+        return redirect('schichtplan:wunschperioden_liste')
+    
+    # GET: Zeige Bestätigungsseite
+    anzahl_wuensche = Schichtwunsch.objects.filter(periode=periode).count()
+    
+    context = {
+        'periode': periode,
+        'anzahl_wuensche': anzahl_wuensche,
+    }
+    
+    return render(request, 'schichtplan/wunschperiode_loeschen_confirm.html', context)

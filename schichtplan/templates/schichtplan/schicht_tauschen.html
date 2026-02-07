@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Schichten tauschen – {{ schichtplan.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">🔄 Schichten tauschen</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">Erste Schicht (ausgewählt): <strong>{{ schicht1.mitarbeiter.schichtplan_kennung }}</strong> · {{ schicht1.datum|date:"d.m.Y" }} · <span class="badge bg-secondary">{{ schicht1.schichttyp.kuerzel }}</span></p>
+                    <p class="text-muted small mb-3">Wählen Sie die zweite Schicht. Die <strong>Schichttypen</strong> der beiden Einträge werden getauscht (Mitarbeiter und Datum bleiben jeweils gleich).</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="schicht2_id" class="form-label">Zweite Schicht</label>
+                            <select name="schicht2_id" id="schicht2_id" class="form-select" required>
+                                <option value="">-- Bitte wählen --</option>
+                                {% for s in andere_schichten %}
+                                <option value="{{ s.pk }}">{{ s.mitarbeiter.schichtplan_kennung }} · {{ s.datum|date:"d.m.Y" }} · {{ s.schichttyp.kuerzel }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Tausch durchführen</button>
+                            {% if next_uebersicht %}
+                            <a href="{% url 'schichtplan:uebersicht_detail' schichtplan.pk %}" class="btn btn-outline-secondary">Abbrechen</a>
+                            {% else %}
+                            <a href="{% url 'schichtplan:detail' schichtplan.pk %}" class="btn btn-outline-secondary">Abbrechen</a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

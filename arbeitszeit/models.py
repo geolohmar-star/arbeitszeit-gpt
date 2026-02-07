@@ -260,6 +260,14 @@ class Mitarbeiter(models.Model):
         ('typ_b', 'Typ B - Min. 4T + 4N pro Monat'),
     ]
     
+    # NEU: Mitarbeiter-Kategorie für Schichtplan (aus Analyse)
+    KATEGORIE_CHOICES = [
+        ('kern', 'Kernteam - Reguläre Besetzung'),
+        ('hybrid', 'Hybrid - Teilweise zur Besetzung'),
+        ('zusatz', 'Zusatzkraft - Nicht zur Besetzung'),
+        ('dauerkrank', 'Dauerkrank - Nicht verfügbar'),
+    ]
+    
     schicht_typ = models.CharField(
         max_length=10,
         choices=SCHICHT_TYP_CHOICES,
@@ -503,6 +511,80 @@ class Mitarbeiter(models.Model):
         default=False,
         verbose_name="Keine Zusatzdienste",
         help_text="Wenn aktiv: MA wird NICHT in Zusatzdienste eingeteilt"
+    )
+
+    # === NEUE FELDER AUS SCHICHTPLAN-ANALYSE ===
+    
+    # 1. Mitarbeiter-Kategorie
+    kategorie = models.CharField(
+        max_length=20,
+        choices=KATEGORIE_CHOICES,
+        default='kern',
+        verbose_name="Mitarbeiter-Kategorie",
+        help_text="Bestimmt ob MA zur regulären 2T/2N Besetzung zählt"
+    )
+    
+    # 2. Zählt zur Besetzung (nach Schichttyp)
+    zaehlt_zur_tagbesetzung = models.BooleanField(
+        default=True,
+        verbose_name="Zählt zur Tagschicht-Besetzung",
+        help_text="False = MA ist zusätzlich bei Tagdiensten (z.B. MA7: Di+Do zusätzlich)"
+    )
+    
+    zaehlt_zur_nachtbesetzung = models.BooleanField(
+        default=True,
+        verbose_name="Zählt zur Nachtschicht-Besetzung",
+        help_text="False = MA nicht für Nachtdienste eingeplant (z.B. MA1: nur Mittwoch Tag)"
+    )
+    
+    # 3. Fixe Wochentage für Tagdienste
+    fixe_tag_wochentage = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name="Fixe Tagdienst-Wochentage",
+        help_text="JSON: [0-6] für fixe Tagdienste (0=Mo, 6=So). Null = keine fixen Tage. Bsp: MA1=[2] (Mi), MA7=[1,3] (Di,Do)"
+    )
+    
+    # 4. Wochenend-Nachtdienste als Block
+    wochenend_nachtdienst_block = models.BooleanField(
+        default=False,
+        verbose_name="Wochenend-Nachtdienste nur als 2er-Block",
+        help_text="Wenn aktiv: Nachtdienste am Wochenende immer Fr-Sa oder Sa-So zusammen (typisch für MA7)"
+    )
+    
+    # 5. Min/Max Schichten pro Monat (detailliert)
+    min_tagschichten_pro_monat = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(31)],
+        verbose_name="Min. Tagschichten pro Monat",
+        help_text="Für Typ B: mindestens 4 Tagschichten. Leer = keine Mindestanzahl"
+    )
+    
+    min_nachtschichten_pro_monat = models.IntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(31)],
+        verbose_name="Min. Nachtschichten pro Monat",
+        help_text="Für Typ B: mindestens 4 Nachtschichten. Leer = keine Mindestanzahl"
+    )
+    
+    target_tagschichten_pro_monat = models.IntegerField(
+        null=True,
+        blank=True,
+        default=6,
+        validators=[MinValueValidator(0), MaxValueValidator(31)],
+        verbose_name="Ziel Tagschichten pro Monat",
+        help_text="Optimales Ziel aus Analyse: 5-6 Tagdienste/Monat (Soft Constraint)"
+    )
+    
+    target_nachtschichten_pro_monat = models.IntegerField(
+        null=True,
+        blank=True,
+        default=5,
+        validators=[MinValueValidator(0), MaxValueValidator(31)],
+        verbose_name="Ziel Nachtschichten pro Monat",
+        help_text="Optimales Ziel aus Analyse: 5-6 Nachtdienste/Monat (Soft Constraint)"
     )
 
        

@@ -1,39 +1,95 @@
 {% extends "base.html" %}
 
+{% block title %}Neue Wunschperiode erstellen{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">➕ Neue Wunschperiode anlegen</h4>
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header" style="background: #1a4d2e; color: white;">
+                    <h4 class="mb-0">➕ Neue Wunschperiode erstellen</h4>
                 </div>
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
                         
-                        {% if form.errors %}
-                            <div class="alert alert-danger">
-                                <strong>Fehler:</strong> Bitte prüfen Sie die Eingaben.
-                            </div>
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
                         {% endif %}
 
-                        {% for field in form %}
-                            <div class="mb-3">
-                                <label class="form-label font-weight-bold">{{ field.label }}</label>
-                                {{ field }}
-                                {% if field.help_text %}
-                                    <div class="form-text">{{ field.help_text }}</div>
-                                {% endif %}
-                                {% for error in field.errors %}
-                                    <div class="text-danger small">{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endfor %}
+                        <div class="mb-4">
+                            <label for="{{ form.name.id_for_label }}" class="form-label fs-5 fw-bold">
+                                📋 {{ form.name.label }}
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.help_text %}
+                                <small class="form-text text-muted d-block mt-1">{{ form.name.help_text }}</small>
+                            {% endif %}
+                            {% if form.name.errors %}
+                                <div class="text-danger mt-2">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
 
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                            <a href="{% url 'schichtplan:wunsch_perioden_liste' %}" class="btn btn-secondary me-md-2">Abbrechen</a>
-                            <button type="submit" class="btn btn-primary">Speichern & Veröffentlichen</button>
+                        <div class="mb-4">
+                            <label for="{{ form.fuer_monat.id_for_label }}" class="form-label fw-bold">
+                                📅 {{ form.fuer_monat.label }}
+                            </label>
+                            {{ form.fuer_monat }}
+                            {% if form.fuer_monat.help_text %}
+                                <small class="form-text text-muted d-block mt-1">{{ form.fuer_monat.help_text }}</small>
+                            {% endif %}
+                            {% if form.fuer_monat.errors %}
+                                <div class="text-danger mt-2">{{ form.fuer_monat.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.eingabe_start.id_for_label }}" class="form-label fw-bold">
+                                🕐 {{ form.eingabe_start.label }}
+                            </label>
+                            {{ form.eingabe_start }}
+                            {% if form.eingabe_start.help_text %}
+                                <small class="form-text text-muted d-block mt-1">{{ form.eingabe_start.help_text }}</small>
+                            {% endif %}
+                            {% if form.eingabe_start.errors %}
+                                <div class="text-danger mt-2">{{ form.eingabe_start.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.eingabe_ende.id_for_label }}" class="form-label fw-bold">
+                                🕑 {{ form.eingabe_ende.label }}
+                            </label>
+                            {{ form.eingabe_ende }}
+                            {% if form.eingabe_ende.help_text %}
+                                <small class="form-text text-muted d-block mt-1">{{ form.eingabe_ende.help_text }}</small>
+                            {% endif %}
+                            {% if form.eingabe_ende.errors %}
+                                <div class="text-danger mt-2">{{ form.eingabe_ende.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.status.id_for_label }}" class="form-label fw-bold">
+                                {{ form.status.label }}
+                            </label>
+                            {{ form.status }}
+                            {% if form.status.help_text %}
+                                <small class="form-text text-muted d-block mt-1">{{ form.status.help_text }}</small>
+                            {% endif %}
+                            {% if form.status.errors %}
+                                <div class="text-danger mt-2">{{ form.status.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'schichtplan:wunschperioden_liste' %}" class="btn btn-secondary">
+                                Abbrechen
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                ✅ Erstellen
+                            </button>
                         </div>
                     </form>
                 </div>

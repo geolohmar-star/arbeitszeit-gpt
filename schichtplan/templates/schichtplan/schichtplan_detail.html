@@ -16,16 +16,36 @@
             </span>
             {% if schichtplan.status == 'entwurf' %}
                 <span class="badge bg-warning text-dark ms-2">Entwurf</span>
-            {% else %}
+            {% elif schichtplan.status == 'zur_genehmigung' %}
+                <span class="badge bg-info ms-2">Zur Genehmigung</span>
+            {% elif schichtplan.status == 'veroeffentlicht' %}
                 <span class="badge bg-success ms-2">Veröffentlicht</span>
+            {% else %}
+                <span class="badge bg-secondary ms-2">{{ schichtplan.get_status_display }}</span>
             {% endif %}
         </div>
-        <div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
             <a href="{% url 'schichtplan:dashboard' %}" class="btn btn-outline-secondary btn-sm">← Zurück</a>
+            <a href="{% url 'schichtplan:uebersicht_detail' schichtplan.pk %}" class="btn btn-outline-primary btn-sm">
+                📋 Übersicht Detail
+            </a>
+            {% if can_edit %}
             <a href="{% url 'schichtplan:excel_import' schichtplan.pk %}" class="btn btn-success btn-sm">
                 <i class="bi bi-file-earmark-excel"></i> Excel Import
             </a>
-            <!-- Button für KI-Neu-Generierung falls gewünscht -->
+            {% endif %}
+            {% if can_edit and schichtplan.status == 'entwurf' %}
+            <form action="{% url 'schichtplan:zur_genehmigung' schichtplan.pk %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-info btn-sm">📤 Zum Genehmigen weiterleiten</button>
+            </form>
+            {% endif %}
+            {% if user_is_staff and schichtplan.status == 'zur_genehmigung' %}
+            <form action="{% url 'schichtplan:veroeffentlichen' schichtplan.pk %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-sm">✅ Genehmigen &amp; Veröffentlichen</button>
+            </form>
+            {% endif %}
         </div>
     </div>
 
@@ -139,13 +159,14 @@
                                                     <strong>{{ schicht.schichttyp.kuerzel }}</strong> 
                                                     {{ schicht.mitarbeiter.schichtplan_kennung }}
                                                 </span>
-                                                <!-- Löschen Link (optional, klein) -->
+                                                {% if can_edit %}
                                                 <a href="{% url 'schichtplan:schicht_loeschen' schicht.pk %}" 
                                                    class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger text-decoration-none"
                                                    style="font-size: 0.6em; cursor: pointer;"
                                                    onclick="return confirm('Löschen?');">
                                                     x
                                                 </a>
+                                                {% endif %}
                                             </div>
                                         {% endfor %}
                                     </div>

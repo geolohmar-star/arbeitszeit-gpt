@@ -1,27 +1,49 @@
+@"
 # Python
+*.pyc
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-*.pyc
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Virtual Environment
+# Django
+*.log
+db.sqlite3
+db.sqlite3-wal
+db.sqlite3-shm
+/media
+/staticfiles
+*.pot
+
+# Environments
+.env
+.venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
 
-# Django
-*.log
-db.sqlite3
-db.sqlite3-journal
-/staticfiles/
-/media/
-*.sqlite3
-
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
@@ -32,10 +54,11 @@ db.sqlite3-journal
 .DS_Store
 Thumbs.db
 
-# Environment variables
-.env
-.env.local
+# Migrations (optional - kommentiere aus wenn du sie committen willst)
+# */migrations/*.py
+# !*/migrations/__init__.py
 
-# Database backups
-db_backup_*.sqlite3
-*.sqlite3
+# Daten-Exports
+*.json
+!requirements.txt
+"@ | Out-File -FilePath .gitignore -Encoding UTF8

@@ -623,6 +623,7 @@ def dashboard(request):
     
     alle_vereinbarungen = mitarbeiter.arbeitszeitvereinbarungen.all().order_by('-created_at')[:5]
     
+    is_kongos = (mitarbeiter.abteilung or '').strip().lower() == 'kongos'
     context = {
         'mitarbeiter': mitarbeiter,
         'aktuelle_vereinbarung': aktuelle_vereinbarung,
@@ -630,6 +631,7 @@ def dashboard(request):
         'urlaubsanspruch': urlaubsanspruch,
         'alle_vereinbarungen': alle_vereinbarungen,
         'user': user,
+        'is_kongos': is_kongos,
     }
     return render(request, 'arbeitszeit/dashboard.html', context)
 

@@ -21,10 +21,10 @@
         </a>
     </div>
 
-    <!-- Legende (bleibt gleich) -->
+    <!-- Legende -->
     <div class="card mb-3">
         <div class="card-body py-2">
-            <div class="row small">
+            <div class="row small align-items-center">
                 <div class="col-auto"><span class="badge bg-danger">U</span> Urlaub</div>
                 <div class="col-auto"><span class="badge bg-primary">2</span> Kein Tag, Nacht OK</div>
                 <div class="col-auto"><span class="badge bg-warning text-dark">3</span> Keine Nacht, Tag OK</div>
@@ -32,6 +32,8 @@
                 <div class="col-auto"><span class="badge" style="background-color: #6f42c1; color: white;">N</span> Nacht bevorzugt</div>
                 <div class="col-auto"><span class="badge bg-dark">X</span> Gar nichts</div>
                 <div class="col-auto"><span class="badge" style="background-color: #fd7e14; color: white;">+</span> Zusatzarbeit</div>
+                <div class="col-auto border-start ms-2 ps-2"><span class="badge bg-info text-dark">Wochenende</span> hellblau</div>
+                <div class="col-auto"><span style="background-color: #ffe4cc; padding: 2px 8px; border-radius: 4px;">Feiertag NRW</span> orange</div>
             </div>
         </div>
     </div>
@@ -57,11 +59,16 @@
                     </thead>
                     <tbody>
                         {% for tag in kalender_daten %}
-                        <tr {% if tag.ist_wochenende %}class="table-secondary"{% endif %}>
-                            <td class="fw-bold">
+                        <tr class="{% if tag.ist_wochenende %}table-info{% endif %}" {% if tag.feiertag_name %}style="background-color: #ffe4cc;"{% endif %}>
+                            <td class="fw-bold align-middle">
                                 {{ tag.datum|date:"d.m." }}
                                 <br>
-                                <small class="text-muted">{{ tag.wochentag|slice:":2" }}</small>
+                                <small class="{% if tag.feiertag_name %}text-danger fw-bold{% elif tag.ist_wochenende %}text-primary{% else %}text-muted{% endif %}">
+                                    {{ tag.wochentag }}
+                                    {% if tag.feiertag_name %}
+                                        <br><span title="Feiertag NRW">{{ tag.feiertag_name }}</span>
+                                    {% endif %}
+                                </small>
                             </td>
                             
                             {% for ma in alle_mitarbeiter %}

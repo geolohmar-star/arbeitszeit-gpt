@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Wunschperiode löschen{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow">
+                <div class="card-body p-5">
+                    <!-- Warning Icon -->
+                    <div class="text-center mb-4">
+                        <div class="icon-circle bg-danger-soft mb-3">
+                            <i class="fas fa-exclamation-triangle text-danger fa-3x"></i>
+                        </div>
+                        <h2 class="fw-bold">Wunschperiode löschen?</h2>
+                    </div>
+
+                    <!-- Info -->
+                    <div class="alert alert-warning border-0 mb-4">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-info-circle mt-1 me-3"></i>
+                            <div>
+                                <strong>Achtung!</strong> Diese Aktion kann nicht rückgängig gemacht werden.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Details -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">Details zur Löschung:</h5>
+                        <table class="table table-borderless mb-0">
+                            <tr>
+                                <td class="text-muted ps-0"><i class="far fa-calendar-alt me-2"></i>Periode:</td>
+                                <td class="fw-bold pe-0">{{ periode.name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0"><i class="far fa-clock me-2"></i>Monat:</td>
+                                <td class="fw-bold pe-0">{{ periode.fuer_monat|date:"F Y" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0"><i class="fas fa-file-alt me-2"></i>Status:</td>
+                                <td class="pe-0">
+                                    <span class="badge bg-secondary">{{ periode.get_status_display }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0"><i class="fas fa-heart me-2"></i>Wünsche:</td>
+                                <td class="fw-bold text-danger pe-0">{{ anzahl_wuensche }} werden gelöscht</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Actions -->
+                    <form method="post" class="d-grid gap-2">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <i class="fas fa-trash-alt me-2"></i>
+                            Ja, Periode unwiderruflich löschen
+                        </button>
+                        <a href="{% url 'schichtplan:wunschperioden_liste' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-times me-2"></i>
+                            Abbrechen
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .icon-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .bg-danger-soft {
+        background-color: #ffe5e5;
+    }
+    
+    .table td {
+        padding: 0.75rem 1rem;
+    }
+</style>
+
+<!-- FontAwesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}

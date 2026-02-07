@@ -6,74 +6,103 @@ KORRIGIERT: Feld 'bemerkung' aus SchichtForm entfernt
 
 from django import forms
 from .models import Schichtplan, Schicht, Schichttyp
+from datetime import date, timedelta
+from calendar import monthrange
 
 
 class SchichtplanForm(forms.ModelForm):
     """
-    Formular zum Erstellen und Bearbeiten von Schichtplänen.
-    Enthält optionales Feld für KI-gestützte Generierung.
+    VEREINFACHTES Formular: Nur Monatsauswahl + KI-Generierung
+    Start/Ende werden automatisch berechnet
     """
+    
+    # Dropdown für Monat/Jahr
+    monat_jahr = forms.ChoiceField(
+        label="Monat auswählen",
+        widget=forms.Select(attrs={'class': 'form-select form-select-lg'}),
+        help_text="Wähle den Monat für den Schichtplan"
+    )
     
     vorschlag_generieren = forms.BooleanField(
         required=False,
-        initial=False,
+        initial=True,  # Standard: aktiviert
         label="🤖 KI-Vorschlag automatisch generieren",
-        help_text=(
-            "Das System analysiert historische Schichtdaten der letzten Monate "
-            "und erstellt einen optimierten Dienstplan unter Berücksichtigung von "
-            "Ruhezeiten, Mitarbeiter-Präferenzen und fairer Verteilung."
-        )
+        help_text="Erstellt automatisch einen optimierten Schichtplan"
     )
     
     class Meta:
         model = Schichtplan
-        fields = ['name', 'start_datum', 'ende_datum', 'status', 'bemerkungen']
+        fields = ['bemerkungen']  # Nur Bemerkungen, der Rest wird automatisch gesetzt
         
         widgets = {
-            'name': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'z.B. "Dezember 2025"'
-            }),
-            'start_datum': forms.DateInput(attrs={
-                'class': 'form-control',
-                'type': 'date'
-            }),
-            'ende_datum': forms.DateInput(attrs={
-                'class': 'form-control',
-                'type': 'date'
-            }),
-            'status': forms.Select(attrs={
-                'class': 'form-select'
-            }),
             'bemerkungen': forms.Textarea(attrs={
                 'class': 'form-control',
-                'rows': 3,
+                'rows': 2,
                 'placeholder': 'Optionale Notizen zum Plan...'
             }),
         }
         
         labels = {
-            'name': 'Plan-Name',
-            'start_datum': 'Startdatum',
-            'ende_datum': 'Enddatum',
-            'status': 'Status',
-            'bemerkungen': 'Bemerkungen'
+            'bemerkungen': 'Bemerkungen (optional)'
         }
     
-    def clean(self):
-        """Validierung des gesamten Formulars"""
-        cleaned_data = super().clean()
-        start_datum = cleaned_data.get('start_datum')
-        ende_datum = cleaned_data.get('ende_datum')
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         
-        # Prüfe ob Ende nach Start liegt
-        if start_datum and ende_datum:
-            if ende_datum <= start_datum:
-                raise forms.ValidationError(
-                    "Das Enddatum muss nach dem Startdatum liegen!"
-                )
+        # Generiere Monatsliste: Aktueller Monat + 12 Monate voraus
+        heute = date.today()
+        monate = []
         
-        return cleaned_data
+        # Deutsche Monatsnamen
+        monat_namen = [
+            'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+            'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+        ]
+        
+        for i in range(13):  # 13 Monate (aktueller + 12 nächste)
+            monat_datum = heute.replace(day=1) + timedelta(days=32*i)
+            monat_datum = monat_datum.replace(day=1)
+            
+            # Format: "2026-04" für April 2026
+            wert = monat_datum.strftime('%Y-%m')
+            # Anzeige: "April 2026" auf Deutsch
+            anzeige = f"{monat_namen[monat_datum.month - 1]} {monat_datum.year}"
+            
+            monate.append((wert, anzeige))
+        
+        self.fields['monat_jahr'].choices = monate
+    
+    def save(self, commit=True):
+        """Berechne Start/Ende automatisch aus monat_jahr"""
+        instance = super().save(commit=False)
+        
+        # Parse monat_jahr (Format: "2026-04")
+        monat_jahr_str = self.cleaned_data.get('monat_jahr')
+        if monat_jahr_str:
+            jahr, monat = map(int, monat_jahr_str.split('-'))
+            
+            # Setze Start = 1. des Monats
+            instance.start_datum = date(jahr, monat, 1)
+            
+            # Setze Ende = Letzter Tag des Monats
+            letzter_tag = monthrange(jahr, monat)[1]
+            instance.ende_datum = date(jahr, monat, letzter_tag)
+            
+            # Setze Name automatisch
+            monat_namen = [
+                'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+                'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+            ]
+            instance.name = f"{monat_namen[monat-1]} {jahr}"
+            
+            # Setze Status auf Entwurf
+            if not instance.status:
+                instance.status = 'entwurf'
+        
+        if commit:
+            instance.save()
+        
+        return instance
 
 
 class SchichtForm(forms.ModelForm):
