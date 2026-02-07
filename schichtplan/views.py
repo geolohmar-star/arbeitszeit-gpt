@@ -23,6 +23,8 @@ from calendar import day_name
 import tempfile
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from docx import Document
+from weasyprint import HTML
 
 # Models
 from arbeitszeit.models import Mitarbeiter, MonatlicheArbeitszeitSoll
@@ -36,7 +38,7 @@ from .forms import ExcelImportForm, SchichtplanForm, SchichtForm
 from .services import SchichtplanGenerator
 
 # Utils
-from ortools.sat.python import cp_model
+
 try:
     from .utils.excel_import import SchichtplanImporter
 except ImportError:

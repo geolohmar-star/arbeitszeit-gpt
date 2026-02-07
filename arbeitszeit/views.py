@@ -42,6 +42,9 @@ from django.utils.html import format_html
 import csv
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
+from weasyprint import HTML
+from docx import Document
+
 
 
 #WorkCalendar
