@@ -15,6 +15,8 @@ from django.urls import reverse_lazy
 from django.db import transaction
 from django import forms
 from collections import defaultdict
+from django.http import StreamingHttpResponse
+import time
 
 from datetime import timedelta
 from calendar import day_name
@@ -34,6 +36,7 @@ from .forms import ExcelImportForm, SchichtplanForm, SchichtForm
 from .services import SchichtplanGenerator
 
 # Utils
+from ortools.sat.python import cp_model
 try:
     from .utils.excel_import import SchichtplanImporter
 except ImportError:
@@ -52,12 +55,28 @@ try:
 except ImportError:
     easter = None 
 
-
-
+ 
 
 # ============================================================================
 # HELPER FUNKTIONEN
 # ============================================================================
+
+def generate_schichtplan(request):
+    if request.method == 'POST':
+        def event_stream():
+            yield "data: Starting solver...\n\n"
+            # Dein Solver hier
+            result = solver.solve()
+            yield f"data: Complete\n\n"
+        
+        return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+    if status == cp_model.OPTIMAL:
+        messages.success(request, "✅ Optimaler Schichtplan erstellt!")
+    elif status == cp_model.FEASIBLE:
+        messages.warning(request, "⚠️ Gültiger Schichtplan erstellt (nicht optimal, aber verwendbar)")
+    else:
+        messages.error(request, "❌ Kein gültiger Schichtplan möglich")
+    
 def ist_schichtplaner(user):
     # DEBUG: Zeigt im Terminal an, wer gerade prüft
     if user.is_anonymous:

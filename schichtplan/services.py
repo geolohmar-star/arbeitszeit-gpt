@@ -753,7 +753,8 @@ class SchichtplanGenerator:
         
         print("⚙️ Starte Solver...")
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = 360.0
+        solver.parameters.max_time_in_seconds = 1800  # 30 Minuten Zeitlimit
+        solver.parameters.num_search_workers = 1  # Single-threaded für deterministische Ergebnisse
         status = solver.Solve(model)
         print(f"   Status: {solver.StatusName(status)}")
         

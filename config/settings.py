@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import sys
 
 load_dotenv()
 
@@ -115,6 +116,8 @@ LANGUAGE_CODE = 'de-de'
 TIME_ZONE = 'Europe/Berlin'
 USE_I18N = True
 USE_TZ = True
+DEFAULT_CHARSET = 'utf-8'
+FILE_CHARSET = 'utf-8'
 
 # Static files
 STATIC_URL = '/static/'
@@ -139,3 +142,10 @@ MESSAGE_TAGS = {
     messages.ERROR: 'error',
     messages.SUCCESS: 'success',
 }
+
+if sys.version_info[0] >= 3:
+    import locale
+    try:
+        locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
+    except:
+        pass
