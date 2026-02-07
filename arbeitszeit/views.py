@@ -45,7 +45,13 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from weasyprint import HTML
 from docx import Document
 
-
+def hhmm_to_minuten(hhmm_wert):
+    """Konvertiert HHMM-Format (z.B. 830 = 8:30) in Minuten."""
+    if hhmm_wert is None:
+        return 0
+    stunden = hhmm_wert // 100
+    minuten = hhmm_wert % 100
+    return stunden * 60 + minuten
 
 #WorkCalendar
 @login_required
@@ -559,34 +565,34 @@ def get_zeitoptionen():
 
 # --- VIEWS ---
 
+
 def vereinbarung_detail(request, pk):
     vereinbarung = get_object_or_404(Arbeitszeitvereinbarung, pk=pk)
-
-    # Arbeitszeiten laden und sortieren
     arbeitszeiten = vereinbarung.tagesarbeitszeiten.annotate(
         sort_order=_get_wochentag_sortierung()
     ).order_by('woche', 'sort_order')
     
-    # Gruppieren
     temp_grouped = defaultdict(list)
     for ta in arbeitszeiten:
-        ta.display_zeit = zeitwert_to_str(ta.zeitwert)
+        # DEBUG: Zeige rohe Werte
+        print(f"DEBUG: {ta.wochentag} - zeitwert RAW={ta.zeitwert}, in Minuten={hhmm_to_minuten(ta.zeitwert)}")
+        ta.display_zeit = zeitwert_to_str(hhmm_to_minuten(ta.zeitwert))
         temp_grouped[ta.woche].append(ta)
-
-    # Struktur für Template bauen: { woche: { 'tage': [...], 'summe': 'HH:MM' } }
+    
     wochen_daten = {}
     for woche, tage in temp_grouped.items():
-        gesamt_minuten = sum(t.zeitwert for t in tage if t.zeitwert)
+        gesamt_minuten = sum(hhmm_to_minuten(t.zeitwert) for t in tage if t.zeitwert)
+        # DEBUG: Zeige Berechnung
+        print(f"DEBUG Woche {woche}: gesamt_minuten={gesamt_minuten}, als String={zeitwert_to_str(gesamt_minuten)}")
         wochen_daten[woche] = {
             'tage': tage,
             'summe': zeitwert_to_str(gesamt_minuten)
         }
-
+    
     historie = ArbeitszeitHistorie.objects.filter(vereinbarung=vereinbarung).order_by('aenderung_am')
-
     context = {
         'vereinbarung': vereinbarung,
-        'wochen_daten': wochen_daten, # Neuer Name für strukturierte Daten
+        'wochen_daten': wochen_daten,
         'historie': historie,
     }
     return render(request, 'arbeitszeit/vereinbarung_detail.html', context)
@@ -934,21 +940,38 @@ def admin_vereinbarung_genehmigen(request, pk):
         sort_order=_get_wochentag_sortierung()
     ).order_by('woche', 'sort_order')
     
+   
     temp_grouped = defaultdict(list)
     for tag in tagesarbeitszeiten:
-        tag.display_zeit = zeitwert_to_str(tag.zeitwert)
+        # DEBUG: Zeige rohe Werte in der Konsole
+        print(f"DEBUG: Wochentag={tag.wochentag}, zeitwert RAW={tag.zeitwert}")
+        
+        # Konvertierung
+        minuten = hhmm_to_minuten(tag.zeitwert)
+        print(f"  → Nach Konvertierung: {minuten} Minuten = {zeitwert_to_str(minuten)}")
+    
+        tag.display_zeit = zeitwert_to_str(minuten)
         temp_grouped[tag.woche].append(tag)
+
+    
+    
     
     # Auch hier: Strukturierte Daten mit Summe
     wochen_daten = {}
     for woche, tage in temp_grouped.items():
-        gesamt_minuten = sum(t.zeitwert for t in tage if t.zeitwert)
+        # DEBUG: Zeige Einzelwerte
+        print(f"\nDEBUG Woche {woche}:")
+        for t in tage:
+            print(f"  - {t.wochentag}: zeitwert={t.zeitwert}")
+        
+        gesamt_minuten = sum(hhmm_to_minuten(t.zeitwert) for t in tage if t.zeitwert)
+        print(f"  → SUMME: {gesamt_minuten} Minuten = {zeitwert_to_str(gesamt_minuten)}\n")
+        
         wochen_daten[woche] = {
             'tage': tage,
             'summe': zeitwert_to_str(gesamt_minuten)
         }
-    
-    context = {
+        context = {
         'vereinbarung': vereinbarung,
         'wochen_daten': wochen_daten,
         'zeitoptionen': get_zeitoptionen(),
@@ -1153,22 +1176,23 @@ def admin_vereinbarung_docx_export(request, pk):
             
             hdr_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
             
-            # Datenzeilen
+           # Datenzeilen
             wochen_summe = 0
             for tag in tage:
                 row_cells = table.add_row().cells
                 row_cells[0].text = tag.get_wochentag_display()
-                row_cells[1].text = zeitwert_to_str(tag.zeitwert) + " h"
+                # FIX: HHMM → Minuten konvertieren
+                row_cells[1].text = zeitwert_to_str(hhmm_to_minuten(tag.zeitwert)) + " h"
                 row_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
-                
                 if tag.zeitwert:
-                    wochen_summe += tag.zeitwert
+                    # FIX: HHMM → Minuten konvertieren vor Addition
+                    wochen_summe += hhmm_to_minuten(tag.zeitwert)
 
-            # Summenzeile pro Woche hinzufügen
+            # Summenzeile pro Woche hinzufügen (NACH der for-Schleife!)
             row_cells = table.add_row().cells
             row_cells[0].text = "Summe"
             row_cells[1].text = zeitwert_to_str(wochen_summe) + " h"
-            
+
             # Summenzeile fett machen & Hintergrund grau
             for cell in row_cells:
                 shading_elm = OxmlElement('w:shd')
@@ -1178,7 +1202,6 @@ def admin_vereinbarung_docx_export(request, pk):
                     for run in paragraph.runs:
                         run.bold = True
             row_cells[1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
-
             doc.add_paragraph() # Abstand zur nächsten Woche
             
     # --- ENDE DOKUMENT ---
@@ -1209,43 +1232,42 @@ def admin_vereinbarung_pdf_export(request, pk):
 
     if not request.user.is_staff:
         return redirect('arbeitszeit:dashboard')
-    
+
     vereinbarung = get_object_or_404(Arbeitszeitvereinbarung, pk=pk)
-    
+
     # Daten laden und sortieren
     tagesarbeitszeiten = vereinbarung.tagesarbeitszeiten.annotate(
         sort_order=_get_wochentag_sortierung()
     ).order_by('woche', 'sort_order')
-    
-    # DATEN GRUPPIEREN (Wichtig für die "Kästen" pro Woche)
+
+    # DATEN GRUPPIEREN
     from collections import defaultdict
     temp_grouped = defaultdict(list)
-    
     for tag in tagesarbeitszeiten:
-        # Zeit für Anzeige vorbereiten
-        tag.display_zeit = zeitwert_to_str(tag.zeitwert)
+        # FIX: HHMM → Minuten konvertieren
+        tag.display_zeit = zeitwert_to_str(hhmm_to_minuten(tag.zeitwert))
         temp_grouped[tag.woche].append(tag)
-    
+
     # Strukturierte Daten mit Summen erstellen
     wochen_daten = {}
-    # sorted(temp_grouped.keys()) sorgt dafür, dass Woche 1 vor Woche 2 kommt
     for woche in sorted(temp_grouped.keys()):
         tage = temp_grouped[woche]
-        gesamt_minuten = sum(t.zeitwert for t in tage if t.zeitwert)
+        # FIX: HHMM → Minuten konvertieren vor Summierung
+        gesamt_minuten = sum(hhmm_to_minuten(t.zeitwert) for t in tage if t.zeitwert)
         wochen_daten[woche] = {
             'tage': tage,
             'summe': zeitwert_to_str(gesamt_minuten)
         }
-    
+
     context = {
         'vereinbarung': vereinbarung,
-        'wochen_daten': wochen_daten,  # Das ist neu für das PDF
+        'wochen_daten': wochen_daten,
     }
-    
+
     html_string = render_to_string('arbeitszeit/pdf_vereinbarung.html', context)
     html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
     pdf = html.write_pdf()
-    
+
     response = HttpResponse(pdf, content_type='application/pdf')
     filename = f"Arbeitszeit_{vereinbarung.mitarbeiter.nachname}_{vereinbarung.pk}.pdf"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
