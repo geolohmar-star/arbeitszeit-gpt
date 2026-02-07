@@ -72,12 +72,13 @@ if os.environ.get('DATABASE_URL'):
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': 'postgres',
-            'USER': 'postgres',
-            'PASSWORD': '*Roboter87360!#',
-            'HOST': 'db.uimkgpsvnueljiivcqoz.supabase.co',
-            'PORT': '5432',
+            'USER': os.environ.get('SUPABASE_USER', 'postgres.uimkgpsvnueljiivcqoz'),
+            'PASSWORD': os.environ.get('SUPABASE_PASSWORD', ''),
+            'HOST': os.environ.get('SUPABASE_HOST', 'aws-0-eu-central-1.pooler.supabase.com'),
+            'PORT': os.environ.get('SUPABASE_PORT', '6543'),
             'OPTIONS': {
                 'connect_timeout': 10,
+                'sslmode': 'require',  # SSL erforderlich für Supabase
             },
             'CONN_MAX_AGE': 600,
             'CONN_HEALTH_CHECKS': True,
