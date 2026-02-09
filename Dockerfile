@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # System aktualisieren und WeasyPrint Dependencies installieren
 RUN apt-get update && apt-get install -y --no-install-recommends \
