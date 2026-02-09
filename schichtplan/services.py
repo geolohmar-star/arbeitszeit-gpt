@@ -754,34 +754,32 @@ class SchichtplanGenerator:
         # ====================================================================
         # F. SOLVER STARTEN
         # ====================================================================
+        # ====================================================================
+# F. SOLVER STARTEN
+# ====================================================================
         print("\n" + "="*70)
         print("🔍 CONSTRAINT-ANALYSE")
         print("="*70)
         print(f"Zeitraum: {len(tage_liste)} Tage | Mitarbeiter: {len(self.mitarbeiter_list)}")
-
         kann_tag = sum(1 for ma in self.mitarbeiter_list if self.preferences[ma.id]['kann_tagschicht'])
         kann_nacht = sum(1 for ma in self.mitarbeiter_list if self.preferences[ma.id]['kann_nachtschicht'])
         print(f"Können Tagschicht: {kann_tag} | Können Nachtschicht: {kann_nacht}")
-
         urlaubs_gesamt = sum(len(tage) for tage in urlaubs_tage.values())
         print(f"Urlaubstage gesamt: {urlaubs_gesamt}")
-
         typ_b_mas = [ma for ma in self.mitarbeiter_list if self.preferences[ma.id]['schicht_typ'] == 'typ_b']
         if typ_b_mas:
             print(f"Typ B: {len(typ_b_mas)} Mitarbeiter")
             for ma in typ_b_mas:
                 verfuegbar = len(tage_liste) - len(urlaubs_tage.get(ma.id, []))
                 print(f"   {ma.schichtplan_kennung}: {verfuegbar} Tage verfügbar")
-
         print("="*70 + "\n")
-        
-        print("⚙️ Starte Solver...")
+
+        print("⚙️ Starte Solver mit 8 CPU-Kernen...")
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = 20000
-        solver.parameters.num_search_workers = 1  # Single-threaded für deterministische Ergebnisse
+        solver.parameters.max_time_in_seconds = 3000  # 50 Minuten (railway-safe)
+        solver.parameters.num_search_workers = 8  # NUTZT ALLE 8 vCPUs!
         solver.parameters.log_search_progress = True  # Debug Info
         solver.parameters.linearization_level = 2  # Bessere Linearisierung
-
         status = solver.Solve(model)
         if status == cp_model.OPTIMAL:
             print('✅ OPTIMAL gefunden!')
