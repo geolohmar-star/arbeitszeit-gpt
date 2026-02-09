@@ -28,5 +28,5 @@ COPY . .
 ENV PORT=8000
 EXPOSE 8000
 
-# Start mit Migration
-CMD python manage.py migrate && python manage.py collectstatic --no-input && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --worker-tmp-dir /dev/shm --timeout 120 --graceful-timeout 30 --env LANG=de_DE.UTF-8 --env LC_ALL=de_DE.UTF-8
+# Start mit Migration - OPTIMIERT für 8 vCPU / 8 GB RAM
+CMD python manage.py migrate && python manage.py collectstatic --no-input && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 4 --threads 2 --worker-class sync --max-requests 1000 --max-requests-jitter 50 --worker-tmp-dir /dev/shm --timeout 3600 --graceful-timeout 900 --keep-alive 5 --env LANG=de_DE.UTF-8 --env LC_ALL=de_DE.UTF-8
