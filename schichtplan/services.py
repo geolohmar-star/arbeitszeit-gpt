@@ -18,6 +18,7 @@ import datetime
 import calendar
 from collections import defaultdict
 from decimal import Decimal
+from datetime import date, timedelta
 from ortools.sat.python import cp_model
 
 from django.db.models import Q
@@ -192,6 +193,47 @@ class SchichtplanGenerator:
         return soll_stunden_map, soll_schichten_map
 
     # ======================================================================
+    # KUMULATIVE T/N/Z/WE AUS VERÖFFENTLICHTEN PLÄNEN (Stand zur Genehmigung)
+    # ======================================================================
+    def _load_cumulative_veroeffentlicht(self, jahr, vor_monat_inklusive):
+        """
+        Lädt die kumulativen Schichtzahlen pro MA aus allen veröffentlichten
+        Plänen des Jahres bis einschl. vor_monat_inklusive.
+        Stand = nur status 'veroeffentlicht' (was der Schichtplaner freigegeben hat).
+        """
+        ma_ids = {ma.id for ma in self.mitarbeiter_list}
+        cumulative = {ma.id: {'t': 0, 'n': 0, 'z': 0, 'we': 0} for ma in self.mitarbeiter_list}
+        if vor_monat_inklusive < 1:
+            return cumulative
+        start_year = date(jahr, 1, 1)
+        last_day = calendar.monthrange(jahr, vor_monat_inklusive)[1]
+        end_prev = date(jahr, vor_monat_inklusive, last_day)
+        plaene = Schichtplan.objects.filter(
+            status='veroeffentlicht',
+            start_datum__lte=end_prev,
+            ende_datum__gte=start_year
+        )
+        schichten = Schicht.objects.filter(
+            schichtplan__in=plaene,
+            datum__gte=start_year,
+            datum__lte=end_prev,
+            mitarbeiter_id__in=ma_ids
+        ).select_related('schichttyp')
+        for s in schichten:
+            if s.mitarbeiter_id not in cumulative:
+                continue
+            k = s.schichttyp.kuerzel
+            if k == 'T':
+                cumulative[s.mitarbeiter_id]['t'] += 1
+            elif k == 'N':
+                cumulative[s.mitarbeiter_id]['n'] += 1
+            elif k == 'Z':
+                cumulative[s.mitarbeiter_id]['z'] += 1
+            if s.datum.weekday() >= 5:
+                cumulative[s.mitarbeiter_id]['we'] += 1
+        return cumulative
+
+    # ======================================================================
     # HAUPTFUNKTION
     # ======================================================================
     def generiere_vorschlag(self, neuer_schichtplan_obj):
@@ -262,6 +304,20 @@ class SchichtplanGenerator:
         jahr = start_datum.year
         monat = start_datum.month
         soll_stunden_map, soll_schichten_map = self._load_soll_stunden(jahr, monat)
+
+        # ====================================================================
+        # KUMULATIVE T/N/Z/WE (nur veröffentlichte Pläne = Stand zur Genehmigung)
+        # ====================================================================
+        cumulative = self._load_cumulative_veroeffentlicht(jahr, monat - 1)
+        cumulative_t = {ma_id: cumulative[ma_id]['t'] for ma_id in cumulative}
+        cumulative_n = {ma_id: cumulative[ma_id]['n'] for ma_id in cumulative}
+        cumulative_we = {ma_id: cumulative[ma_id]['we'] for ma_id in cumulative}
+        if any(cumulative[ma.id]['t'] or cumulative[ma.id]['n'] or cumulative[ma.id]['we'] for ma in self.mitarbeiter_list):
+            print("\n📅 Jahressummen-Stand (veröffentlichte Pläne bis vorheriger Monat):")
+            for ma in self.mitarbeiter_list:
+                c = cumulative[ma.id]
+                if c['t'] or c['n'] or c['z'] or c['we']:
+                    print(f"   {ma.schichtplan_kennung}: T={c['t']} N={c['n']} Z={c['z']} WE={c['we']}")
 
         last_shifts = {}
         
@@ -596,15 +652,12 @@ class SchichtplanGenerator:
                 # HARD CONSTRAINT: GENAU 2 Personen pro Schicht
                 model.Add(summe_var == 2)  # MUSS: Genau 2!
         # ====================================================================
-        # D. FAIRNESS (T/N/WE Ausgleich) - NUR KERNTEAM
+        # D. FAIRNESS (T/N/WE Ausgleich) - NUR KERNTEAM, JAHRESZIEL
         # ====================================================================
-        # TODO FUTURE: Quartals-/Jahres-Tracking implementieren:
-        #   - Kumulative T/N/WE-Schichten pro MA übers Jahr tracken
-        #   - Vierteljährliche Prüfung ob Fairness-Ziele erreichbar sind
-        #   - Anpassung der Gewichtung basierend auf kumulativen Unterschieden
-        #   - Warnung wenn langfristige Fairness gefährdet ist
+        # Kumulative T/N/WE aus veröffentlichten Plänen werden einbezogen,
+        # damit die Jahressummen am Jahresende in etwa gleich sind.
         # ====================================================================
-        print("   ✓ Fairness (Tag/Nacht/Wochenende) - nur Kernteam")
+        print("   ✓ Fairness (Tag/Nacht/Wochenende) – Kernteam, Jahressummen-Ausgleich")
 
         FAIRNESS_WEIGHT_T = 2500
         FAIRNESS_WEIGHT_N = 1500
@@ -657,16 +710,25 @@ class SchichtplanGenerator:
                 if ist_kernteam and pref['verfuegbarkeit'] != 'wochentags_only' and pref['max_wochenenden_pro_monat'] > 0 and (pref['kann_tagschicht'] or pref['kann_nachtschicht']):
                     eligible_we.append(ma.id)
 
-        def add_pairwise_balance(ids, count_map, max_diff, weight, label):
+        def add_pairwise_balance(ids, count_map, max_diff, weight, label, cumulative_map=None):
+            """Fairness: Ziel ist ausgeglichene Jahressumme. Mit cumulative_map wird
+            |(count_i + cum_i) - (count_j + cum_j)| bestraft, also count_i - count_j ≈ cum_j - cum_i."""
             for i in range(len(ids)):
                 for j in range(i + 1, len(ids)):
                     ma_i = ids[i]
                     ma_j = ids[j]
+                    cum_i = (cumulative_map or {}).get(ma_i, 0)
+                    cum_j = (cumulative_map or {}).get(ma_j, 0)
+                    target = cum_j - cum_i  # gewünschte Differenz: count_i - count_j == target
                     diff = model.NewIntVar(-max_diff, max_diff, f'diff_{label}_{ma_i}_{ma_j}')
                     model.Add(diff == count_map[ma_i] - count_map[ma_j])
-                    abs_diff = model.NewIntVar(0, max_diff, f'abs_{label}_{ma_i}_{ma_j}')
-                    model.AddAbsEquality(abs_diff, diff)
-                    objective_terms.append(abs_diff * weight)
+                    # Abweichung vom Jahresziel: (count_i - count_j) - target
+                    balance_range = 2 * max_diff
+                    balance = model.NewIntVar(-balance_range, balance_range, f'bal_{label}_{ma_i}_{ma_j}')
+                    model.Add(balance == diff - target)
+                    abs_balance = model.NewIntVar(0, balance_range, f'abs_{label}_{ma_i}_{ma_j}')
+                    model.AddAbsEquality(abs_balance, balance)
+                    objective_terms.append(abs_balance * weight)
 
         # Debug: Zeige welche Mitarbeiter im Fairness-Vergleich sind
         kernteam_kennungen_t = [self.ma_map[ma_id].schichtplan_kennung for ma_id in eligible_t]
@@ -678,11 +740,11 @@ class SchichtplanGenerator:
         print(f"      → Kernteam Fairness Wochenenden: {', '.join(kernteam_kennungen_we) if kernteam_kennungen_we else 'keine'}")
         
         if len(eligible_t) >= 2:
-            add_pairwise_balance(eligible_t, count_t, len(tage_liste), FAIRNESS_WEIGHT_T, 'T')
+            add_pairwise_balance(eligible_t, count_t, len(tage_liste), FAIRNESS_WEIGHT_T, 'T', cumulative_map=cumulative_t)
         if len(eligible_n) >= 2:
-            add_pairwise_balance(eligible_n, count_n, len(tage_liste), FAIRNESS_WEIGHT_N, 'N')
+            add_pairwise_balance(eligible_n, count_n, len(tage_liste), FAIRNESS_WEIGHT_N, 'N', cumulative_map=cumulative_n)
         if weekend_days and len(eligible_we) >= 2:
-            add_pairwise_balance(eligible_we, count_we, len(weekend_days) * 2, FAIRNESS_WEIGHT_WE, 'WE')
+            add_pairwise_balance(eligible_we, count_we, len(weekend_days) * 2, FAIRNESS_WEIGHT_WE, 'WE', cumulative_map=cumulative_we)
 
         # ====================================================================
         # E. OPTIMIERUNGSZIEL
@@ -914,8 +976,8 @@ class SchichtplanGenerator:
                 # H.2 VERTEILUNG: Pro-MA Durchlauf, max 2 Z pro Tag
                 # ============================================================
                 if ma_bedarf:
-                    # Sortiere: Wer am meisten braucht → zuerst bedienen
-                    ma_bedarf.sort(key=lambda x: x['bedarf'], reverse=True)
+                    # Sortiere: Wer am meisten braucht → zuerst; bei gleichem Bedarf: wer weniger Z im Jahr hat → zuerst (Jahresausgleich)
+                    ma_bedarf.sort(key=lambda x: (-x['bedarf'], cumulative.get(x['ma'].id, {}).get('z', 0)))
                     
                     # Zähle wie viele Z pro Tag vergeben werden (max 2)
                     z_pro_tag = defaultdict(int)

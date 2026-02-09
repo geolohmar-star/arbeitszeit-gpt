@@ -52,6 +52,21 @@ from datetime import datetime, timedelta, date
 from calendar import monthrange
 from django.utils import timezone
 
+
+def _ist_stunden_urlaub_krank(ma, daten_urlaub_krank):
+    """
+    Addiert zu den Ist-Stunden: Für jeden Urlaub-/Krank-/gar_nichts-Tag (nur Mo–Fr)
+    die Tagesstunden aus der gültigen Arbeitszeitvereinbarung (Wochenstunden / 5).
+    """
+    stunden = 0.0
+    for d in daten_urlaub_krank:
+        if d.weekday() >= 5:  # Sa, So = kein Arbeitstag
+            continue
+        v = ma.get_aktuelle_vereinbarung(d)
+        if v and v.wochenstunden is not None:
+            stunden += float(v.wochenstunden) / 5.0
+    return stunden
+
 try:
     from dateutil.easter import easter
 except ImportError:
@@ -552,6 +567,17 @@ def schichtplan_detail(request, pk):
     # Fallback-Stunden
     stunden_defaults = {'T': 12.25, 'N': 12.25, 'Z': 8.0}
 
+    # Urlaub/Krank/gar_nichts: Tage pro MA für Ist-Stunden-Zuschlag (Tagesstunden aus Vereinbarung)
+    wuensche_uk = Schichtwunsch.objects.filter(
+        mitarbeiter__in=alle_mitarbeiter,
+        datum__gte=schichtplan.start_datum,
+        datum__lte=schichtplan.ende_datum,
+        wunsch__in=['urlaub', 'gar_nichts', 'krank']
+    ).values_list('mitarbeiter_id', 'datum')
+    urlaub_krank_pro_ma = defaultdict(list)
+    for ma_id, datum in wuensche_uk:
+        urlaub_krank_pro_ma[ma_id].append(datum)
+
     for ma in alle_mitarbeiter:
         # Schichten dieses Mitarbeiters aus der geladenen Liste filtern
         ma_schichten = [s for s in schichten if s.mitarbeiter_id == ma.id]
@@ -591,6 +617,9 @@ def schichtplan_detail(request, pk):
             if s.datum.weekday() >= 5:
                 iso_year, iso_week, _ = s.datum.isocalendar()
                 wochenenden_set.add(f"{iso_year}-{iso_week}")
+
+        # Urlaub/Krank/gar_nichts: Tagesstunden aus gültiger Vereinbarung zu Ist addieren (nur Mo–Fr)
+        ist_stunden += _ist_stunden_urlaub_krank(ma, urlaub_krank_pro_ma.get(ma.id, []))
 
         # --- SOLL-STUNDEN via Model-Methode ---
         try:
@@ -825,6 +854,9 @@ def schichtplan_uebersicht_detail(request, pk):
 
     # Soll- und Ist-Stunden pro MA wie auf Plan-Detailseite (für Abschlusszeile pro Spalte)
     stunden_defaults = {'T': 12.25, 'N': 12.25, 'Z': 8.0}
+    urlaub_krank_pro_ma = defaultdict(list)
+    for ma_id, datum in urlaub_set | krank_set:
+        urlaub_krank_pro_ma[ma_id].append(datum)
     mitarbeiter_stunden = []  # Liste (soll, ist, diff) in gleicher Reihenfolge wie mitarbeiter_liste
     for ma in mitarbeiter_liste:
         ma_schichten = [s for s in schichten if s.mitarbeiter_id == ma.id]
@@ -842,6 +874,7 @@ def schichtplan_uebersicht_detail(request, pk):
             else:
                 stunden = float(s.schichttyp.arbeitszeit_stunden) if s.schichttyp.arbeitszeit_stunden else stunden_defaults.get(kuerzel, 0)
             ist_stunden += stunden
+        ist_stunden += _ist_stunden_urlaub_krank(ma, urlaub_krank_pro_ma.get(ma.id, []))
         try:
             soll_stunden = float(ma.get_soll_stunden_monat(start.year, start.month))
         except Exception:
@@ -979,6 +1012,9 @@ def schichtplan_export_excel(request, pk):
         datum__gte=start, datum__lte=ende, mitarbeiter__in=mitarbeiter_liste,
         wunsch='ausgleichstag'
     ).values_list('mitarbeiter_id', 'datum'))
+    urlaub_krank_pro_ma = defaultdict(list)
+    for ma_id, datum in urlaub_set | krank_set:
+        urlaub_krank_pro_ma[ma_id].append(datum)
 
     matrix = {}
     for ma in mitarbeiter_liste:
@@ -1010,6 +1046,7 @@ def schichtplan_export_excel(request, pk):
             else:
                 stunden = float(s.schichttyp.arbeitszeit_stunden) if s.schichttyp.arbeitszeit_stunden else stunden_defaults.get(kuerzel, 0)
             ist_stunden += stunden
+        ist_stunden += _ist_stunden_urlaub_krank(ma, urlaub_krank_pro_ma.get(ma.id, []))
         try:
             soll_stunden = float(ma.get_soll_stunden_monat(start.year, start.month))
         except Exception:
