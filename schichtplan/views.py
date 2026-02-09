@@ -1792,7 +1792,7 @@ def wunsch_kalender(request, periode_id):
             einordnung_label = 'Mittlere Beteiligung'
         else:
             einordnung = 'viele'
-            einordnung_label = 'Viele Wünsche – gute Planungsgrundlage'
+            einordnung_label = 'Viele Wünsche'
         beteiligung_liste.append({
             'ma': ma,
             'anzahl_tage': n,

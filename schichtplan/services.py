@@ -983,13 +983,12 @@ class SchichtplanGenerator:
         
         else:
             error_msg = (
-                "❌ Keine gültige Lösung gefunden!\n"
-                "Mögliche Ursachen:\n"
-                "1. Zu wenige MA für Besetzung (2 pro Schicht)\n"
-                "2. Zu viele Urlaube an denselben Tagen\n"
-                "3. Typ B + Wünsche unvereinbar\n"
+                "Keine gültige Lösung gefunden. Mögliche Ursachen: "
+                "zu wenige MA für Besetzung (2 pro Schicht), "
+                "zu viele Urlaube an denselben Tagen, "
+                "oder Typ B + Wünsche unvereinbar."
             )
-            print(error_msg)
+            print("❌ Solver-Fehler:", error_msg)
             raise Exception(error_msg)
 
     # ======================================================================

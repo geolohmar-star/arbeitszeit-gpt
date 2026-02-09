@@ -6,12 +6,25 @@
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-8 offset-md-2">
+            <!-- Ladeanzeige: wird beim Absenden des Formulars eingeblendet -->
+            <div id="solver-loading-overlay" class="position-fixed top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center" style="background: rgba(0,0,0,0.5); z-index: 9999;">
+                <div class="bg-white rounded-4 shadow-lg p-5 text-center" style="max-width: 420px;">
+                    <div class="spinner-border text-success mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Laden…</span>
+                    </div>
+                    <h5 class="mb-2">Server rechnet …</h5>
+                    <p class="text-muted mb-0 small">
+                        Der Solver erstellt den Schichtplan. Das kann 30 Sekunden oder länger dauern – bitte nicht schließen.
+                    </p>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header" style="background: #1a4d2e; color: white;">
                     <h4 class="mb-0">➕ Neuen Schichtplan erstellen</h4>
                 </div>
                 <div class="card-body">
-                    <form method="post">
+                    <form method="post" id="schichtplan-erstellen-form">
                         {% csrf_token %}
                         
                         <!-- VEREINFACHT: Nur Monatsauswahl -->
@@ -53,10 +66,10 @@
                         <!-- ENDE NEU -->
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{% url 'schichtplan:dashboard' %}" class="btn btn-secondary">
+                            <a href="{% url 'schichtplan:dashboard' %}" class="btn btn-secondary" id="btn-abbrechen">
                                 Abbrechen
                             </a>
-                            <button type="submit" class="btn btn-success">
+                            <button type="submit" class="btn btn-success" id="btn-erstellen">
                                 ✅ Erstellen
                             </button>
                         </div>
@@ -66,4 +79,19 @@
         </div>
     </div>
 </div>
+
+<script>
+(function() {
+    var form = document.getElementById('schichtplan-erstellen-form');
+    var overlay = document.getElementById('solver-loading-overlay');
+    var btnErstellen = document.getElementById('btn-erstellen');
+    if (form && overlay) {
+        form.addEventListener('submit', function() {
+            overlay.classList.remove('d-none');
+            overlay.classList.add('d-flex');
+            if (btnErstellen) btnErstellen.disabled = true;
+        });
+    }
+})();
+</script>
 {% endblock %}
