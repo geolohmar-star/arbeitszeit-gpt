@@ -620,14 +620,58 @@ def schichtplan_detail(request, pk):
     # Sortieren nach Kennung (MA1, MA2...)
     stats_list.sort(key=lambda x: (len(x['ma'].schichtplan_kennung or ''), x['ma'].schichtplan_kennung or ''))
 
+    # Jahresübersicht: Pro Mitarbeiter die Summen T, N, Z, Wochenenden über alle Pläne des Jahres
+    jahr = schichtplan.start_datum.year
+    jahr_start = date(jahr, 1, 1)
+    jahr_ende = date(jahr, 12, 31)
+    plaene_jahr = Schichtplan.objects.filter(
+        start_datum__lte=jahr_ende,
+        ende_datum__gte=jahr_start
+    )
+    schichten_jahr = Schicht.objects.filter(
+        schichtplan__in=plaene_jahr,
+        datum__gte=jahr_start,
+        datum__lte=jahr_ende
+    ).select_related('schichttyp', 'mitarbeiter')
+    # Pro MA: t, n, z, we
+    ma_jahr_stats = {ma.id: {'t': 0, 'n': 0, 'z': 0, 'we': 0} for ma in alle_mitarbeiter}
+    for s in schichten_jahr:
+        if s.mitarbeiter_id not in ma_jahr_stats:
+            continue
+        k = s.schichttyp.kuerzel
+        if k == 'T':
+            ma_jahr_stats[s.mitarbeiter_id]['t'] += 1
+        elif k == 'N':
+            ma_jahr_stats[s.mitarbeiter_id]['n'] += 1
+        elif k == 'Z':
+            ma_jahr_stats[s.mitarbeiter_id]['z'] += 1
+        if s.datum.weekday() >= 5:
+            ma_jahr_stats[s.mitarbeiter_id]['we'] += 1
+    jahres_mitarbeiter = []
+    for ma in alle_mitarbeiter:
+        st = ma_jahr_stats.get(ma.id, {'t': 0, 'n': 0, 'z': 0, 'we': 0})
+        jahres_mitarbeiter.append({
+            'ma': ma,
+            't': st['t'],
+            'n': st['n'],
+            'z': st['z'],
+            'we': st['we'],
+        })
+    jahres_mitarbeiter.sort(key=lambda x: (len(x['ma'].schichtplan_kennung or ''), x['ma'].schichtplan_kennung or ''))
+    jahresuebersicht = {
+        'jahr': jahr,
+        'jahres_mitarbeiter': jahres_mitarbeiter,
+    }
+
     context = {
         'schichtplan': schichtplan,
         'kalender_daten': kalender_daten,
-        'mitarbeiter_stats': stats_list, # Das muss gefüllt sein!
+        'mitarbeiter_stats': stats_list,
         'schichttypen': Schichttyp.objects.filter(aktiv=True),
         'mitarbeiter_mapping': mitarbeiter_mapping,
         'can_edit': ist_schichtplaner(request.user),
         'user_is_staff': request.user.is_staff,
+        'jahresuebersicht': jahresuebersicht,
     }
 
     return render(request, 'schichtplan/schichtplan_detail.html', context)

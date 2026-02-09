@@ -49,6 +49,40 @@
         </div>
     </div>
 
+    <!-- 📅 Jahresübersicht: Jahressummen pro Mitarbeiter (T, N, Z, WE) -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">📅 Jahresübersicht {{ jahresuebersicht.jahr }} – Summen pro Mitarbeiter</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">Jahressummen aus allen Plänen des Jahres {{ jahresuebersicht.jahr }} pro Mitarbeiter.</p>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mitarbeiter</th>
+                            <th class="text-center">☀️ T</th>
+                            <th class="text-center">🌙 N</th>
+                            <th class="text-center">➕ Z</th>
+                            <th class="text-center">📅 WE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in jahresuebersicht.jahres_mitarbeiter %}
+                        <tr>
+                            <td><strong>{{ row.ma.vollname }}</strong><br><small class="text-muted">{{ row.ma.schichtplan_kennung }}</small></td>
+                            <td class="text-center">{{ row.t }}</td>
+                            <td class="text-center">{{ row.n }}</td>
+                            <td class="text-center">{{ row.z }}</td>
+                            <td class="text-center">{{ row.we }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- 📊 NEUE STATISTIK-TABELLE -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
