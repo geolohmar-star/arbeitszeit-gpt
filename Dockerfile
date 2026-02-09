@@ -23,13 +23,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Code kopieren
 COPY . .
 
-# Django Setup
-RUN python manage.py collectstatic --no-input
-RUN python manage.py migrate
-
 # Port
 ENV PORT=8000
 EXPOSE 8000
 
-# Start
-CMD gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --worker-tmp-dir /dev/shm --timeout 120 --graceful-timeout 30 --env LANG=de_DE.UTF-8 --env LC_ALL=de_DE.UTF-8
+# Start mit Migration
+CMD python manage.py migrate && python manage.py collectstatic --no-input && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --worker-tmp-dir /dev/shm --timeout 120 --graceful-timeout 30 --env LANG=de_DE.UTF-8 --env LC_ALL=de_DE.UTF-8
