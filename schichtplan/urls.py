@@ -73,6 +73,11 @@ urlpatterns = [
     views.WunschPeriodeCreateView.as_view(), # Wir nutzen die Klasse!
     name='wunschperiode_erstellen'           # Der Name für den Dashboard-Button
     ),
+    # NEU: Urlaubsgenehmigungen
+    path('genehmigungen/', views.genehmigungen_uebersicht, name='genehmigungen_uebersicht'),
+    path('genehmigungen/periode/<int:periode_id>/', views.genehmigungen_periode, name='genehmigungen_periode'),
+    path('urlaub/<int:wunsch_id>/genehmigen/', views.urlaub_genehmigen, name='urlaub_genehmigen'),
+    path('urlaub/<int:wunsch_id>/ablehnen/', views.urlaub_ablehnen, name='urlaub_ablehnen'),
 
     # ========================================================================
     # ADMIN / GENEHMIGUNGS-LOGIK
@@ -105,4 +110,7 @@ urlpatterns = [
         views.wunschperiode_loeschen,
         name='wunschperiode_loeschen'
     ),
+    # Bulk-Genehmigung
+    path('urlaub/bulk-genehmigen/', views.urlaub_bulk_genehmigen, name='urlaub_bulk_genehmigen'),
+    path('urlaub/bulk-ablehnen/', views.urlaub_bulk_ablehnen, name='urlaub_bulk_ablehnen'),
 ]

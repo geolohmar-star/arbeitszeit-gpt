@@ -454,14 +454,6 @@ class SchichtplanGenerator:
             if pref['schicht_typ'] == 'typ_b':
                 print(f"      ℹ️ {ma.schichtplan_kennung}: Typ B erkannt (Min: 4T+4N, darf mehr sein)")
                 
-                # NEU: Berechne verfügbare Tage (ohne genehmigte Urlaube)
-                verfuegbare_tage = 0
-                for tag in tage_liste:
-                    wunsch = wuensche_matrix.get(ma.id, {}).get(tag)
-                    is_blocked = (wunsch and wunsch.wunsch in ['urlaub', 'gar_nichts'] and wunsch.genehmigt)
-                    if not is_blocked:
-                        verfuegbare_tage += 1
-                
                 # Zähle Tag- und Nachtschichten für diesen MA
                 tag_schichten = [vars_schichten[(ma.id, tag, 'T')] for tag in tage_liste]
                 nacht_schichten = [vars_schichten[(ma.id, tag, 'N')] for tag in tage_liste]
@@ -471,52 +463,45 @@ class SchichtplanGenerator:
                 model.Add(count_t_var == sum(tag_schichten))
                 model.Add(count_n_var == sum(nacht_schichten))
                 
-                # NEU: HARD CONSTRAINT nur wenn genug Tage verfügbar!
-                min_erforderlich = 8  # 4T + 4N
+                # HARD CONSTRAINT: Mindestens 4 Tag- und 4 Nachtschichten
+                model.Add(count_t_var >= 4)
+                model.Add(count_n_var >= 4)
                 
-                if verfuegbare_tage >= min_erforderlich:
-                    # Normal: Mindestens 4 Tag- und 4 Nachtschichten
-                    model.Add(count_t_var >= 4)
-                    model.Add(count_n_var >= 4)
-                    print(f"         ✓ Typ B Constraint: Min 4T + 4N (verfügbar: {verfuegbare_tage} Tage)")
-                    
-                elif verfuegbare_tage > 0:
-                    # Reduziert: So viele wie möglich, aber nicht erzwingen wenn unmöglich
-                    max_moeglich = verfuegbare_tage // 2  # Hälftig aufteilen
-                    if max_moeglich >= 2:
-                        min_t = min(4, max_moeglich)
-                        min_n = min(4, max_moeglich)
-                        model.Add(count_t_var >= min_t)
-                        model.Add(count_n_var >= min_n)
-                        print(f"         ⚠️ Typ B REDUZIERT: Min {min_t}T + {min_n}N (nur {verfuegbare_tage} Tage verfügbar)")
-                    else:
-                        print(f"         ⚠️ Typ B ÜBERSPRUNGEN: Nur {verfuegbare_tage} Tag(e) verfügbar (zu wenig für Constraint)")
-                        
-                else:
-                    # Komplett Urlaub: Constraint überspringen
-                    print(f"         ⚠️ Typ B ÜBERSPRUNGEN: {ma.schichtplan_kennung} hat 0 Tage verfügbar (kompletter Urlaub)")
+                # SOFT CONSTRAINT: Bevorzuge etwa 4-6 Schichten, aber erlaube mehr
+                # Leichte Strafe für jede Schicht über 6 (um extreme Ungleichheit zu vermeiden)
+                ueber_6_t = model.NewIntVar(0, 20, f'{ma.id}_typ_b_ueber_6_T')
+                model.Add(ueber_6_t >= count_t_var - 6)
+                model.Add(ueber_6_t >= 0)
                 
-                # SOFT CONSTRAINT: Bevorzuge etwa 4-6 Schichten (nur wenn genug Tage verfügbar)
-                if verfuegbare_tage >= 6:
-                    ueber_6_t = model.NewIntVar(0, 20, f'{ma.id}_typ_b_ueber_6_T')
-                    model.Add(ueber_6_t >= count_t_var - 6)
-                    model.Add(ueber_6_t >= 0)
-                    
-                    ueber_6_n = model.NewIntVar(0, 20, f'{ma.id}_typ_b_ueber_6_N')
-                    model.Add(ueber_6_n >= count_n_var - 6)
-                    model.Add(ueber_6_n >= 0)
-                    
-                    # Geringe Strafe: 2000 pro Schicht über 6
-                    objective_terms.append(ueber_6_t * 2000)
-                    objective_terms.append(ueber_6_n * 2000)
+                ueber_6_n = model.NewIntVar(0, 20, f'{ma.id}_typ_b_ueber_6_N')
+                model.Add(ueber_6_n >= count_n_var - 6)
+                model.Add(ueber_6_n >= 0)
+                
+                # Geringe Strafe: 2000 pro Schicht über 6 (viel niedriger als vorher)
+                objective_terms.append(ueber_6_t * 2000)
+                objective_terms.append(ueber_6_n * 2000)
 
-            # B.10 URLAUB / GAR NICHTS → Frei erzwingen (keine Genehmigung mehr nötig)
+           # B.10 URLAUB / GAR NICHTS → Frei erzwingen (NUR WENN GENEHMIGT!)
+            urlaub_count = 0
             for tag in tage_liste:
                 wunsch = wuensche_matrix.get(ma.id, {}).get(tag)
-                if wunsch and wunsch.wunsch in ['urlaub', 'gar_nichts']:
-                    model.Add(vars_schichten[(ma.id, tag, 'T')] == 0)
-                    model.Add(vars_schichten[(ma.id, tag, 'N')] == 0)
-                    model.Add(vars_schichten[(ma.id, tag, 'Frei')] == 1)
+                if wunsch:
+                    if wunsch.wunsch in ['urlaub', 'gar_nichts']:
+                        # NEU: Prüfe ob genehmigt!
+                        if wunsch.genehmigt:
+                            # HARTER Constraint: Urlaub MUSS eingehalten werden
+                            model.Add(vars_schichten[(ma.id, tag, 'T')] == 0)
+                            model.Add(vars_schichten[(ma.id, tag, 'N')] == 0)
+                            model.Add(vars_schichten[(ma.id, tag, 'Frei')] == 1)
+                            urlaub_count += 1
+                        else:
+                            # Nicht genehmigt: Nur als SOFT Constraint (Bevorzugung)
+                            # Hohe Belohnung für Frei-Tag (aber nicht erzwungen)
+                            objective_terms.append(vars_schichten[(ma.id, tag, 'Frei')] * 8000)
+                            print(f"      ⏳ Urlaub beantragt (nicht genehmigt): {ma.schichtplan_kennung} am {tag}")
+            
+            if urlaub_count > 0:
+                print(f"      ✓ {urlaub_count} genehmigte Urlaubs-/Frei-Tage für {ma.schichtplan_kennung}")
 
             # B.11 FIXE TAGDIENST-WOCHENTAGE (nur für MA1, NICHT MA7!)
             fixe_tage = pref['fixe_tag_wochentage']  # immer Liste

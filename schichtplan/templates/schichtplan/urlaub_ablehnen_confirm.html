@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Urlaub ablehnen{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">❌ Urlaub ablehnen</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Mitarbeiter:</h6>
+                    <p><strong>{{ wunsch.mitarbeiter.schichtplan_kennung }}</strong></p>
+                    
+                    <h6>Datum:</h6>
+                    <p><strong>{{ wunsch.datum|date:"l, d. F Y" }}</strong></p>
+                    
+                    <h6>Typ:</h6>
+                    <p><strong>{{ wunsch.get_wunsch_display }}</strong></p>
+                    
+                    {% if wunsch.begruendung %}
+                    <h6>Begründung des MA:</h6>
+                    <p>{{ wunsch.begruendung }}</p>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <div class="alert alert-warning">
+                        ⚠️ Der Antrag wird gelöscht und der Mitarbeiter kann an diesem Tag eingeplant werden.
+                    </div>
+                    
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="grund" class="form-label">
+                                Ablehnungsgrund (optional):
+                            </label>
+                            <textarea 
+                                class="form-control" 
+                                id="grund" 
+                                name="grund" 
+                                rows="3"
+                                placeholder="z.B. Zu viele Urlaube an diesem Tag, bereits 12 Urlaube genehmigt..."
+                            ></textarea>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger flex-grow-1">
+                                ❌ Ja, ablehnen
+                            </button>
+                            <a href="{% url 'schichtplan:genehmigungen_periode' wunsch.periode.pk %}" 
+                               class="btn btn-secondary">
+                                Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

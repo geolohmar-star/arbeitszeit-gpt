@@ -4,6 +4,7 @@ Views für das Schichtplan-Modul
 ANGEPASST: Filtert nur Mitarbeiter mit Kennung MA1-MA15
 
 """
+from django.db.models import Count, Q
 from django.db.models.functions import Length  # ← Für Sortierung
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -17,6 +18,11 @@ from django import forms
 from collections import defaultdict
 from django.http import StreamingHttpResponse
 import time
+from django.utils import timezone
+from datetime import timedelta, timedelta, date
+from calendar import monthrange
+
+
 
 from datetime import timedelta
 from calendar import day_name
@@ -48,23 +54,43 @@ except ImportError:
         SchichtplanImporter = None
 
 #Wunschplan
-from datetime import datetime, timedelta, date
+from datetime import timedelta, timedelta, date
 from calendar import monthrange
-from django.utils import timezone
 
 
-def _ist_stunden_urlaub_krank(ma, daten_urlaub_krank):
+
+def _ist_stunden_urlaub_krank(ma, daten_urlaub_krank, feiertage_set=None):
     """
-    Addiert zu den Ist-Stunden: Für jeden Urlaub-/Krank-/gar_nichts-Tag (nur Mo–Fr)
+    Addiert zu den Ist-Stunden: Für jeden Urlaub-/Krank-/gar_nichts-Tag (nur Mo–Fr, OHNE Feiertage)
     die Tagesstunden aus der gültigen Arbeitszeitvereinbarung (Wochenstunden / 5).
+    
+    NEU: Berücksichtigt NRW-Feiertage - diese werden NICHT als Arbeitstage gezählt!
     """
+    if not daten_urlaub_krank:
+        return 0.0
+    
     stunden = 0.0
+    
+    # Falls keine Feiertage übergeben, berechne sie
+    if feiertage_set is None:
+        min_datum = min(daten_urlaub_krank)
+        max_datum = max(daten_urlaub_krank)
+        feiertage_set, _ = get_nrw_feiertage(min_datum, max_datum)
+    
     for d in daten_urlaub_krank:
+        # Wochenende überspringen
         if d.weekday() >= 5:  # Sa, So = kein Arbeitstag
             continue
+        
+        # NEU: Feiertage überspringen
+        if d in feiertage_set:
+            continue
+        
+        # Tagesstunden aus Vereinbarung holen
         v = ma.get_aktuelle_vereinbarung(d)
         if v and v.wochenstunden is not None:
             stunden += float(v.wochenstunden) / 5.0
+    
     return stunden
 
 try:
@@ -566,6 +592,9 @@ def schichtplan_detail(request, pk):
     
     # Fallback-Stunden
     stunden_defaults = {'T': 12.25, 'N': 12.25, 'Z': 8.0}
+    
+    # NEU: Feiertage einmalig berechnen (für Urlaubs-Stunden-Berechnung)
+    feiertage_set, _ = get_nrw_feiertage(schichtplan.start_datum, schichtplan.ende_datum)
 
     # Urlaub/Krank/gar_nichts: Tage pro MA für Ist-Stunden-Zuschlag (Tagesstunden aus Vereinbarung)
     wuensche_uk = Schichtwunsch.objects.filter(
@@ -618,8 +647,8 @@ def schichtplan_detail(request, pk):
                 iso_year, iso_week, _ = s.datum.isocalendar()
                 wochenenden_set.add(f"{iso_year}-{iso_week}")
 
-        # Urlaub/Krank/gar_nichts: Tagesstunden aus gültiger Vereinbarung zu Ist addieren (nur Mo–Fr)
-        ist_stunden += _ist_stunden_urlaub_krank(ma, urlaub_krank_pro_ma.get(ma.id, []))
+        # Urlaub/Krank/gar_nichts: Tagesstunden aus gültiger Vereinbarung zu Ist addieren (nur Mo–Fr, OHNE Feiertage)
+        ist_stunden += _ist_stunden_urlaub_krank(ma, urlaub_krank_pro_ma.get(ma.id, []), feiertage_set)
 
         # --- SOLL-STUNDEN via Model-Methode ---
         try:
@@ -852,6 +881,9 @@ def schichtplan_uebersicht_detail(request, pk):
     # Schichttypen T, N, Z für das „Schicht zuweisen“-Panel (Drag-Quelle)
     schichttypen_menu = list(Schichttyp.objects.filter(kuerzel__in=['T', 'N', 'Z'], aktiv=True).order_by('kuerzel'))
 
+    # NEU: Feiertage einmalig berechnen
+    feiertage_set, _ = get_nrw_feiertage(start, ende)
+
     # Soll- und Ist-Stunden pro MA wie auf Plan-Detailseite (für Abschlusszeile pro Spalte)
     stunden_defaults = {'T': 12.25, 'N': 12.25, 'Z': 8.0}
     urlaub_krank_pro_ma = defaultdict(list)
@@ -874,7 +906,7 @@ def schichtplan_uebersicht_detail(request, pk):
             else:
                 stunden = float(s.schichttyp.arbeitszeit_stunden) if s.schichttyp.arbeitszeit_stunden else stunden_defaults.get(kuerzel, 0)
             ist_stunden += stunden
-        ist_stunden += _ist_stunden_urlaub_krank(ma, urlaub_krank_pro_ma.get(ma.id, []))
+        ist_stunden += _ist_stunden_urlaub_krank(ma, urlaub_krank_pro_ma.get(ma.id, []), feiertage_set)
         try:
             soll_stunden = float(ma.get_soll_stunden_monat(start.year, start.month))
         except Exception:
@@ -1032,6 +1064,8 @@ def schichtplan_export_excel(request, pk):
                 matrix[key] = ''
 
     stunden_defaults = {'T': 12.25, 'N': 12.25, 'Z': 8.0}
+    # NEU: Feiertage für Ist-Stunden-Berechnung
+    feiertage_set, _ = get_nrw_feiertage(start, ende)
     mitarbeiter_stunden = []
     for ma in mitarbeiter_liste:
         ma_schichten = [s for s in schichten if s.mitarbeiter_id == ma.id]
@@ -1046,7 +1080,7 @@ def schichtplan_export_excel(request, pk):
             else:
                 stunden = float(s.schichttyp.arbeitszeit_stunden) if s.schichttyp.arbeitszeit_stunden else stunden_defaults.get(kuerzel, 0)
             ist_stunden += stunden
-        ist_stunden += _ist_stunden_urlaub_krank(ma, urlaub_krank_pro_ma.get(ma.id, []))
+        ist_stunden += _ist_stunden_urlaub_krank(ma, urlaub_krank_pro_ma.get(ma.id, []), feiertage_set)
         try:
             soll_stunden = float(ma.get_soll_stunden_monat(start.year, start.month))
         except Exception:
@@ -1474,10 +1508,11 @@ def wunsch_eingeben(request, periode_id):
     """
     Formular zum Eintragen/Bearbeiten von Wünschen.
     Erlaubt Schichtplanern, Wünsche für beliebige MA einzutragen.
+    NEU: Unterstützt Von-Bis Eingabe für Urlaub.
     """
     
     # 1. Grund-Berechtigung: Ist es ein Schichtplaner?
-    is_planer = ist_schichtplaner(request.user) # Ich nehme an, die Funktion existiert bei dir
+    is_planer = ist_schichtplaner(request.user)
     
     # 2. Ziel-Mitarbeiter bestimmen
     # Schichtplaner können eine mitarbeiter_id via GET/POST übergeben
@@ -1499,7 +1534,7 @@ def wunsch_eingeben(request, periode_id):
         if not is_planer and mitarbeiter.schichtplan_kennung not in gueltige_kennungen:
             messages.error(request, "❌ Nur MA1-MA15 können Wünsche eintragen.")
             return redirect('arbeitszeit:dashboard')
-
+    
     # Periode laden
     periode = get_object_or_404(SchichtwunschPeriode, pk=periode_id)
     
@@ -1540,17 +1575,137 @@ def wunsch_eingeben(request, periode_id):
     if request.method == 'POST':
         wunsch_kategorie = request.POST.get('wunsch')
         begruendung = request.POST.get('begruendung', '')
+        mehrere_tage = request.POST.get('mehrere_tage') == 'on'
         
-        if wunsch_kategorie:
-            wunsch.wunsch = wunsch_kategorie
-            wunsch.begruendung = begruendung
-            wunsch.save()
+        # ========== NEU: VON-BIS LOGIK ==========
+        if mehrere_tage and wunsch_kategorie == 'urlaub':
+            von_datum_str = request.POST.get('von_datum')
+            bis_datum_str = request.POST.get('bis_datum')
             
-            messages.success(
-                request,
-                f"✅ Wunsch für {mitarbeiter.schichtplan_kennung} am {wunsch_datum.strftime('%d.%m.%Y')} gespeichert."
-            )
-            return redirect('schichtplan:wunsch_kalender', periode_id=periode.pk)
+            # Validierung der Eingaben
+            if not von_datum_str or not bis_datum_str:
+                messages.error(request, "❌ Bitte beide Daten (Von und Bis) eingeben!")
+                return redirect(request.path)
+            
+            try:
+                von_datum = datetime.strptime(von_datum_str, '%Y-%m-%d').date()
+                bis_datum = datetime.strptime(bis_datum_str, '%Y-%m-%d').date()
+                
+                # Validierung 1: Enddatum muss nach Startdatum liegen
+                if bis_datum < von_datum:
+                    messages.error(request, '❌ Das Enddatum muss nach dem Startdatum liegen!')
+                    return redirect(request.path)
+                
+                # Validierung 2: Beide Daten müssen im Wunschmonat liegen
+                if von_datum.month != periode.fuer_monat.month or von_datum.year != periode.fuer_monat.year:
+                    messages.error(request, f"❌ Startdatum liegt nicht im Wunschmonat {periode.fuer_monat.strftime('%B %Y')}!")
+                    return redirect(request.path)
+                
+                if bis_datum.month != periode.fuer_monat.month or bis_datum.year != periode.fuer_monat.year:
+                    messages.error(request, f"❌ Enddatum liegt nicht im Wunschmonat {periode.fuer_monat.strftime('%B %Y')}!")
+                    return redirect(request.path)
+                
+                # Validierung 3: Maximale Dauer prüfen (z.B. max. 31 Tage = ganzer Monat)
+                differenz = (bis_datum - von_datum).days + 1
+                if differenz > 31:
+                    messages.error(request, '❌ Der Zeitraum darf maximal 31 Tage umfassen!')
+                    return redirect(request.path)
+                
+                # Wünsche für alle Tage im Zeitraum erstellen
+                erstellt = 0
+                aktualisiert = 0
+                fehler = 0
+                
+                aktuelles_datum = von_datum
+                while aktuelles_datum <= bis_datum:
+                    try:
+                        wunsch_obj, created_flag = Schichtwunsch.objects.update_or_create(
+                            periode=periode,
+                            mitarbeiter=mitarbeiter,
+                            datum=aktuelles_datum,
+                            defaults={
+                                'wunsch': wunsch_kategorie,
+                                'begruendung': begruendung,
+                                'benoetigt_genehmigung': True,  # NEU
+                                'genehmigt': False
+                            }
+                        )
+                        
+                        if created_flag:
+                            erstellt += 1
+                        else:
+                            aktualisiert += 1
+                            
+                    except Exception as e:
+                        fehler += 1
+                        print(f"Fehler bei Datum {aktuelles_datum}: {e}")
+                    
+                    aktuelles_datum += timedelta(days=1)
+                
+                # Erfolgsmeldung
+                if fehler == 0:
+                    messages.success(
+                        request, 
+                        f'✅ Urlaubswunsch für {mitarbeiter.schichtplan_kennung} erfolgreich eingetragen! '
+                        f'Zeitraum: {von_datum.strftime("%d.%m.%Y")} - {bis_datum.strftime("%d.%m.%Y")} '
+                        f'({differenz} Tage: {erstellt} neu, {aktualisiert} aktualisiert)'
+                    )
+                else:
+                    messages.warning(
+                        request,
+                        f'⚠️ Urlaubswunsch teilweise eingetragen: {erstellt} neu, {aktualisiert} aktualisiert, {fehler} Fehler'
+                    )
+                
+                return redirect('schichtplan:wunsch_kalender', periode_id=periode.pk)
+                
+            except ValueError as e:
+                messages.error(request, f'❌ Ungültiges Datumsformat: {e}')
+                return redirect(request.path)
+        
+        # ========== ORIGINAL: EINZELNER TAG ==========
+        else:
+            if wunsch_kategorie:
+                wunsch.wunsch = wunsch_kategorie
+                wunsch.begruendung = begruendung
+                
+                # Genehmigungsstatus setzen
+                if wunsch_kategorie in ['urlaub', 'gar_nichts']:
+                    wunsch.benoetigt_genehmigung = True
+                    wunsch.genehmigt = False
+                else:
+                    wunsch.benoetigt_genehmigung = False
+                    wunsch.genehmigt = True
+                
+                wunsch.save()
+                
+                messages.success(
+                    request,
+                    f"✅ Wunsch für {mitarbeiter.schichtplan_kennung} am {wunsch_datum.strftime('%d.%m.%Y')} gespeichert."
+                )
+                return redirect('schichtplan:wunsch_kalender', periode_id=periode.pk)
+    
+    # ========== GET-REQUEST: FORMULAR ANZEIGEN ==========
+    
+    # Andere Wünsche für diesen Tag laden (für Transparenz)
+    andere_wuensche = Schichtwunsch.objects.filter(
+        periode=periode,
+        datum=wunsch_datum
+    ).exclude(mitarbeiter=mitarbeiter).select_related('mitarbeiter')
+    
+    # Wunsch-Kategorien (aus deinem Model)
+    wunsch_kategorien = Schichtwunsch.WUNSCH_KATEGORIEN
+    
+    context = {
+        'periode': periode,
+        'wunsch_datum': wunsch_datum,
+        'wunsch': wunsch,
+        'target_mitarbeiter': mitarbeiter,  # WICHTIG: für Template
+        'andere_wuensche': andere_wuensche,
+        'wunsch_kategorien': wunsch_kategorien,
+        'is_planer': is_planer,
+    }
+    return render(request, 'schichtplan/wuensche_eingeben.html', context)
+   
     
     # Andere Wünsche (Transparenz)
     andere_wuensche = Schichtwunsch.objects.filter(
@@ -1751,7 +1906,7 @@ def wunsch_kalender(request, periode_id):
     """
     
     import calendar
-    from datetime import date, timedelta
+    
     
     # Berechtigungsprüfung
     if not hasattr(request.user, 'mitarbeiter'):
@@ -2109,3 +2264,369 @@ def wunschperiode_loeschen(request, periode_id):
     }
     
     return render(request, 'schichtplan/wunschperiode_loeschen_confirm.html', context)
+
+# Hilfsfunktion: Ist User ein Schichtplaner?
+def ist_schichtplaner(user):
+    """Prüft, ob User Schichtplaner-Rechte hat"""
+    # ANPASSEN: Je nach Ihrer Berechtigungslogik
+    return user.is_staff or user.groups.filter(name='Schichtplaner').exists()
+
+
+@login_required
+def genehmigungen_uebersicht(request):
+    """
+    Übersicht aller Perioden mit offenen Genehmigungen.
+    Nur für Schichtplaner zugänglich.
+    """
+    if not ist_schichtplaner(request.user):
+        messages.error(request, "❌ Keine Berechtigung für Urlaubsgenehmigungen.")
+        return redirect('arbeitszeit:dashboard')
+    
+    # Alle Perioden mit offenen Urlaubsanträgen
+    perioden = SchichtwunschPeriode.objects.annotate(
+        offene_urlaube=Count(
+            'schichtwunsch',
+            filter=Q(
+                schichtwunsch__wunsch__in=['urlaub', 'gar_nichts'],
+                schichtwunsch__genehmigt=False
+            )
+        )
+    ).filter(offene_urlaube__gt=0).order_by('-fuer_monat')
+    
+    context = {
+        'perioden': perioden,
+    }
+    
+    return render(request, 'schichtplan/genehmigungen_uebersicht.html', context)
+
+
+@login_required
+def genehmigungen_periode(request, periode_id):
+    """
+    Detailansicht: Alle Urlaubsanträge einer Periode mit Konflikt-Analyse.
+    """
+    if not ist_schichtplaner(request.user):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('arbeitszeit:dashboard')
+    
+    periode = get_object_or_404(SchichtwunschPeriode, pk=periode_id)
+    
+    # Alle Urlaubsanträge (offen + genehmigt)
+    alle_urlaube = Schichtwunsch.objects.filter(
+        periode=periode,
+        wunsch__in=['urlaub', 'gar_nichts']
+    ).select_related('mitarbeiter').order_by('datum', 'mitarbeiter__schichtplan_kennung')
+    
+    # Offene Anträge
+    offene_antraege = alle_urlaube.filter(genehmigt=False)
+    
+    # Genehmigte Anträge
+    genehmigte_antraege = alle_urlaube.filter(genehmigt=True)
+    
+    # ====================================================================
+    # KONFLIKT-ANALYSE: Welche Tage sind kritisch?
+    # ====================================================================
+    
+    # Zähle genehmigte Urlaube pro Tag
+    urlaube_pro_tag = {}
+    for urlaub in genehmigte_antraege:
+        datum = urlaub.datum
+        if datum not in urlaube_pro_tag:
+            urlaube_pro_tag[datum] = 0
+        urlaube_pro_tag[datum] += 1
+    
+    # Gruppiere offene Anträge nach Datum
+    antraege_nach_datum = {}
+    for antrag in offene_antraege:
+        datum = antrag.datum
+        if datum not in antraege_nach_datum:
+            antraege_nach_datum[datum] = {
+                'datum': datum,
+                'antraege': [],
+                'bereits_genehmigt': urlaube_pro_tag.get(datum, 0),
+                'verfuegbar_jetzt': 15 - urlaube_pro_tag.get(datum, 0),
+                'status': 'ok'  # ok, warnung, kritisch
+            }
+        antraege_nach_datum[datum]['antraege'].append(antrag)
+    
+    # Status berechnen
+    for datum_str, daten in antraege_nach_datum.items():
+        bereits = daten['bereits_genehmigt']
+        offen = len(daten['antraege'])
+        gesamt_wenn_alle = bereits + offen
+        verfuegbar_dann = 15 - gesamt_wenn_alle
+        
+        daten['verfuegbar_wenn_alle'] = verfuegbar_dann
+        
+        # Status setzen
+        if verfuegbar_dann < 4:
+            daten['status'] = 'kritisch'
+        elif verfuegbar_dann < 6:
+            daten['status'] = 'warnung'
+        else:
+            daten['status'] = 'ok'
+    
+    # Sortiere nach Datum
+    antraege_nach_datum = dict(sorted(antraege_nach_datum.items()))
+    
+    # Statistiken
+    kritische_tage = sum(1 for d in antraege_nach_datum.values() if d['status'] == 'kritisch')
+    warn_tage = sum(1 for d in antraege_nach_datum.values() if d['status'] == 'warnung')
+    
+    context = {
+        'periode': periode,
+        'antraege_nach_datum': antraege_nach_datum,
+        'offene_antraege_count': offene_antraege.count(),
+        'genehmigte_antraege_count': genehmigte_antraege.count(),
+        'kritische_tage': kritische_tage,
+        'warn_tage': warn_tage,
+    }
+    
+    return render(request, 'schichtplan/genehmigungen_periode.html', context)
+
+
+@login_required
+def urlaub_genehmigen(request, wunsch_id):
+    """
+    Genehmigt einen einzelnen Urlaubsantrag mit Konfliktprüfung.
+    """
+    if not ist_schichtplaner(request.user):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('arbeitszeit:dashboard')
+    
+    wunsch = get_object_or_404(Schichtwunsch, pk=wunsch_id)
+    
+    if request.method == 'POST':
+        # Prüfe, wie viele Urlaube an diesem Tag bereits genehmigt sind
+        urlaube_am_tag = Schichtwunsch.objects.filter(
+            periode=wunsch.periode,
+            datum=wunsch.datum,
+            wunsch__in=['urlaub', 'gar_nichts'],
+            genehmigt=True
+        ).count()
+        
+        verfuegbar_nach_genehmigung = 15 - (urlaube_am_tag + 1)
+        
+        # KRITISCH: Wenn < 4 MA verfügbar wären
+        if verfuegbar_nach_genehmigung < 4:
+            messages.error(
+                request,
+                f"❌ Genehmigung nicht möglich! Am {wunsch.datum.strftime('%d.%m.%Y')} würden nur noch "
+                f"{verfuegbar_nach_genehmigung} MA verfügbar sein (benötigt: mindestens 4)."
+            )
+            return redirect('schichtplan:genehmigungen_periode', periode_id=wunsch.periode.pk)
+        
+        # WARNUNG: Wenn < 6 MA verfügbar wären
+        elif verfuegbar_nach_genehmigung < 6:
+            messages.warning(
+                request,
+                f"⚠️ Achtung: Am {wunsch.datum.strftime('%d.%m.%Y')} werden nur noch "
+                f"{verfuegbar_nach_genehmigung} MA verfügbar sein (sehr eng!)."
+            )
+        
+        # Genehmigung durchführen
+        wunsch.genehmigt = True
+        wunsch.genehmigt_von = request.user
+        wunsch.genehmigt_am = timezone.now()
+        wunsch.benoetigt_genehmigung = True
+        wunsch.save()
+        
+        messages.success(
+            request,
+            f"✅ Urlaub für {wunsch.mitarbeiter.schichtplan_kennung} am "
+            f"{wunsch.datum.strftime('%d.%m.%Y')} genehmigt."
+        )
+        
+        return redirect('schichtplan:genehmigungen_periode', periode_id=wunsch.periode.pk)
+    
+    # GET: Zeige Bestätigungsseite
+    # Berechne Verfügbarkeit
+    urlaube_am_tag = Schichtwunsch.objects.filter(
+        periode=wunsch.periode,
+        datum=wunsch.datum,
+        wunsch__in=['urlaub', 'gar_nichts'],
+        genehmigt=True
+    ).count()
+    
+    verfuegbar_nach_genehmigung = 15 - (urlaube_am_tag + 1)
+    
+    context = {
+        'wunsch': wunsch,
+        'urlaube_am_tag': urlaube_am_tag,
+        'verfuegbar_nach_genehmigung': verfuegbar_nach_genehmigung,
+    }
+    
+    return render(request, 'schichtplan/urlaub_genehmigen_confirm.html', context)
+
+
+@login_required
+def urlaub_ablehnen(request, wunsch_id):
+    """
+    Lehnt einen Urlaubsantrag ab.
+    """
+    if not ist_schichtplaner(request.user):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('arbeitszeit:dashboard')
+    
+    wunsch = get_object_or_404(Schichtwunsch, pk=wunsch_id)
+    
+    if request.method == 'POST':
+        # Optional: Ablehnungsgrund speichern
+        ablehnungsgrund = request.POST.get('grund', '')
+        
+        # Wunsch löschen oder als abgelehnt markieren
+        # Option A: Löschen
+        mitarbeiter_name = wunsch.mitarbeiter.schichtplan_kennung
+        datum_str = wunsch.datum.strftime('%d.%m.%Y')
+        periode_id = wunsch.periode.pk
+        
+        wunsch.delete()
+        
+        messages.info(
+            request,
+            f"❌ Urlaubsantrag von {mitarbeiter_name} für {datum_str} abgelehnt."
+        )
+        
+        # Option B: Als abgelehnt markieren (wenn Sie ein 'abgelehnt' Feld haben)
+        # wunsch.abgelehnt = True
+        # wunsch.ablehnungsgrund = ablehnungsgrund
+        # wunsch.save()
+        
+        return redirect('schichtplan:genehmigungen_periode', periode_id=periode_id)
+    
+    # GET: Bestätigungsseite
+    context = {
+        'wunsch': wunsch,
+    }
+    
+    return render(request, 'schichtplan/urlaub_ablehnen_confirm.html', context)
+
+@login_required
+def urlaub_bulk_genehmigen(request):
+    """
+    Genehmigt mehrere Urlaubsanträge auf einmal.
+    """
+    if not ist_schichtplaner(request.user):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('arbeitszeit:dashboard')
+    
+    if request.method != 'POST':
+        messages.error(request, "❌ Ungültige Anfrage.")
+        return redirect('schichtplan:genehmigungen_uebersicht')
+    
+    # IDs der ausgewählten Anträge aus POST-Daten
+    wunsch_ids = request.POST.getlist('wunsch_ids[]')
+    
+    if not wunsch_ids:
+        messages.warning(request, "⚠️ Keine Anträge ausgewählt.")
+        return redirect(request.META.get('HTTP_REFERER', 'schichtplan:genehmigungen_uebersicht'))
+    
+    # Anträge laden
+    wuensche = Schichtwunsch.objects.filter(
+        id__in=wunsch_ids,
+        genehmigt=False
+    ).select_related('mitarbeiter', 'periode')
+    
+    if not wuensche:
+        messages.warning(request, "⚠️ Keine gültigen Anträge gefunden.")
+        return redirect(request.META.get('HTTP_REFERER', 'schichtplan:genehmigungen_uebersicht'))
+    
+    # Gruppiere nach Datum für Konflikt-Check
+    wuensche_nach_datum = {}
+    for w in wuensche:
+        if w.datum not in wuensche_nach_datum:
+            wuensche_nach_datum[w.datum] = []
+        wuensche_nach_datum[w.datum].append(w)
+    
+    # Konflikt-Prüfung für jeden Tag
+    kritische_tage = []
+    for datum, tag_wuensche in wuensche_nach_datum.items():
+        periode = tag_wuensche[0].periode
+        
+        # Bereits genehmigte Urlaube an diesem Tag
+        bereits_genehmigt = Schichtwunsch.objects.filter(
+            periode=periode,
+            datum=datum,
+            wunsch__in=['urlaub', 'gar_nichts'],
+            genehmigt=True
+        ).count()
+        
+        # Wie viele würden genehmigt werden?
+        neue_genehmigungen = len(tag_wuensche)
+        
+        # Verfügbare MA nach Genehmigung
+        verfuegbar_nach = 15 - (bereits_genehmigt + neue_genehmigungen)
+        
+        if verfuegbar_nach < 4:
+            kritische_tage.append({
+                'datum': datum,
+                'verfuegbar': verfuegbar_nach,
+                'anzahl_antraege': neue_genehmigungen
+            })
+    
+    # Wenn kritische Tage: ABBRUCH
+    if kritische_tage:
+        tage_str = ", ".join([k['datum'].strftime('%d.%m.%Y') for k in kritische_tage])
+        messages.error(
+            request,
+            f"❌ Bulk-Genehmigung abgebrochen!\n\n"
+            f"An folgenden Tagen würde die Mindestbesetzung unterschritten:\n"
+            f"{tage_str}\n\n"
+            f"Bitte genehmigen Sie diese Tage einzeln oder wählen Sie weniger Anträge aus."
+        )
+        return redirect(request.META.get('HTTP_REFERER', 'schichtplan:genehmigungen_uebersicht'))
+    
+    # Alle genehmigen
+    genehmigt = 0
+    for wunsch in wuensche:
+        wunsch.genehmigt = True
+        wunsch.genehmigt_von = request.user
+        wunsch.genehmigt_am = timezone.now()
+        wunsch.benoetigt_genehmigung = True
+        wunsch.save()
+        genehmigt += 1
+    
+    messages.success(
+        request,
+        f"✅ {genehmigt} Urlaubsanträge erfolgreich genehmigt!"
+    )
+    
+    return redirect(request.META.get('HTTP_REFERER', 'schichtplan:genehmigungen_uebersicht'))
+
+
+@login_required
+def urlaub_bulk_ablehnen(request):
+    """
+    Lehnt mehrere Urlaubsanträge auf einmal ab.
+    """
+    if not ist_schichtplaner(request.user):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('arbeitszeit:dashboard')
+    
+    if request.method != 'POST':
+        messages.error(request, "❌ Ungültige Anfrage.")
+        return redirect('schichtplan:genehmigungen_uebersicht')
+    
+    # IDs der ausgewählten Anträge
+    wunsch_ids = request.POST.getlist('wunsch_ids[]')
+    
+    if not wunsch_ids:
+        messages.warning(request, "⚠️ Keine Anträge ausgewählt.")
+        return redirect(request.META.get('HTTP_REFERER', 'schichtplan:genehmigungen_uebersicht'))
+    
+    # Anträge löschen
+    geloescht = Schichtwunsch.objects.filter(
+        id__in=wunsch_ids,
+        genehmigt=False
+    ).delete()[0]
+    
+    if geloescht > 0:
+        messages.success(
+            request,
+            f"✅ {geloescht} Urlaubsanträge abgelehnt."
+        )
+    else:
+        messages.warning(request, "⚠️ Keine gültigen Anträge gefunden.")
+    
+    return redirect(request.META.get('HTTP_REFERER', 'schichtplan:genehmigungen_uebersicht'))
+

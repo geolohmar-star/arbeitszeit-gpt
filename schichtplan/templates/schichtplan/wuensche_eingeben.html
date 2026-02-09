@@ -41,11 +41,12 @@
                             {% for kategorie_key, kategorie_label in wunsch_kategorien %}
                             <div class="form-check mb-3">
                                 <input 
-                                    class="form-check-input" 
+                                    class="form-check-input wunsch-radio" 
                                     type="radio" 
                                     name="wunsch" 
                                     id="wunsch_{{ kategorie_key }}" 
                                     value="{{ kategorie_key }}"
+                                    data-kategorie="{{ kategorie_key }}"
                                     {% if wunsch.wunsch == kategorie_key %}checked{% endif %}
                                     required
                                 >
@@ -63,21 +64,57 @@
                             {% endfor %}
                         </div>
 
+                        <!-- NEU: Von-Bis Datumsauswahl (nur bei Urlaub sichtbar) -->
+                        <div class="mb-4" id="zeitraum-container" style="display: none;">
+                            <div class="alert alert-info">
+                                <strong>📅 Urlaubszeitraum</strong>
+                                <p class="mb-0 small">Möchten Sie Urlaub für mehrere Tage eintragen?</p>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input 
+                                    class="form-check-input" 
+                                    type="checkbox" 
+                                    id="mehrere_tage" 
+                                    name="mehrere_tage"
+                                >
+                                <label class="form-check-label" for="mehrere_tage">
+                                    <strong>Zeitraum eingeben (Von-Bis)</strong>
+                                </label>
+                            </div>
+                            
+                            <div id="datum-felder" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="von_datum" class="form-label">Von (Startdatum):</label>
+                                        <input 
+                                            type="date" 
+                                            class="form-control" 
+                                            id="von_datum" 
+                                            name="von_datum"
+                                            value="{{ wunsch_datum|date:'Y-m-d' }}"
+                                        >
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="bis_datum" class="form-label">Bis (Enddatum):</label>
+                                        <input 
+                                            type="date" 
+                                            class="form-control" 
+                                            id="bis_datum" 
+                                            name="bis_datum"
+                                            value="{{ wunsch_datum|date:'Y-m-d' }}"
+                                        >
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted mt-2 d-block">
+                                    ⚠️ Es werden automatisch Wünsche für alle Tage im Zeitraum erstellt.
+                                </small>
+                            </div>
+                        </div>
+
                         <!-- Begründung (optional) -->
                         <div class="mb-4">
-                            <label for="begruendung" class="form-label fw-bold">
-                                Begründung (optional)
-                            </label>
-                            <textarea 
-                                class="form-control" 
-                                id="begruendung" 
-                                name="begruendung" 
-                                rows="3"
-                                placeholder="z.B. Arzttermin, Kinderbetreuung, ..."
-                            >{{ wunsch.begruendung }}</textarea>
-                            <small class="form-text text-muted">
-                                Eine Begründung kann die Genehmigung erleichtern.
-                            </small>
+                            <!-- ... Rest des Formulars bleibt gleich ... -->
                         </div>
 
                         <!-- Buttons -->
@@ -176,4 +213,52 @@
     font-weight: bold;
 }
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const wunschRadios = document.querySelectorAll('.wunsch-radio');
+    const zeitraumContainer = document.getElementById('zeitraum-container');
+    const mehrereTageCheckbox = document.getElementById('mehrere_tage');
+    const datumFelder = document.getElementById('datum-felder');
+    const vonDatum = document.getElementById('von_datum');
+    const bisDatum = document.getElementById('bis_datum');
+    
+    // Zeitraum-Container anzeigen, wenn "Urlaub" gewählt wird
+    wunschRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.dataset.kategorie === 'urlaub') {
+                zeitraumContainer.style.display = 'block';
+            } else {
+                zeitraumContainer.style.display = 'none';
+                mehrereTageCheckbox.checked = false;
+                datumFelder.style.display = 'none';
+            }
+        });
+    });
+    
+    // Datumsfelder anzeigen, wenn Checkbox aktiviert wird
+    mehrereTageCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            datumFelder.style.display = 'block';
+        } else {
+            datumFelder.style.display = 'none';
+        }
+    });
+    
+    // Initiale Sichtbarkeit prüfen
+    const selectedRadio = document.querySelector('.wunsch-radio:checked');
+    if (selectedRadio && selectedRadio.dataset.kategorie === 'urlaub') {
+        zeitraumContainer.style.display = 'block';
+    }
+    
+    // Validierung: "Bis" muss nach "Von" liegen
+    bisDatum.addEventListener('change', function() {
+        if (vonDatum.value && bisDatum.value) {
+            if (new Date(bisDatum.value) < new Date(vonDatum.value)) {
+                alert('Das Enddatum muss nach dem Startdatum liegen!');
+                bisDatum.value = vonDatum.value;
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

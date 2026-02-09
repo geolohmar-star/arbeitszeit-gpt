@@ -1,4 +1,3 @@
-{% load schichtplan_tags %}
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -115,21 +114,11 @@
                     {% endif %}
                     <!-- ============================================ -->
                     
-                    <!-- Schichtplanung (nur für Schichtplaner) -->
+                    <!-- Schichtplanung (nur für Staff) -->
                     {% if user.is_authenticated %}
-                        {% if user|ist_schichtplaner %}
+                        {% if user.is_staff %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'schichtplan:dashboard' %}">Schichtplanung</a>
-                        </li>
-                        
-                        <!-- NEU: Urlaubsgenehmigungen -->
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'schichtplan:genehmigungen_uebersicht' %}">
-                                🔐 Urlaubsgenehmigungen
-                                {% if offene_antraege_count > 0 %}
-                                <span class="badge bg-warning">{{ offene_antraege_count }}</span>
-                                {% endif %}
-                            </a>
                         </li>
                         {% endif %}
                     {% endif %}

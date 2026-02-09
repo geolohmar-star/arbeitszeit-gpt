@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}Genehmigungen - {{ periode.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>🔐 Urlaubsgenehmigungen</h2>
+            <p class="text-muted mb-0">{{ periode.name }} - {{ periode.fuer_monat|date:"F Y" }}</p>
+        </div>
+        <a href="{% url 'schichtplan:genehmigungen_uebersicht' %}" class="btn btn-secondary">
+            ← Zurück zur Übersicht
+        </a>
+    </div>
+
+    <!-- Statistik -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-warning">{{ offene_antraege_count }}</h3>
+                    <p class="mb-0">Offene Anträge</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-success">{{ genehmigte_antraege_count }}</h3>
+                    <p class="mb-0">Bereits genehmigt</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3 class="text-danger">{{ kritische_tage }}</h3>
+                    <p class="mb-0">Kritische Tage</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Warnungen -->
+    {% if kritische_tage > 0 %}
+    <div class="alert alert-danger">
+        <h5>🚨 KRITISCHE TAGE</h5>
+        <p class="mb-0">
+            An {{ kritische_tage }} Tag(en) würde bei Genehmigung aller Anträge die Mindestbesetzung unterschritten!
+        </p>
+    </div>
+    {% elif warn_tage > 0 %}
+    <div class="alert alert-warning">
+        <h5>⚠️ ENGE TAGE</h5>
+        <p class="mb-0">
+            An {{ warn_tage }} Tag(en) wird die Planung sehr eng (< 6 MA verfügbar).
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- NEU: Bulk-Aktionen Toolbar -->
+    {% if antraege_nach_datum %}
+    <div class="card mb-3 bg-light">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <strong>Ausgewählt: <span id="selected-count">0</span></strong>
+                </div>
+                <div class="col-md-8 text-end">
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="select-all-btn">
+                        ☑️ Alle auswählen
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="deselect-all-btn">
+                        ☐ Alle abwählen
+                    </button>
+                    <button type="button" class="btn btn-success" id="bulk-approve-btn" disabled>
+                        ✅ Ausgewählte genehmigen
+                    </button>
+                    <button type="button" class="btn btn-danger" id="bulk-reject-btn" disabled>
+                        ❌ Ausgewählte ablehnen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form für Bulk-Aktionen -->
+    <form id="bulk-form" method="post" action="">
+        {% csrf_token %}
+        <!-- IDs werden hier dynamisch eingefügt -->
+    </form>
+
+    <!-- Anträge nach Datum -->
+    <h4 class="mt-4 mb-3">Offene Anträge</h4>
+    
+    {% for datum_str, daten in antraege_nach_datum.items %}
+    <div class="card mb-3 border-{% if daten.status == 'kritisch' %}danger{% elif daten.status == 'warnung' %}warning{% else %}success{% endif %}">
+        <div class="card-header bg-{% if daten.status == 'kritisch' %}danger{% elif daten.status == 'warnung' %}warning{% else %}light{% endif %} 
+                    {% if daten.status != 'ok' %}text-white{% endif %}">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    {{ daten.datum|date:"l, d. F Y" }}
+                </h5>
+                <div>
+                    {% if daten.status == 'kritisch' %}
+                        <span class="badge bg-dark">🚨 KRITISCH</span>
+                    {% elif daten.status == 'warnung' %}
+                        <span class="badge bg-dark">⚠️ ENG</span>
+                    {% else %}
+                        <span class="badge bg-success">✓ OK</span>
+                    {% endif %}
+                </div>
+            </div>
+            <small>
+                Bereits genehmigt: {{ daten.bereits_genehmigt }} | 
+                Offen: {{ daten.antraege|length }} | 
+                Verfügbar jetzt: {{ daten.verfuegbar_jetzt }} MA | 
+                Wenn alle genehmigt: {{ daten.verfuegbar_wenn_alle }} MA
+            </small>
+        </div>
+        <div class="card-body">
+            {% for antrag in daten.antraege %}
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                <div class="d-flex align-items-center">
+                    <!-- NEU: Checkbox -->
+                    <input 
+                        type="checkbox" 
+                        class="form-check-input me-3 wunsch-checkbox" 
+                        value="{{ antrag.pk }}"
+                        data-status="{{ daten.status }}"
+                    >
+                    <div>
+                        <strong>{{ antrag.mitarbeiter.schichtplan_kennung }}</strong>
+                        <span class="badge bg-info">{{ antrag.get_wunsch_display }}</span>
+                        {% if antrag.begruendung %}
+                        <br>
+                        <small class="text-muted">{{ antrag.begruendung }}</small>
+                        {% endif %}
+                        <br>
+                        <small class="text-muted">
+                            Erstellt: {{ antrag.erstellt_am|date:"d.m.Y H:i" }}
+                        </small>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'schichtplan:urlaub_genehmigen' antrag.pk %}" 
+                       class="btn btn-sm btn-success">
+                        ✅ Einzeln
+                    </a>
+                    <a href="{% url 'schichtplan:urlaub_ablehnen' antrag.pk %}" 
+                       class="btn btn-sm btn-danger">
+                        ❌ Ablehnen
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+    
+    {% else %}
+    <div class="alert alert-success">
+        ✅ Keine offenen Urlaubsanträge für diese Periode.
+    </div>
+    {% endif %}
+</div>
+
+<!-- JavaScript für Bulk-Funktionen -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.wunsch-checkbox');
+    const selectAllBtn = document.getElementById('select-all-btn');
+    const deselectAllBtn = document.getElementById('deselect-all-btn');
+    const bulkApproveBtn = document.getElementById('bulk-approve-btn');
+    const bulkRejectBtn = document.getElementById('bulk-reject-btn');
+    const selectedCount = document.getElementById('selected-count');
+    const bulkForm = document.getElementById('bulk-form');
+    
+    // Update Zähler und Button-Status
+    function updateUI() {
+        const checked = document.querySelectorAll('.wunsch-checkbox:checked');
+        const count = checked.length;
+        
+        selectedCount.textContent = count;
+        
+        if (count > 0) {
+            bulkApproveBtn.disabled = false;
+            bulkRejectBtn.disabled = false;
+        } else {
+            bulkApproveBtn.disabled = true;
+            bulkRejectBtn.disabled = true;
+        }
+    }
+    
+    // Checkbox Change Event
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateUI);
+    });
+    
+    // Alle auswählen
+    selectAllBtn.addEventListener('click', function() {
+        checkboxes.forEach(cb => cb.checked = true);
+        updateUI();
+    });
+    
+    // Alle abwählen
+    deselectAllBtn.addEventListener('click', function() {
+        checkboxes.forEach(cb => cb.checked = false);
+        updateUI();
+    });
+    
+    // Bulk Genehmigen
+    bulkApproveBtn.addEventListener('click', function() {
+        const checked = document.querySelectorAll('.wunsch-checkbox:checked');
+        
+        if (checked.length === 0) {
+            alert('Bitte wählen Sie mindestens einen Antrag aus.');
+            return;
+        }
+        
+        // Bestätigung
+        if (!confirm(`Möchten Sie wirklich ${checked.length} Anträge genehmigen?`)) {
+            return;
+        }
+        
+        // Form vorbereiten
+        bulkForm.action = "{% url 'schichtplan:urlaub_bulk_genehmigen' %}";
+        bulkForm.innerHTML = '{% csrf_token %}';
+        
+        // IDs hinzufügen
+        checked.forEach(cb => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'wunsch_ids[]';
+            input.value = cb.value;
+            bulkForm.appendChild(input);
+        });
+        
+        // Absenden
+        bulkForm.submit();
+    });
+    
+    // Bulk Ablehnen
+    bulkRejectBtn.addEventListener('click', function() {
+        const checked = document.querySelectorAll('.wunsch-checkbox:checked');
+        
+        if (checked.length === 0) {
+            alert('Bitte wählen Sie mindestens einen Antrag aus.');
+            return;
+        }
+        
+        // Bestätigung
+        if (!confirm(`Möchten Sie wirklich ${checked.length} Anträge ablehnen und löschen?`)) {
+            return;
+        }
+        
+        // Form vorbereiten
+        bulkForm.action = "{% url 'schichtplan:urlaub_bulk_ablehnen' %}";
+        bulkForm.innerHTML = '{% csrf_token %}';
+        
+        // IDs hinzufügen
+        checked.forEach(cb => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'wunsch_ids[]';
+            input.value = cb.value;
+            bulkForm.appendChild(input);
+        });
+        
+        // Absenden
+        bulkForm.submit();
+    });
+    
+    // Initial UI Update
+    updateUI();
+});
+</script>
+
+<style>
+.card {
+    transition: all 0.2s;
+}
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.wunsch-checkbox {
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+}
+</style>
+{% endblock %}
