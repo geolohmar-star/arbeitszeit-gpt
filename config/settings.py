@@ -24,6 +24,13 @@ ALLOWED_HOSTS = [
     '.up.railway.app',
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.onrender.com',
+    'https://arbeitszeit-gpt.up.railway.app',
+    'https://*.railway.app',
+    'https://*.up.railway.app',
+]
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
