@@ -19,6 +19,9 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '.onrender.com',
+    'arbeitszeit-gpt.up.railway.app',
+    '.railway.app',
+    '.up.railway.app',
 ]
 
 # Application definition
