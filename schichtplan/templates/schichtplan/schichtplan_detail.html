@@ -49,7 +49,8 @@
         </div>
     </div>
 
-    <!-- 📅 Jahresübersicht: Jahressummen pro Mitarbeiter (T, N, Z, WE) -->
+    <!-- 📅 Jahresübersicht: Jahressummen pro Mitarbeiter (nur für Schichtplaner sichtbar) -->
+    {% if can_edit %}
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0">📅 Jahresübersicht {{ jahresuebersicht.jahr }} – Summen pro Mitarbeiter</h5>
@@ -82,6 +83,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- 📊 NEUE STATISTIK-TABELLE -->
     <div class="card shadow-sm mb-4">
