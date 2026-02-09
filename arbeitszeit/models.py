@@ -684,7 +684,13 @@ class Arbeitszeitvereinbarung(models.Model):
    
     @property
     def get_wochenstunden_summe(self):
-        # 1. PRIORITÄT: Wenn Einzeltage (Montag, Dienstag...) existieren, nimm diese!
+        # Regelmäßige Arbeitszeit: immer das vertragliche Feld 'wochenstunden' anzeigen
+        if self.arbeitszeit_typ == 'regelmaessig' and self.wochenstunden and self.wochenstunden > 0:
+            stunden = int(self.wochenstunden)
+            minuten = int(round(float(self.wochenstunden - stunden) * 60))
+            return f"{stunden}:{minuten:02d}h"
+
+        # Individuell: Summe aus Tagesarbeitszeiten (HHMM wird in zeit_in_minuten korrekt umgerechnet)
         tage = self.tagesarbeitszeiten.all()
         if tage.exists():
             total_minuten = sum(t.zeit_in_minuten for t in tage)
@@ -695,13 +701,12 @@ class Arbeitszeitvereinbarung(models.Model):
             minuten = int(round(minuten_pro_woche % 60))
             return f"{stunden}:{minuten:02d}h"
 
-        # 2. PRIORITÄT: Wenn keine Einzeltage da sind, nimm das Feld 'wochenstunden'
+        # Fallback: Feld 'wochenstunden' falls gesetzt
         if self.wochenstunden and self.wochenstunden > 0:
             stunden = int(self.wochenstunden)
-            minuten = int(round((self.wochenstunden - stunden) * 60))
+            minuten = int(round(float(self.wochenstunden - stunden) * 60))
             return f"{stunden}:{minuten:02d}h"
 
-        # 3. FALLBACK: Wenn gar nichts gefunden wurde
         return "0:00h"
         
     @property
@@ -793,18 +798,26 @@ class Tagesarbeitszeit(models.Model):
         return f"{self.get_wochentag_display()}: {self.formatierte_zeit}"
     
 
+    def _hhmm_to_minuten(self):
+        """Konvertiert HHMM (z.B. 830 = 8:30) in Minuten."""
+        if self.zeitwert is None:
+            return 0
+        stunden = self.zeitwert // 100
+        minuten = self.zeitwert % 100
+        return stunden * 60 + minuten
+
     @property
     def stunden(self):
-        # Wenn zeitwert 468 ist: 468 // 60 = 7
-        return self.zeitwert // 60
+        # HHMM: 830 -> 8
+        return (self.zeitwert or 0) // 100
     @property
     def minuten(self):
-        # Wenn zeitwert 468 ist: 468 % 60 = 48
-        return self.zeitwert % 60
+        # HHMM: 830 -> 30
+        return (self.zeitwert or 0) % 100
     
     def formatierte_zeit(self):
         """
-        Wandelt den gespeicherten HMM-Zeitwert in HH:MM um.
+        Wandelt den gespeicherten HHMM-Zeitwert in HH:MM um.
         Beispiel: 830 -> 08:30
         """
         if self.zeitwert is None:
@@ -813,8 +826,8 @@ class Tagesarbeitszeit(models.Model):
 
     @property
     def zeit_in_minuten(self):
-        # Da der Wert schon in Minuten vorliegt, einfach zurückgeben
-        return self.zeitwert if self.zeitwert else 0
+        """Arbeitszeit des Tages in Minuten (HHMM wird korrekt umgerechnet)."""
+        return self._hhmm_to_minuten()
 
 
 class ArbeitszeitHistorie(models.Model):

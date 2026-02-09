@@ -1771,10 +1771,34 @@ def wunsch_kalender(request, periode_id):
     
     print(f"   Anzahl Kalendertage: {len(kalender_daten)}")
     
-    # DEBUG vor return
-    print(f"\n🔍 DEBUG Context:")
-    print(f"   Anzahl kalender_daten: {len(kalender_daten)}")
-    print(f"   Anzahl alle_mitarbeiter: {len(planbare_ma)}")
+    # Beteiligung / Bewertung: Wie viele Wünsche hat jeder MA abgegeben?
+    wuensche_pro_ma = (
+        alle_wuensche.values('mitarbeiter')
+        .annotate(anzahl_tage=Count('datum', distinct=True))
+        .order_by()
+    )
+    ma_anzahl = {e['mitarbeiter']: e['anzahl_tage'] for e in wuensche_pro_ma}
+    beteiligung_liste = []
+    for ma in planbare_ma:
+        n = ma_anzahl.get(ma.pk, 0)
+        if n == 0:
+            einordnung = 'keine'
+            einordnung_label = 'Keine Wünsche abgegeben'
+        elif n <= 4:
+            einordnung = 'wenige'
+            einordnung_label = 'Wenige Angaben'
+        elif n <= 14:
+            einordnung = 'einige'
+            einordnung_label = 'Mittlere Beteiligung'
+        else:
+            einordnung = 'viele'
+            einordnung_label = 'Viele Wünsche – gute Planungsgrundlage'
+        beteiligung_liste.append({
+            'ma': ma,
+            'anzahl_tage': n,
+            'einordnung': einordnung,
+            'einordnung_label': einordnung_label,
+        })
     
     context = {
         'periode': periode,
@@ -1783,6 +1807,7 @@ def wunsch_kalender(request, periode_id):
         'mitarbeiter': mitarbeiter,
         'alle_mitarbeiter': planbare_ma,
         'monat_name': MONATE_DE[monat_start.month],
+        'beteiligung_liste': beteiligung_liste,
     }
     
     return render(request, 'schichtplan/wunsch_kalender.html', context)

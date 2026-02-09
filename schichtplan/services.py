@@ -19,6 +19,7 @@ import calendar
 from collections import defaultdict
 from decimal import Decimal
 from ortools.sat.python import cp_model
+
 from django.db.models import Q
 
 from schichtplan.models import Schicht, Schichttyp, Schichtplan, Schichtwunsch
@@ -236,6 +237,24 @@ class SchichtplanGenerator:
                 urlaubs_tage[w.mitarbeiter.id].append(w.datum)
             elif w.wunsch == 'gar_nichts' and w.genehmigt:
                 urlaubs_tage[w.mitarbeiter.id].append(w.datum)
+
+        # Bevorzugung: Wer wenige Wünsche geäußert hat, wird bei der Planung bevorzugt
+        wunsch_anzahl_pro_ma = {ma.id: len(wuensche_matrix.get(ma.id, {})) for ma in self.mitarbeiter_list}
+        wunsch_bonus = {}
+        for ma in self.mitarbeiter_list:
+            n = wunsch_anzahl_pro_ma.get(ma.id, 0)
+            if n == 0:
+                wunsch_bonus[ma.id] = 5000   # Keine Wünsche → stärkste Bevorzugung
+            elif n <= 4:
+                wunsch_bonus[ma.id] = 3000   # Wenige Angaben → bevorzugt
+            elif n <= 14:
+                wunsch_bonus[ma.id] = 1000   # Mittlere Beteiligung → leicht bevorzugt
+            else:
+                wunsch_bonus[ma.id] = 0      # Viele Wünsche → keine Extra-Bevorzugung
+        for ma in self.mitarbeiter_list:
+            b = wunsch_bonus.get(ma.id, 0)
+            if b > 0:
+                print(f"   📊 {ma.schichtplan_kennung}: {wunsch_anzahl_pro_ma.get(ma.id, 0)} Wunschtage → Bevorzugung +{b}")
 
         # ====================================================================
         # SOLL-STUNDEN LADEN
@@ -725,6 +744,11 @@ class SchichtplanGenerator:
                     if score != 0:
                         objective_terms.append(vars_schichten[(ma.id, tag, kuerzel)] * score)
 
+                    # Bevorzugung „wenige Wünsche“: Wer selten Wünsche äußert, wird bei der Planung bevorzugt
+                    bonus = wunsch_bonus.get(ma.id, 0)
+                    if bonus > 0:
+                        objective_terms.append(vars_schichten[(ma.id, tag, kuerzel)] * (-bonus))
+
         model.Minimize(sum(objective_terms))
 
         # ====================================================================
@@ -753,9 +777,19 @@ class SchichtplanGenerator:
         
         print("⚙️ Starte Solver...")
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = 1800  # 30 Minuten Zeitlimit
+        solver.parameters.max_time_in_seconds = 20000
         solver.parameters.num_search_workers = 1  # Single-threaded für deterministische Ergebnisse
+        solver.parameters.log_search_progress = True  # Debug Info
+        solver.parameters.linearization_level = 2  # Bessere Linearisierung
+
         status = solver.Solve(model)
+        if status == cp_model.OPTIMAL:
+            print('✅ OPTIMAL gefunden!')
+        elif status == cp_model.FEASIBLE:
+            print(f'⚠️ FEASIBLE - Objective: {solver.ObjectiveValue()}')
+            print(f'Best Bound: {solver.BestObjectiveBound()}')
+        else:
+            print('❌ INFEASIBLE oder UNKNOWN')
         print(f"   Status: {solver.StatusName(status)}")
         
         # ====================================================================
