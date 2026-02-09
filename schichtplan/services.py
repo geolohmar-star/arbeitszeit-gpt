@@ -776,10 +776,11 @@ class SchichtplanGenerator:
 
         print("⚙️ Starte Solver mit 8 CPU-Kernen...")
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = 3000  # 50 Minuten (railway-safe)
+        solver.parameters.max_time_in_seconds = 300  
         solver.parameters.num_search_workers = 8  # NUTZT ALLE 8 vCPUs!
         solver.parameters.log_search_progress = True  # Debug Info
         solver.parameters.linearization_level = 2  # Bessere Linearisierung
+        solver.parameters.relative_gap_limit = 0.01  # Stoppt bei 1% vom Optimum
         status = solver.Solve(model)
         if status == cp_model.OPTIMAL:
             print('✅ OPTIMAL gefunden!')
