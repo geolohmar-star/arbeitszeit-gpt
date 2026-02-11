@@ -34,7 +34,7 @@ from weasyprint import HTML
 
 # Models
 from arbeitszeit.models import Mitarbeiter, MonatlicheArbeitszeitSoll
-from .models import Schichtplan, Schicht, Schichttyp, SchichtwunschPeriode, Schichtwunsch, SchichtplanAenderung
+from .models import Schichtplan, Schicht, Schichttyp, SchichtwunschPeriode, Schichtwunsch, SchichtplanAenderung, SchichtplanSnapshot, SchichtplanSnapshotSchicht
 
 
 # Forms
@@ -688,11 +688,11 @@ def schichtplan_detail(request, pk):
         start_datum__lte=jahr_ende,
         ende_datum__gte=jahr_start
     )
-    schichten_jahr = Schicht.objects.filter(
-        schichtplan__in=plaene_jahr,
+    schichten_jahr = SchichtplanSnapshotSchicht.objects.filter(
+        snapshot__schichtplan__in=plaene_jahr,
         datum__gte=jahr_start,
         datum__lte=jahr_ende
-    ).select_related('schichttyp', 'mitarbeiter')
+    ).select_related('schichttyp', 'mitarbeiter', 'snapshot__schichtplan')
     # Pro MA: t, n, z, we
     ma_jahr_stats = {ma.id: {'t': 0, 'n': 0, 'z': 0, 'we': 0} for ma in alle_mitarbeiter}
     for s in schichten_jahr:
@@ -716,8 +716,46 @@ def schichtplan_detail(request, pk):
             'n': st['n'],
             'z': st['z'],
             'we': st['we'],
+            'jahres_total': st['t'] + st['n'] + st['z'],
         })
-    jahres_mitarbeiter.sort(key=lambda x: (len(x['ma'].schichtplan_kennung or ''), x['ma'].schichtplan_kennung or ''))
+
+    # Heatmap-Scoring je Spalte (T/N/WE), Teilzeit/Zusatz ausgeschlossen
+    vollzeit_rows = [
+        r for r in jahres_mitarbeiter
+        if r['ma'].verfuegbarkeit not in ('teilzeit', 'zusatz')
+    ]
+    if vollzeit_rows:
+        avg_t = sum(r['t'] for r in vollzeit_rows) / len(vollzeit_rows)
+        avg_n = sum(r['n'] for r in vollzeit_rows) / len(vollzeit_rows)
+        avg_we = sum(r['we'] for r in vollzeit_rows) / len(vollzeit_rows)
+        max_dev_t = max(abs(r['t'] - avg_t) for r in vollzeit_rows) or 1
+        max_dev_n = max(abs(r['n'] - avg_n) for r in vollzeit_rows) or 1
+        max_dev_we = max(abs(r['we'] - avg_we) for r in vollzeit_rows) or 1
+        for r in jahres_mitarbeiter:
+            if r['ma'].verfuegbarkeit in ('teilzeit', 'zusatz'):
+                r['heat_t'] = ''
+                r['heat_n'] = ''
+                r['heat_we'] = ''
+                continue
+            score_t = abs(r['t'] - avg_t) / max_dev_t
+            score_n = abs(r['n'] - avg_n) / max_dev_n
+            score_we = abs(r['we'] - avg_we) / max_dev_we
+            hue_t = 120 - int(120 * score_t)
+            hue_n = 120 - int(120 * score_n)
+            hue_we = 120 - int(120 * score_we)
+            r['heat_t'] = f"hsl({hue_t}, 70%, 85%)"
+            r['heat_n'] = f"hsl({hue_n}, 70%, 85%)"
+            r['heat_we'] = f"hsl({hue_we}, 70%, 85%)"
+    else:
+        for r in jahres_mitarbeiter:
+            r['heat_t'] = ''
+            r['heat_n'] = ''
+            r['heat_we'] = ''
+    jahres_mitarbeiter.sort(key=lambda x: (
+        x['ma'].verfuegbarkeit in ('teilzeit', 'zusatz'),
+        len(x['ma'].schichtplan_kennung or ''),
+        x['ma'].schichtplan_kennung or ''
+    ))
     jahresuebersicht = {
         'jahr': jahr,
         'jahres_mitarbeiter': jahres_mitarbeiter,
@@ -767,8 +805,26 @@ def schichtplan_veroeffentlichen(request, pk):
         return redirect('schichtplan:detail', pk=pk)
     if request.method != 'POST':
         return redirect('schichtplan:detail', pk=pk)
-    schichtplan.status = 'veroeffentlicht'
-    schichtplan.save(update_fields=['status', 'aktualisiert_am'])
+    with transaction.atomic():
+        schichtplan.status = 'veroeffentlicht'
+        schichtplan.save(update_fields=['status', 'aktualisiert_am'])
+        # Snapshot der Schichten zum Zeitpunkt der Veröffentlichung
+        SchichtplanSnapshot.objects.filter(schichtplan=schichtplan).delete()
+        snapshot = SchichtplanSnapshot.objects.create(
+            schichtplan=schichtplan,
+            erstellt_von=request.user
+        )
+        snapshot_rows = [
+            SchichtplanSnapshotSchicht(
+                snapshot=snapshot,
+                mitarbeiter_id=s.mitarbeiter_id,
+                datum=s.datum,
+                schichttyp_id=s.schichttyp_id
+            )
+            for s in schichtplan.schichten.all()
+        ]
+        if snapshot_rows:
+            SchichtplanSnapshotSchicht.objects.bulk_create(snapshot_rows)
     messages.success(request, "✅ Schichtplan wurde genehmigt und veröffentlicht. Die Abteilung Kongos hat nun Zugriff.")
     return redirect('schichtplan:detail', pk=pk)
 

@@ -263,3 +263,40 @@ class SchichtplanAenderung(models.Model):
         verbose_name = "Schichtplan-Änderung"
         verbose_name_plural = "Schichtplan-Änderungen"
         ordering = ['-zeit']
+
+
+# ============================================
+# 8. SCHICHTPLAN-SNAPSHOT (Baseline bei Veröffentlichung)
+# ============================================
+class SchichtplanSnapshot(models.Model):
+    schichtplan = models.ForeignKey(
+        Schichtplan,
+        on_delete=models.CASCADE,
+        related_name='snapshots'
+    )
+    erstellt_am = models.DateTimeField(auto_now_add=True)
+    erstellt_von = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Schichtplan-Snapshot"
+        verbose_name_plural = "Schichtplan-Snapshots"
+        ordering = ['-erstellt_am']
+
+    def __str__(self):
+        return f"Snapshot {self.schichtplan.name} ({self.erstellt_am:%d.%m.%Y %H:%M})"
+
+
+class SchichtplanSnapshotSchicht(models.Model):
+    snapshot = models.ForeignKey(
+        SchichtplanSnapshot,
+        on_delete=models.CASCADE,
+        related_name='schichten'
+    )
+    mitarbeiter = models.ForeignKey('arbeitszeit.Mitarbeiter', on_delete=models.CASCADE)
+    datum = models.DateField()
+    schichttyp = models.ForeignKey(Schichttyp, on_delete=models.PROTECT)
+
+    class Meta:
+        verbose_name = "Snapshot-Schicht"
+        verbose_name_plural = "Snapshot-Schichten"
+        ordering = ['datum', 'schichttyp__start_zeit']

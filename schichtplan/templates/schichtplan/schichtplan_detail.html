@@ -56,7 +56,7 @@
             <h5 class="mb-0">📅 Jahresübersicht {{ jahresuebersicht.jahr }} – Summen pro Mitarbeiter</h5>
         </div>
         <div class="card-body">
-            <p class="text-muted small mb-3">Jahressummen aus allen Plänen des Jahres {{ jahresuebersicht.jahr }} pro Mitarbeiter.</p>
+            <p class="text-muted small mb-3">Jahressummen aus allen Plänen des Jahres {{ jahresuebersicht.jahr }} pro Mitarbeiter. Heatmap: T/N/WE zeigt Abweichung vom Vollzeit-Durchschnitt (nahe = gruen, weit = rot; Teilzeit/Zusatz ohne Farbe). Basis ist der Veroeffentlichungs-Snapshot, nicht spaetere Aenderungen.</p>
             <div class="table-responsive">
                 <table class="table table-sm table-bordered mb-0">
                     <thead class="table-light">
@@ -64,18 +64,18 @@
                             <th>Mitarbeiter</th>
                             <th class="text-center">☀️ T</th>
                             <th class="text-center">🌙 N</th>
-                            <th class="text-center">➕ Z</th>
                             <th class="text-center">📅 WE</th>
+                            <th class="text-center">➕ Z</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in jahresuebersicht.jahres_mitarbeiter %}
                         <tr>
                             <td><strong>{{ row.ma.vollname }}</strong><br><small class="text-muted">{{ row.ma.schichtplan_kennung }}</small></td>
-                            <td class="text-center">{{ row.t }}</td>
-                            <td class="text-center">{{ row.n }}</td>
+                            <td class="text-center"{% if row.heat_t %} style="background-color: {{ row.heat_t }};"{% endif %}>{{ row.t }}</td>
+                            <td class="text-center"{% if row.heat_n %} style="background-color: {{ row.heat_n }};"{% endif %}>{{ row.n }}</td>
+                            <td class="text-center"{% if row.heat_we %} style="background-color: {{ row.heat_we }};"{% endif %}>{{ row.we }}</td>
                             <td class="text-center">{{ row.z }}</td>
-                            <td class="text-center">{{ row.we }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
