@@ -375,6 +375,7 @@ class Mitarbeiter(models.Model):
         max_length=20,
         choices=STANDORT_CHOICES
     )
+    telefon = models.CharField(max_length=30, blank=True, default='')
 
     rolle = models.CharField(
         max_length=20,

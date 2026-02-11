@@ -161,6 +161,20 @@ class Schichtwunsch(models.Model):
     begruendung = models.TextField(blank=True)
     benoetigt_genehmigung = models.BooleanField(default=False)
     genehmigt = models.BooleanField(default=False)
+    ersatz_schichttyp = models.CharField(
+        max_length=1,
+        choices=[('T', 'Tagschicht'), ('N', 'Nachtschicht')],
+        blank=True,
+        default=''
+    )
+    ersatz_bestaetigt = models.BooleanField(default=False)
+    ersatz_mitarbeiter = models.ForeignKey(
+        'arbeitszeit.Mitarbeiter',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ersatz_fuer_wuensche'
+    )
     genehmigt_von = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='genehmigte_wuensche')
     genehmigt_am = models.DateTimeField(null=True, blank=True)
     erstellt_am = models.DateTimeField(auto_now_add=True)
@@ -184,6 +198,7 @@ class Schicht(models.Model):
     mitarbeiter = models.ForeignKey('arbeitszeit.Mitarbeiter', on_delete=models.CASCADE, related_name='schichten')
     datum = models.DateField()
     schichttyp = models.ForeignKey(Schichttyp, on_delete=models.PROTECT)
+    ersatz_markierung = models.BooleanField(default=False)
     abweichende_start_zeit = models.TimeField(null=True, blank=True)
     abweichende_ende_zeit = models.TimeField(null=True, blank=True)
     bemerkungen = models.TextField(blank=True)

@@ -810,10 +810,12 @@ def schichtplan_uebersicht_detail(request, pk):
     schichten = schichtplan.schichten.select_related('mitarbeiter', 'schichttyp')
     zelle_schicht = {}
     zelle_schicht_id = {}
+    zelle_schicht_ersatz = {}
     for s in schichten:
         key = (s.mitarbeiter_id, s.datum)
         zelle_schicht[key] = s.schichttyp.kuerzel
         zelle_schicht_id[key] = s.pk
+        zelle_schicht_ersatz[key] = bool(s.ersatz_markierung)
 
     # Wünsche U/K/AG: Sets und (ma_id, datum) -> wunsch_id für Löschen per Drag
     wunsch_urlaub = Schichtwunsch.objects.filter(
@@ -828,10 +830,15 @@ def schichtplan_uebersicht_detail(request, pk):
         datum__gte=start, datum__lte=ende,
         mitarbeiter__in=mitarbeiter_liste,
         wunsch='krank'
-    ).values_list('mitarbeiter_id', 'datum', 'pk')
-    krank_set = set((ma_id, datum) for ma_id, datum, _ in wunsch_krank)
-    for ma_id, datum, pk in wunsch_krank:
+    ).values_list('mitarbeiter_id', 'datum', 'pk', 'ersatz_schichttyp', 'ersatz_bestaetigt')
+    krank_set = set((ma_id, datum) for ma_id, datum, _, _, _ in wunsch_krank)
+    ersatz_info = {}
+    for ma_id, datum, pk, ersatz_typ, ersatz_bestaetigt in wunsch_krank:
         zelle_wunsch_id[(ma_id, datum)] = pk
+        ersatz_info[(ma_id, datum)] = {
+            'typ': ersatz_typ or '',
+            'bestaetigt': bool(ersatz_bestaetigt),
+        }
 
     wunsch_ausgleich = Schichtwunsch.objects.filter(
         datum__gte=start, datum__lte=ende,
@@ -870,13 +877,69 @@ def schichtplan_uebersicht_detail(request, pk):
             val = matrix.get(key, '')
             sid = zelle_schicht_id.get(key) if val in ('T', 'N', 'Z') else None
             wid = zelle_wunsch_id.get(key) if val in ('U', 'K', 'AG') else None
-            zellen.append({'value': val, 'schicht_id': sid, 'wunsch_id': wid, 'ma_id': ma.id})
+            ersatz_markierung = zelle_schicht_ersatz.get(key, False) if val in ('T', 'N', 'Z') else False
+            ersatz_typ = ''
+            ersatz_bestaetigt = False
+            if val == 'K':
+                info = ersatz_info.get(key, {})
+                ersatz_typ = info.get('typ', '')
+                ersatz_bestaetigt = info.get('bestaetigt', False)
+            zellen.append({
+                'value': val,
+                'schicht_id': sid,
+                'wunsch_id': wid,
+                'ma_id': ma.id,
+                'ersatz_markierung': ersatz_markierung,
+                'ersatz_typ': ersatz_typ,
+                'ersatz_bestaetigt': ersatz_bestaetigt,
+            })
         zeilen.append({
             'datum': datum,
             'ist_wochenende': ist_wochenende,
             'feiertag_name': feiertag_name,
             'zellen': zellen,
         })
+
+    ersatz_vorschlaege = []
+    if schichtplan.status == 'veroeffentlicht':
+        wunsch_block_set = urlaub_set | krank_set | ausgleich_set
+        kernteam = list(alle_ma.filter(kategorie='kern'))
+        kernteam_sorted = sorted(kernteam, key=ma_sort_key)
+
+        def _hat_schicht(ma_id, datum, kuerzel_set):
+            return zelle_schicht.get((ma_id, datum)) in kuerzel_set
+
+        def _ist_blockiert(ma_id, datum):
+            return (ma_id, datum) in wunsch_block_set
+
+        for ma_id, datum in krank_set:
+            krank_ma = next((m for m in mitarbeiter_liste if m.id == ma_id), None)
+            if not krank_ma:
+                continue
+            info = ersatz_info.get((ma_id, datum), {})
+            if not info.get('typ'):
+                continue
+            wunsch_id = zelle_wunsch_id.get((ma_id, datum))
+            tag_kandidaten = []
+            nacht_kandidaten = []
+            next_day = datum + timedelta(days=1)
+            prev_day = datum - timedelta(days=1)
+            for kandidat in kernteam_sorted:
+                if kandidat.id == ma_id:
+                    continue
+                if _ist_blockiert(kandidat.id, datum):
+                    continue
+                if not _hat_schicht(kandidat.id, datum, {'T', 'N'}) and not _hat_schicht(kandidat.id, prev_day, {'N'}):
+                    tag_kandidaten.append(kandidat)
+                if not _hat_schicht(kandidat.id, datum, {'N'}) and not _hat_schicht(kandidat.id, next_day, {'T'}):
+                    nacht_kandidaten.append(kandidat)
+            ersatz_vorschlaege.append({
+                'datum': datum,
+                'krank_ma': krank_ma,
+                'wunsch_id': wunsch_id,
+                'tag_kandidaten': tag_kandidaten,
+                'nacht_kandidaten': nacht_kandidaten,
+            })
 
     # Schichttypen T, N, Z für das „Schicht zuweisen“-Panel (Drag-Quelle)
     schichttypen_menu = list(Schichttyp.objects.filter(kuerzel__in=['T', 'N', 'Z'], aktiv=True).order_by('kuerzel'))
@@ -934,6 +997,7 @@ def schichtplan_uebersicht_detail(request, pk):
         'can_edit': can_edit,
         'protokoll': protokoll,
         'kann_undo': kann_undo,
+        'ersatz_vorschlaege': ersatz_vorschlaege,
     }
     return render(request, 'schichtplan/schichtplan_uebersicht_detail.html', context)
 
@@ -1227,6 +1291,15 @@ def schicht_anlegen(request, schichtplan_pk):
     if kuerzel in ('U', 'K', 'AG'):
         wunsch_map = {'U': 'urlaub', 'K': 'krank', 'AG': 'ausgleichstag'}
         wunsch = wunsch_map[kuerzel]
+        bestehende_schicht = Schicht.objects.filter(
+            schichtplan=schichtplan,
+            mitarbeiter_id=ma_id,
+            datum=datum
+        ).select_related('schichttyp').first()
+        ersatz_typ = ''
+        if kuerzel == 'K' and bestehende_schicht and bestehende_schicht.schichttyp:
+            if bestehende_schicht.schichttyp.kuerzel in ('T', 'N'):
+                ersatz_typ = bestehende_schicht.schichttyp.kuerzel
         # Bestehende Schicht an diesem Tag entfernen (Plan zeigt dann U/K/AG)
         Schicht.objects.filter(schichtplan=schichtplan, mitarbeiter_id=ma_id, datum=datum).delete()
         wunsch_obj, created = Schichtwunsch.objects.update_or_create(
@@ -1236,10 +1309,11 @@ def schicht_anlegen(request, schichtplan_pk):
                 'wunsch': wunsch,
                 'periode': schichtplan.wunschperiode,
                 'genehmigt': True,
+                'ersatz_schichttyp': ersatz_typ if kuerzel == 'K' else '',
+                'ersatz_bestaetigt': False,
+                'ersatz_mitarbeiter': None,
             }
         )
-        labels = {'U': 'Urlaub', 'K': 'Krank', 'AG': 'Z-AG Zeitausgleich'}
-        messages.success(request, f"✅ {labels[kuerzel]} für {ma.schichtplan_kennung} am {datum.strftime('%d.%m.%Y')} gesetzt.")
         return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
 
     # T, N, Z → Schicht anlegen
@@ -1263,8 +1337,63 @@ def schicht_anlegen(request, schichtplan_pk):
         beschreibung=f"{ma.schichtplan_kennung} {kuerzel} am {datum.strftime('%d.%m.%Y')} angelegt",
         undo_daten={'schicht_id': schicht.pk},
     )
-    messages.success(request, f"✅ Schicht {kuerzel} für {ma.schichtplan_kennung} am {datum.strftime('%d.%m.%Y')} angelegt.")
     return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)
+
+
+@login_required
+def ersatz_bestaetigen(request, pk):
+    if request.method != 'POST':
+        return redirect('schichtplan:uebersicht_detail', pk=pk)
+    schichtplan = get_object_or_404(Schichtplan, pk=pk)
+    if schichtplan.status != 'veroeffentlicht' or not darf_plan_bearbeiten(request.user, schichtplan):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('schichtplan:uebersicht_detail', pk=pk)
+    wunsch_id = request.POST.get('wunsch_id')
+    ersatz_ma_id = request.POST.get('ersatz_ma_id')
+    if not wunsch_id:
+        return redirect('schichtplan:uebersicht_detail', pk=pk)
+    wunsch = get_object_or_404(Schichtwunsch, pk=wunsch_id, wunsch='krank')
+    if wunsch.datum < schichtplan.start_datum or wunsch.datum > schichtplan.ende_datum:
+        return redirect('schichtplan:uebersicht_detail', pk=pk)
+    if not wunsch.ersatz_schichttyp:
+        return redirect('schichtplan:uebersicht_detail', pk=pk)
+    if not ersatz_ma_id:
+        return redirect('schichtplan:uebersicht_detail', pk=pk)
+    ersatz_ma = get_planbare_mitarbeiter().filter(pk=ersatz_ma_id).first()
+    if not ersatz_ma:
+        return redirect('schichtplan:uebersicht_detail', pk=pk)
+    bestehende_schicht = Schicht.objects.filter(
+        schichtplan=schichtplan,
+        mitarbeiter_id=ersatz_ma.id,
+        datum=wunsch.datum
+    ).select_related('schichttyp').first()
+    if bestehende_schicht:
+        if bestehende_schicht.schichttyp and bestehende_schicht.schichttyp.kuerzel == 'Z':
+            bestehende_schicht.delete()
+        else:
+            messages.error(request, "❌ Ersatz hat bereits eine Schicht an diesem Tag.")
+            return redirect('schichtplan:uebersicht_detail', pk=pk)
+    if Schichtwunsch.objects.filter(
+        mitarbeiter_id=ersatz_ma.id,
+        datum=wunsch.datum,
+        wunsch__in=['urlaub', 'gar_nichts', 'krank', 'ausgleichstag']
+    ).exists():
+        messages.error(request, "❌ Ersatz hat eine Markierung (U/K/AG) an diesem Tag.")
+        return redirect('schichtplan:uebersicht_detail', pk=pk)
+    schichttyp = Schichttyp.objects.filter(kuerzel=wunsch.ersatz_schichttyp, aktiv=True).first()
+    if not schichttyp:
+        return redirect('schichtplan:uebersicht_detail', pk=pk)
+    Schicht.objects.create(
+        schichtplan=schichtplan,
+        mitarbeiter=ersatz_ma,
+        datum=wunsch.datum,
+        schichttyp=schichttyp,
+        ersatz_markierung=True
+    )
+    wunsch.ersatz_bestaetigt = True
+    wunsch.ersatz_mitarbeiter = ersatz_ma
+    wunsch.save(update_fields=['ersatz_bestaetigt', 'ersatz_mitarbeiter'])
+    return redirect('schichtplan:uebersicht_detail', pk=pk)
 
 
 @login_required
@@ -2069,7 +2198,8 @@ def wunsch_loeschen(request, wunsch_id):
             ist_besitzer = True
 
     # 4. SICHERHEITS-ABBRUCH
-    if not (ist_planer or ist_besitzer):
+    darf_krank_loeschen = wunsch.wunsch == 'krank'
+    if not (ist_planer or ist_besitzer or darf_krank_loeschen):
         messages.error(request, f"❌ Keine Berechtigung. (Planer-Status: {ist_planer})")
         if next_uebersicht and schichtplan_pk:
             return redirect('schichtplan:uebersicht_detail', pk=schichtplan_pk)

@@ -93,6 +93,96 @@
         <span class="ms-2">Feiertage NRW: orange hinterlegt</span>
     </p>
 
+    {% if schichtplan.status == 'veroeffentlicht' and ersatz_vorschlaege %}
+    <div class="card border shadow-sm mb-3">
+        <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Ersatzvorschlaege (Kernteam)</h6>
+            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#ersatz-body" aria-expanded="false">
+                Ersatz anzeigen
+            </button>
+        </div>
+        <div id="ersatz-body" class="collapse">
+            <div class="card-body small">
+                {% for e in ersatz_vorschlaege %}
+                <div class="mb-2">
+                    <div>
+                        <strong>{{ e.datum|date:"d.m.Y" }}</strong> · Krank: {{ e.krank_ma.vollname }} ({{ e.krank_ma.schichtplan_kennung }})
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+                        <span class="text-muted">Tagdienst:</span>
+                        {% if e.tag_kandidaten %}
+                            {% for ma in e.tag_kandidaten %}
+                            <button type="button"
+                                      class="btn btn-outline-secondary btn-sm ersatz-kandidat"
+                                      data-bs-toggle="modal"
+                                      data-bs-target="#ersatzModal"
+                                      data-wunsch-id="{{ e.wunsch_id }}"
+                                      data-ma-id="{{ ma.id }}"
+                                      data-ma-name="{{ ma.vollname }}"
+                                      data-ma-kennung="{{ ma.schichtplan_kennung }}"
+                                      data-ma-telefon="{{ ma.telefon|default:'' }}">
+                                {{ ma.vollname }}
+                            </button>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+                        <span class="text-muted">Nachtdienst:</span>
+                        {% if e.nacht_kandidaten %}
+                            {% for ma in e.nacht_kandidaten %}
+                            <button type="button"
+                                      class="btn btn-outline-secondary btn-sm ersatz-kandidat"
+                                      data-bs-toggle="modal"
+                                      data-bs-target="#ersatzModal"
+                                      data-wunsch-id="{{ e.wunsch_id }}"
+                                      data-ma-id="{{ ma.id }}"
+                                      data-ma-name="{{ ma.vollname }}"
+                                      data-ma-kennung="{{ ma.schichtplan_kennung }}"
+                                      data-ma-telefon="{{ ma.telefon|default:'' }}">
+                                {{ ma.vollname }}
+                            </button>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if not forloop.last %}
+                <hr class="my-2">
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="modal fade" id="ersatzModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="post" action="{% url 'schichtplan:ersatz_bestaetigen' schichtplan.pk %}" id="ersatz-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="wunsch_id" id="ersatz-wunsch-id">
+                    <input type="hidden" name="ersatz_ma_id" id="ersatz-ma-id">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Ersatzkontakt</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schliessen"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div><strong id="ersatz-ma-name"></strong></div>
+                        <div class="text-muted" id="ersatz-ma-kennung"></div>
+                        <div class="mt-2">Telefon: <span id="ersatz-ma-telefon">—</span></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                        <button type="submit" class="btn btn-primary">Bestaetigen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="table-responsive">
         <table class="table table-bordered table-sm table-hover mb-0">
             <thead class="table-light">
@@ -120,18 +210,18 @@
                         <strong>{{ row.datum|date:"d.m." }}</strong>
                     </td>
                     {% for cell in row.zellen %}
-                    <td class="text-center align-middle schicht-cell {% if can_edit %}{% if not cell.schicht_id %}schicht-neu-drop{% endif %}{% endif %}" style="min-width: 80px;" {% if can_edit %}data-ma-id="{{ cell.ma_id }}" data-datum="{{ row.datum|date:'Y-m-d' }}" {% if cell.schicht_id %}data-schicht-id="{{ cell.schicht_id }}"{% endif %}{% endif %}>
+                    <td class="text-center align-middle schicht-cell {% if can_edit %}schicht-drop-any{% if not cell.schicht_id %} schicht-neu-drop{% endif %}{% endif %}" style="min-width: 80px;" {% if can_edit %}data-ma-id="{{ cell.ma_id }}" data-datum="{{ row.datum|date:'Y-m-d' }}" {% if cell.schicht_id %}data-schicht-id="{{ cell.schicht_id }}"{% endif %}{% endif %}>
                         {% if cell.value == 'N' %}
                             {% if cell.schicht_id and can_edit %}
-                            <span class="badge bg-primary schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen in freie Zelle zum Verschieben">N</span>
+                            <span class="badge {% if cell.ersatz_markierung %}bg-danger{% else %}bg-primary{% endif %} schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen in freie Zelle zum Verschieben">N</span>
                             {% else %}
-                            <span class="badge bg-primary" title="Nachtschicht">N</span>
+                            <span class="badge {% if cell.ersatz_markierung %}bg-danger{% else %}bg-primary{% endif %}" title="Nachtschicht">N</span>
                             {% endif %}
                         {% elif cell.value == 'T' %}
                             {% if cell.schicht_id and can_edit %}
-                            <span class="badge bg-warning text-dark schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen in freie Zelle zum Verschieben">T</span>
+                            <span class="badge {% if cell.ersatz_markierung %}bg-danger text-white{% else %}bg-warning text-dark{% endif %} schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen in freie Zelle zum Verschieben">T</span>
                             {% else %}
-                            <span class="badge bg-warning text-dark" title="Tagschicht">T</span>
+                            <span class="badge {% if cell.ersatz_markierung %}bg-danger text-white{% else %}bg-warning text-dark{% endif %}" title="Tagschicht">T</span>
                             {% endif %}
                         {% elif cell.value == 'Z' %}
                             {% if cell.schicht_id and can_edit %}
@@ -359,6 +449,29 @@
         });
     });
 
+    // Alle Zellen: K kann auch auf belegte Zelle gesetzt werden
+    document.querySelectorAll('.schicht-drop-any').forEach(function(td) {
+        td.addEventListener('dragover', function(e) {
+            var kuerzel = e.dataTransfer.getData('schicht_neu_typ');
+            if (kuerzel !== 'K') return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            td.classList.add('table-warning');
+        });
+        td.addEventListener('dragleave', function(e) {
+            td.classList.remove('table-warning');
+        });
+        td.addEventListener('drop', function(e) {
+            var kuerzel = e.dataTransfer.getData('schicht_neu_typ');
+            if (kuerzel !== 'K') return;
+            e.preventDefault();
+            td.classList.remove('table-warning');
+            var maId = td.getAttribute('data-ma-id');
+            var datum = td.getAttribute('data-datum');
+            if (maId && datum) submitSchichtAnlegen(maId, datum, kuerzel);
+        });
+    });
+
     document.querySelectorAll('.wunsch-draggable').forEach(function(el) {
         el.addEventListener('dragstart', function(e) {
             e.dataTransfer.setData('wunsch_id', el.getAttribute('data-wunsch-id'));
@@ -391,6 +504,29 @@
             } else if (schichtId && confirm('Schicht wirklich löschen?')) {
                 submitDelete(schichtId);
             }
+        });
+    }
+
+    var ersatzButtons = document.querySelectorAll('.ersatz-kandidat');
+    if (ersatzButtons.length) {
+        var ersatzName = document.getElementById('ersatz-ma-name');
+        var ersatzKennung = document.getElementById('ersatz-ma-kennung');
+        var ersatzTelefon = document.getElementById('ersatz-ma-telefon');
+        var ersatzWunschId = document.getElementById('ersatz-wunsch-id');
+        var ersatzMaId = document.getElementById('ersatz-ma-id');
+        ersatzButtons.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var name = btn.getAttribute('data-ma-name') || '';
+                var kennung = btn.getAttribute('data-ma-kennung') || '';
+                var telefon = btn.getAttribute('data-ma-telefon') || '';
+                var wunschId = btn.getAttribute('data-wunsch-id') || '';
+                var maId = btn.getAttribute('data-ma-id') || '';
+                if (ersatzName) ersatzName.textContent = name;
+                if (ersatzKennung) ersatzKennung.textContent = kennung;
+                if (ersatzTelefon) ersatzTelefon.textContent = telefon || '—';
+                if (ersatzWunschId) ersatzWunschId.value = wunschId;
+                if (ersatzMaId) ersatzMaId.value = maId;
+            });
         });
     }
 

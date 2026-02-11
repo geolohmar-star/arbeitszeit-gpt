@@ -26,6 +26,7 @@ urlpatterns = [
     # Schichten
     path('<int:schichtplan_pk>/schicht-zuweisen/', views.schicht_zuweisen, name='schicht_zuweisen'),
     path('<int:schichtplan_pk>/schicht-anlegen/', views.schicht_anlegen, name='schicht_anlegen'),
+    path('<int:pk>/ersatz-bestaetigen/', views.ersatz_bestaetigen, name='ersatz_bestaetigen'),
     path('schicht/<int:pk>/loeschen/', views.schicht_loeschen, name='schicht_loeschen'),
     path('schicht/<int:pk>/bearbeiten/', views.schicht_bearbeiten, name='schicht_bearbeiten'),
     path('schicht/<int:pk>/tauschen/', views.schicht_tauschen, name='schicht_tauschen'),
