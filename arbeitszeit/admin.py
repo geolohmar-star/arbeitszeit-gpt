@@ -117,6 +117,7 @@ class MitarbeiterAdmin(admin.ModelAdmin):
         'personalnummer', 
         'nachname', 
         'vorname',
+        'telefon',
         'get_wochenstunden_display',
         'schichtplan_kennung',
         'schicht_typ',  # NEU
@@ -136,7 +137,7 @@ class MitarbeiterAdmin(admin.ModelAdmin):
         ('Basisdaten', {
             'fields': (
                 'user', 'personalnummer', 'vorname', 'nachname',
-                'abteilung', 'standort', 'rolle', 'eintrittsdatum', 'aktiv'
+                'telefon', 'abteilung', 'standort', 'rolle', 'eintrittsdatum', 'aktiv'
             )
         }),
         ('Schichtplan-Zuordnung', {
