@@ -19,7 +19,7 @@ from collections import defaultdict
 from django.http import StreamingHttpResponse
 import time
 from django.utils import timezone
-from datetime import timedelta, timedelta, date
+from datetime import datetime, timedelta, date
 from calendar import monthrange
 
 
@@ -2629,4 +2629,3 @@ def urlaub_bulk_ablehnen(request):
         messages.warning(request, "⚠️ Keine gültigen Anträge gefunden.")
     
     return redirect(request.META.get('HTTP_REFERER', 'schichtplan:genehmigungen_uebersicht'))
-

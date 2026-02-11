@@ -245,6 +245,7 @@ class Mitarbeiter(models.Model):
     VERFUEGBARKEIT_CHOICES = [
         ('voll', 'Vollzeit - alle Schichten'),
         ('teilzeit', 'Teilzeit - begrenzte Schichten'),
+        ('zusatz', 'Zusatz - nur Zusatzdienste'),
         ('dauerkrank', 'Dauerkrank - nicht einplanbar'),
         ('nur_wochenende', 'Nur Wochenende (Fr/Sa/So)'),
         ('keine_wochenende', 'Keine Wochenenden'),
@@ -437,6 +438,7 @@ class Mitarbeiter(models.Model):
     VERFUEGBARKEIT_CHOICES = [
         ('voll', 'Vollzeit - alle Schichten'),
         ('teilzeit', 'Teilzeit - begrenzte Schichten'),
+        ('zusatz', 'Zusatz - nur Zusatzdienste'),
         ('wochenende_only', 'Nur Wochenende (Fr/Sa/So)'),
         ('wochentags_only', 'Nur Wochentags (Mo-Do)'),
         ('dauerkrank', 'Dauerkrank - nicht einplanbar'),

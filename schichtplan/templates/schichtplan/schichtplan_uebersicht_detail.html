@@ -63,13 +63,16 @@
             <div class="d-flex align-items-center flex-wrap gap-2">
                 <p class="text-muted small mb-0 me-2" style="max-width: 520px;">
                     <strong>Bedienung:</strong> Symbol greifen und auf die gewünschte Zelle ziehen (leere Zelle = setzen). 
-                    Schichten tauschen: auf andere Schicht ziehen. Löschen: in den Mülleimer rechts ziehen.
+                    Schichten verschieben: auf eine freie Zelle ziehen. Löschen: in den Mülleimer rechts ziehen.
                 </p>
                 <span class="text-muted small me-1">Schichten:</span>
-                {% for st in schichttypen_menu %}
-                <span class="badge schicht-neu-draggable {% if st.kuerzel == 'T' %}bg-warning text-dark{% elif st.kuerzel == 'N' %}bg-primary{% else %}bg-info text-dark{% endif %}" 
-                      draggable="true" data-schichttyp-kuerzel="{{ st.kuerzel }}" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">{{ st.kuerzel }}</span>
-                {% endfor %}
+                
+                <span class="badge schicht-neu-draggable bg-primary" draggable="true" data-schichttyp-kuerzel="N" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">N</span>
+                
+                <span class="badge schicht-neu-draggable bg-warning text-dark" draggable="true" data-schichttyp-kuerzel="T" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">T</span>
+                
+                <span class="badge schicht-neu-draggable bg-info text-dark" draggable="true" data-schichttyp-kuerzel="Z" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">Z</span>
+                
                 <span class="text-muted small ms-1 me-1">Markierungen:</span>
                 <span class="badge schicht-neu-draggable bg-secondary" draggable="true" data-schichttyp-kuerzel="U" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">U</span>
                 <span class="badge schicht-neu-draggable bg-danger" draggable="true" data-schichttyp-kuerzel="K" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">K</span>
@@ -88,17 +91,16 @@
         <strong>Legende:</strong> N = Nachtschicht · T = Tagschicht · Z = Zusatzdienste · U = Urlaub · K = Krank · AG = Z-AG Zeitausgleich
         <span class="ms-3">Wochenenden: hellblau</span>
         <span class="ms-2">Feiertage NRW: orange hinterlegt</span>
-        <span class="ms-3"><strong>Drag &amp; Drop:</strong> Schicht auf andere Schicht ziehen = Tauschen · Schicht in den Mülleimer ziehen = Löschen</span>
     </p>
 
     <div class="table-responsive">
         <table class="table table-bordered table-sm table-hover mb-0">
-            <thead class="table-light schicht-thead-sticky">
+            <thead class="table-light">
                 <tr>
-                    <th style="min-width: 100px;">Tag</th>
-                    <th style="min-width: 80px;">Datum</th>
+                    <th class="tag-col">Tag</th>
+                    <th class="datum-col">Datum</th>
                     {% for ma in mitarbeiter_liste %}
-                    <th class="text-center" style="min-width: 44px;" title="{{ ma.vollname }}">
+                    <th class="text-center" style="min-width: 80px;" title="{{ ma.vollname }}">
                         <strong>{{ ma.schichtplan_kennung }}</strong><br>
                         <small class="text-muted" style="font-size: 0.7em;">{{ ma.vollname|truncatewords:2 }}</small>
                     </th>
@@ -108,32 +110,32 @@
             <tbody>
                 {% for row in zeilen %}
                 <tr class="{% if row.ist_wochenende %}table-info{% endif %}" {% if row.feiertag_name %}style="background-color: #ffe4cc;"{% endif %}>
-                    <td class="align-middle">
+                    <td class="align-middle tag-col">
                         {{ row.datum|date:"l" }}
                         {% if row.feiertag_name %}
                         <br><small class="text-danger fw-bold" title="Feiertag NRW">{{ row.feiertag_name }}</small>
                         {% endif %}
                     </td>
-                    <td class="align-middle">
+                    <td class="align-middle datum-col">
                         <strong>{{ row.datum|date:"d.m." }}</strong>
                     </td>
                     {% for cell in row.zellen %}
-                    <td class="text-center align-middle schicht-cell {% if can_edit %}{% if cell.schicht_id %}schicht-drop-target{% endif %} schicht-neu-drop{% endif %}" style="min-width: 80px;" {% if can_edit %}data-ma-id="{{ cell.ma_id }}" data-datum="{{ row.datum|date:'Y-m-d' }}" {% if cell.schicht_id %}data-schicht-id="{{ cell.schicht_id }}"{% endif %}{% endif %}>
+                    <td class="text-center align-middle schicht-cell {% if can_edit %}{% if not cell.schicht_id %}schicht-neu-drop{% endif %}{% endif %}" style="min-width: 80px;" {% if can_edit %}data-ma-id="{{ cell.ma_id }}" data-datum="{{ row.datum|date:'Y-m-d' }}" {% if cell.schicht_id %}data-schicht-id="{{ cell.schicht_id }}"{% endif %}{% endif %}>
                         {% if cell.value == 'N' %}
                             {% if cell.schicht_id and can_edit %}
-                            <span class="badge bg-primary schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen zum Tauschen oder in den Mülleimer zum Löschen">N</span>
+                            <span class="badge bg-primary schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen in freie Zelle zum Verschieben">N</span>
                             {% else %}
                             <span class="badge bg-primary" title="Nachtschicht">N</span>
                             {% endif %}
                         {% elif cell.value == 'T' %}
                             {% if cell.schicht_id and can_edit %}
-                            <span class="badge bg-warning text-dark schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen zum Tauschen oder in den Mülleimer zum Löschen">T</span>
+                            <span class="badge bg-warning text-dark schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen in freie Zelle zum Verschieben">T</span>
                             {% else %}
                             <span class="badge bg-warning text-dark" title="Tagschicht">T</span>
                             {% endif %}
                         {% elif cell.value == 'Z' %}
                             {% if cell.schicht_id and can_edit %}
-                            <span class="badge bg-info text-dark schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen zum Tauschen oder in den Mülleimer zum Löschen">Z</span>
+                            <span class="badge bg-info text-dark schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen in freie Zelle zum Verschieben">Z</span>
                             {% else %}
                             <span class="badge bg-info text-dark" title="Zusatzdienste">Z</span>
                             {% endif %}
@@ -187,19 +189,28 @@
     background: #fff;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
-/* Tabellen-Header (Mitarbeiternamen) beim Scrollen unter dem Panel fixiert */
-.schicht-thead-sticky th {
-    position: sticky;
-    top: 120px; /* unter dem Panel „Schicht hinzufügen“ */
-    z-index: 1010;
-    background: #f8f9fa !important;
-    box-shadow: 0 1px 0 0 #dee2e6;
+.tag-col {
+    width: 120px;
+    min-width: 120px;
+    max-width: 120px;
+    white-space: nowrap;
+}
+.tag-col small {
+    display: block;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+.datum-col {
+    width: 120px;
+    min-width: 120px;
+    max-width: 120px;
+    white-space: nowrap;
 }
 .schicht-draggable { cursor: grab; }
 .schicht-draggable:active { cursor: grabbing; }
 .wunsch-draggable { cursor: grab; }
 .wunsch-draggable:active { cursor: grabbing; }
-.schicht-drop-target { transition: background-color 0.15s; }
 .schicht-neu-draggable:active { cursor: grabbing; }
 .schicht-neu-drop { transition: background-color 0.15s; }
 </style>
@@ -207,7 +218,6 @@
 <script>
 (function() {
     var deleteUrlTpl = "{% url 'schichtplan:schicht_loeschen' 0 %}";
-    var tauschUrlTpl = "{% url 'schichtplan:schicht_tauschen' 0 %}";
     var wunschLoeschenUrlTpl = "{% url 'schichtplan:wunsch_loeschen' 0 %}";
     var anlegenUrl = "{% url 'schichtplan:schicht_anlegen' schichtplan.pk %}";
     var schichtplanPk = "{{ schichtplan.pk }}";
@@ -246,24 +256,6 @@
         form.submit();
     }
 
-    function submitTausch(draggedId, targetId) {
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = tauschUrlTpl.replace('0', draggedId) + nextParam;
-        var input1 = document.createElement('input');
-        input1.type = 'hidden';
-        input1.name = 'csrfmiddlewaretoken';
-        input1.value = csrf;
-        form.appendChild(input1);
-        var input2 = document.createElement('input');
-        input2.type = 'hidden';
-        input2.name = 'schicht2_id';
-        input2.value = targetId;
-        form.appendChild(input2);
-        document.body.appendChild(form);
-        form.submit();
-    }
-
     function submitSchichtAnlegen(maId, datum, kuerzel) {
         var form = document.createElement('form');
         form.method = 'POST';
@@ -285,11 +277,37 @@
         form.submit();
     }
 
+    function postForm(url, fields) {
+        var body = new URLSearchParams(fields);
+        return fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString()
+        });
+    }
+
+    function moveSchicht(schichtId, kuerzel, maId, datum) {
+        postForm(anlegenUrl, {
+            csrfmiddlewaretoken: csrf,
+            mitarbeiter_id: maId,
+            datum: datum,
+            schichttyp_kuerzel: kuerzel
+        }).then(function() {
+            return postForm(deleteUrlTpl.replace('0', schichtId) + nextParam, {
+                csrfmiddlewaretoken: csrf
+            });
+        }).then(function() {
+            window.location.reload();
+        }).catch(function() {
+            alert('Verschieben fehlgeschlagen.');
+        });
+    }
+
     // Ziehbare Symbole (neue Schicht / Markierung zuweisen)
     document.querySelectorAll('.schicht-neu-draggable').forEach(function(el) {
         el.addEventListener('dragstart', function(e) {
             e.dataTransfer.setData('schicht_neu_typ', el.getAttribute('data-schichttyp-kuerzel'));
-            e.dataTransfer.setData('schicht_id', ''); // damit Zellen mit Schicht keinen Tausch auslösen
+            e.dataTransfer.setData('schicht_id', '');
             e.dataTransfer.effectAllowed = 'copy';
             el.classList.add('opacity-50');
         });
@@ -303,6 +321,7 @@
         td.addEventListener('dragover', function(e) {
             e.preventDefault();
             if (e.dataTransfer.getData('schicht_neu_typ')) e.dataTransfer.dropEffect = 'copy';
+            if (e.dataTransfer.getData('schicht_id')) e.dataTransfer.dropEffect = 'move';
             td.classList.add('table-warning');
         });
         td.addEventListener('dragleave', function(e) {
@@ -312,15 +331,24 @@
             e.preventDefault();
             td.classList.remove('table-warning');
             var kuerzel = e.dataTransfer.getData('schicht_neu_typ');
+            var schichtId = e.dataTransfer.getData('schicht_id');
+            var draggedKuerzel = e.dataTransfer.getData('schicht_kuerzel');
             var maId = td.getAttribute('data-ma-id');
             var datum = td.getAttribute('data-datum');
-            if (kuerzel && maId && datum) submitSchichtAnlegen(maId, datum, kuerzel);
+            if (kuerzel && maId && datum) {
+                submitSchichtAnlegen(maId, datum, kuerzel);
+                return;
+            }
+            if (schichtId && draggedKuerzel && maId && datum) {
+                moveSchicht(schichtId, draggedKuerzel, maId, datum);
+            }
         });
     });
 
     document.querySelectorAll('.schicht-draggable').forEach(function(el) {
         el.addEventListener('dragstart', function(e) {
             e.dataTransfer.setData('schicht_id', el.getAttribute('data-schicht-id'));
+            e.dataTransfer.setData('schicht_kuerzel', el.textContent.trim());
             e.dataTransfer.setData('wunsch_id', '');
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', el.textContent);
@@ -340,25 +368,6 @@
         });
         el.addEventListener('dragend', function(e) {
             el.classList.remove('opacity-50');
-        });
-    });
-
-    document.querySelectorAll('.schicht-drop-target').forEach(function(td) {
-        td.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            td.classList.add('table-success');
-        });
-        td.addEventListener('dragleave', function(e) {
-            td.classList.remove('table-success');
-        });
-        td.addEventListener('drop', function(e) {
-            e.preventDefault();
-            td.classList.remove('table-success');
-            var draggedId = e.dataTransfer.getData('schicht_id');
-            var targetId = td.getAttribute('data-schicht-id');
-            if (!draggedId || !targetId || draggedId === targetId) return;
-            submitTausch(draggedId, targetId);
         });
     });
 
@@ -384,6 +393,7 @@
             }
         });
     }
+
 })();
 </script>
 {% endblock %}
