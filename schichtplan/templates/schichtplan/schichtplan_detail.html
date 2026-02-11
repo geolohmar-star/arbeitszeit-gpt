@@ -56,7 +56,7 @@
             <h5 class="mb-0">📅 Jahresübersicht {{ jahresuebersicht.jahr }} – Summen pro Mitarbeiter</h5>
         </div>
         <div class="card-body">
-            <p class="text-muted small mb-3">Jahressummen aus allen Plänen des Jahres {{ jahresuebersicht.jahr }} pro Mitarbeiter. Heatmap: T/N/WE zeigt Abweichung vom Vollzeit-Durchschnitt (nahe = gruen, weit = rot; Teilzeit/Zusatz ohne Farbe). Basis ist der Veroeffentlichungs-Snapshot, nicht spaetere Aenderungen.</p>
+            <p class="text-muted small mb-3">Jahressummen aus allen Plänen des Jahres {{ jahresuebersicht.jahr }} pro Mitarbeiter. Heatmap: T/N/WE zeigt Abweichung vom Vollzeit-Durchschnitt (nahe = gruen, weit = rot; Teilzeit/Zusatz ohne Farbe). Basis ist der Veroeffentlichungs-Snapshot, nicht spaetere Aenderungen. <span class="text-muted hint-tooltip" data-tooltip="Der Snapshot wird beim Veröffentlichen erstellt und friert die Schichten dieses Plans ein. Spaetere Aenderungen (Krank, Tausch, manuelle Anpassung) beeinflussen die Heatmap nicht.">ⓘ</span></p>
             <div class="table-responsive">
                 <table class="table table-sm table-bordered mb-0">
                     <thead class="table-light">
@@ -218,4 +218,33 @@
         </div>
     </div>
 </div>
+<style>
+.hint-tooltip {
+    position: relative;
+    cursor: help;
+}
+.hint-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 6px;
+    white-space: normal;
+    width: 260px;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 10;
+    margin-top: 6px;
+}
+.hint-tooltip:hover::after {
+    opacity: 1;
+}
+</style>
 {% endblock %}
