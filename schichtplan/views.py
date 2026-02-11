@@ -858,6 +858,33 @@ def schichtplan_uebersicht_detail(request, pk):
     for ma_id, datum, pk in wunsch_ausgleich:
         zelle_wunsch_id[(ma_id, datum)] = pk
 
+    # Wunsch-Overlay aus Wunschperiode (alle Kategorien, als Hint)
+    wunsch_overlay = {}
+    wunsch_overlay_label = {}
+    wunsch_map = {
+        'urlaub': ('U', 'Urlaub'),
+        'kein_tag_aber_nacht': ('2', 'Kein Tag, Nacht OK'),
+        'keine_nacht_aber_tag': ('3', 'Keine Nacht, Tag OK'),
+        'tag_bevorzugt': ('T', 'Tag bevorzugt'),
+        'nacht_bevorzugt': ('N', 'Nacht bevorzugt'),
+        'gar_nichts': ('X', 'Gar nichts'),
+        'zusatzarbeit': ('+', 'Zusatzarbeit'),
+    }
+    overlay_qs = Schichtwunsch.objects.filter(
+        datum__gte=start,
+        datum__lte=ende,
+        mitarbeiter__in=mitarbeiter_liste,
+    )
+    if schichtplan.wunschperiode_id:
+        overlay_qs = overlay_qs.filter(periode=schichtplan.wunschperiode)
+    for w in overlay_qs.select_related('mitarbeiter'):
+        symb_label = wunsch_map.get(w.wunsch)
+        if not symb_label:
+            continue
+        key = (w.mitarbeiter_id, w.datum)
+        wunsch_overlay[key] = symb_label[0]
+        wunsch_overlay_label[key] = symb_label[1]
+
     # Matrix: (ma_id, datum) -> 'N'|'T'|'Z'|'U'|'AG'|''
     matrix = {}
     for ma in mitarbeiter_liste:
@@ -895,6 +922,8 @@ def schichtplan_uebersicht_detail(request, pk):
                 info = ersatz_info.get(key, {})
                 ersatz_typ = info.get('typ', '')
                 ersatz_bestaetigt = info.get('bestaetigt', False)
+            overlay_symbol = wunsch_overlay.get(key, '')
+            overlay_label = wunsch_overlay_label.get(key, '')
             zellen.append({
                 'value': val,
                 'schicht_id': sid,
@@ -903,6 +932,8 @@ def schichtplan_uebersicht_detail(request, pk):
                 'ersatz_markierung': ersatz_markierung,
                 'ersatz_typ': ersatz_typ,
                 'ersatz_bestaetigt': ersatz_bestaetigt,
+                'wunsch_overlay': overlay_symbol,
+                'wunsch_overlay_label': overlay_label,
             })
         zeilen.append({
             'datum': datum,

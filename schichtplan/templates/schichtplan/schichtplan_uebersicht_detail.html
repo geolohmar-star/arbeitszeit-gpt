@@ -188,11 +188,21 @@
             <thead class="table-light">
                 <tr>
                     <th class="tag-col">Tag</th>
-                    <th class="datum-col">Datum</th>
+                    <th class="datum-col">
+                        Datum
+                        <div class="form-check form-check-inline m-0 mt-1">
+                            <input class="form-check-input" type="checkbox" id="wunsch-layer-all">
+                            <label class="form-check-label small text-muted" for="wunsch-layer-all">Alle</label>
+                        </div>
+                    </th>
                     {% for ma in mitarbeiter_liste %}
                     <th class="text-center" style="min-width: 80px;" title="{{ ma.vollname }}">
                         <strong>{{ ma.schichtplan_kennung }}</strong><br>
                         <small class="text-muted" style="font-size: 0.7em;">{{ ma.vollname|truncatewords:2 }}</small>
+                        <div class="form-check form-check-inline m-0 mt-1">
+                            <input class="form-check-input wunsch-layer-toggle" type="checkbox" data-ma-id="{{ ma.id }}" id="wunsch-layer-{{ ma.id }}">
+                            <label class="form-check-label small text-muted" for="wunsch-layer-{{ ma.id }}">Wunsch</label>
+                        </div>
                     </th>
                     {% endfor %}
                 </tr>
@@ -210,7 +220,10 @@
                         <strong>{{ row.datum|date:"d.m." }}</strong>
                     </td>
                     {% for cell in row.zellen %}
-                    <td class="text-center align-middle schicht-cell {% if can_edit %}schicht-drop-any{% if not cell.schicht_id %} schicht-neu-drop{% endif %}{% endif %}" style="min-width: 80px;" {% if can_edit %}data-ma-id="{{ cell.ma_id }}" data-datum="{{ row.datum|date:'Y-m-d' }}" {% if cell.schicht_id %}data-schicht-id="{{ cell.schicht_id }}"{% endif %}{% endif %}>
+                    <td class="text-center align-middle schicht-cell wunsch-layer-cell {% if can_edit %}schicht-drop-any{% if not cell.schicht_id %} schicht-neu-drop{% endif %}{% endif %}" style="min-width: 80px;" data-ma-id="{{ cell.ma_id }}" data-datum="{{ row.datum|date:'Y-m-d' }}" {% if can_edit and cell.schicht_id %}data-schicht-id="{{ cell.schicht_id }}"{% endif %}>
+                        {% if cell.wunsch_overlay %}
+                        <span class="badge bg-light text-muted border wunsch-layer" title="Wunschplan: {{ cell.wunsch_overlay_label }}">{{ cell.wunsch_overlay }}</span>
+                        {% endif %}
                         {% if cell.value == 'N' %}
                             {% if cell.schicht_id and can_edit %}
                             <span class="badge {% if cell.ersatz_markierung %}bg-danger{% else %}bg-primary{% endif %} schicht-draggable" draggable="true" data-schicht-id="{{ cell.schicht_id }}" title="Ziehen in freie Zelle zum Verschieben">N</span>
@@ -314,6 +327,21 @@
     font-weight: 400;
     opacity: 0.6;
     padding: 0.1em 0.35em;
+}
+.wunsch-layer-cell {
+    position: relative;
+}
+.wunsch-layer {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 0.65em;
+    opacity: 0;
+    padding: 0.1em 0.35em;
+    pointer-events: none;
+}
+.wunsch-layer-visible .wunsch-layer {
+    opacity: 0.6;
 }
 </style>
 
@@ -538,6 +566,44 @@
                 if (ersatzTelefon) ersatzTelefon.textContent = telefon || '—';
                 if (ersatzWunschId) ersatzWunschId.value = wunschId;
                 if (ersatzMaId) ersatzMaId.value = maId;
+            });
+        });
+    }
+
+    var allToggle = document.getElementById('wunsch-layer-all');
+    var maToggles = document.querySelectorAll('.wunsch-layer-toggle');
+
+    function setMaLayer(maId, enabled) {
+        document.querySelectorAll('.wunsch-layer-cell[data-ma-id="' + maId + '"]').forEach(function(td) {
+            if (enabled) {
+                td.classList.add('wunsch-layer-visible');
+            } else {
+                td.classList.remove('wunsch-layer-visible');
+            }
+        });
+    }
+
+    maToggles.forEach(function(toggle) {
+        toggle.addEventListener('change', function() {
+            var maId = toggle.getAttribute('data-ma-id');
+            if (!maId) return;
+            setMaLayer(maId, toggle.checked);
+            if (allToggle) {
+                var allChecked = true;
+                maToggles.forEach(function(t) {
+                    if (!t.checked) allChecked = false;
+                });
+                allToggle.checked = allChecked;
+            }
+        });
+    });
+
+    if (allToggle) {
+        allToggle.addEventListener('change', function() {
+            maToggles.forEach(function(t) {
+                t.checked = allToggle.checked;
+                var maId = t.getAttribute('data-ma-id');
+                if (maId) setMaLayer(maId, allToggle.checked);
             });
         });
     }
