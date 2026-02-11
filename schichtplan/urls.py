@@ -60,6 +60,11 @@ urlpatterns = [
         views.wunsch_eingeben,
         name='wunsch_eingeben'
     ),
+    path(
+        'wuensche/periode/<int:periode_id>/schnell-setzen/',
+        views.wunsch_schnell_setzen,
+        name='wunsch_schnell_setzen'
+    ),
     
     # Wunsch löschen
     path(

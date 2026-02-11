@@ -2176,6 +2176,92 @@ def wunsch_kalender(request, periode_id):
     }
     
     return render(request, 'schichtplan/wunsch_kalender.html', context)
+
+
+@login_required
+def wunsch_schnell_setzen(request, periode_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST erlaubt.'}, status=405)
+
+    if not hasattr(request.user, 'mitarbeiter'):
+        return JsonResponse({'error': 'Kein Mitarbeiter-Profil gefunden.'}, status=403)
+
+    periode = get_object_or_404(SchichtwunschPeriode, pk=periode_id)
+    if not periode.ist_offen:
+        return JsonResponse({'error': 'Wunschperiode ist geschlossen.'}, status=403)
+
+    mitarbeiter = request.user.mitarbeiter
+    ma_id = request.POST.get('mitarbeiter_id')
+    if not ma_id or str(mitarbeiter.pk) != str(ma_id):
+        return JsonResponse({'error': 'Nur eigene Spalte erlaubt.'}, status=403)
+
+    wunsch = request.POST.get('wunsch')
+    erlaubte = {
+        'urlaub',
+        'kein_tag_aber_nacht',
+        'keine_nacht_aber_tag',
+        'tag_bevorzugt',
+        'nacht_bevorzugt',
+        'gar_nichts',
+        'zusatzarbeit',
+    }
+    if wunsch not in erlaubte:
+        return JsonResponse({'error': 'Unbekannter Wunsch.'}, status=400)
+
+    def set_wunsch_for_date(datum):
+        if datum.month != periode.fuer_monat.month or datum.year != periode.fuer_monat.year:
+            raise ValueError('Datum liegt nicht im Wunschmonat.')
+        benoetigt = wunsch in ['urlaub', 'gar_nichts']
+        Schichtwunsch.objects.update_or_create(
+            periode=periode,
+            mitarbeiter=mitarbeiter,
+            datum=datum,
+            defaults={
+                'wunsch': wunsch,
+                'begruendung': '',
+                'benoetigt_genehmigung': benoetigt,
+                'genehmigt': False if benoetigt else True,
+            }
+        )
+
+    von_datum_str = request.POST.get('von_datum')
+    bis_datum_str = request.POST.get('bis_datum')
+    if wunsch == 'urlaub' and von_datum_str and bis_datum_str:
+        try:
+            von_datum = datetime.strptime(von_datum_str, '%Y-%m-%d').date()
+            bis_datum = datetime.strptime(bis_datum_str, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'error': 'Ungueltiges Datumsformat.'}, status=400)
+
+        if bis_datum < von_datum:
+            return JsonResponse({'error': 'Enddatum muss nach Startdatum liegen.'}, status=400)
+        if von_datum.month != periode.fuer_monat.month or von_datum.year != periode.fuer_monat.year:
+            return JsonResponse({'error': 'Startdatum liegt nicht im Wunschmonat.'}, status=400)
+        if bis_datum.month != periode.fuer_monat.month or bis_datum.year != periode.fuer_monat.year:
+            return JsonResponse({'error': 'Enddatum liegt nicht im Wunschmonat.'}, status=400)
+
+        count = 0
+        current = von_datum
+        while current <= bis_datum:
+            set_wunsch_for_date(current)
+            count += 1
+            current += timedelta(days=1)
+        return JsonResponse({'ok': True, 'count': count})
+
+    datum_str = request.POST.get('datum')
+    if not datum_str:
+        return JsonResponse({'error': 'Kein Datum angegeben.'}, status=400)
+    try:
+        datum = datetime.strptime(datum_str, '%Y-%m-%d').date()
+    except ValueError:
+        return JsonResponse({'error': 'Ungueltiges Datumsformat.'}, status=400)
+
+    try:
+        set_wunsch_for_date(datum)
+    except ValueError as exc:
+        return JsonResponse({'error': str(exc)}, status=400)
+
+    return JsonResponse({'ok': True})
     
     
 
