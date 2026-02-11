@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Schichtplan löschen{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card border-danger shadow-sm">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">Entwurf löschen</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-2">Bist du sicher, dass du diesen Entwurf loeschen willst?</p>
+            <p class="mb-3"><strong>{{ schichtplan.name }}</strong> ({{ schichtplan.start_datum|date:"d.m.Y" }} - {{ schichtplan.ende_datum|date:"d.m.Y" }})</p>
+            <form method="post">
+                {% csrf_token %}
+                <a href="{% url 'schichtplan:dashboard' %}" class="btn btn-outline-secondary">Abbrechen</a>
+                <button type="submit" class="btn btn-danger">Ja, loeschen</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

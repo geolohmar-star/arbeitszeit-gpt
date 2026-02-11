@@ -247,6 +247,12 @@
                             {% else %}
                             <span class="badge bg-dark" title="Z-AG Zeitausgleich">AG</span>
                             {% endif %}
+                        {% elif cell.value == 'X' %}
+                            {% if cell.wunsch_id and can_edit %}
+                            <span class="badge bg-light text-muted border wunsch-draggable wunsch-x" draggable="true" data-wunsch-id="{{ cell.wunsch_id }}" title="Wunsch: Gar nichts">X</span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border wunsch-x" title="Wunsch: Gar nichts">X</span>
+                            {% endif %}
                         {% else %}
                             <span class="text-muted">–</span>
                         {% endif %}
@@ -303,6 +309,12 @@
 .wunsch-draggable:active { cursor: grabbing; }
 .schicht-neu-draggable:active { cursor: grabbing; }
 .schicht-neu-drop { transition: background-color 0.15s; }
+.wunsch-x {
+    font-size: 0.7em;
+    font-weight: 400;
+    opacity: 0.6;
+    padding: 0.1em 0.35em;
+}
 </style>
 
 <script>

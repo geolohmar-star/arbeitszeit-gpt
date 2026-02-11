@@ -494,6 +494,7 @@ def planer_dashboard(request):
 
     if is_planer:
         schichtplaene = Schichtplan.objects.all().order_by('-start_datum')
+        veroeffentlichte_plaene = schichtplaene.filter(status='veroeffentlicht')
         planbare_ma = get_planbare_mitarbeiter()
         context = {
             'is_planer': True,
@@ -502,6 +503,7 @@ def planer_dashboard(request):
             'entwuerfe': schichtplaene.filter(status='entwurf').count(),
             'zur_genehmigung_count': schichtplaene.filter(status='zur_genehmigung').count(),
             'schichtplaene': schichtplaene,
+            'veroeffentlichte_plaene': veroeffentlichte_plaene,
             'mitarbeiter_gesamt': planbare_ma.count(),
             'mitarbeiter_zugeordnet': planbare_ma.exclude(schichtplan_kennung='').count(),
         }
@@ -821,10 +823,17 @@ def schichtplan_uebersicht_detail(request, pk):
     wunsch_urlaub = Schichtwunsch.objects.filter(
         datum__gte=start, datum__lte=ende,
         mitarbeiter__in=mitarbeiter_liste,
-        wunsch__in=['urlaub', 'gar_nichts']
+        wunsch='urlaub'
+    ).values_list('mitarbeiter_id', 'datum', 'pk')
+    wunsch_gar_nichts = Schichtwunsch.objects.filter(
+        datum__gte=start, datum__lte=ende,
+        mitarbeiter__in=mitarbeiter_liste,
+        wunsch='gar_nichts'
     ).values_list('mitarbeiter_id', 'datum', 'pk')
     urlaub_set = set((ma_id, datum) for ma_id, datum, _ in wunsch_urlaub)
+    gar_nichts_set = set((ma_id, datum) for ma_id, datum, _ in wunsch_gar_nichts)
     zelle_wunsch_id = {(ma_id, datum): pk for ma_id, datum, pk in wunsch_urlaub}
+    zelle_wunsch_id.update({(ma_id, datum): pk for ma_id, datum, pk in wunsch_gar_nichts})
 
     wunsch_krank = Schichtwunsch.objects.filter(
         datum__gte=start, datum__lte=ende,
@@ -858,6 +867,8 @@ def schichtplan_uebersicht_detail(request, pk):
                 matrix[key] = zelle_schicht[key]
             elif key in urlaub_set:
                 matrix[key] = 'U'
+            elif key in gar_nichts_set:
+                matrix[key] = 'X'
             elif key in krank_set:
                 matrix[key] = 'K'
             elif key in ausgleich_set:
@@ -1096,10 +1107,16 @@ def schichtplan_export_excel(request, pk):
     for s in schichten:
         zelle_schicht[(s.mitarbeiter_id, s.datum)] = s.schichttyp.kuerzel
 
-    urlaub_set = set(Schichtwunsch.objects.filter(
+    urlaub_wuensche = Schichtwunsch.objects.filter(
         datum__gte=start, datum__lte=ende, mitarbeiter__in=mitarbeiter_liste,
-        wunsch__in=['urlaub', 'gar_nichts']
-    ).values_list('mitarbeiter_id', 'datum'))
+        wunsch='urlaub'
+    ).values_list('mitarbeiter_id', 'datum', 'pk')
+    gar_nichts_wuensche = Schichtwunsch.objects.filter(
+        datum__gte=start, datum__lte=ende, mitarbeiter__in=mitarbeiter_liste,
+        wunsch='gar_nichts'
+    ).values_list('mitarbeiter_id', 'datum', 'pk')
+    urlaub_set = set((ma_id, datum) for ma_id, datum, _ in urlaub_wuensche)
+    gar_nichts_set = set((ma_id, datum) for ma_id, datum, _ in gar_nichts_wuensche)
     krank_set = set(Schichtwunsch.objects.filter(
         datum__gte=start, datum__lte=ende, mitarbeiter__in=mitarbeiter_liste,
         wunsch='krank'
@@ -1120,6 +1137,8 @@ def schichtplan_export_excel(request, pk):
                 matrix[key] = zelle_schicht[key]
             elif key in urlaub_set:
                 matrix[key] = 'U'
+            elif key in gar_nichts_set:
+                matrix[key] = 'X'
             elif key in krank_set:
                 matrix[key] = 'K'
             elif key in ausgleich_set:
@@ -1257,6 +1276,25 @@ def schichtplan_export_excel(request, pk):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response
+
+
+@login_required
+def schichtplan_loeschen(request, pk):
+    schichtplan = get_object_or_404(Schichtplan, pk=pk)
+    if not ist_schichtplaner(request.user):
+        messages.error(request, "❌ Keine Berechtigung.")
+        return redirect('schichtplan:dashboard')
+    if schichtplan.status != 'entwurf':
+        messages.error(request, "❌ Nur Entwuerfe koennen geloescht werden.")
+        return redirect('schichtplan:dashboard')
+    if request.method == 'POST':
+        name = schichtplan.name
+        schichtplan.delete()
+        messages.success(request, f"✅ Entwurf '{name}' wurde geloescht.")
+        return redirect('schichtplan:dashboard')
+    return render(request, 'schichtplan/schichtplan_loeschen_confirm.html', {
+        'schichtplan': schichtplan,
+    })
 
 
 @login_required

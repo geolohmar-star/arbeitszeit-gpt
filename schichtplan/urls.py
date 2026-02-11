@@ -15,6 +15,7 @@ urlpatterns = [
     path('<int:pk>/uebersicht-detail/', views.schichtplan_uebersicht_detail, name='uebersicht_detail'),
     path('<int:pk>/rueckgaengig/', views.schichtplan_rueckgaengig, name='rueckgaengig'),
     path('<int:pk>/export-excel/', views.schichtplan_export_excel, name='export_excel'),
+    path('<int:pk>/loeschen/', views.schichtplan_loeschen, name='schichtplan_loeschen'),
     
     # Excel-Import
     path('<int:pk>/import/', views.excel_import_view, name='excel_import'),
