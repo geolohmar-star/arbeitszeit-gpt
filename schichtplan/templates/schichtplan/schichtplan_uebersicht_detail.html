@@ -217,7 +217,11 @@
                         {% endif %}
                     </td>
                     <td class="align-middle datum-col">
-                        <strong>{{ row.datum|date:"d.m." }}</strong>
+                        <div class="datum-inline">
+                            <strong>{{ row.datum|date:"d.m." }}</strong>
+                            <span class="badge badge-mini {% if row.t_count != 2 %}bg-danger{% else %}bg-warning text-dark{% endif %}">T {{ row.t_count }}</span>
+                            <span class="badge badge-mini {% if row.n_count != 2 %}bg-danger{% else %}bg-primary{% endif %}">N {{ row.n_count }}</span>
+                        </div>
                     </td>
                     {% for cell in row.zellen %}
                     <td class="text-center align-middle schicht-cell wunsch-layer-cell {% if can_edit %}schicht-drop-any{% if not cell.schicht_id %} schicht-neu-drop{% endif %}{% endif %}" style="min-width: 80px;" data-ma-id="{{ cell.ma_id }}" data-datum="{{ row.datum|date:'Y-m-d' }}" {% if can_edit and cell.schicht_id %}data-schicht-id="{{ cell.schicht_id }}"{% endif %}>
@@ -327,6 +331,17 @@
     font-weight: 400;
     opacity: 0.6;
     padding: 0.1em 0.35em;
+}
+.datum-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+.badge-mini {
+    font-size: 0.65em;
+    padding: 0.1em 0.35em;
+    line-height: 1.1;
 }
 .wunsch-layer-cell {
     position: relative;

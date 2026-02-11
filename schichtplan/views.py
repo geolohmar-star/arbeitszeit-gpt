@@ -910,9 +910,15 @@ def schichtplan_uebersicht_detail(request, pk):
         ist_wochenende = datum.weekday() >= 5  # Sa=5, So=6
         feiertag_name = feiertage_namen.get(datum, '')
         zellen = []
+        t_count = 0
+        n_count = 0
         for ma in mitarbeiter_liste:
             key = (ma.id, datum)
             val = matrix.get(key, '')
+            if val == 'T':
+                t_count += 1
+            elif val == 'N':
+                n_count += 1
             sid = zelle_schicht_id.get(key) if val in ('T', 'N', 'Z') else None
             wid = zelle_wunsch_id.get(key) if val in ('U', 'K', 'AG') else None
             ersatz_markierung = zelle_schicht_ersatz.get(key, False) if val in ('T', 'N', 'Z') else False
@@ -940,6 +946,8 @@ def schichtplan_uebersicht_detail(request, pk):
             'ist_wochenende': ist_wochenende,
             'feiertag_name': feiertag_name,
             'zellen': zellen,
+            't_count': t_count,
+            'n_count': n_count,
         })
 
     ersatz_vorschlaege = []
