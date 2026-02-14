@@ -390,7 +390,7 @@ class SchichtplanCreateView(CreateView):
                 
                 self.object.save()
                 
-                print(f"✅ Schichtplan '{self.object.name}' (ID={self.object.pk}) gespeichert")
+                print(f"[OK] Schichtplan '{self.object.name}' (ID={self.object.pk}) gespeichert")
                 
                 # 2. KI-Generierung (falls aktiviert)
                 if ki_aktiviert:
@@ -415,7 +415,7 @@ class SchichtplanCreateView(CreateView):
 
     def _generate_with_ai(self):
       
-        print(f"🤖 KI-Generierung für Plan '{self.object.name}' (ID={self.object.pk}) gestartet...")
+        print(f"[KI] Generierung fuer Plan '{self.object.name}' (ID={self.object.pk}) gestartet...")
         
         # 1. BASIS-CHECK: Mitarbeiter vorhanden?
         planbare_mitarbeiter = get_planbare_mitarbeiter()
@@ -436,7 +436,7 @@ class SchichtplanCreateView(CreateView):
             raise Exception(f"Schichttypen fehlen: {', '.join(missing)}. Bitte im Admin anlegen.")
         
         # 3. HINWEIS: Wünsche werden automatisch vom Generator geladen
-        print(f"   ℹ️ Wünsche werden automatisch aus DB geladen (falls vorhanden)")
+        print(f"   [INFO] Wuensche werden automatisch aus DB geladen (falls vorhanden)")
         
         # 4. GENERATOR STARTEN (Genau ein Aufruf)
         try:
@@ -451,11 +451,11 @@ class SchichtplanCreateView(CreateView):
             
             messages.success(
                 self.request,
-                f"✅ Plan '{self.object.name}' wurde erfolgreich erstellt! "
-                f"🚀 {schichten_anzahl} Schichten für {planbare_mitarbeiter.count()} "
+                f"Plan '{self.object.name}' wurde erfolgreich erstellt! "
+                f"{schichten_anzahl} Schichten fuer {planbare_mitarbeiter.count()} "
                 f"Mitarbeiter automatisch generiert."
             )
-            print(f"✅ Erfolg: {schichten_anzahl} Schichten generiert.")
+            print(f"[OK] Erfolg: {schichten_anzahl} Schichten generiert.")
             
         except Exception as e:
             import traceback
@@ -714,7 +714,7 @@ def schichtplan_detail(request, pk):
                 schichtplan.start_datum.month
             ))
         except Exception as e:
-            print(f"   ⚠️ Fehler Soll-Stunden {ma.schichtplan_kennung}: {e}")
+            print(f"   [WARN] Fehler Soll-Stunden {ma.schichtplan_kennung}: {e}")
             soll_stunden = 160.0 # Fallback
 
         prozent = (ist_stunden / soll_stunden * 100) if soll_stunden > 0 else 0
@@ -2256,19 +2256,12 @@ def wunsch_kalender(request, periode_id):
     
     planbare_ma = sorted(list(planbare_ma_queryset), key=sortiere_ma_key)
     
-    print(f"\n🔍 DEBUG wunsch_kalender:")
-    print(f"   Periode: {periode.name}")
-    print(f"   Monat: {periode.fuer_monat}")
-    print(f"   Anzahl MA: {len(planbare_ma)}")
-    
     # Lade alle Wünsche für diese Periode
     
     alle_wuensche = Schichtwunsch.objects.filter(
         periode=periode,
         mitarbeiter__in=planbare_ma_queryset
     ).select_related('mitarbeiter')
-    
-    print(f"   Anzahl Wünsche: {alle_wuensche.count()}")
     
     # Gruppiere Wünsche nach Datum
     wuensche_nach_datum = defaultdict(list)
@@ -2286,8 +2279,6 @@ def wunsch_kalender(request, periode_id):
     
     # NRW-Feiertage im Monat
     feiertage_set, feiertage_namen = get_configured_feiertage(monat_start, monat_ende, region='nrw')
-    
-    print(f"   Zeitraum: {monat_start} bis {monat_ende}")
     
     kalender_daten = []
     current_date = monat_start
@@ -2320,8 +2311,6 @@ def wunsch_kalender(request, periode_id):
         })
         
         current_date += timedelta(days=1)
-    
-    print(f"   Anzahl Kalendertage: {len(kalender_daten)}")
     
     # Beteiligung / Bewertung: Wie viele Wünsche hat jeder MA abgegeben?
     # Urlaub und Krank werden nicht mitgezählt

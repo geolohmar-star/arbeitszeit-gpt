@@ -367,4 +367,5 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 - Keine externen Pakete ohne Rückfrage installieren
 - Bei Datenbankänderungen immer Migrations erstellen
 - Keine `print()`-Statements – stattdessen `logging`
+- **Keine Emojis in Python-Code** (auch nicht in Strings, Kommentaren oder Logs) – Windows cp1252 kann Unicode-Emojis nicht kodieren und wirft `UnicodeEncodeError`
 - Partials immer in `partials/` Unterordner mit `_` Prefix benennen

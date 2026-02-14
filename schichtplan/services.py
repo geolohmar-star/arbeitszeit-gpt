@@ -37,7 +37,7 @@ class SchichtplanGenerator:
         # === NEU: Konfiguration laden ===
         from schichtplan.models import SchichtplanKonfiguration
         self.config = SchichtplanKonfiguration.get_aktuelle()
-        print(f"   📋 Lade Konfiguration v{self.config.version_nummer} (Config-ID: {self.config.id})")
+        print(f"   [CONFIG] Lade Konfiguration v{self.config.version_nummer} (Config-ID: {self.config.id})")
 
         try:
             self.type_t = Schichttyp.objects.get(kuerzel='T')
@@ -46,7 +46,7 @@ class SchichtplanGenerator:
                 self.type_z = Schichttyp.objects.get(kuerzel='Z')
             except Schichttyp.DoesNotExist:
                 self.type_z = None
-                print("   ⚠️ Schichttyp 'Z' nicht gefunden")
+                print("   [WARN] Schichttyp 'Z' nicht gefunden")
         except Schichttyp.DoesNotExist:
             raise Exception("Schichttypen 'T' und 'N' müssen existieren.")
 
@@ -65,7 +65,7 @@ class SchichtplanGenerator:
         for ma in self.mitarbeiter_list:
             schicht_typ = getattr(ma, 'schicht_typ', 'typ_a')
             
-            # --- 1. Wochentage säubern → IMMER eine Liste von Ints ---
+            # --- 1. Wochentage säubern -> IMMER eine Liste von Ints ---
             raw_tage = getattr(ma, 'erlaubte_wochentage', None)
             clean_tage = []
             
@@ -169,13 +169,13 @@ class SchichtplanGenerator:
                 debug_infos.append("KEINE Z-Dienste")
             
             if debug_infos:
-                print(f"      → {ma.schichtplan_kennung}: {', '.join(debug_infos)}")
+                print(f"      -> {ma.schichtplan_kennung}: {', '.join(debug_infos)}")
 
     # ======================================================================
     # SOLL-STUNDEN LADEN
     # ======================================================================
     def _load_soll_stunden(self, jahr, monat):
-        print("\n📊 Lade Soll-Stunden...")
+        print("\n[STATS] Lade Soll-Stunden...")
         soll_stunden_map = {}
         soll_schichten_map = {}
         
@@ -184,7 +184,7 @@ class SchichtplanGenerator:
         avg_schicht_stunden = (avg_tag_stunden + avg_nacht_stunden) / 2
         
         print(f"   Schichtlängen: T={avg_tag_stunden}h, N={avg_nacht_stunden}h")
-        print(f"   Ø Schichtlänge: {avg_schicht_stunden:.1f}h")
+        print(f"   O Schichtlänge: {avg_schicht_stunden:.1f}h")
         
         for ma in self.mitarbeiter_list:
             soll_obj = MonatlicheArbeitszeitSoll.objects.filter(
@@ -200,7 +200,7 @@ class SchichtplanGenerator:
             soll_schichten = soll_stunden / avg_schicht_stunden
             soll_stunden_map[ma.id] = soll_stunden
             soll_schichten_map[ma.id] = round(soll_schichten)
-            print(f"      {ma.schichtplan_kennung}: {soll_stunden:.1f}h ÷ {avg_schicht_stunden:.1f}h = {round(soll_schichten)} Schichten")
+            print(f"      {ma.schichtplan_kennung}: {soll_stunden:.1f}h / {avg_schicht_stunden:.1f}h = {round(soll_schichten)} Schichten")
         
         return soll_stunden_map, soll_schichten_map
 
@@ -264,18 +264,30 @@ class SchichtplanGenerator:
             current += datetime.timedelta(days=1)
 
         print(f"\n{'='*70}")
-        print(f"🚀 GENERIERE PLAN: {len(tage_liste)} Tage ({start_datum} bis {tage_liste[-1]})")
+        print(f"[START] GENERIERE PLAN: {len(tage_liste)} Tage ({start_datum} bis {tage_liste[-1]})")
         print(f"{'='*70}\n")
 
         # ====================================================================
-        # WÜNSCHE LADEN
+        # WÜNSCHE LADEN (nur aus der zugehoerigen Wunschperiode)
         # ====================================================================
-        print("🗓️ Lade Schichtwünsche...")
-        
+        print("[LOAD] Lade Schichtwuensche...")
+
+        wunsch_filter = {
+            'datum__gte': start_datum,
+            'datum__lte': ende_datum,
+            'mitarbeiter__in': self.mitarbeiter_list,
+        }
+        # Nur Wuensche der zugehoerigen Periode laden (keine verwaisten)
+        if hasattr(neuer_schichtplan_obj, 'wunschperiode') and neuer_schichtplan_obj.wunschperiode:
+            wunsch_filter['periode'] = neuer_schichtplan_obj.wunschperiode
+            print(f"   Periode: {neuer_schichtplan_obj.wunschperiode.name}")
+        else:
+            # Fallback: nur Wuensche MIT Periode laden
+            wunsch_filter['periode__isnull'] = False
+            print("   [WARN] Keine Wunschperiode am Plan - lade alle Wuensche mit Periode")
+
         wuensche = Schichtwunsch.objects.filter(
-            datum__gte=start_datum,
-            datum__lte=ende_datum,
-            mitarbeiter__in=self.mitarbeiter_list
+            **wunsch_filter
         ).select_related('mitarbeiter')
 
         print(f"   Zeitraum: {start_datum} bis {ende_datum}")
@@ -286,8 +298,8 @@ class SchichtplanGenerator:
 
         for w in wuensche:
             wuensche_matrix[w.mitarbeiter.id][w.datum] = w
-            print(f"      → {w.mitarbeiter.schichtplan_kennung}: {w.wunsch} am {w.datum}")
-            if w.wunsch == 'urlaub':
+            print(f"      -> {w.mitarbeiter.schichtplan_kennung}: {w.wunsch} am {w.datum}")
+            if w.wunsch in ['urlaub', 'krank']:
                 urlaubs_tage[w.mitarbeiter.id].append(w.datum)
             elif w.wunsch == 'gar_nichts' and w.genehmigt:
                 urlaubs_tage[w.mitarbeiter.id].append(w.datum)
@@ -298,17 +310,17 @@ class SchichtplanGenerator:
         for ma in self.mitarbeiter_list:
             n = wunsch_anzahl_pro_ma.get(ma.id, 0)
             if n == 0:
-                wunsch_bonus[ma.id] = self.config.wunsch_bonus_keine   # Keine Wünsche → stärkste Bevorzugung
+                wunsch_bonus[ma.id] = self.config.wunsch_bonus_keine   # Keine Wünsche -> stärkste Bevorzugung
             elif n <= self.config.wunsch_bonus_threshold_wenige:
-                wunsch_bonus[ma.id] = self.config.wunsch_bonus_wenige   # Wenige Angaben → bevorzugt
+                wunsch_bonus[ma.id] = self.config.wunsch_bonus_wenige   # Wenige Angaben -> bevorzugt
             elif n <= self.config.wunsch_bonus_threshold_mittel:
-                wunsch_bonus[ma.id] = self.config.wunsch_bonus_mittel   # Mittlere Beteiligung → leicht bevorzugt
+                wunsch_bonus[ma.id] = self.config.wunsch_bonus_mittel   # Mittlere Beteiligung -> leicht bevorzugt
             else:
-                wunsch_bonus[ma.id] = 0      # Viele Wünsche → keine Extra-Bevorzugung
+                wunsch_bonus[ma.id] = 0      # Viele Wünsche -> keine Extra-Bevorzugung
         for ma in self.mitarbeiter_list:
             b = wunsch_bonus.get(ma.id, 0)
             if b > 0:
-                print(f"   📊 {ma.schichtplan_kennung}: {wunsch_anzahl_pro_ma.get(ma.id, 0)} Wunschtage → Bevorzugung +{b}")
+                print(f"   [STATS] {ma.schichtplan_kennung}: {wunsch_anzahl_pro_ma.get(ma.id, 0)} Wunschtage -> Bevorzugung +{b}")
 
         # ====================================================================
         # SOLL-STUNDEN LADEN
@@ -325,7 +337,7 @@ class SchichtplanGenerator:
         cumulative_n = {ma_id: cumulative[ma_id]['n'] for ma_id in cumulative}
         cumulative_we = {ma_id: cumulative[ma_id]['we'] for ma_id in cumulative}
         if any(cumulative[ma.id]['t'] or cumulative[ma.id]['n'] or cumulative[ma.id]['we'] for ma in self.mitarbeiter_list):
-            print("\n📅 Jahressummen-Stand (veröffentlichte Pläne bis vorheriger Monat):")
+            print("\n[DATE] Jahressummen-Stand (veröffentlichte Pläne bis vorheriger Monat):")
             for ma in self.mitarbeiter_list:
                 c = cumulative[ma.id]
                 if c['t'] or c['n'] or c['z'] or c['we']:
@@ -339,7 +351,7 @@ class SchichtplanGenerator:
         model = cp_model.CpModel()
         vars_schichten = {}
 
-        print("\n🔧 Erstelle Constraint-Modell...")
+        print("\n[BUILD] Erstelle Constraint-Modell...")
         
         for ma in self.mitarbeiter_list:
             for tag in tage_liste:
@@ -350,7 +362,7 @@ class SchichtplanGenerator:
         # ====================================================================
         # A. BASIS-CONSTRAINTS
         # ====================================================================
-        print("   ✓ Basis-Regeln")
+        print("   [OK] Basis-Regeln")
         
         for ma in self.mitarbeiter_list:
             for tag in tage_liste:
@@ -358,7 +370,7 @@ class SchichtplanGenerator:
                 all_options.append(vars_schichten[(ma.id, tag, 'Frei')])
                 model.Add(sum(all_options) == 1)
 
-            # Nacht → nächster Tag keine Tagschicht
+            # Nacht -> nächster Tag keine Tagschicht
             for i in range(len(tage_liste) - 1):
                 heute = tage_liste[i]
                 morgen = tage_liste[i+1]
@@ -375,7 +387,7 @@ class SchichtplanGenerator:
         # ====================================================================
         # B. MITARBEITER-PRÄFERENZEN + WÜNSCHE
         # ====================================================================
-        print("   ✓ Präferenzen & Wünsche")
+        print("   [OK] Präferenzen & Wünsche")
         
         # Initialisiere objective_terms HIER (wird in B.9 Typ B gebraucht)
         objective_terms = []
@@ -464,13 +476,13 @@ class SchichtplanGenerator:
             
             # B.9 TYP B - MINDESTENS 4T + 4N (darf mehr sein)
             if pref['schicht_typ'] == 'typ_b':
-                print(f"      ℹ️ {ma.schichtplan_kennung}: Typ B erkannt (Min: 4T+4N, darf mehr sein)")
+                print(f"      [INFO] {ma.schichtplan_kennung}: Typ B erkannt (Min: 4T+4N, darf mehr sein)")
                 
                 # NEU: Berechne verfügbare Tage (ohne genehmigte Urlaube)
                 verfuegbare_tage = 0
                 for tag in tage_liste:
                     wunsch = wuensche_matrix.get(ma.id, {}).get(tag)
-                    is_blocked = (wunsch and wunsch.wunsch in ['urlaub', 'gar_nichts'] and wunsch.genehmigt)
+                    is_blocked = (wunsch and wunsch.wunsch in ['urlaub', 'krank', 'gar_nichts'] and wunsch.genehmigt)
                     if not is_blocked:
                         verfuegbare_tage += 1
                 
@@ -490,7 +502,7 @@ class SchichtplanGenerator:
                     # Normal: Mindestens 4 Tag- und 4 Nachtschichten
                     model.Add(count_t_var >= 4)
                     model.Add(count_n_var >= 4)
-                    print(f"         ✓ Typ B Constraint: Min 4T + 4N (verfügbar: {verfuegbare_tage} Tage)")
+                    print(f"         [OK] Typ B Constraint: Min 4T + 4N (verfügbar: {verfuegbare_tage} Tage)")
                     
                 elif verfuegbare_tage > 0:
                     # Reduziert: So viele wie möglich, aber nicht erzwingen wenn unmöglich
@@ -500,13 +512,13 @@ class SchichtplanGenerator:
                         min_n = min(4, max_moeglich)
                         model.Add(count_t_var >= min_t)
                         model.Add(count_n_var >= min_n)
-                        print(f"         ⚠️ Typ B REDUZIERT: Min {min_t}T + {min_n}N (nur {verfuegbare_tage} Tage verfügbar)")
+                        print(f"         [WARN] Typ B REDUZIERT: Min {min_t}T + {min_n}N (nur {verfuegbare_tage} Tage verfügbar)")
                     else:
-                        print(f"         ⚠️ Typ B ÜBERSPRUNGEN: Nur {verfuegbare_tage} Tag(e) verfügbar (zu wenig für Constraint)")
+                        print(f"         [WARN] Typ B ÜBERSPRUNGEN: Nur {verfuegbare_tage} Tag(e) verfügbar (zu wenig für Constraint)")
                         
                 else:
                     # Komplett Urlaub: Constraint überspringen
-                    print(f"         ⚠️ Typ B ÜBERSPRUNGEN: {ma.schichtplan_kennung} hat 0 Tage verfügbar (kompletter Urlaub)")
+                    print(f"         [WARN] Typ B ÜBERSPRUNGEN: {ma.schichtplan_kennung} hat 0 Tage verfügbar (kompletter Urlaub)")
                 
                 # SOFT CONSTRAINT: Bevorzuge etwa 4-6 Schichten (nur wenn genug Tage verfügbar)
                 if verfuegbare_tage >= 6:
@@ -522,10 +534,10 @@ class SchichtplanGenerator:
                     objective_terms.append(ueber_6_t * self.config.typ_b_overage_strafe)
                     objective_terms.append(ueber_6_n * self.config.typ_b_overage_strafe)
 
-            # B.10 URLAUB / GAR NICHTS → Frei erzwingen (keine Genehmigung mehr nötig)
+            # B.10 URLAUB / KRANK / GAR NICHTS -> Frei erzwingen
             for tag in tage_liste:
                 wunsch = wuensche_matrix.get(ma.id, {}).get(tag)
-                if wunsch and wunsch.wunsch in ['urlaub', 'gar_nichts']:
+                if wunsch and wunsch.wunsch in ['urlaub', 'krank', 'gar_nichts']:
                     model.Add(vars_schichten[(ma.id, tag, 'T')] == 0)
                     model.Add(vars_schichten[(ma.id, tag, 'N')] == 0)
                     model.Add(vars_schichten[(ma.id, tag, 'Frei')] == 1)
@@ -535,7 +547,7 @@ class SchichtplanGenerator:
 
             # MA6 hat spezielle Regel: Nur Tagschichten Mo-Fr, kein Wochenende
             if ma.schichtplan_kennung == 'MA6':
-                print(f"      ✓ MA6 SPEZIALREGEL: Nur Tagschichten Mo-Fr, keine Nachtschichten, kein Wochenende")
+                print(f"      [OK] MA6 SPEZIALREGEL: Nur Tagschichten Mo-Fr, keine Nachtschichten, kein Wochenende")
                 for tag in tage_liste:
                     # Keine Nachtschichten (niemals)
                     model.Add(vars_schichten[(ma.id, tag, 'N')] == 0)
@@ -546,7 +558,7 @@ class SchichtplanGenerator:
 
             # MA7 hat spezielle Regel: Mo-Do keine T/N (nur Z), Fr/Sa/So nur N
             elif ma.schichtplan_kennung == 'MA7':
-                print(f"      ✓ MA7 SPEZIALREGEL: Mo-Do keine T/N (nur Zusatz), Fr/Sa/So nur N")
+                print(f"      [OK] MA7 SPEZIALREGEL: Mo-Do keine T/N (nur Zusatz), Fr/Sa/So nur N")
                 for tag in tage_liste:
                     if tag.weekday() < 4:  # Mo-Do (0-3)
                         # Keine regulären Schichten Mo-Do
@@ -562,7 +574,7 @@ class SchichtplanGenerator:
             
             # B.11b WOCHENEND-NACHTDIENSTE ALS 2ER-BLOCK
             if pref['wochenend_nachtdienst_block']:
-                print(f"      ✓ WOCHENEND-BLOCK: {ma.schichtplan_kennung} bevorzugt Nachtdienste am Wochenende in 2er-Blöcken (Fr+Sa oder Sa+So)")
+                print(f"      [OK] WOCHENEND-BLOCK: {ma.schichtplan_kennung} bevorzugt Nachtdienste am Wochenende in 2er-Blöcken (Fr+Sa oder Sa+So)")
 
                 # Strafe für einzelne Nächte (nicht als Block)
                 for i in range(len(tage_liste) - 1):
@@ -591,7 +603,7 @@ class SchichtplanGenerator:
                 # SOFT CONSTRAINT: Bevorzuge Tagdienst an diesen Tagen, aber erzwinge nicht
                 tage_namen = ['Mo','Di','Mi','Do','Fr','Sa','So']
                 fixe_namen = [tage_namen[t] for t in fixe_tage if 0 <= t <= 6]
-                print(f"      ℹ️ BEVORZUGTE TAGDIENSTE: {ma.schichtplan_kennung} bevorzugt an {','.join(fixe_namen)} (Soft)")
+                print(f"      [INFO] BEVORZUGTE TAGDIENSTE: {ma.schichtplan_kennung} bevorzugt an {','.join(fixe_namen)} (Soft)")
 
                 # Füge zu Objective hinzu statt Hard Constraint
                 # Dies wird später in E.2 WÜNSCHE behandelt
@@ -603,7 +615,7 @@ class SchichtplanGenerator:
             if erlaubte_tage and not fixe_tage:  # nur wenn nicht leer UND keine fixen Tage
                 tage_namen = ['Mo','Di','Mi','Do','Fr','Sa','So']
                 sichtbare_tage = [tage_namen[t] for t in erlaubte_tage if 0 <= t <= 6]
-                print(f"      ✓ CONSTRAINT: {ma.schichtplan_kennung} nur an {','.join(sichtbare_tage)}")
+                print(f"      [OK] CONSTRAINT: {ma.schichtplan_kennung} nur an {','.join(sichtbare_tage)}")
                 
                 for tag in tage_liste:
                     if tag.weekday() not in erlaubte_tage:
@@ -619,12 +631,12 @@ class SchichtplanGenerator:
                 verfuegbare_tage = 0
                 for tag in tage_liste:
                     wunsch = wuensche_matrix.get(ma.id, {}).get(tag)
-                    is_blocked = (wunsch and wunsch.wunsch in ['urlaub', 'gar_nichts'])
+                    is_blocked = (wunsch and wunsch.wunsch in ['urlaub', 'krank', 'gar_nichts'])
                     if not is_blocked:
                         verfuegbare_tage += 1
                 
                 # SOFT: Nur als Warnung, kein Hard Constraint mehr
-                print(f"      ℹ️ MIN TAGSCHICHTEN: {ma.schichtplan_kennung} Ziel {min_t}T (verfügbar: {verfuegbare_tage} Tage)")
+                print(f"      [INFO] MIN TAGSCHICHTEN: {ma.schichtplan_kennung} Ziel {min_t}T (verfügbar: {verfuegbare_tage} Tage)")
             
             # B.14 MIN NACHTSCHICHTEN als SOFT CONSTRAINT  
             if pref['min_nachtschichten_pro_monat']:
@@ -634,16 +646,16 @@ class SchichtplanGenerator:
                 verfuegbare_tage = 0
                 for tag in tage_liste:
                     wunsch = wuensche_matrix.get(ma.id, {}).get(tag)
-                    is_blocked = (wunsch and wunsch.wunsch in ['urlaub', 'gar_nichts'])
+                    is_blocked = (wunsch and wunsch.wunsch in ['urlaub', 'krank', 'gar_nichts'])
                     if not is_blocked:
                         verfuegbare_tage += 1
                 
                 # SOFT: Nur als Warnung, kein Hard Constraint mehr
-                print(f"      ℹ️ MIN NACHTSCHICHTEN: {ma.schichtplan_kennung} Ziel {min_n}N (verfügbar: {verfuegbare_tage} Tage)")
+                print(f"      [INFO] MIN NACHTSCHICHTEN: {ma.schichtplan_kennung} Ziel {min_n}N (verfügbar: {verfuegbare_tage} Tage)")
 
             # B.15 TAGSCHICHT-BLOCK-PRÄFERENZ (3er und 4er Blöcke bestrafen)
             if self.config:
-                print(f"  ✓ TAGSCHICHT-BLÖCKE: Bevorzuge 2er-Blöcke, bestrafe 3er+")
+                print(f"  [OK] TAGSCHICHT-BLÖCKE: Bevorzuge 2er-Blöcke, bestrafe 3er+")
 
                 # 3er-Blöcke: Fenster von 3 aufeinanderfolgende Tagen
                 for i in range(len(tage_liste) - 2):
@@ -690,7 +702,7 @@ class SchichtplanGenerator:
         # ====================================================================
         # C. BESETZUNG - HARD CONSTRAINT: GENAU 2 PRO SCHICHT
         # ====================================================================
-        print("   ✓ Besetzung: GENAU 2 pro Schicht (Hard Constraint)")
+        print("   [OK] Besetzung: GENAU 2 pro Schicht (Hard Constraint)")
         
         for tag in tage_liste:
             for stype in ['T', 'N']:
@@ -713,7 +725,7 @@ class SchichtplanGenerator:
         # Kumulative T/N/WE aus veröffentlichten Plänen werden einbezogen,
         # damit die Jahressummen am Jahresende in etwa gleich sind.
         # ====================================================================
-        print("   ✓ Fairness (Tag/Nacht/Wochenende) – Kernteam, Jahressummen-Ausgleich")
+        print("   [OK] Fairness (Tag/Nacht/Wochenende) - Kernteam, Jahressummen-Ausgleich")
 
         FAIRNESS_WEIGHT_T = self.config.fairness_weight_tagschichten
         FAIRNESS_WEIGHT_N = self.config.fairness_weight_nachtschichten
@@ -768,7 +780,7 @@ class SchichtplanGenerator:
 
         def add_pairwise_balance(ids, count_map, max_diff, weight, label, cumulative_map=None):
             """Fairness: Ziel ist ausgeglichene Jahressumme. Mit cumulative_map wird
-            |(count_i + cum_i) - (count_j + cum_j)| bestraft, also count_i - count_j ≈ cum_j - cum_i."""
+            |(count_i + cum_i) - (count_j + cum_j)| bestraft, also count_i - count_j ~ cum_j - cum_i."""
             for i in range(len(ids)):
                 for j in range(i + 1, len(ids)):
                     ma_i = ids[i]
@@ -791,9 +803,9 @@ class SchichtplanGenerator:
         kernteam_kennungen_n = [self.ma_map[ma_id].schichtplan_kennung for ma_id in eligible_n]
         kernteam_kennungen_we = [self.ma_map[ma_id].schichtplan_kennung for ma_id in eligible_we]
         
-        print(f"      → Kernteam Fairness Tagschichten: {', '.join(kernteam_kennungen_t) if kernteam_kennungen_t else 'keine'}")
-        print(f"      → Kernteam Fairness Nachtschichten: {', '.join(kernteam_kennungen_n) if kernteam_kennungen_n else 'keine'}")
-        print(f"      → Kernteam Fairness Wochenenden: {', '.join(kernteam_kennungen_we) if kernteam_kennungen_we else 'keine'}")
+        print(f"      -> Kernteam Fairness Tagschichten: {', '.join(kernteam_kennungen_t) if kernteam_kennungen_t else 'keine'}")
+        print(f"      -> Kernteam Fairness Nachtschichten: {', '.join(kernteam_kennungen_n) if kernteam_kennungen_n else 'keine'}")
+        print(f"      -> Kernteam Fairness Wochenenden: {', '.join(kernteam_kennungen_we) if kernteam_kennungen_we else 'keine'}")
         
         if len(eligible_t) >= 2:
             add_pairwise_balance(eligible_t, count_t, len(tage_liste), FAIRNESS_WEIGHT_T, 'T', cumulative_map=cumulative_t)
@@ -805,7 +817,7 @@ class SchichtplanGenerator:
         # ====================================================================
         # E. OPTIMIERUNGSZIEL
         # ====================================================================
-        print("   ✓ Optimierungsziel (Wünsche + Soll-Stunden)")
+        print("   [OK] Optimierungsziel (Wünsche + Soll-Stunden)")
         
         for ma in self.mitarbeiter_list:
             pref = self.preferences[ma.id]
@@ -846,8 +858,8 @@ class SchichtplanGenerator:
                             score = -self.config.wunsch_nacht_bevorzugt if kuerzel == 'N' else self.config.wunsch_nacht_bevorzugt
                         elif wunsch.wunsch == 'zusatzarbeit':
                             score = -self.config.wunsch_zusatzarbeit
-                        elif wunsch.wunsch in ['urlaub', 'gar_nichts'] and wunsch.genehmigt:
-                            score = 1000000  # sollte durch B.10 nicht nötig sein, aber Safety
+                        elif wunsch.wunsch in ['urlaub', 'krank', 'gar_nichts'] and wunsch.genehmigt:
+                            score = 1000000  # sollte durch B.10 nicht noetig sein, aber Safety
 
                     # Fixe Tagdienste als Soft Constraint (MA1: Mittwoch bevorzugt)
                     if fixe_tage and kuerzel == 'T' and tag.weekday() in fixe_tage:
@@ -862,7 +874,7 @@ class SchichtplanGenerator:
                     if score != 0:
                         objective_terms.append(vars_schichten[(ma.id, tag, kuerzel)] * score)
 
-                    # Bevorzugung „wenige Wünsche“: Wer selten Wünsche äußert, wird bei der Planung bevorzugt
+                    # Bevorzugung "wenige Wünsche": Wer selten Wünsche äußert, wird bei der Planung bevorzugt
                     bonus = wunsch_bonus.get(ma.id, 0)
                     if bonus > 0:
                         objective_terms.append(vars_schichten[(ma.id, tag, kuerzel)] * (-bonus))
@@ -876,7 +888,7 @@ class SchichtplanGenerator:
 # F. SOLVER STARTEN
 # ====================================================================
         print("\n" + "="*70)
-        print("🔍 CONSTRAINT-ANALYSE")
+        print("[DBG] CONSTRAINT-ANALYSE")
         print("="*70)
         print(f"Zeitraum: {len(tage_liste)} Tage | Mitarbeiter: {len(self.mitarbeiter_list)}")
         kann_tag = sum(1 for ma in self.mitarbeiter_list if self.preferences[ma.id]['kann_tagschicht'])
@@ -892,7 +904,7 @@ class SchichtplanGenerator:
                 print(f"   {ma.schichtplan_kennung}: {verfuegbar} Tage verfügbar")
         print("="*70 + "\n")
 
-        print(f"⚙️ Starte Solver mit {self.config.solver_num_workers} CPU-Kernen...")
+        print(f"[SOLVER] Starte Solver mit {self.config.solver_num_workers} CPU-Kernen...")
         solver = cp_model.CpSolver()
         solver.parameters.max_time_in_seconds = self.config.solver_timeout_sekunden
         solver.parameters.num_search_workers = self.config.solver_num_workers
@@ -901,19 +913,19 @@ class SchichtplanGenerator:
         solver.parameters.relative_gap_limit = float(self.config.solver_relative_gap_limit)  # Stoppt bei X% vom Optimum
         status = solver.Solve(model)
         if status == cp_model.OPTIMAL:
-            print('✅ OPTIMAL gefunden!')
+            print('[OK] OPTIMAL gefunden!')
         elif status == cp_model.FEASIBLE:
-            print(f'⚠️ FEASIBLE - Objective: {solver.ObjectiveValue()}')
+            print(f'[WARN] FEASIBLE - Objective: {solver.ObjectiveValue()}')
             print(f'Best Bound: {solver.BestObjectiveBound()}')
         else:
-            print('❌ INFEASIBLE oder UNKNOWN')
+            print('[FAIL] INFEASIBLE oder UNKNOWN')
         print(f"   Status: {solver.StatusName(status)}")
         
         # ====================================================================
         # G. ERGEBNISSE SPEICHERN
         # ====================================================================
         if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
-            print(f"\n✅ Lösung gefunden! Status: {solver.StatusName(status)}\n")
+            print(f"\n[OK] Lösung gefunden! Status: {solver.StatusName(status)}\n")
             
             ergebnis_count = 0
             ist_schichten_pro_ma = defaultdict(int)
@@ -935,13 +947,13 @@ class SchichtplanGenerator:
                         ergebnis_count += 1
                         ist_schichten_pro_ma[ma.id] += 1
             
-            print(f"💾 {ergebnis_count} Schichten gespeichert.")
+            print(f"[SAVE] {ergebnis_count} Schichten gespeichert.")
             
             # ================================================================
             # H. ZUSATZDIENSTE GENERIEREN
             # ================================================================
             if self.type_z:
-                print("\n➕ Generiere Zusatzdienste zum Auffüllen...")
+                print("\n[+] Generiere Zusatzdienste zum Auffüllen...")
                 
                 z_ist_tag = True 
                 if self.type_z.start_zeit and self.type_z.start_zeit.hour >= 18: 
@@ -955,7 +967,7 @@ class SchichtplanGenerator:
                     
                     # SKIP: keine_zusatzdienste
                     if pref['keine_zusatzdienste']:
-                        print(f"   ⏭️  {ma.schichtplan_kennung}: Übersprungen (Vereinbarung: keine Z)")
+                        print(f"   [SKIP]  {ma.schichtplan_kennung}: Übersprungen (Vereinbarung: keine Z)")
                         continue
                         
                     # SKIP: Kann Schichttyp nicht
@@ -1032,7 +1044,7 @@ class SchichtplanGenerator:
                 # H.2 VERTEILUNG: Pro-MA Durchlauf, max 2 Z pro Tag
                 # ============================================================
                 if ma_bedarf:
-                    # Sortiere: Wer am meisten braucht → zuerst; bei gleichem Bedarf: wer weniger Z im Jahr hat → zuerst (Jahresausgleich)
+                    # Sortiere: Wer am meisten braucht -> zuerst; bei gleichem Bedarf: wer weniger Z im Jahr hat -> zuerst (Jahresausgleich)
                     ma_bedarf.sort(key=lambda x: (-x['bedarf'], cumulative.get(x['ma'].id, {}).get('z', 0)))
                     
                     # Zähle wie viele Z pro Tag vergeben werden (max konfiguriert)
@@ -1041,7 +1053,7 @@ class SchichtplanGenerator:
                     
                     # Zähle auch bereits vergebene Z pro MA (aus Solver T/N + neue Z)
                     # damit max_aufeinanderfolgende_tage korrekt bleibt
-                    ma_arbeits_tage = {}  # {ma.id: set(datum)} — alle Tage wo MA arbeitet
+                    ma_arbeits_tage = {}  # {ma.id: set(datum)} -- alle Tage wo MA arbeitet
                     for ma_info in ma_bedarf:
                         arbeits_tage = set()
                         for tag in tage_liste:
@@ -1079,7 +1091,7 @@ class SchichtplanGenerator:
                             if streak > max_tage:
                                 continue
 
-                            # ✅ Vergeben
+                            # [OK] Vergeben
                             Schicht.objects.create(
                                 schichtplan=neuer_schichtplan_obj,
                                 mitarbeiter=ma_info['ma'],
@@ -1088,10 +1100,10 @@ class SchichtplanGenerator:
                             )
                             ma_info['zugewiesen'] += 1
                             z_pro_tag[tag] += 1
-                            ma_arbeits_tage[ma_id].add(tag)  # ← Tag merken für nächste Streak-Prüfung
+                            ma_arbeits_tage[ma_id].add(tag)  # <- Tag merken für nächste Streak-Prüfung
                             zusatz_count += 1
                     
-                    print(f"   ➕ {zusatz_count} Zusatzdienste vergeben.")
+                    print(f"   [+] {zusatz_count} Zusatzdienste vergeben.")
 
             # ================================================================
             # I. STATISTIKEN
@@ -1104,7 +1116,7 @@ class SchichtplanGenerator:
             if self.schichtplan_obj:
                 self.schichtplan_obj.konfiguration = self.config
                 self.schichtplan_obj.save(update_fields=['konfiguration'])
-                print(f"   📋 Konfiguration v{self.config.version_nummer} mit Plan gespeichert.\n")
+                print(f"   [CONFIG] Konfiguration v{self.config.version_nummer} mit Plan gespeichert.\n")
 
         else:
             error_msg = (
@@ -1113,7 +1125,7 @@ class SchichtplanGenerator:
                 "zu viele Urlaube an denselben Tagen, "
                 "oder Typ B + Wünsche unvereinbar."
             )
-            print("❌ Solver-Fehler:", error_msg)
+            print("[FAIL] Solver-Fehler:", error_msg)
             raise Exception(error_msg)
 
     # ======================================================================
@@ -1121,34 +1133,34 @@ class SchichtplanGenerator:
     # ======================================================================
     def _print_statistics(self, schichtplan, tage_liste, soll_stunden_map, soll_schichten_map, wuensche_matrix):
         print("\n" + "="*70)
-        print("📊 PLAN-STATISTIKEN")
+        print("[STATS] PLAN-STATISTIKEN")
         print("="*70)
         
         schichten = Schicht.objects.filter(schichtplan=schichtplan)
         
         # Wunsch-Analyse
-        print("\n🔍 WUNSCH-ANALYSE:")
+        print("\n[DBG] WUNSCH-ANALYSE:")
         for ma in self.mitarbeiter_list:
             ma_wuensche = wuensche_matrix.get(ma.id, {})
             for datum, wunsch in ma_wuensche.items():
                 schicht_an_tag = schichten.filter(mitarbeiter=ma, datum=datum).first()
                 ist = schicht_an_tag.schichttyp.kuerzel if schicht_an_tag else "Frei"
                 
-                if wunsch.wunsch == 'urlaub':
-                    status = "✅" if not schicht_an_tag else "❌ FEHLER"
+                if wunsch.wunsch in ['urlaub', 'krank']:
+                    status = "OK" if not schicht_an_tag else "FEHLER"
                 elif wunsch.wunsch == 'tag_bevorzugt':
-                    status = "✅" if ist == 'T' else ("⚠️ SOFT" if ist != 'Frei' else "ℹ️")
+                    status = "[OK]" if ist == 'T' else ("[WARN] SOFT" if ist != 'Frei' else "[INFO]")
                 elif wunsch.wunsch == 'nacht_bevorzugt':
-                    status = "✅" if ist == 'N' else ("⚠️ SOFT" if ist != 'Frei' else "ℹ️")
+                    status = "[OK]" if ist == 'N' else ("[WARN] SOFT" if ist != 'Frei' else "[INFO]")
                 elif wunsch.wunsch == 'gar_nichts':
-                    status = "✅" if not schicht_an_tag else ("❌ FEHLER" if wunsch.genehmigt else "⚠️")
+                    status = "[OK]" if not schicht_an_tag else ("[FAIL] FEHLER" if wunsch.genehmigt else "[WARN]")
                 else:
-                    status = "ℹ️"
+                    status = "[INFO]"
                 
-                print(f"   {status} {ma.schichtplan_kennung}: {wunsch.wunsch} am {datum} → {ist}")
+                print(f"   {status} {ma.schichtplan_kennung}: {wunsch.wunsch} am {datum} -> {ist}")
         
         # Verteilung pro MA
-        print("\n📊 SCHICHT-VERTEILUNG:")
+        print("\n[STATS] SCHICHT-VERTEILUNG:")
         tage_namen = ['Mo','Di','Mi','Do','Fr','Sa','So']
         
         for ma in self.mitarbeiter_list:
