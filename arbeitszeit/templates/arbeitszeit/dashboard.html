@@ -324,6 +324,9 @@
                 <a href="{% url 'arbeitszeit:vereinbarung_liste' %}">Vereinbarungen</a>
                 <a href="{% url 'arbeitszeit:zeiterfassung_uebersicht' %}">Zeiterfassung</a>
                 
+                {% if is_admin %}
+                    <a href="{% url 'arbeitszeit:admin_dashboard' %}">Verwaltung</a>
+                {% endif %}
                 {% if user.is_staff %}
                     <a href="{% url 'schichtplan:dashboard' %}">Schichtplanung</a>
                     <a href="{% url 'admin:index' %}" target="_blank">Admin</a>
@@ -504,9 +507,16 @@
                     </a>
 
                     <a href="{% url 'arbeitszeit:zeiterfassung_uebersicht' %}" class="quick-action">
-                        <div class="quick-action-title">📈 Zeitübersicht</div>
+                        <div class="quick-action-title">Zeituebersicht</div>
                         <div class="quick-action-desc">Erfasste Zeiten einsehen</div>
                     </a>
+
+                    {% if is_admin %}
+                    <a href="{% url 'arbeitszeit:admin_dashboard' %}" class="quick-action" style="border-color: var(--primary); background: rgba(26, 77, 46, 0.03);">
+                        <div class="quick-action-title">Verwaltung</div>
+                        <div class="quick-action-desc">Antraege genehmigen, Mitarbeiter verwalten</div>
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

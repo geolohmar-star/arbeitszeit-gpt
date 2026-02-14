@@ -617,12 +617,8 @@ def vereinbarung_detail(request, pk):
 def dashboard(request):
     user = request.user
     
-    # Nur Sachbearbeiter werden direkt weitergeleitet
-    if hasattr(user, 'mitarbeiter'):
-        rolle = user.mitarbeiter.rolle
-        if rolle == 'sachbearbeiter':
-            return redirect('arbeitszeit:admin_dashboard')
-        # Schichtplaner NICHT mehr redirecten!
+    # Sachbearbeiter und Schichtplaner sehen ihr persoenliches Dashboard
+    # mit Link zum Admin-Bereich
     
     mitarbeiter, created = Mitarbeiter.objects.get_or_create(
         user=user,
@@ -648,6 +644,7 @@ def dashboard(request):
     alle_vereinbarungen = mitarbeiter.arbeitszeitvereinbarungen.all().order_by('-created_at')[:5]
     
     is_kongos = (mitarbeiter.abteilung or '').strip().lower() == 'kongos'
+    is_admin = request.user.is_staff or mitarbeiter.rolle == 'sachbearbeiter'
     context = {
         'mitarbeiter': mitarbeiter,
         'aktuelle_vereinbarung': aktuelle_vereinbarung,
@@ -656,6 +653,7 @@ def dashboard(request):
         'alle_vereinbarungen': alle_vereinbarungen,
         'user': user,
         'is_kongos': is_kongos,
+        'is_admin': is_admin,
     }
     return render(request, 'arbeitszeit/dashboard.html', context)
 
@@ -883,8 +881,12 @@ def zeiterfassung_uebersicht(request):
 
 @login_required
 def admin_dashboard(request):
-    if not request.user.is_staff:
-        messages.error(request, "Sie haben keine Berechtigung für diese Seite.")
+    is_sachbearbeiter = (
+        hasattr(request.user, 'mitarbeiter')
+        and request.user.mitarbeiter.rolle == 'sachbearbeiter'
+    )
+    if not (request.user.is_staff or is_sachbearbeiter):
+        messages.error(request, "Sie haben keine Berechtigung fuer diese Seite.")
         return redirect('arbeitszeit:dashboard')
     
     heute = timezone.now()
@@ -911,7 +913,11 @@ def admin_dashboard(request):
 
 @login_required
 def admin_vereinbarungen_genehmigen(request):
-    if not request.user.is_staff:
+    is_sachbearbeiter = (
+        hasattr(request.user, 'mitarbeiter')
+        and request.user.mitarbeiter.rolle == 'sachbearbeiter'
+    )
+    if not (request.user.is_staff or is_sachbearbeiter):
         return redirect('arbeitszeit:dashboard')
     
     offene_antraege = Arbeitszeitvereinbarung.objects.filter(
@@ -931,8 +937,12 @@ def admin_vereinbarungen_genehmigen(request):
 
 @login_required
 def admin_vereinbarung_genehmigen(request, pk):
-    """Einzelne Vereinbarung genehmigen (Detailansicht für Admin)"""
-    if not request.user.is_staff:
+    """Einzelne Vereinbarung genehmigen (Detailansicht fuer Admin)"""
+    is_sachbearbeiter = (
+        hasattr(request.user, 'mitarbeiter')
+        and request.user.mitarbeiter.rolle == 'sachbearbeiter'
+    )
+    if not (request.user.is_staff or is_sachbearbeiter):
         return redirect('arbeitszeit:dashboard')
     
     vereinbarung = get_object_or_404(Arbeitszeitvereinbarung, pk=pk)
