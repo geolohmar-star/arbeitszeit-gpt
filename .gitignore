@@ -61,4 +61,5 @@ Thumbs.db
 # Daten-Exports
 *.json
 !requirements.txt
+Sicherungsdateien/
 "@ | Out-File -FilePath .gitignore -Encoding UTF8

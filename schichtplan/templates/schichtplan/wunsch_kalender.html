@@ -27,6 +27,7 @@
         <div class="card-body py-2">
             <div class="row small align-items-center">
                 <div class="col-auto"><span class="badge bg-danger">U</span> Urlaub</div>
+                <div class="col-auto"><span class="badge" style="background-color: #e74c3c; color: white;">K</span> Krank</div>
                 <div class="col-auto"><span class="badge bg-primary">2</span> Kein Tag, Nacht OK</div>
                 <div class="col-auto"><span class="badge bg-warning text-dark">3</span> Keine Nacht, Tag OK</div>
                 <div class="col-auto"><span class="badge bg-success">T</span> Tag bevorzugt</div>
@@ -47,10 +48,11 @@
         <div class="card-body py-2 d-flex align-items-center flex-wrap gap-3">
             <div class="d-flex align-items-center flex-wrap gap-2">
                 <p class="text-muted small mb-0 me-2" style="max-width: 520px;">
-                    <strong>Bedienung:</strong> Symbol greifen und in Ihre Spalte ziehen. Urlaub (U) oeffnet den Von-Bis-Dialog. Loeschen: in den Muelleimer ziehen.
+                    <strong>Bedienung:</strong> Symbol greifen und in Ihre Spalte ziehen. Urlaub (U) und Krank (K) öffnen den Von-Bis-Dialog. Löschen: in den Mülleimer ziehen.
                 </p>
-                <span class="text-muted small me-1">Wuensche:</span>
+                <span class="text-muted small me-1">Wünsche:</span>
                 <span class="badge wunsch-neu-draggable bg-danger" draggable="true" data-wunsch="urlaub" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">U</span>
+                <span class="badge wunsch-neu-draggable" draggable="true" data-wunsch="krank" style="background-color: #e74c3c; color: white; cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">K</span>
                 <span class="badge wunsch-neu-draggable bg-primary" draggable="true" data-wunsch="kein_tag_aber_nacht" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">2</span>
                 <span class="badge wunsch-neu-draggable bg-warning text-dark" draggable="true" data-wunsch="keine_nacht_aber_tag" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">3</span>
                 <span class="badge wunsch-neu-draggable bg-success" draggable="true" data-wunsch="tag_bevorzugt" style="cursor: grab; font-size: 1rem; padding: 0.4em 0.6em;">T</span>
@@ -110,6 +112,8 @@
                                     {% if wunsch.mitarbeiter.pk == ma.pk %}
                                         {% if wunsch.wunsch == 'urlaub' %}
                                             <span class="badge bg-danger {% if ma.pk == mitarbeiter.pk %}wunsch-draggable{% endif %}" {% if ma.pk == mitarbeiter.pk %}draggable="true" data-wunsch-id="{{ wunsch.pk }}"{% endif %} title="Urlaub">U</span>
+                                        {% elif wunsch.wunsch == 'krank' %}
+                                            <span class="badge {% if ma.pk == mitarbeiter.pk %}wunsch-draggable{% endif %}" {% if ma.pk == mitarbeiter.pk %}draggable="true" data-wunsch-id="{{ wunsch.pk }}"{% endif %} style="background-color: #e74c3c; color: white;" title="Krank">K</span>
                                         {% elif wunsch.wunsch == 'kein_tag_aber_nacht' %}
                                             <span class="badge bg-primary {% if ma.pk == mitarbeiter.pk %}wunsch-draggable{% endif %}" {% if ma.pk == mitarbeiter.pk %}draggable="true" data-wunsch-id="{{ wunsch.pk }}"{% endif %} title="Kein Tag, Nacht OK">2</span>
                                         {% elif wunsch.wunsch == 'keine_nacht_aber_tag' %}
@@ -216,6 +220,32 @@
     </div>
 </div>
 
+<div class="modal fade" id="krankModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Krank: Von-Bis</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schliessen"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label for="krank-von" class="form-label mb-1">Von</label>
+                    <input type="date" class="form-control" id="krank-von">
+                </div>
+                <div class="mb-2">
+                    <label for="krank-bis" class="form-label mb-1">Bis</label>
+                    <input type="date" class="form-control" id="krank-bis">
+                </div>
+                <input type="hidden" id="krank-ma-id">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="krank-confirm">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .wunsch-neu-draggable,
 .wunsch-draggable {
@@ -279,6 +309,16 @@
         });
     }
 
+    function submitKrankRange(maId, von, bis) {
+        return postForm(quickUrl, {
+            csrfmiddlewaretoken: csrf,
+            mitarbeiter_id: maId,
+            wunsch: 'krank',
+            von_datum: von,
+            bis_datum: bis
+        });
+    }
+
     function submitWunschLoeschen(wunschId) {
         var form = document.createElement('form');
         form.method = 'POST';
@@ -298,6 +338,13 @@
     var urlaubMaIdEl = document.getElementById('urlaub-ma-id');
     var urlaubConfirmBtn = document.getElementById('urlaub-confirm');
     var urlaubModal = urlaubModalEl && window.bootstrap ? new bootstrap.Modal(urlaubModalEl) : null;
+
+    var krankModalEl = document.getElementById('krankModal');
+    var krankVonEl = document.getElementById('krank-von');
+    var krankBisEl = document.getElementById('krank-bis');
+    var krankMaIdEl = document.getElementById('krank-ma-id');
+    var krankConfirmBtn = document.getElementById('krank-confirm');
+    var krankModal = krankModalEl && window.bootstrap ? new bootstrap.Modal(krankModalEl) : null;
 
     document.querySelectorAll('.wunsch-neu-draggable').forEach(function(el) {
         el.addEventListener('dragstart', function(e) {
@@ -362,6 +409,27 @@
                 }
                 return;
             }
+            if (wunschTyp === 'krank') {
+                pendingKrank = { maId: maId, datum: datum };
+                if (krankVonEl) krankVonEl.value = datum;
+                if (krankBisEl) krankBisEl.value = datum;
+                if (krankMaIdEl) krankMaIdEl.value = maId;
+                if (krankModal) {
+                    krankModal.show();
+                } else {
+                    submitWunsch(maId, datum, wunschTyp).then(function(resp) {
+                        if (!resp.ok) {
+                            return resp.json().then(function(data) {
+                                throw new Error(data && data.error ? data.error : 'Speichern fehlgeschlagen.');
+                            });
+                        }
+                        window.location.reload();
+                    }).catch(function(err) {
+                        alert(err.message || 'Speichern fehlgeschlagen.');
+                    });
+                }
+                return;
+            }
             submitWunsch(maId, datum, wunschTyp).then(function(resp) {
                 if (!resp.ok) {
                     return resp.json().then(function(data) {
@@ -385,6 +453,28 @@
                 return;
             }
             submitUrlaubRange(maId, von, bis).then(function(resp) {
+                if (!resp.ok) {
+                    return resp.json().then(function(data) {
+                        throw new Error(data && data.error ? data.error : 'Speichern fehlgeschlagen.');
+                    });
+                }
+                window.location.reload();
+            }).catch(function(err) {
+                alert(err.message || 'Speichern fehlgeschlagen.');
+            });
+        });
+    }
+
+    if (krankConfirmBtn) {
+        krankConfirmBtn.addEventListener('click', function() {
+            var maId = krankMaIdEl ? krankMaIdEl.value : '';
+            var von = krankVonEl ? krankVonEl.value : '';
+            var bis = krankBisEl ? krankBisEl.value : '';
+            if (!maId || !von || !bis) {
+                alert('Bitte Von und Bis auswaehlen.');
+                return;
+            }
+            submitKrankRange(maId, von, bis).then(function(resp) {
                 if (!resp.ok) {
                     return resp.json().then(function(data) {
                         throw new Error(data && data.error ? data.error : 'Speichern fehlgeschlagen.');

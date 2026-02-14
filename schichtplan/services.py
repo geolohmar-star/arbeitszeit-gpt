@@ -7,6 +7,7 @@ VOLLSTÄNDIG mit:
 - Typ B: Min 4T + 4N pro Monat
 - Genau 2 Personen pro Schicht
 - Fairness: Gleichmäßige Verteilung
+- TODO: Quartals-Check fuer Fairness (fruehzeitig korrigieren)
 - WUNSCH-INTEGRATION (Urlaub, Präferenzen)
 - SOLL-STUNDEN-VERRECHNUNG (jeder arbeitet ca. gleich viel)
 - AUTOMATISCHE ZUSATZDIENSTE zum Auffüllen
@@ -28,10 +29,16 @@ from arbeitszeit.models import MonatlicheArbeitszeitSoll
 
 
 class SchichtplanGenerator:
-    def __init__(self, mitarbeiter_queryset):
+    def __init__(self, mitarbeiter_queryset, schichtplan_obj=None):
         self.mitarbeiter_list = list(mitarbeiter_queryset)
         self.ma_map = {ma.id: ma for ma in self.mitarbeiter_list}
-        
+        self.schichtplan_obj = schichtplan_obj  # Wird später gespeichert für Config-FK
+
+        # === NEU: Konfiguration laden ===
+        from schichtplan.models import SchichtplanKonfiguration
+        self.config = SchichtplanKonfiguration.get_aktuelle()
+        print(f"   📋 Lade Konfiguration v{self.config.version_nummer} (Config-ID: {self.config.id})")
+
         try:
             self.type_t = Schichttyp.objects.get(kuerzel='T')
             self.type_n = Schichttyp.objects.get(kuerzel='N')
@@ -96,6 +103,11 @@ class SchichtplanGenerator:
             # --- 3. Keine Zusatzdienste Flag ---
             keine_z = bool(getattr(ma, 'keine_zusatzdienste', False))
 
+            # --- 4. NEU: MA7 bekommt automatisch wochenend_nachtdienst_block=True ---
+            wochenend_block = getattr(ma, 'wochenend_nachtdienst_block', False)
+            if ma.schichtplan_kennung == 'MA7':
+                wochenend_block = True
+
             pref = {
                 'kann_tagschicht': ma.kann_tagschicht,
                 'kann_nachtschicht': ma.kann_nachtschicht,
@@ -114,7 +126,7 @@ class SchichtplanGenerator:
                 'zaehlt_zur_tagbesetzung': getattr(ma, 'zaehlt_zur_tagbesetzung', True),
                 'zaehlt_zur_nachtbesetzung': getattr(ma, 'zaehlt_zur_nachtbesetzung', True),
                 'fixe_tag_wochentage': fixe_tage,        # immer Liste
-                'wochenend_nachtdienst_block': getattr(ma, 'wochenend_nachtdienst_block', False),
+                'wochenend_nachtdienst_block': wochenend_block,  # NEU: Jetzt echtes Constraint!
                 'min_tagschichten_pro_monat': getattr(ma, 'min_tagschichten_pro_monat', None),
                 'min_nachtschichten_pro_monat': getattr(ma, 'min_nachtschichten_pro_monat', None),
                 'target_tagschichten_pro_monat': getattr(ma, 'target_tagschichten_pro_monat', 6),
@@ -286,11 +298,11 @@ class SchichtplanGenerator:
         for ma in self.mitarbeiter_list:
             n = wunsch_anzahl_pro_ma.get(ma.id, 0)
             if n == 0:
-                wunsch_bonus[ma.id] = 5000   # Keine Wünsche → stärkste Bevorzugung
-            elif n <= 4:
-                wunsch_bonus[ma.id] = 3000   # Wenige Angaben → bevorzugt
-            elif n <= 14:
-                wunsch_bonus[ma.id] = 1000   # Mittlere Beteiligung → leicht bevorzugt
+                wunsch_bonus[ma.id] = self.config.wunsch_bonus_keine   # Keine Wünsche → stärkste Bevorzugung
+            elif n <= self.config.wunsch_bonus_threshold_wenige:
+                wunsch_bonus[ma.id] = self.config.wunsch_bonus_wenige   # Wenige Angaben → bevorzugt
+            elif n <= self.config.wunsch_bonus_threshold_mittel:
+                wunsch_bonus[ma.id] = self.config.wunsch_bonus_mittel   # Mittlere Beteiligung → leicht bevorzugt
             else:
                 wunsch_bonus[ma.id] = 0      # Viele Wünsche → keine Extra-Bevorzugung
         for ma in self.mitarbeiter_list:
@@ -506,9 +518,9 @@ class SchichtplanGenerator:
                     model.Add(ueber_6_n >= count_n_var - 6)
                     model.Add(ueber_6_n >= 0)
                     
-                    # Geringe Strafe: 2000 pro Schicht über 6
-                    objective_terms.append(ueber_6_t * 2000)
-                    objective_terms.append(ueber_6_n * 2000)
+                    # Geringe Strafe: pro Schicht über Target
+                    objective_terms.append(ueber_6_t * self.config.typ_b_overage_strafe)
+                    objective_terms.append(ueber_6_n * self.config.typ_b_overage_strafe)
 
             # B.10 URLAUB / GAR NICHTS → Frei erzwingen (keine Genehmigung mehr nötig)
             for tag in tage_liste:
@@ -520,21 +532,21 @@ class SchichtplanGenerator:
 
             # B.11 FIXE TAGDIENST-WOCHENTAGE (nur für MA1, NICHT MA7!)
             fixe_tage = pref['fixe_tag_wochentage']  # immer Liste
-            
+
             # MA6 hat spezielle Regel: Nur Tagschichten Mo-Fr, kein Wochenende
             if ma.schichtplan_kennung == 'MA6':
                 print(f"      ✓ MA6 SPEZIALREGEL: Nur Tagschichten Mo-Fr, keine Nachtschichten, kein Wochenende")
                 for tag in tage_liste:
                     # Keine Nachtschichten (niemals)
                     model.Add(vars_schichten[(ma.id, tag, 'N')] == 0)
-                    
+
                     if tag.weekday() >= 5:  # Sa-So
                         # Keine Schichten am Wochenende
                         model.Add(vars_schichten[(ma.id, tag, 'T')] == 0)
-            
+
             # MA7 hat spezielle Regel: Mo-Do keine T/N (nur Z), Fr/Sa/So nur N
             elif ma.schichtplan_kennung == 'MA7':
-                print(f"      ✓ MA7 SPEZIALREGEL: Mo-Do keine T/N (nur Zusatz), Fr/Sa/So nur N in 2er-Blöcken (Ziel: 2 Blöcke = 4N)")
+                print(f"      ✓ MA7 SPEZIALREGEL: Mo-Do keine T/N (nur Zusatz), Fr/Sa/So nur N")
                 for tag in tage_liste:
                     if tag.weekday() < 4:  # Mo-Do (0-3)
                         # Keine regulären Schichten Mo-Do
@@ -547,71 +559,40 @@ class SchichtplanGenerator:
                     else:  # Sa-So (5-6)
                         # Nur Nachtschichten am Wochenende
                         model.Add(vars_schichten[(ma.id, tag, 'T')] == 0)
-                
-                # MA7 SOFT CONSTRAINT: Wochenend-Nachtschichten BEVORZUGT in 2er-Blöcken
+            
+            # B.11b WOCHENEND-NACHTDIENSTE ALS 2ER-BLOCK
+            if pref['wochenend_nachtdienst_block']:
+                print(f"      ✓ WOCHENEND-BLOCK: {ma.schichtplan_kennung} bevorzugt Nachtdienste am Wochenende in 2er-Blöcken (Fr+Sa oder Sa+So)")
+
                 # Strafe für einzelne Nächte (nicht als Block)
                 for i in range(len(tage_liste) - 1):
                     heute = tage_liste[i]
                     morgen = tage_liste[i + 1]
-                    
+
                     # Prüfe Fr+Sa oder Sa+So Paare
                     if (heute.weekday() == 4 and morgen.weekday() == 5) or \
                        (heute.weekday() == 5 and morgen.weekday() == 6):
                         heute_n = vars_schichten[(ma.id, heute, 'N')]
                         morgen_n = vars_schichten[(ma.id, morgen, 'N')]
-                        
-                        # SOFT: Strafe wenn nicht beide oder keine (XOR-Situation)
-                        # XOR = (heute_n AND NOT morgen_n) OR (NOT heute_n AND morgen_n)
-                        # Wir bestrafen wenn genau eine der beiden Schichten vergeben ist
+
+                        # SOFT: Strafe wenn genau eine der beiden Schichten vergeben ist (XOR-Situation)
                         block_broken = model.NewBoolVar(f'{ma.id}_block_broken_{i}')
-                        
-                        # block_broken = 1 wenn genau eine Schicht (nicht beide oder keine)
+
                         # heute_n + morgen_n == 1 bedeutet genau eine Schicht
                         summe = model.NewIntVar(0, 2, f'{ma.id}_block_sum_{i}')
                         model.Add(summe == heute_n + morgen_n)
                         model.Add(summe == 1).OnlyEnforceIf(block_broken)
                         model.Add(summe != 1).OnlyEnforceIf(block_broken.Not())
-                        
-                        # Moderate Strafe für kaputte Blöcke (reduziert)
-                        objective_terms.append(block_broken * 5000)
-                
-                # MA7 ZIEL: Ca. 4 Wochenend-Nachtdienste = 2 Blöcke (Soft Constraint)
-                # Fr (4), Sa (5), So (6) = Wochenende für MA7
-                wochenend_tage = [tag for tag in tage_liste if tag.weekday() >= 4]
-                if wochenend_tage:
-                    ma7_we_nacht = [vars_schichten[(ma.id, tag, 'N')] for tag in wochenend_tage]
-                    ma7_we_n_count = model.NewIntVar(0, len(wochenend_tage), f'{ma.id}_ma7_we_n_count')
-                    model.Add(ma7_we_n_count == sum(ma7_we_nacht))
-                    
-                    # HARD CONSTRAINT: MA7 MUSS mindestens 2 Wochenend-Nächte bekommen
-                    # (= 1 Block minimum, Ziel sind 2 Blöcke = 4 Nächte)
-                    model.Add(ma7_we_n_count >= 2)
-                    print(f"      \u2713 MA7 HARD: Mindestens 2 Wochenend-Nächte (Ziel: 4)")
-                    
-                    # Abweichung von Ziel 4 bestrafen (SOFT)
-                    # 2 oder 4 Nachtschichten (1-2 Blöcke): OK
-                    # 6 Nachtschichten (3 Blöcke): AUSNAHME (sehr hohe Strafe)
-                    ma7_abweichung = model.NewIntVar(-10, 10, f'{ma.id}_ma7_abw')
-                    model.Add(ma7_abweichung == ma7_we_n_count - 4)
-                    ma7_abs_abw = model.NewIntVar(0, 10, f'{ma.id}_ma7_abs_abw')
-                    model.AddAbsEquality(ma7_abs_abw, ma7_abweichung)
-                    
-                    # Basis-Strafe: 15000 pro Abweichung (STARK erhöht für Ziel 4 Nächte)
-                    objective_terms.append(ma7_abs_abw * 15000)
-                    
-                    # Extra-Strafe für 6+ Nachtschichten (3+ Blöcke)
-                    ma7_ueber_4 = model.NewIntVar(0, 10, f'{ma.id}_ma7_ueber_4')
-                    model.Add(ma7_ueber_4 >= ma7_we_n_count - 4)
-                    model.Add(ma7_ueber_4 >= 0)
-                    # Zusätzliche 20000 Strafe für jede Schicht über 4
-                    objective_terms.append(ma7_ueber_4 * 20000)
-            
+
+                        # Strafe für kaputte Blöcke
+                        objective_terms.append(block_broken * self.config.wockenend_block_strafe)
+
             elif fixe_tage:  # MA1: [2] (Mi) - andere mit fixen Tagen
                 # SOFT CONSTRAINT: Bevorzuge Tagdienst an diesen Tagen, aber erzwinge nicht
                 tage_namen = ['Mo','Di','Mi','Do','Fr','Sa','So']
                 fixe_namen = [tage_namen[t] for t in fixe_tage if 0 <= t <= 6]
                 print(f"      ℹ️ BEVORZUGTE TAGDIENSTE: {ma.schichtplan_kennung} bevorzugt an {','.join(fixe_namen)} (Soft)")
-                
+
                 # Füge zu Objective hinzu statt Hard Constraint
                 # Dies wird später in E.2 WÜNSCHE behandelt
             
@@ -660,6 +641,52 @@ class SchichtplanGenerator:
                 # SOFT: Nur als Warnung, kein Hard Constraint mehr
                 print(f"      ℹ️ MIN NACHTSCHICHTEN: {ma.schichtplan_kennung} Ziel {min_n}N (verfügbar: {verfuegbare_tage} Tage)")
 
+            # B.15 TAGSCHICHT-BLOCK-PRÄFERENZ (3er und 4er Blöcke bestrafen)
+            if self.config:
+                print(f"  ✓ TAGSCHICHT-BLÖCKE: Bevorzuge 2er-Blöcke, bestrafe 3er+")
+
+                # 3er-Blöcke: Fenster von 3 aufeinanderfolgende Tagen
+                for i in range(len(tage_liste) - 2):
+                    heute = tage_liste[i]
+                    morgen = tage_liste[i + 1]
+                    uebermorgen = tage_liste[i + 2]
+
+                    t_heute = vars_schichten[(ma.id, heute, 'T')]
+                    t_morgen = vars_schichten[(ma.id, morgen, 'T')]
+                    t_uebermorgen = vars_schichten[(ma.id, uebermorgen, 'T')]
+
+                    # Detect 3-Block: Alle 3 Tage haben T-Schicht
+                    block_3er = model.NewBoolVar(f'{ma.id}_tag_block_3er_{i}')
+                    summe_3 = model.NewIntVar(0, 3, f'{ma.id}_tag_sum_3er_{i}')
+                    model.Add(summe_3 == t_heute + t_morgen + t_uebermorgen)
+                    model.Add(summe_3 == 3).OnlyEnforceIf(block_3er)
+                    model.Add(summe_3 != 3).OnlyEnforceIf(block_3er.Not())
+
+                    # Penalty für 3er-Blöcke
+                    objective_terms.append(block_3er * self.config.tag_block_3er_strafe)
+
+                # 4er+ Blöcke: Fenster von 4 aufeinanderfolgende Tagen (zusätzliche Penalty)
+                for i in range(len(tage_liste) - 3):
+                    heute = tage_liste[i]
+                    morgen = tage_liste[i + 1]
+                    uebermorgen = tage_liste[i + 2]
+                    tag_4 = tage_liste[i + 3]
+
+                    t_heute = vars_schichten[(ma.id, heute, 'T')]
+                    t_morgen = vars_schichten[(ma.id, morgen, 'T')]
+                    t_uebermorgen = vars_schichten[(ma.id, uebermorgen, 'T')]
+                    t_4 = vars_schichten[(ma.id, tag_4, 'T')]
+
+                    # Detect 4-Block
+                    block_4er = model.NewBoolVar(f'{ma.id}_tag_block_4er_{i}')
+                    summe_4 = model.NewIntVar(0, 4, f'{ma.id}_tag_sum_4er_{i}')
+                    model.Add(summe_4 == t_heute + t_morgen + t_uebermorgen + t_4)
+                    model.Add(summe_4 == 4).OnlyEnforceIf(block_4er)
+                    model.Add(summe_4 != 4).OnlyEnforceIf(block_4er.Not())
+
+                    # Zusatz-Penalty für 4er+ (zur 3er-Penalty addiert)
+                    objective_terms.append(block_4er * self.config.tag_block_4er_strafe)
+
         # ====================================================================
         # C. BESETZUNG - HARD CONSTRAINT: GENAU 2 PRO SCHICHT
         # ====================================================================
@@ -688,9 +715,9 @@ class SchichtplanGenerator:
         # ====================================================================
         print("   ✓ Fairness (Tag/Nacht/Wochenende) – Kernteam, Jahressummen-Ausgleich")
 
-        FAIRNESS_WEIGHT_T = 2500
-        FAIRNESS_WEIGHT_N = 1500
-        FAIRNESS_WEIGHT_WE = 2000
+        FAIRNESS_WEIGHT_T = self.config.fairness_weight_tagschichten
+        FAIRNESS_WEIGHT_N = self.config.fairness_weight_nachtschichten
+        FAIRNESS_WEIGHT_WE = self.config.fairness_weight_wochenenden
 
         # Fr (4), Sa (5), So (6) = Wochenende für Fairness
         weekend_days = [tag for tag in tage_liste if tag.weekday() >= 4]
@@ -799,7 +826,7 @@ class SchichtplanGenerator:
 
             abs_abweichung = model.NewIntVar(0, 100, f'{ma.id}_abs_abweichung')
             model.AddAbsEquality(abs_abweichung, abweichung_var)
-            objective_terms.append(abs_abweichung * 2000)
+            objective_terms.append(abs_abweichung * self.config.soll_stunden_abweichung_strafe)
             
             # --- E.2 WÜNSCHE + FIXE TAGE (Soft) ---
             fixe_tage = pref.get('fixe_tag_wochentage', [])
@@ -814,23 +841,23 @@ class SchichtplanGenerator:
                     # Wünsche
                     if wunsch:
                         if wunsch.wunsch == 'tag_bevorzugt':
-                            score = -25000 if kuerzel == 'T' else 25000
+                            score = -self.config.wunsch_tag_bevorzugt if kuerzel == 'T' else self.config.wunsch_tag_bevorzugt
                         elif wunsch.wunsch == 'nacht_bevorzugt':
-                            score = -25000 if kuerzel == 'N' else 25000
+                            score = -self.config.wunsch_nacht_bevorzugt if kuerzel == 'N' else self.config.wunsch_nacht_bevorzugt
                         elif wunsch.wunsch == 'zusatzarbeit':
-                            score = -5000
+                            score = -self.config.wunsch_zusatzarbeit
                         elif wunsch.wunsch in ['urlaub', 'gar_nichts'] and wunsch.genehmigt:
                             score = 1000000  # sollte durch B.10 nicht nötig sein, aber Safety
-                    
+
                     # Fixe Tagdienste als Soft Constraint (MA1: Mittwoch bevorzugt)
                     if fixe_tage and kuerzel == 'T' and tag.weekday() in fixe_tage:
-                        score += -30000  # Starke Bevorzugung für Tagdienst an fixen Tagen
+                        score += -self.config.wunsch_fixe_tagdienste  # Starke Bevorzugung für Tagdienst an fixen Tagen
 
                     # Planungs-Priorität als Multiplikator
                     if pref['planungs_prioritaet'] == 'hoch':
-                        score = int(score * 1.5)
+                        score = int(score * float(self.config.priority_multiplier_hoch))
                     elif pref['planungs_prioritaet'] == 'niedrig':
-                        score = int(score * 0.8)
+                        score = int(score * float(self.config.priority_multiplier_niedrig))
                     
                     if score != 0:
                         objective_terms.append(vars_schichten[(ma.id, tag, kuerzel)] * score)
@@ -865,13 +892,13 @@ class SchichtplanGenerator:
                 print(f"   {ma.schichtplan_kennung}: {verfuegbar} Tage verfügbar")
         print("="*70 + "\n")
 
-        print("⚙️ Starte Solver mit 8 CPU-Kernen...")
+        print(f"⚙️ Starte Solver mit {self.config.solver_num_workers} CPU-Kernen...")
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = 300  
-        solver.parameters.num_search_workers = 8  # NUTZT ALLE 8 vCPUs!
+        solver.parameters.max_time_in_seconds = self.config.solver_timeout_sekunden
+        solver.parameters.num_search_workers = self.config.solver_num_workers
         solver.parameters.log_search_progress = True  # Debug Info
-        solver.parameters.linearization_level = 2  # Bessere Linearisierung
-        solver.parameters.relative_gap_limit = 0.01  # Stoppt bei 1% vom Optimum
+        solver.parameters.linearization_level = self.config.solver_linearization_level  # Bessere Linearisierung
+        solver.parameters.relative_gap_limit = float(self.config.solver_relative_gap_limit)  # Stoppt bei X% vom Optimum
         status = solver.Solve(model)
         if status == cp_model.OPTIMAL:
             print('✅ OPTIMAL gefunden!')
@@ -1008,9 +1035,9 @@ class SchichtplanGenerator:
                     # Sortiere: Wer am meisten braucht → zuerst; bei gleichem Bedarf: wer weniger Z im Jahr hat → zuerst (Jahresausgleich)
                     ma_bedarf.sort(key=lambda x: (-x['bedarf'], cumulative.get(x['ma'].id, {}).get('z', 0)))
                     
-                    # Zähle wie viele Z pro Tag vergeben werden (max 2)
+                    # Zähle wie viele Z pro Tag vergeben werden (max konfiguriert)
                     z_pro_tag = defaultdict(int)
-                    MAX_Z_PRO_TAG = 2
+                    MAX_Z_PRO_TAG = self.config.max_zusatzdienste_pro_tag
                     
                     # Zähle auch bereits vergebene Z pro MA (aus Solver T/N + neue Z)
                     # damit max_aufeinanderfolgende_tage korrekt bleibt
@@ -1070,7 +1097,15 @@ class SchichtplanGenerator:
             # I. STATISTIKEN
             # ================================================================
             self._print_statistics(neuer_schichtplan_obj, tage_liste, soll_stunden_map, soll_schichten_map, wuensche_matrix)
-        
+
+            # ================================================================
+            # J. KONFIGURATION SPEICHERN für Rückverfolgbarkeit
+            # ================================================================
+            if self.schichtplan_obj:
+                self.schichtplan_obj.konfiguration = self.config
+                self.schichtplan_obj.save(update_fields=['konfiguration'])
+                print(f"   📋 Konfiguration v{self.config.version_nummer} mit Plan gespeichert.\n")
+
         else:
             error_msg = (
                 "Keine gültige Lösung gefunden. Mögliche Ursachen: "

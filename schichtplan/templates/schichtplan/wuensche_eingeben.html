@@ -64,11 +64,11 @@
                             {% endfor %}
                         </div>
 
-                        <!-- NEU: Von-Bis Datumsauswahl (nur bei Urlaub sichtbar) -->
+                        <!-- NEU: Von-Bis Datumsauswahl (nur bei Urlaub/Krank sichtbar) -->
                         <div class="mb-4" id="zeitraum-container" style="display: none;">
                             <div class="alert alert-info">
-                                <strong>📅 Urlaubszeitraum</strong>
-                                <p class="mb-0 small">Möchten Sie Urlaub für mehrere Tage eintragen?</p>
+                                <strong>📅 Zeitraum auswählen</strong>
+                                <p class="mb-0 small">Möchten Sie Wünsche für mehrere Tage eintragen?</p>
                             </div>
                             
                             <div class="form-check mb-3">
@@ -222,10 +222,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const vonDatum = document.getElementById('von_datum');
     const bisDatum = document.getElementById('bis_datum');
     
-    // Zeitraum-Container anzeigen, wenn "Urlaub" gewählt wird
+    // Zeitraum-Container anzeigen, wenn "Urlaub" oder "Krank" gewählt wird
     wunschRadios.forEach(radio => {
         radio.addEventListener('change', function() {
-            if (this.dataset.kategorie === 'urlaub') {
+            if (this.dataset.kategorie === 'urlaub' || this.dataset.kategorie === 'krank') {
                 zeitraumContainer.style.display = 'block';
             } else {
                 zeitraumContainer.style.display = 'none';
@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initiale Sichtbarkeit prüfen
     const selectedRadio = document.querySelector('.wunsch-radio:checked');
-    if (selectedRadio && selectedRadio.dataset.kategorie === 'urlaub') {
+    if (selectedRadio && (selectedRadio.dataset.kategorie === 'urlaub' || selectedRadio.dataset.kategorie === 'krank')) {
         zeitraumContainer.style.display = 'block';
     }
     
