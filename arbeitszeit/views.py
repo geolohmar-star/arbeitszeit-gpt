@@ -919,18 +919,25 @@ def admin_vereinbarungen_genehmigen(request):
     )
     if not (request.user.is_staff or is_sachbearbeiter):
         return redirect('arbeitszeit:dashboard')
-    
+
+    from .filters import ArbeitszeitvereinbarungFilter
+
     offene_antraege = Arbeitszeitvereinbarung.objects.filter(
         status='beantragt'
     ).select_related('mitarbeiter').order_by('-created_at')
-    
-    alle_vereinbarungen = Arbeitszeitvereinbarung.objects.select_related(
+
+    alle_qs = Arbeitszeitvereinbarung.objects.select_related(
         'mitarbeiter'
     ).order_by('-created_at')
-    
+
+    vereinbarung_filter = ArbeitszeitvereinbarungFilter(
+        request.GET, queryset=alle_qs
+    )
+
     context = {
         'offene_antraege': offene_antraege,
-        'alle_vereinbarungen': alle_vereinbarungen,
+        'alle_vereinbarungen': vereinbarung_filter.qs,
+        'filter': vereinbarung_filter,
     }
     return render(request, 'arbeitszeit/admin_vereinbarungen.html', context)
 

@@ -562,8 +562,58 @@
         <!-- Tab: Alle Anträge -->
         <div class="tab-content" data-tab="alle" style="display: none;">
             <h2 style="font-size: 1.5rem; margin-bottom: 1rem; color: var(--primary);">
-                Alle Anträge ({{ alle_vereinbarungen.count }})
+                Alle Antraege ({{ alle_vereinbarungen.count }})
             </h2>
+
+            <!-- Suchleiste -->
+            <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1.5rem;">
+                <form method="get" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+                    <div style="flex: 2; min-width: 200px;">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.4rem;">
+                            Mitarbeiter suchen
+                        </label>
+                        <input type="text" name="suche" value="{{ filter.form.suche.value|default:'' }}"
+                               placeholder="Name oder Personalnummer..."
+                               style="width: 100%; padding: 0.6rem 0.75rem; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; font-family: inherit;">
+                    </div>
+                    <div style="min-width: 150px;">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.4rem;">
+                            Status
+                        </label>
+                        <select name="status"
+                                style="width: 100%; padding: 0.6rem 0.75rem; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; font-family: inherit; background: white;">
+                            <option value="">Alle Status</option>
+                            {% for wert, label in filter.form.status.field.choices %}
+                                {% if wert %}
+                                <option value="{{ wert }}" {% if filter.form.status.value == wert %}selected{% endif %}>{{ label }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="min-width: 150px;">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.4rem;">
+                            Antragsart
+                        </label>
+                        <select name="antragsart"
+                                style="width: 100%; padding: 0.6rem 0.75rem; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; font-family: inherit; background: white;">
+                            <option value="">Alle Antragsarten</option>
+                            {% for wert, label in filter.form.antragsart.field.choices %}
+                                {% if wert %}
+                                <option value="{{ wert }}" {% if filter.form.antragsart.value == wert %}selected{% endif %}>{{ label }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.25rem;">
+                            Filtern
+                        </button>
+                        <a href="{% url 'arbeitszeit:admin_vereinbarungen' %}" class="btn btn-outline" style="padding: 0.6rem 1.25rem;">
+                            Zuruecksetzen
+                        </a>
+                    </div>
+                </form>
+            </div>
 
             {% if alle_vereinbarungen %}
                 <div style="overflow-x: auto;">
