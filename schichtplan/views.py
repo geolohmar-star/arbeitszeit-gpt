@@ -75,7 +75,7 @@ def _ist_stunden_urlaub_krank(ma, daten_urlaub_krank, feiertage_set=None):
     if feiertage_set is None:
         min_datum = min(daten_urlaub_krank)
         max_datum = max(daten_urlaub_krank)
-        feiertage_set, _ = get_nrw_feiertage(min_datum, max_datum)
+        feiertage_set, _ = get_configured_feiertage(min_datum, max_datum, region='nrw')
     
     for d in daten_urlaub_krank:
         # Wochenende überspringen
@@ -244,6 +244,60 @@ def get_nrw_feiertage(start_date, end_date):
             if start <= d <= end:
                 feiertage_set.add(d)
                 feiertage_namen[d] = name
+
+    return feiertage_set, feiertage_namen
+
+
+def get_configured_feiertage(start_date, end_date, region='all'):
+    """
+    Lädt Feiertage aus der Datenbank (RegionalerFeiertag-Modell).
+    Falls keine Feiertage konfiguriert: Fallback auf get_nrw_feiertage()
+
+    Args:
+        start_date, end_date: Zeitraum
+        region: 'nrw', 'bayern', 'bw', 'all', etc.
+
+    Returns: (set of dates, dict date → name)
+    """
+    from schichtplan.models import RegionalerFeiertag
+    from django.db.models import Q
+
+    feiertage_set = set()
+    feiertage_namen = {}
+
+    if not easter:
+        return feiertage_set, feiertage_namen
+
+    # 1. Hole alle aktiven Feiertage für die Region
+    feiertage = RegionalerFeiertag.objects.filter(aktiv=True).filter(
+        Q(region='all') | Q(region=region)
+    )
+
+    # Falls keine Feiertage konfiguriert: Fallback auf get_nrw_feiertage()
+    if not feiertage.exists():
+        return get_nrw_feiertage(start_date, end_date)
+
+    # 2. Verarbeite feste Feiertage
+    for f in feiertage.filter(typ='fest'):
+        if f.monat and f.tag:
+            for year in {start_date.year, end_date.year}:
+                try:
+                    d = date(year, f.monat, f.tag)
+                    if start_date <= d <= end_date:
+                        feiertage_set.add(d)
+                        feiertage_namen[d] = f.name
+                except ValueError:  # Invalid date (z.B. 31. Februar)
+                    pass
+
+    # 3. Verarbeite Ostern-relative Feiertage
+    for f in feiertage.filter(typ='ostern_relativ'):
+        if f.ostern_offset is not None:
+            for year in {start_date.year, end_date.year}:
+                ostersonntag = easter(year)
+                d = ostersonntag + timedelta(days=f.ostern_offset)
+                if start_date <= d <= end_date:
+                    feiertage_set.add(d)
+                    feiertage_namen[d] = f.name
 
     return feiertage_set, feiertage_namen
 
@@ -596,7 +650,7 @@ def schichtplan_detail(request, pk):
     stunden_defaults = {'T': 12.25, 'N': 12.25, 'Z': 8.0}
     
     # NEU: Feiertage einmalig berechnen (für Urlaubs-Stunden-Berechnung)
-    feiertage_set, _ = get_nrw_feiertage(schichtplan.start_datum, schichtplan.ende_datum)
+    feiertage_set, _ = get_configured_feiertage(schichtplan.start_datum, schichtplan.ende_datum, region='nrw')
 
     # Urlaub/Krank/gar_nichts: Tage pro MA für Ist-Stunden-Zuschlag (Tagesstunden aus Vereinbarung)
     wuensche_uk = Schichtwunsch.objects.filter(
@@ -862,7 +916,7 @@ def schichtplan_uebersicht_detail(request, pk):
         d += timedelta(days=1)
 
     # NRW-Feiertage im Planzeitraum
-    feiertage_set, feiertage_namen = get_nrw_feiertage(start, ende)
+    feiertage_set, feiertage_namen = get_configured_feiertage(start, ende, region='nrw')
 
     # Schichten: (ma_id, datum) -> Kürzel und Schicht-ID (für Löschen/Bearbeiten/Tauschen)
     schichten = schichtplan.schichten.select_related('mitarbeiter', 'schichttyp')
@@ -971,7 +1025,7 @@ def schichtplan_uebersicht_detail(request, pk):
         for ma in mitarbeiter_liste:
             key = (ma.id, datum)
             val = matrix.get(key, '')
-            if val == 'T':
+            if val == 'T' and ma.zaehlt_zur_tagbesetzung:
                 t_count += 1
             elif val == 'N':
                 n_count += 1
@@ -1051,7 +1105,7 @@ def schichtplan_uebersicht_detail(request, pk):
     schichttypen_menu = list(Schichttyp.objects.filter(kuerzel__in=['T', 'N', 'Z'], aktiv=True).order_by('kuerzel'))
 
     # NEU: Feiertage einmalig berechnen
-    feiertage_set, _ = get_nrw_feiertage(start, ende)
+    feiertage_set, _ = get_configured_feiertage(start, ende, region='nrw')
 
     # Soll- und Ist-Stunden pro MA wie auf Plan-Detailseite (für Abschlusszeile pro Spalte)
     stunden_defaults = {'T': 12.25, 'N': 12.25, 'Z': 8.0}
@@ -1243,7 +1297,7 @@ def schichtplan_export_excel(request, pk):
 
     stunden_defaults = {'T': 12.25, 'N': 12.25, 'Z': 8.0}
     # NEU: Feiertage für Ist-Stunden-Berechnung
-    feiertage_set, _ = get_nrw_feiertage(start, ende)
+    feiertage_set, _ = get_configured_feiertage(start, ende, region='nrw')
     mitarbeiter_stunden = []
     for ma in mitarbeiter_liste:
         ma_schichten = [s for s in schichten if s.mitarbeiter_id == ma.id]
@@ -1266,7 +1320,7 @@ def schichtplan_export_excel(request, pk):
         mitarbeiter_stunden.append({'soll': soll_stunden, 'ist': ist_stunden, 'diff': ist_stunden - soll_stunden})
 
     # NRW-Feiertage und deutsche Wochentage für Markierungen
-    _, feiertage_namen = get_nrw_feiertage(start, ende)
+    _, feiertage_namen = get_configured_feiertage(start, ende, region='nrw')
     wochentage_de = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 
     # Farben (openpyxl: RRGGBB ohne #)
@@ -1840,7 +1894,7 @@ def wunsch_eingeben(request, periode_id):
         mehrere_tage = request.POST.get('mehrere_tage') == 'on'
         
         # ========== NEU: VON-BIS LOGIK ==========
-        if mehrere_tage and wunsch_kategorie == 'urlaub':
+        if mehrere_tage and wunsch_kategorie in ['urlaub', 'krank']:
             von_datum_str = request.POST.get('von_datum')
             bis_datum_str = request.POST.get('bis_datum')
             
@@ -2231,7 +2285,7 @@ def wunsch_kalender(request, periode_id):
     MONATE_DE = ('', 'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember')
     
     # NRW-Feiertage im Monat
-    feiertage_set, feiertage_namen = get_nrw_feiertage(monat_start, monat_ende)
+    feiertage_set, feiertage_namen = get_configured_feiertage(monat_start, monat_ende, region='nrw')
     
     print(f"   Zeitraum: {monat_start} bis {monat_ende}")
     
@@ -2244,11 +2298,11 @@ def wunsch_kalender(request, periode_id):
         # Sortiere Wünsche nach MA-Nummer
         tag_wuensche_sortiert = sorted(tag_wuensche, key=lambda w: sortiere_ma_key(w.mitarbeiter))
         
-        # Berechne Konflikte
+        # Berechne Konflikte (Krank wird nicht mitgezählt)
         urlaube = sum(1 for w in tag_wuensche_sortiert if w.wunsch == 'urlaub')
         gar_nichts = sum(1 for w in tag_wuensche_sortiert if w.wunsch == 'gar_nichts')
         konflikt = None
-        
+
         if urlaube + gar_nichts > 3:
             konflikt = {
                 'typ': 'zu_viele_frei',
@@ -2270,8 +2324,11 @@ def wunsch_kalender(request, periode_id):
     print(f"   Anzahl Kalendertage: {len(kalender_daten)}")
     
     # Beteiligung / Bewertung: Wie viele Wünsche hat jeder MA abgegeben?
+    # Urlaub und Krank werden nicht mitgezählt
     wuensche_pro_ma = (
-        alle_wuensche.values('mitarbeiter')
+        alle_wuensche
+        .exclude(wunsch__in=['urlaub', 'krank'])
+        .values('mitarbeiter')
         .annotate(anzahl_tage=Count('datum', distinct=True))
         .order_by()
     )
@@ -2359,7 +2416,7 @@ def wunsch_schnell_setzen(request, periode_id):
 
     von_datum_str = request.POST.get('von_datum')
     bis_datum_str = request.POST.get('bis_datum')
-    if wunsch == 'urlaub' and von_datum_str and bis_datum_str:
+    if wunsch in ['urlaub', 'krank'] and von_datum_str and bis_datum_str:
         try:
             von_datum = datetime.strptime(von_datum_str, '%Y-%m-%d').date()
             bis_datum = datetime.strptime(bis_datum_str, '%Y-%m-%d').date()
