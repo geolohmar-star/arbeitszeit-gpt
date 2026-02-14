@@ -794,7 +794,7 @@ def vereinbarung_liste(request):
         return redirect('arbeitszeit:dashboard')
 
     vereinbarungen = mitarbeiter.arbeitszeitvereinbarungen.all().order_by(
-        'gueltig_ab', 'versionsnummer'
+        '-gueltig_ab', '-versionsnummer'
     )
 
     status_filter = request.GET.get('status')
@@ -943,13 +943,10 @@ def admin_vereinbarung_genehmigen(request, pk):
         alter_status = vereinbarung.status
         
         if aktion == 'genehmigen':
-            vereinbarung.status = 'genehmigt'
+            vereinbarung.status = 'aktiv'
             vereinbarung.genehmigt_von = request.user
             vereinbarung.genehmigt_am = timezone.now()
-            messages.success(request, 'Vereinbarung wurde genehmigt.')
-        elif aktion == 'aktivieren':
-            vereinbarung.status = 'aktiv'
-            messages.success(request, 'Vereinbarung wurde aktiviert.')
+            messages.success(request, 'Vereinbarung wurde genehmigt und aktiviert.')
         elif aktion == 'ablehnen':
             vereinbarung.status = 'abgelehnt'
             messages.warning(request, 'Vereinbarung wurde abgelehnt.')

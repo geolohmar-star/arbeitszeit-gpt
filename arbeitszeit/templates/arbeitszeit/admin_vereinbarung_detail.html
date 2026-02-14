@@ -319,14 +319,6 @@
                     <span>📕</span> PDF herunterladen
                 </a>
                 
-                {% if vereinbarung.status == 'genehmigt' %}
-                <form method="post" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" name="aktion" value="aktivieren" class="btn btn-success" style="background-color: var(--primary);">
-                        <span>▶</span> Jetzt aktivieren
-                    </button>
-                </form>
-                {% endif %}
             </div>
         </div>
 
