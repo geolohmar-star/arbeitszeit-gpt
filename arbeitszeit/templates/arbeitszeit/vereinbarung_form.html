@@ -57,7 +57,11 @@ body { font-family: 'DM Sans', sans-serif; background: #faf9f6; color: #1f2421; 
 
 <div class="container">
 <h1 class="page-title">Neue Arbeitszeitvereinbarung</h1>
-<p class="page-subtitle">Beantragen Sie eine Änderung Ihrer Arbeitszeit</p>
+<p class="page-subtitle">Beantragen Sie eine Aenderung Ihrer Arbeitszeit</p>
+<div style="background: #d1ecf1; color: #0c5460; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #0c5460;">
+    <strong>Hinweis:</strong> Diese Version wird ab dem angegebenen Datum die vorherige ersetzen.
+    Bestehende Vereinbarungen bleiben als Historie erhalten.
+</div>
 
 <form method="post" id="vereinbarung-form">
 {% csrf_token %}

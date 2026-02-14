@@ -171,10 +171,27 @@
 
         <div class="page-header">
             <div>
-                <h1 class="page-title">Antrag #{{ vereinbarung.id }}</h1>
+                <h1 class="page-title">Antrag #{{ vereinbarung.id }} - Version {{ vereinbarung.versionsnummer }}</h1>
                 <p style="color: var(--text-secondary); font-size: 1.1rem;">
-                    {{ vereinbarung.mitarbeiter.vollname }} • {{ vereinbarung.mitarbeiter.personalnummer }}
+                    {{ vereinbarung.mitarbeiter.vollname }} - {{ vereinbarung.mitarbeiter.personalnummer }}
                 </p>
+                <div style="margin-top: 0.5rem; display: flex; gap: 0.75rem; align-items: center;">
+                    {% if vorherige_version %}
+                        <a href="{% url 'arbeitszeit:admin_vereinbarung_genehmigen' vorherige_version.pk %}"
+                           style="color: var(--primary); text-decoration: none; font-weight: 500; font-size: 0.9rem;">
+                            &larr; Version {{ vorherige_version.versionsnummer }}
+                        </a>
+                    {% endif %}
+                    <span style="color: var(--text-secondary); font-size: 0.85rem;">
+                        Version {{ vereinbarung.versionsnummer }}
+                    </span>
+                    {% if naechste_version %}
+                        <a href="{% url 'arbeitszeit:admin_vereinbarung_genehmigen' naechste_version.pk %}"
+                           style="color: var(--primary); text-decoration: none; font-weight: 500; font-size: 0.9rem;">
+                            Version {{ naechste_version.versionsnummer }} &rarr;
+                        </a>
+                    {% endif %}
+                </div>
             </div>
             <span class="badge badge-{{ vereinbarung.status }}">
                 {{ vereinbarung.get_status_display }}

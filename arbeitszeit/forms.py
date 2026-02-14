@@ -140,22 +140,9 @@ class ArbeitszeitvereinbarungForm(forms.ModelForm):
                 'beendigung_datum': 'Beendigungsdatum ist erforderlich wenn Beendigung beantragt wird.'
             })
         
-        # Validierung: Keine Überschneidung mit anderen aktiven Vereinbarungen
-        if self.mitarbeiter and gueltig_ab:
-            existing = Arbeitszeitvereinbarung.objects.filter(
-                mitarbeiter=self.mitarbeiter,
-                status__in=['genehmigt', 'aktiv']
-            ).exclude(pk=self.instance.pk if self.instance else None)
-            
-            for vereinbarung in existing:
-                # Prüfe Überschneidung
-                if vereinbarung.gueltig_bis:
-                    if gueltig_ab <= vereinbarung.gueltig_bis:
-                        if not gueltig_bis or gueltig_bis >= vereinbarung.gueltig_ab:
-                            raise ValidationError({
-                                'gueltig_ab': f'Überschneidung mit bestehender Vereinbarung ab {vereinbarung.gueltig_ab}'
-                            })
-        
+        # Kettenmodell: Ueberschneidungspruefung entfaellt.
+        # Neue Versionen ueberschreiben automatisch aeltere.
+
         return cleaned_data
     
     def save(self, commit=True):

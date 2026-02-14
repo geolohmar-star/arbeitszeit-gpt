@@ -229,13 +229,14 @@ class TagesarbeitszeitInline(admin.TabularInline):
 class ArbeitszeitvereinbarungAdmin(admin.ModelAdmin):
     list_display = [
         'id',
-        'get_mitarbeiter', 
-        'antragsart', 
+        'get_mitarbeiter',
+        'versionsnummer',
+        'antragsart',
         'arbeitszeit_typ',
         'wochenstunden',
-        'status', 
+        'status',
         'gueltig_ab',
-        'gueltig_bis'
+        'gueltig_bis',
     ]
     list_filter = ['status', 'antragsart', 'arbeitszeit_typ', 'telearbeit']
     search_fields = [
@@ -254,9 +255,10 @@ class ArbeitszeitvereinbarungAdmin(admin.ModelAdmin):
                 'antragsart',
                 'arbeitszeit_typ',
                 'wochenstunden',
+                'versionsnummer',
                 'gueltig_ab',
                 'gueltig_bis',
-                'telearbeit'
+                'telearbeit',
             )
         }),
         ('Status', {

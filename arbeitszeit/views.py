@@ -589,11 +589,26 @@ def vereinbarung_detail(request, pk):
             'summe': zeitwert_to_str(gesamt_minuten)
         }
     
-    historie = ArbeitszeitHistorie.objects.filter(vereinbarung=vereinbarung).order_by('aenderung_am')
+    historie = ArbeitszeitHistorie.objects.filter(
+        vereinbarung=vereinbarung
+    ).order_by('aenderung_am')
+
+    # Vorherige/naechste Version ermitteln
+    vorherige_version = Arbeitszeitvereinbarung.objects.filter(
+        mitarbeiter=vereinbarung.mitarbeiter,
+        versionsnummer__lt=vereinbarung.versionsnummer,
+    ).order_by("-versionsnummer").first()
+    naechste_version = Arbeitszeitvereinbarung.objects.filter(
+        mitarbeiter=vereinbarung.mitarbeiter,
+        versionsnummer__gt=vereinbarung.versionsnummer,
+    ).order_by("versionsnummer").first()
+
     context = {
         'vereinbarung': vereinbarung,
         'wochen_daten': wochen_daten,
         'historie': historie,
+        'vorherige_version': vorherige_version,
+        'naechste_version': naechste_version,
     }
     return render(request, 'arbeitszeit/vereinbarung_detail.html', context)
 
@@ -659,14 +674,22 @@ def vereinbarung_erstellen(request):
     
     if request.method == 'POST':
         antragsart = request.POST.get('antragsart')
-        
+
+        # Kettenmodell: Keine Ueberschneidungspruefung noetig.
+        # Versionsnummer automatisch berechnen (hoechste + 1)
+        letzte_version = mitarbeiter.arbeitszeitvereinbarungen.order_by(
+            "-versionsnummer"
+        ).values_list("versionsnummer", flat=True).first()
+        naechste_version = (letzte_version or 0) + 1
+
         # Basisvereinbarung erstellen
         vereinbarung = Arbeitszeitvereinbarung(
             mitarbeiter=mitarbeiter,
             antragsart=antragsart,
             gueltig_ab=request.POST.get('gueltig_ab'),
             telearbeit=request.POST.get('telearbeit') == 'on',
-            status='beantragt'
+            status='beantragt',
+            versionsnummer=naechste_version,
         )
         
         # Bei Beendigung keine Arbeitszeit
@@ -769,17 +792,24 @@ def vereinbarung_liste(request):
         mitarbeiter = request.user.mitarbeiter
     except Mitarbeiter.DoesNotExist:
         return redirect('arbeitszeit:dashboard')
-    
-    vereinbarungen = mitarbeiter.arbeitszeitvereinbarungen.all().order_by('-created_at')
-    
+
+    vereinbarungen = mitarbeiter.arbeitszeitvereinbarungen.all().order_by(
+        'gueltig_ab', 'versionsnummer'
+    )
+
     status_filter = request.GET.get('status')
     if status_filter:
         vereinbarungen = vereinbarungen.filter(status=status_filter)
-    
+
+    # Aktuelle Version markieren (die zum heutigen Datum gilt)
+    aktuelle = mitarbeiter.get_aktuelle_vereinbarung()
+    aktuelle_pk = aktuelle.pk if aktuelle else None
+
     context = {
         'mitarbeiter': mitarbeiter,
         'vereinbarungen': vereinbarungen,
         'status_filter': status_filter,
+        'aktuelle_pk': aktuelle_pk,
     }
     return render(request, 'arbeitszeit/vereinbarung_liste.html', context)
 
@@ -971,10 +1001,23 @@ def admin_vereinbarung_genehmigen(request, pk):
             'tage': tage,
             'summe': zeitwert_to_str(gesamt_minuten)
         }
-        context = {
+
+    # Vorherige/naechste Version ermitteln
+    vorherige_version = Arbeitszeitvereinbarung.objects.filter(
+        mitarbeiter=vereinbarung.mitarbeiter,
+        versionsnummer__lt=vereinbarung.versionsnummer,
+    ).order_by("-versionsnummer").first()
+    naechste_version = Arbeitszeitvereinbarung.objects.filter(
+        mitarbeiter=vereinbarung.mitarbeiter,
+        versionsnummer__gt=vereinbarung.versionsnummer,
+    ).order_by("versionsnummer").first()
+
+    context = {
         'vereinbarung': vereinbarung,
         'wochen_daten': wochen_daten,
         'zeitoptionen': get_zeitoptionen(),
+        'vorherige_version': vorherige_version,
+        'naechste_version': naechste_version,
     }
     return render(request, 'arbeitszeit/admin_vereinbarung_detail.html', context)
 

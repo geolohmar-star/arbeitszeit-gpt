@@ -572,9 +572,10 @@
                             <tr>
                                 <th style="padding: 1rem; text-align: left;">ID</th>
                                 <th style="padding: 1rem; text-align: left;">Mitarbeiter</th>
+                                <th style="padding: 1rem; text-align: left;">Version</th>
                                 <th style="padding: 1rem; text-align: left;">Antragsart</th>
                                 <th style="padding: 1rem; text-align: left;">Arbeitszeit</th>
-                                <th style="padding: 1rem; text-align: left;">Gültig ab</th>
+                                <th style="padding: 1rem; text-align: left;">Gueltig ab</th>
                                 <th style="padding: 1rem; text-align: left;">Status</th>
                                 <th style="padding: 1rem; text-align: left;">Beantragt</th>
                                 <th style="padding: 1rem; text-align: center;">Aktionen</th>
@@ -590,6 +591,7 @@
                                             {{ vereinbarung.mitarbeiter.personalnummer }}
                                         </div>
                                     </td>
+                                    <td style="padding: 1rem;">V{{ vereinbarung.versionsnummer }}</td>
                                     <td style="padding: 1rem;">{{ vereinbarung.get_antragsart_display }}</td>
                                     <td style="padding: 1rem;">
                                         {% if vereinbarung.wochenstunden %}

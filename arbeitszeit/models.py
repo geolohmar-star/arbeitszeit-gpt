@@ -278,19 +278,20 @@ class Mitarbeiter(models.Model):
     )
     #### Soll ZEITEN FÜR MITARBEITER ####
     def get_aktuelle_vereinbarung(self, stichtag=None):
-        """Holt die zum Stichtag gültige Arbeitszeitvereinbarung."""
+        """Holt die zum Stichtag gueltige Arbeitszeitvereinbarung.
+
+        Kettenmodell: Die letzte Version deren gueltig_ab <= stichtag
+        gewinnt. gueltig_bis wird NICHT fuer die Versionslogik verwendet.
+        """
         from django.utils import timezone
-        from django.db.models import Q
-        
+
         if stichtag is None:
             stichtag = timezone.now().date()
-        
+
         return self.arbeitszeitvereinbarungen.filter(
-            status__in=['aktiv', 'genehmigt'],  # ← Beide Status akzeptieren!
-            gueltig_ab__lte=stichtag
-        ).filter(
-            Q(gueltig_bis__isnull=True) | Q(gueltig_bis__gte=stichtag)
-        ).order_by('-gueltig_ab').first()
+            status__in=["aktiv", "genehmigt"],
+            gueltig_ab__lte=stichtag,
+        ).order_by("-gueltig_ab", "-versionsnummer").first()
         
     def get_wochenstunden(self, stichtag=None):
         """
@@ -639,7 +640,13 @@ class Arbeitszeitvereinbarung(models.Model):
     
     # Datum
     gueltig_ab = models.DateField()
-    gueltig_bis = models.DateField(null=True, blank=True)
+    gueltig_bis = models.DateField(
+        null=True, blank=True,
+        help_text="Nur fuer Payroll-Kommunikation, nicht fuer Versionslogik"
+    )
+
+    # Versionsnummer pro Mitarbeiter (Auto-Increment beim Speichern)
+    versionsnummer = models.PositiveIntegerField(default=1)
     
     # Telearbeit
     telearbeit = models.BooleanField(default=False)
@@ -678,7 +685,7 @@ class Arbeitszeitvereinbarung(models.Model):
     class Meta:
         verbose_name = "Arbeitszeitvereinbarung"
         verbose_name_plural = "Arbeitszeitvereinbarungen"
-        ordering = ['-gueltig_ab']
+        ordering = ['mitarbeiter', 'gueltig_ab', 'versionsnummer']
     
     def __str__(self):
         return f"{self.mitarbeiter.vollname} - {self.get_antragsart_display()} ({self.gueltig_ab})"
@@ -714,15 +721,13 @@ class Arbeitszeitvereinbarung(models.Model):
         
     @property
     def ist_aktiv(self):
-        """Prüft, ob die Vereinbarung aktuell aktiv ist"""
+        """Prueft, ob die Vereinbarung aktuell aktiv ist.
+
+        Kettenmodell: Nur status und gueltig_ab werden geprueft.
+        gueltig_bis ist nur fuer Payroll relevant.
+        """
         heute = timezone.now().date()
-        if self.status != 'aktiv':
-            return False
-        if self.gueltig_ab > heute:
-            return False
-        if self.gueltig_bis and self.gueltig_bis < heute:
-            return False
-        return True
+        return self.status == "aktiv" and self.gueltig_ab <= heute
     
     @property
     def tagesarbeitszeit(self):

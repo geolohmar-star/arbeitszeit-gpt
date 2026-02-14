@@ -236,9 +236,14 @@
 
         {% if vereinbarungen %}
             {% for vereinbarung in vereinbarungen %}
-                <div class="card">
+                <div class="card" {% if vereinbarung.pk == aktuelle_pk %}style="border-left: 4px solid var(--primary);"{% endif %}>
                     <div class="card-header">
-                        <h3 class="card-title">{{ vereinbarung.get_antragsart_display }}</h3>
+                        <h3 class="card-title">
+                            Version {{ vereinbarung.versionsnummer }} - {{ vereinbarung.get_antragsart_display }}
+                            {% if vereinbarung.pk == aktuelle_pk %}
+                                <span style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.15rem 0.5rem; border-radius: 6px; margin-left: 0.5rem; vertical-align: middle;">Aktuell</span>
+                            {% endif %}
+                        </h3>
                         <span class="badge badge-{{ vereinbarung.status }}">
                             {{ vereinbarung.get_status_display }}
                         </span>
@@ -258,13 +263,13 @@
                         {% endif %}
 
                         <div class="card-info">
-                            <span class="card-info-label">Gültig ab</span>
+                            <span class="card-info-label">Gueltig ab</span>
                             <span class="card-info-value">{{ vereinbarung.gueltig_ab|date:"d.m.Y" }}</span>
                         </div>
 
                         {% if vereinbarung.gueltig_bis %}
                             <div class="card-info">
-                                <span class="card-info-label">Gültig bis</span>
+                                <span class="card-info-label">Gueltig bis (Payroll)</span>
                                 <span class="card-info-value">{{ vereinbarung.gueltig_bis|date:"d.m.Y" }}</span>
                             </div>
                         {% endif %}
