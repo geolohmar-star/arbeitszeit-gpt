@@ -43,6 +43,6 @@ def auto_berechne_soll_stunden(sender, request, user, **kwargs):
                 heute.year,
                 heute.month
             )
-            print(f"✅ Auto-Berechnung: Soll-Stunden für {mitarbeiter.vollname} berechnet ({heute.strftime('%B %Y')})")
+            print(f"[OK] Auto-Berechnung: Soll-Stunden fuer {mitarbeiter.vollname} berechnet ({heute.strftime('%B %Y')})")
         except Exception as e:
-            print(f"⚠️ Auto-Berechnung fehlgeschlagen für {mitarbeiter.vollname}: {e}")
+            print(f"[WARN] Auto-Berechnung fehlgeschlagen fuer {mitarbeiter.vollname}: {e}")

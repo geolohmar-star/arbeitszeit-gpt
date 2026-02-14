@@ -948,7 +948,7 @@ def admin_vereinbarung_genehmigen(request, pk):
         
         # Konvertierung
         minuten = hhmm_to_minuten(tag.zeitwert)
-        print(f"  → Nach Konvertierung: {minuten} Minuten = {zeitwert_to_str(minuten)}")
+        print(f"  -> Nach Konvertierung: {minuten} Minuten = {zeitwert_to_str(minuten)}")
     
         tag.display_zeit = zeitwert_to_str(minuten)
         temp_grouped[tag.woche].append(tag)
@@ -965,7 +965,7 @@ def admin_vereinbarung_genehmigen(request, pk):
             print(f"  - {t.wochentag}: zeitwert={t.zeitwert}")
         
         gesamt_minuten = sum(hhmm_to_minuten(t.zeitwert) for t in tage if t.zeitwert)
-        print(f"  → SUMME: {gesamt_minuten} Minuten = {zeitwert_to_str(gesamt_minuten)}\n")
+        print(f"  -> SUMME: {gesamt_minuten} Minuten = {zeitwert_to_str(gesamt_minuten)}\n")
         
         wochen_daten[woche] = {
             'tage': tage,
