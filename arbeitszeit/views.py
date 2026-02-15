@@ -823,6 +823,10 @@ def _soll_minuten_aus_vereinbarung(mitarbeiter, datum):
     """
     from .models import get_feiertagskalender, Tagesarbeitszeit
 
+    # Wochenende: kein Soll (Mo-Fr = 0-4)
+    if datum.weekday() >= 5:
+        return 0
+
     # Feiertags-Check: kein Soll an Feiertagen
     cal = get_feiertagskalender(mitarbeiter.standort)
     if cal.is_holiday(datum):
@@ -839,8 +843,6 @@ def _soll_minuten_aus_vereinbarung(mitarbeiter, datum):
         2: "mittwoch",
         3: "donnerstag",
         4: "freitag",
-        5: "samstag",
-        6: "sonntag",
     }
     wochentag_name = WOCHENTAG_MAP[datum.weekday()]
 
