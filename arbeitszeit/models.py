@@ -12,7 +12,17 @@ from django.core.exceptions import ValidationError
 #WorkCalendar
 from decimal import Decimal
 import calendar
-from workalendar.europe import NorthRhineWestphalia
+
+
+def get_feiertagskalender(standort):
+    """Gibt den workalendar-Kalender fuer den Standort zurueck.
+
+    Standort 'bonn' (B) -> Berlin, alles andere -> NRW.
+    """
+    from workalendar.europe import NorthRhineWestphalia, Berlin
+    if standort == "bonn":
+        return Berlin()
+    return NorthRhineWestphalia()
 
 
 
@@ -106,32 +116,31 @@ class MonatlicheArbeitszeitSoll(models.Model):
         import datetime
         import calendar
         from decimal import Decimal
-        from workalendar.europe import NorthRhineWestphalia
-        
+
         # 1. Hole Wochenstunden aus aktueller Vereinbarung
         # Stichtag = Mitte des Monats (falls Vereinbarung im Monat wechselt)
         stichtag = datetime.date(jahr, monat, 15)
-        
+
         # Hole Vereinbarung zum Stichtag
         vereinbarung = mitarbeiter.get_aktuelle_vereinbarung(stichtag)
-        
+
         if not vereinbarung:
             raise ValueError(
                 f"Keine gültige Arbeitszeitvereinbarung für {mitarbeiter.vollname} "
                 f"im {calendar.month_name[monat]} {jahr} gefunden! "
                 f"Bitte erstelle eine Vereinbarung mit Status 'Genehmigt'."
             )
-        
+
         if not vereinbarung.wochenstunden:
             raise ValueError(
                 f"Vereinbarung für {mitarbeiter.vollname} hat keine Wochenstunden! "
                 f"Bitte ergänze die Wochenstunden in Vereinbarung #{vereinbarung.pk}."
             )
-        
+
         wochenstunden = vereinbarung.wochenstunden
-        
-        # 2. Berechne Arbeitstage und Feiertage
-        cal = NorthRhineWestphalia()
+
+        # 2. Berechne Arbeitstage und Feiertage (standortabhaengig)
+        cal = get_feiertagskalender(mitarbeiter.standort)
         _, letzter_tag = calendar.monthrange(jahr, monat)
         
         arbeitstage_gesamt = 0
@@ -225,8 +234,8 @@ class Mitarbeiter(models.Model):
 
     # === CHOICES ZUERST ===
     STANDORT_CHOICES = [
-        ('siegburg', 'Siegburg'),
-        ('bonn', 'Bonn'),
+        ('siegburg', 'A'),
+        ('bonn', 'B'),
     ]
 
     ROLLE_CHOICES = [
@@ -898,70 +907,128 @@ class Urlaubsanspruch(models.Model):
         return self.jahresurlaubstage_anteilig - self.genommene_urlaubstage
 
 
+def berechne_pause(brutto_minuten):
+    """Berechnet Pausenzeit nach gestaffeltem Modell.
+
+    Staffelung:
+    - bis 6:00h (360 min): keine Pause
+    - 6:00h - 6:30h (360-390 min): minutenweise (brutto - 360)
+    - 6:30h - 9:00h (390-540 min): 30 min fest
+    - 9:00h - 9:15h (540-555 min): 30 + (brutto - 540) min
+    - ab 9:15h (555+ min): 45 min fest
+    - Max Brutto: 13:00h (780 min)
+    """
+    brutto_minuten = min(brutto_minuten, 780)
+    if brutto_minuten <= 360:
+        return 0
+    elif brutto_minuten <= 390:
+        return brutto_minuten - 360
+    elif brutto_minuten <= 540:
+        return 30
+    elif brutto_minuten <= 555:
+        return 30 + (brutto_minuten - 540)
+    else:
+        return 45
+
+
 class Zeiterfassung(models.Model):
-    """Tägliche Zeiterfassung"""
+    """Taegliche Zeiterfassung"""
     mitarbeiter = models.ForeignKey(
         Mitarbeiter,
         on_delete=models.CASCADE,
         related_name='zeiterfassungen'
     )
-    
+
     datum = models.DateField()
-    
+
     # Arbeitszeit
     arbeitsbeginn = models.TimeField(null=True, blank=True)
     arbeitsende = models.TimeField(null=True, blank=True)
     pause_minuten = models.IntegerField(default=0)
-    
-    # Berechnete Arbeitszeit
+
+    # Berechnete Arbeitszeit (Netto = Brutto - Pause)
     arbeitszeit_minuten = models.IntegerField(null=True, blank=True)
-    
+
+    # Soll-Minuten (aus Vereinbarung zum Zeitpunkt der Erfassung)
+    soll_minuten = models.IntegerField(null=True, blank=True)
+
     # Art
     ART_CHOICES = [
-        ('buero', 'Büro'),
-        ('homeoffice', 'Homeoffice/Telearbeit'),
-        ('urlaub', 'Urlaub'),
-        ('krank', 'Krank'),
-        ('sonderurlaub', 'Sonderurlaub'),
+        ("homeoffice", "HomeOffice"),
+        ("telearbeit", "Telearbeit"),
+        ("krank", "Krank"),
+        ("urlaub", "Urlaub"),
+        ("z_ag", "Z-AG"),
     ]
-    art = models.CharField(max_length=20, choices=ART_CHOICES, default='buero')
-    
+    art = models.CharField(
+        max_length=20, choices=ART_CHOICES, default="homeoffice"
+    )
+
+    # Fuer Urlaub-Datumsbereich
+    urlaub_bis = models.DateField(null=True, blank=True)
+
     bemerkung = models.TextField(blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         verbose_name = "Zeiterfassung"
         verbose_name_plural = "Zeiterfassungen"
-        unique_together = ['mitarbeiter', 'datum']
-        ordering = ['-datum']
-    
+        unique_together = ["mitarbeiter", "datum"]
+        ordering = ["-datum"]
+
     def __str__(self):
         return f"{self.mitarbeiter.vollname} - {self.datum}"
-    
+
     def save(self, *args, **kwargs):
-        """Berechnet automatisch die Arbeitszeit"""
+        """Berechnet automatisch Pause und Netto-Arbeitszeit."""
         if self.arbeitsbeginn and self.arbeitsende:
             from datetime import datetime, timedelta
+
             beginn = datetime.combine(self.datum, self.arbeitsbeginn)
             ende = datetime.combine(self.datum, self.arbeitsende)
-            
+
             if ende < beginn:
                 ende += timedelta(days=1)
-            
-            differenz = ende - beginn
-            self.arbeitszeit_minuten = int(differenz.total_seconds() / 60) - self.pause_minuten
-        
+
+            brutto = int(
+                (ende - beginn).total_seconds() / 60
+            )
+            self.pause_minuten = berechne_pause(brutto)
+            self.arbeitszeit_minuten = brutto - self.pause_minuten
         super().save(*args, **kwargs)
-    
+
+    @property
+    def brutto_minuten(self):
+        """Brutto-Arbeitszeit (vor Pausenabzug)."""
+        if self.arbeitszeit_minuten is not None:
+            return self.arbeitszeit_minuten + self.pause_minuten
+        return 0
+
+    @property
+    def differenz_minuten(self):
+        """Differenz Ist - Soll in Minuten."""
+        ist = self.arbeitszeit_minuten or 0
+        soll = self.soll_minuten or 0
+        return ist - soll
+
+    @property
+    def differenz_formatiert(self):
+        """Differenz Ist - Soll als +/-H:MMh formatiert."""
+        diff = self.differenz_minuten
+        abs_d = abs(diff)
+        vz = "+" if diff >= 0 else "-"
+        return f"{vz}{abs_d // 60}:{abs_d % 60:02d}h"
+
     @property
     def arbeitszeit_formatiert(self):
-        """Gibt Arbeitszeit formatiert zurück"""
-        if self.arbeitszeit_minuten:
-            stunden = self.arbeitszeit_minuten // 60
-            minuten = self.arbeitszeit_minuten % 60
-            return f"{stunden}:{minuten:02d}h"
+        """Gibt Arbeitszeit formatiert zurueck."""
+        if self.arbeitszeit_minuten is not None:
+            stunden = abs(self.arbeitszeit_minuten) // 60
+            minuten = abs(self.arbeitszeit_minuten) % 60
+            vorzeichen = "-" if self.arbeitszeit_minuten < 0 else ""
+            return f"{vorzeichen}{stunden}:{minuten:02d}h"
         return "0:00h"
     def clean(self):
         stunden = self.zeitwert // 100
@@ -995,8 +1062,8 @@ def berechne_und_speichere(cls, mitarbeiter, jahr, monat):
             f"im {calendar.month_name[monat]} {jahr} gefunden!"
         )
     
-    # 2. Berechne Arbeitstage und Feiertage
-    cal = NorthRhineWestphalia()
+    # 2. Berechne Arbeitstage und Feiertage (standortabhaengig)
+    cal = get_feiertagskalender(mitarbeiter.standort)
     _, letzter_tag = calendar.monthrange(jahr, monat)
     
     arbeitstage_gesamt = 0

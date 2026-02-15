@@ -812,42 +812,231 @@ def vereinbarung_liste(request):
     return render(request, 'arbeitszeit/vereinbarung_liste.html', context)
 
 
+def _soll_minuten_aus_vereinbarung(mitarbeiter, datum):
+    """Ermittelt Soll-Minuten aus der gueltigen Vereinbarung.
+
+    An Feiertagen (standortabhaengig) wird 0 zurueckgegeben.
+    """
+    from .models import get_feiertagskalender
+
+    # Feiertags-Check: kein Soll an Feiertagen
+    cal = get_feiertagskalender(mitarbeiter.standort)
+    if cal.is_holiday(datum):
+        return 0
+
+    vereinbarung = mitarbeiter.get_aktuelle_vereinbarung(datum)
+    if vereinbarung and vereinbarung.wochenstunden:
+        # Tages-Soll = Wochenstunden / 5 Arbeitstage
+        tages_soll = float(vereinbarung.wochenstunden) / 5
+        return int(round(tages_soll * 60))
+    return None
+
+
+def _erstelle_urlaub_eintraege(mitarbeiter, datum_von, datum_bis,
+                               soll_minuten, bemerkung):
+    """Erstellt Zeiterfassungs-Eintraege fuer Urlaubszeitraum.
+
+    Wochenenden und Feiertage (standortabhaengig) werden uebersprungen.
+    """
+    from datetime import timedelta
+    from .models import get_feiertagskalender
+
+    cal = get_feiertagskalender(mitarbeiter.standort)
+
+    aktuell = datum_von
+    anzahl = 0
+    while aktuell <= datum_bis:
+        # Nur Werktage (Mo-Fr) und keine Feiertage
+        if aktuell.weekday() < 5 and not cal.is_holiday(aktuell):
+            Zeiterfassung.objects.update_or_create(
+                mitarbeiter=mitarbeiter,
+                datum=aktuell,
+                defaults={
+                    "art": "urlaub",
+                    "arbeitsbeginn": None,
+                    "arbeitsende": None,
+                    "pause_minuten": 0,
+                    "arbeitszeit_minuten": None,
+                    "soll_minuten": soll_minuten,
+                    "urlaub_bis": datum_bis if aktuell == datum_von
+                    else None,
+                    "bemerkung": bemerkung,
+                },
+            )
+            anzahl += 1
+        aktuell += timedelta(days=1)
+    return anzahl
+
+
 @login_required
 def zeiterfassung_erstellen(request):
     try:
         mitarbeiter = request.user.mitarbeiter
     except Mitarbeiter.DoesNotExist:
-        return redirect('arbeitszeit:dashboard')
-    
-    datum = request.POST.get('datum', timezone.now().date())
-    
-    if request.method == 'POST':
-        pause = request.POST.get('pause_minuten', '0')
-        if not pause.isdigit():
-            pause = 0
-            
-        Zeiterfassung.objects.update_or_create(
-            mitarbeiter=mitarbeiter,
-            datum=datum,
-            defaults={
-                'arbeitsbeginn': request.POST.get('arbeitsbeginn') or None,
-                'arbeitsende': request.POST.get('arbeitsende') or None,
-                'pause_minuten': int(pause),
-                'art': request.POST.get('art', 'buero'),
-                'bemerkung': request.POST.get('bemerkung', ''),
-            }
+        return redirect("arbeitszeit:dashboard")
+
+    datum = request.POST.get("datum") or str(timezone.now().date())
+
+    if request.method == "POST":
+        art = request.POST.get("art", "homeoffice")
+
+        # Datum parsen
+        try:
+            datum_obj = date.fromisoformat(datum)
+        except (ValueError, TypeError):
+            datum_obj = timezone.now().date()
+
+        # Soll-Minuten aus Vereinbarung
+        soll_minuten = _soll_minuten_aus_vereinbarung(
+            mitarbeiter, datum_obj
         )
-        messages.success(request, 'Zeiterfassung wurde gespeichert.')
-        return redirect('arbeitszeit:zeiterfassung_uebersicht')
-    
-    erfassung = Zeiterfassung.objects.filter(mitarbeiter=mitarbeiter, datum=datum).first()
-    
+
+        bemerkung = request.POST.get("bemerkung", "")
+
+        if art == "urlaub":
+            # Urlaub: optional Datumsbereich
+            urlaub_bis_str = request.POST.get("urlaub_bis", "")
+            if urlaub_bis_str:
+                try:
+                    urlaub_bis_obj = date.fromisoformat(urlaub_bis_str)
+                except (ValueError, TypeError):
+                    urlaub_bis_obj = datum_obj
+            else:
+                urlaub_bis_obj = datum_obj
+
+            if urlaub_bis_obj < datum_obj:
+                urlaub_bis_obj = datum_obj
+
+            anzahl = _erstelle_urlaub_eintraege(
+                mitarbeiter, datum_obj, urlaub_bis_obj,
+                soll_minuten, bemerkung,
+            )
+            messages.success(
+                request,
+                f"Urlaub fuer {anzahl} Tag(e) eingetragen.",
+            )
+            return redirect("arbeitszeit:zeiterfassung_uebersicht")
+
+        elif art in ("krank", "z_ag"):
+            # Krank / Z-AG: keine Zeitfelder
+            defaults = {
+                "art": art,
+                "arbeitsbeginn": None,
+                "arbeitsende": None,
+                "pause_minuten": 0,
+                "soll_minuten": soll_minuten,
+                "bemerkung": bemerkung,
+            }
+            if art == "z_ag":
+                # Z-AG: negatives Soll als Arbeitszeit
+                defaults["arbeitszeit_minuten"] = (
+                    -(soll_minuten) if soll_minuten else 0
+                )
+            elif art == "krank":
+                # Krank: Soll wird gutgeschrieben, kein Abzug
+                defaults["arbeitszeit_minuten"] = (
+                    soll_minuten if soll_minuten else 0
+                )
+
+            Zeiterfassung.objects.update_or_create(
+                mitarbeiter=mitarbeiter,
+                datum=datum_obj,
+                defaults=defaults,
+            )
+            messages.success(
+                request, "Zeiterfassung wurde gespeichert."
+            )
+            return redirect("arbeitszeit:zeiterfassung_uebersicht")
+
+        else:
+            # HomeOffice / Telearbeit: mit Zeitfeldern
+            from datetime import time as dt_time
+
+            beginn_str = request.POST.get("arbeitsbeginn", "")
+            ende_str = request.POST.get("arbeitsende", "")
+            arbeitsbeginn = None
+            arbeitsende = None
+            if beginn_str:
+                h, m = beginn_str.split(":")
+                arbeitsbeginn = dt_time(int(h), int(m))
+            if ende_str:
+                h, m = ende_str.split(":")
+                arbeitsende = dt_time(int(h), int(m))
+
+            Zeiterfassung.objects.update_or_create(
+                mitarbeiter=mitarbeiter,
+                datum=datum_obj,
+                defaults={
+                    "art": art,
+                    "arbeitsbeginn": arbeitsbeginn,
+                    "arbeitsende": arbeitsende,
+                    "soll_minuten": soll_minuten,
+                    "bemerkung": bemerkung,
+                },
+            )
+            messages.success(
+                request, "Zeiterfassung wurde gespeichert."
+            )
+            return redirect("arbeitszeit:zeiterfassung_uebersicht")
+
+    # GET: Bestehende Erfassung laden
+    if isinstance(datum, str):
+        try:
+            datum_obj = date.fromisoformat(datum)
+        except (ValueError, TypeError):
+            datum_obj = timezone.now().date()
+    else:
+        datum_obj = datum
+
+    erfassung = Zeiterfassung.objects.filter(
+        mitarbeiter=mitarbeiter, datum=datum_obj
+    ).first()
+
+    # Soll-Info fuer Template
+    soll_minuten = _soll_minuten_aus_vereinbarung(
+        mitarbeiter, datum_obj
+    )
+    vereinbarung = mitarbeiter.get_aktuelle_vereinbarung(datum_obj)
+
+    # Formatierte Werte fuer Template
+    brutto_formatiert = None
+    differenz_formatiert = None
+    if erfassung and erfassung.brutto_minuten:
+        b = erfassung.brutto_minuten
+        brutto_formatiert = f"{b // 60}:{b % 60:02d}h ({b} min)"
+    if erfassung and erfassung.soll_minuten is not None:
+        diff = erfassung.differenz_minuten
+        vorzeichen = "+" if diff >= 0 else ""
+        abs_diff = abs(diff)
+        differenz_formatiert = (
+            f"{vorzeichen}{abs_diff // 60}:{abs_diff % 60:02d}h"
+            f" ({vorzeichen}{diff} min)"
+        )
+
     context = {
-        'mitarbeiter': mitarbeiter,
-        'datum': datum,
-        'erfassung': erfassung,
+        "mitarbeiter": mitarbeiter,
+        "datum": datum_obj,
+        "erfassung": erfassung,
+        "soll_minuten": soll_minuten,
+        "soll_formatiert": (
+            f"{soll_minuten // 60}:{soll_minuten % 60:02d}h"
+            if soll_minuten
+            else None
+        ),
+        "vereinbarung": vereinbarung,
+        "brutto_formatiert": brutto_formatiert,
+        "differenz_formatiert": differenz_formatiert,
     }
-    return render(request, 'arbeitszeit/zeiterfassung_form.html', context)
+    return render(
+        request, "arbeitszeit/zeiterfassung_form.html", context
+    )
+
+
+def _minuten_formatiert(minuten):
+    """Hilfsfunktion: Minuten als +/-H:MMh formatieren."""
+    abs_m = abs(minuten)
+    vz = "+" if minuten >= 0 else "-"
+    return f"{vz}{abs_m // 60}:{abs_m % 60:02d}h"
 
 
 @login_required
@@ -855,26 +1044,133 @@ def zeiterfassung_uebersicht(request):
     try:
         mitarbeiter = request.user.mitarbeiter
     except Mitarbeiter.DoesNotExist:
-        return redirect('arbeitszeit:dashboard')
-    
-    jahr = int(request.GET.get('jahr', timezone.now().year))
-    monat = int(request.GET.get('monat', timezone.now().month))
-    
-    erfassungen = mitarbeiter.zeiterfassungen.filter(
-        datum__year=jahr,
-        datum__month=monat
-    ).order_by('datum')
-    
-    gesamt_minuten = erfassungen.aggregate(total=Sum('arbeitszeit_minuten'))['total'] or 0
-    
-    context = {
-        'mitarbeiter': mitarbeiter,
-        'erfassungen': erfassungen,
-        'jahr': jahr,
-        'monat': monat,
-        'gesamt_arbeitszeit': zeitwert_to_str(gesamt_minuten) + "h",
-    }
-    return render(request, 'arbeitszeit/zeiterfassung_uebersicht.html', context)
+        return redirect("arbeitszeit:dashboard")
+
+    from datetime import timedelta
+
+    # Ansicht: "woche" oder "monat"
+    ansicht = request.GET.get("ansicht", "woche")
+
+    heute = timezone.now().date()
+    jahr = int(request.GET.get("jahr", heute.year))
+
+    if ansicht == "woche":
+        # KW ermitteln (ISO-Kalenderwoche)
+        kw = int(request.GET.get("kw", heute.isocalendar()[1]))
+
+        # Montag der KW berechnen
+        # ISO: Woche 1 enthaelt den 4. Januar
+        jan4 = date(jahr, 1, 4)
+        # Montag der KW 1
+        montag_kw1 = jan4 - timedelta(days=jan4.weekday())
+        montag = montag_kw1 + timedelta(weeks=kw - 1)
+        sonntag = montag + timedelta(days=6)
+
+        # Vorherige / naechste KW
+        prev_montag = montag - timedelta(weeks=1)
+        next_montag = montag + timedelta(weeks=1)
+        prev_kw = prev_montag.isocalendar()[1]
+        prev_jahr = prev_montag.isocalendar()[0]
+        next_kw = next_montag.isocalendar()[1]
+        next_jahr = next_montag.isocalendar()[0]
+
+        # Erfassungen der Woche laden
+        erfassungen_qs = mitarbeiter.zeiterfassungen.filter(
+            datum__gte=montag, datum__lte=sonntag,
+        ).order_by("datum")
+
+        # Dict fuer schnellen Zugriff nach Datum
+        erfassungen_dict = {
+            e.datum: e for e in erfassungen_qs
+        }
+
+        # 7 Tage Mo-So aufbauen (auch leere)
+        WOCHENTAGE = [
+            "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So",
+        ]
+        wochen_tage = []
+        for i in range(7):
+            tag_datum = montag + timedelta(days=i)
+            erfassung = erfassungen_dict.get(tag_datum)
+            wochen_tage.append({
+                "datum": tag_datum,
+                "wochentag": WOCHENTAGE[i],
+                "ist_heute": tag_datum == heute,
+                "ist_wochenende": i >= 5,
+                "erfassung": erfassung,
+            })
+
+        # Summen
+        gesamt_minuten = (
+            erfassungen_qs.aggregate(
+                total=Sum("arbeitszeit_minuten")
+            )["total"]
+            or 0
+        )
+        gesamt_differenz = sum(
+            e.differenz_minuten for e in erfassungen_qs
+        )
+
+        context = {
+            "mitarbeiter": mitarbeiter,
+            "ansicht": "woche",
+            "jahr": jahr,
+            "kw": kw,
+            "montag": montag,
+            "sonntag": sonntag,
+            "wochen_tage": wochen_tage,
+            "erfassungen": erfassungen_qs,
+            "gesamt_arbeitszeit": (
+                zeitwert_to_str(gesamt_minuten) + "h"
+            ),
+            "gesamt_differenz": gesamt_differenz,
+            "gesamt_differenz_formatiert": (
+                _minuten_formatiert(gesamt_differenz)
+            ),
+            "prev_kw": prev_kw,
+            "prev_jahr": prev_jahr,
+            "next_kw": next_kw,
+            "next_jahr": next_jahr,
+        }
+
+    else:
+        # Monatsansicht (bestehend)
+        monat = int(request.GET.get("monat", heute.month))
+
+        erfassungen = mitarbeiter.zeiterfassungen.filter(
+            datum__year=jahr, datum__month=monat,
+        ).order_by("datum")
+
+        gesamt_minuten = (
+            erfassungen.aggregate(
+                total=Sum("arbeitszeit_minuten")
+            )["total"]
+            or 0
+        )
+        gesamt_differenz = sum(
+            e.differenz_minuten for e in erfassungen
+        )
+
+        context = {
+            "mitarbeiter": mitarbeiter,
+            "ansicht": "monat",
+            "erfassungen": erfassungen,
+            "jahr": jahr,
+            "monat": monat,
+            "gesamt_arbeitszeit": (
+                zeitwert_to_str(gesamt_minuten) + "h"
+            ),
+            "gesamt_differenz": gesamt_differenz,
+            "gesamt_differenz_formatiert": (
+                _minuten_formatiert(gesamt_differenz)
+            ),
+        }
+
+    return render(
+        request,
+        "arbeitszeit/zeiterfassung_uebersicht.html",
+        context,
+    )
 
 
 # --- ADMIN VIEWS ---
