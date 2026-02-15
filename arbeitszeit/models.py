@@ -14,6 +14,22 @@ from decimal import Decimal
 import calendar
 
 
+FEIERTAG_DEUTSCH = {
+    "New year": "Neujahr",
+    "Good Friday": "Karfreitag",
+    "Easter Monday": "Ostermontag",
+    "Labour Day": "Tag der Arbeit",
+    "Ascension Thursday": "Christi Himmelfahrt",
+    "Whit Monday": "Pfingstmontag",
+    "Corpus Christi": "Fronleichnam",
+    "Day of German Unity": "Tag der Deutschen Einheit",
+    "All Saints Day": "Allerheiligen",
+    "Christmas Day": "1. Weihnachtstag",
+    "Second Christmas Day": "2. Weihnachtstag",
+    "International Women's Day": "Internationaler Frauentag",
+}
+
+
 def get_feiertagskalender(standort):
     """Gibt den workalendar-Kalender fuer den Standort zurueck.
 
@@ -23,6 +39,12 @@ def get_feiertagskalender(standort):
     if standort == "bonn":
         return Berlin()
     return NorthRhineWestphalia()
+
+
+def feiertag_name_deutsch(cal, datum):
+    """Gibt den deutschen Namen des Feiertags zurueck."""
+    name_en = cal.get_holiday_label(datum)
+    return FEIERTAG_DEUTSCH.get(name_en, name_en)
 
 
 
@@ -156,7 +178,7 @@ class MonatlicheArbeitszeitSoll(models.Model):
                 
                 # Prüfe ob Feiertag
                 if cal.is_holiday(datum):
-                    feiertag_name = cal.get_holiday_label(datum)
+                    feiertag_name = feiertag_name_deutsch(cal, datum)
                     feiertage.append({
                         'datum': datum.isoformat(),
                         'name': feiertag_name,
@@ -907,6 +929,29 @@ class Urlaubsanspruch(models.Model):
         return self.jahresurlaubstage_anteilig - self.genommene_urlaubstage
 
 
+class Wochenbericht(models.Model):
+    """Trackt ob ein PDF-Wochenbericht erstellt wurde."""
+    erstellt_am = models.DateTimeField(auto_now=True)
+    jahr = models.IntegerField(verbose_name="Jahr")
+    kw = models.IntegerField(verbose_name="Kalenderwoche")
+    mitarbeiter = models.ForeignKey(
+        "Mitarbeiter",
+        on_delete=models.CASCADE,
+        related_name="wochenberichte",
+    )
+
+    class Meta:
+        ordering = ["-jahr", "-kw"]
+        unique_together = ["mitarbeiter", "jahr", "kw"]
+        verbose_name = "Wochenbericht"
+        verbose_name_plural = "Wochenberichte"
+
+    def __str__(self):
+        return (
+            f"{self.mitarbeiter.vollname} - KW {self.kw}/{self.jahr}"
+        )
+
+
 def berechne_pause(brutto_minuten):
     """Berechnet Pausenzeit nach gestaffeltem Modell.
 
@@ -956,12 +1001,22 @@ class Zeiterfassung(models.Model):
     ART_CHOICES = [
         ("homeoffice", "HomeOffice"),
         ("telearbeit", "Telearbeit"),
+        ("hybrid", "Hybrid (Buero + HomeOffice)"),
+        ("buero", "Buero (nur Notiz)"),
         ("krank", "Krank"),
         ("urlaub", "Urlaub"),
         ("z_ag", "Z-AG"),
     ]
     art = models.CharField(
         max_length=20, choices=ART_CHOICES, default="homeoffice"
+    )
+
+    # Manuelle Pause (ueberschreibt automatische, wenn hoeher)
+    manuelle_pause = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Manuelle Pause (Minuten)",
+        help_text="Nur ausfuellen wenn laenger als gesetzliche Pause"
     )
 
     # Fuer Urlaub-Datumsbereich
@@ -982,7 +1037,12 @@ class Zeiterfassung(models.Model):
         return f"{self.mitarbeiter.vollname} - {self.datum}"
 
     def save(self, *args, **kwargs):
-        """Berechnet automatisch Pause und Netto-Arbeitszeit."""
+        """Berechnet automatisch Pause und Netto-Arbeitszeit.
+
+        Hybrid: Keine automatische Pause, erfasste Zeit = Netto.
+        Manuelle Pause wird auch bei Hybrid abgezogen falls gesetzt.
+        Sonst: gesetzliche Staffelung, manuelle Pause gilt wenn hoeher.
+        """
         if self.arbeitsbeginn and self.arbeitsende:
             from datetime import datetime, timedelta
 
@@ -995,7 +1055,22 @@ class Zeiterfassung(models.Model):
             brutto = int(
                 (ende - beginn).total_seconds() / 60
             )
-            self.pause_minuten = berechne_pause(brutto)
+
+            if self.art == "hybrid":
+                # Hybrid: Brutto-Zeit, keine Pausenberechnung
+                self.pause_minuten = 0
+            else:
+                gesetzliche_pause = berechne_pause(brutto)
+                if (
+                    self.manuelle_pause
+                    and self.manuelle_pause > 0
+                ):
+                    self.pause_minuten = max(
+                        gesetzliche_pause, self.manuelle_pause
+                    )
+                else:
+                    self.pause_minuten = gesetzliche_pause
+
             self.arbeitszeit_minuten = brutto - self.pause_minuten
         super().save(*args, **kwargs)
 
@@ -1008,7 +1083,12 @@ class Zeiterfassung(models.Model):
 
     @property
     def differenz_minuten(self):
-        """Differenz Ist - Soll in Minuten."""
+        """Differenz Ist - Soll in Minuten.
+
+        Bei Hybrid wird keine Differenz berechnet (None).
+        """
+        if self.art in ("hybrid", "buero", "urlaub"):
+            return None
         ist = self.arbeitszeit_minuten or 0
         soll = self.soll_minuten or 0
         return ist - soll
@@ -1017,6 +1097,8 @@ class Zeiterfassung(models.Model):
     def differenz_formatiert(self):
         """Differenz Ist - Soll als +/-H:MMh formatiert."""
         diff = self.differenz_minuten
+        if diff is None:
+            return ""
         abs_d = abs(diff)
         vz = "+" if diff >= 0 else "-"
         return f"{vz}{abs_d // 60}:{abs_d % 60:02d}h"
@@ -1077,7 +1159,7 @@ def berechne_und_speichere(cls, mitarbeiter, jahr, monat):
             arbeitstage_gesamt += 1
             
             if cal.is_holiday(datum):
-                feiertag_name = cal.get_holiday_label(datum)
+                feiertag_name = feiertag_name_deutsch(cal, datum)
                 feiertage.append({
                     'datum': datum.isoformat(),
                     'name': feiertag_name,

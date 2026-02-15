@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11pt;
+            color: #333;
+        }
+
+        h1 {
+            color: #1a4d2e;
+            text-align: center;
+            font-size: 18pt;
+            margin-bottom: 0.5cm;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 12pt;
+            color: #555;
+            margin-bottom: 1cm;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5cm;
+            font-size: 11pt;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.5cm 0;
+        }
+
+        th, td {
+            padding: 8px 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #1a4d2e;
+            color: white;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+
+        .row-feiertag {
+            background-color: #fff0f0;
+        }
+
+        .row-feiertag td {
+            color: #a94442;
+        }
+
+        .row-wochenende td {
+            color: #888;
+        }
+
+        .feiertag-label {
+            font-size: 8pt;
+            color: #a94442;
+            font-weight: bold;
+        }
+
+        .hint-label {
+            font-size: 8pt;
+            display: block;
+        }
+
+        .hint-hybrid {
+            color: #6c3483;
+        }
+
+        .hint-buero {
+            color: #7d6608;
+        }
+
+        .differenz-positiv {
+            color: #155724;
+            font-weight: bold;
+        }
+
+        .differenz-negativ {
+            color: #721c24;
+            font-weight: bold;
+        }
+
+        tfoot td {
+            font-weight: bold;
+            border-top: 2px solid #1a4d2e;
+            background-color: #E8F5E9;
+        }
+
+        .footer {
+            margin-top: 1.5cm;
+            font-size: 9pt;
+            color: #888;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <h1>Wochenbericht</h1>
+    <p class="subtitle">
+        {{ mitarbeiter.vollname }} ({{ mitarbeiter.personalnummer }})
+    </p>
+
+    <table class="info-table" style="margin-bottom: 1cm; border: none;">
+        <tr style="border: none;">
+            <td style="border: none; background: #E8F5E9; font-weight: bold; width: 30%;">Kalenderwoche</td>
+            <td style="border: none;">KW {{ kw }} / {{ jahr }}</td>
+            <td style="border: none; background: #E8F5E9; font-weight: bold; width: 20%;">Zeitraum</td>
+            <td style="border: none;">{{ montag|date:"d.m." }} - {{ sonntag|date:"d.m.Y" }}</td>
+        </tr>
+        <tr style="border: none;">
+            <td style="border: none; background: #E8F5E9; font-weight: bold;">Abteilung</td>
+            <td style="border: none;">{{ mitarbeiter.abteilung }}</td>
+            <td style="border: none; background: #E8F5E9; font-weight: bold;">Standort</td>
+            <td style="border: none;">{{ mitarbeiter.get_standort_display }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Tag</th>
+                <th>Datum</th>
+                <th>Von</th>
+                <th>Bis</th>
+                <th>Pause</th>
+                <th>Ist</th>
+                <th>Differenz</th>
+                <th>Art</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tag in wochen_tage %}
+                {% if tag.erfassung %}
+                    <tr class="{% if tag.ist_feiertag %}row-feiertag{% elif tag.ist_wochenende %}row-wochenende{% endif %}">
+                        <td><strong>{{ tag.wochentag }}</strong></td>
+                        <td>
+                            {{ tag.datum|date:"d.m." }}
+                            {% if tag.ist_feiertag %}
+                                <span class="feiertag-label">{{ tag.feiertag_name }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{% if tag.erfassung.arbeitsbeginn %}{{ tag.erfassung.arbeitsbeginn|time:"H:i" }}{% else %}-{% endif %}</td>
+                        <td>{% if tag.erfassung.arbeitsende %}{{ tag.erfassung.arbeitsende|time:"H:i" }}{% else %}-{% endif %}</td>
+                        <td>{{ tag.erfassung.pause_minuten }} min</td>
+                        <td>
+                            <strong>{{ tag.erfassung.arbeitszeit_formatiert }}</strong>
+                            {% if tag.erfassung.art == 'hybrid' %}
+                                <span class="hint-label hint-hybrid">Brutto HO</span>
+                            {% elif tag.erfassung.art == 'buero' %}
+                                <span class="hint-label hint-buero">Notiz</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if tag.erfassung.art == 'hybrid' or tag.erfassung.art == 'buero' %}
+                                -
+                            {% elif tag.erfassung.differenz_minuten != None %}
+                                <span class="{% if tag.erfassung.differenz_minuten >= 0 %}differenz-positiv{% else %}differenz-negativ{% endif %}">
+                                    {{ tag.erfassung.differenz_formatiert }}
+                                </span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ tag.erfassung.get_art_display }}</td>
+                    </tr>
+                {% else %}
+                    <tr class="{% if tag.ist_feiertag %}row-feiertag{% elif tag.ist_wochenende %}row-wochenende{% endif %}">
+                        <td><strong>{{ tag.wochentag }}</strong></td>
+                        <td>
+                            {{ tag.datum|date:"d.m." }}
+                            {% if tag.ist_feiertag %}
+                                <span class="feiertag-label">{{ tag.feiertag_name }}</span>
+                            {% endif %}
+                        </td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>
+                            {% if tag.ist_feiertag %}
+                                <span class="feiertag-label">Feiertag</span>
+                            {% elif not tag.ist_wochenende %}
+                                nicht erfasst
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5">Summe KW {{ kw }}</td>
+                <td>{{ gesamt_arbeitszeit }}</td>
+                <td>
+                    <span class="{% if gesamt_differenz >= 0 %}differenz-positiv{% else %}differenz-negativ{% endif %}">
+                        {{ gesamt_differenz_formatiert }}
+                    </span>
+                </td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="footer">
+        Erstellt am {{ druckdatum|date:"d.m.Y" }} um {{ druckdatum|time:"H:i" }} Uhr
+    </div>
+</body>
+</html>

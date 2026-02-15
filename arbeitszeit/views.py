@@ -29,6 +29,7 @@ from .models import (
     ArbeitszeitHistorie,
     Zeiterfassung,
     Urlaubsanspruch,
+    Wochenbericht,
 )
 from .forms import RegisterForm
 
@@ -875,7 +876,11 @@ def zeiterfassung_erstellen(request):
     except Mitarbeiter.DoesNotExist:
         return redirect("arbeitszeit:dashboard")
 
-    datum = request.POST.get("datum") or str(timezone.now().date())
+    datum = (
+        request.POST.get("datum")
+        or request.GET.get("datum")
+        or str(timezone.now().date())
+    )
 
     if request.method == "POST":
         art = request.POST.get("art", "homeoffice")
@@ -915,7 +920,12 @@ def zeiterfassung_erstellen(request):
                 request,
                 f"Urlaub fuer {anzahl} Tag(e) eingetragen.",
             )
-            return redirect("arbeitszeit:zeiterfassung_uebersicht")
+            # Zurueck zur KW des erfassten Datums
+            iso = datum_obj.isocalendar()
+            return redirect(
+                f"/zeiterfassung/?ansicht=woche"
+                f"&kw={iso[1]}&jahr={iso[0]}"
+            )
 
         elif art in ("krank", "z_ag"):
             # Krank / Z-AG: keine Zeitfelder
@@ -928,10 +938,8 @@ def zeiterfassung_erstellen(request):
                 "bemerkung": bemerkung,
             }
             if art == "z_ag":
-                # Z-AG: negatives Soll als Arbeitszeit
-                defaults["arbeitszeit_minuten"] = (
-                    -(soll_minuten) if soll_minuten else 0
-                )
+                # Z-AG: keine Arbeitszeit, Differenz ergibt -Soll
+                defaults["arbeitszeit_minuten"] = 0
             elif art == "krank":
                 # Krank: Soll wird gutgeschrieben, kein Abzug
                 defaults["arbeitszeit_minuten"] = (
@@ -946,10 +954,14 @@ def zeiterfassung_erstellen(request):
             messages.success(
                 request, "Zeiterfassung wurde gespeichert."
             )
-            return redirect("arbeitszeit:zeiterfassung_uebersicht")
+            iso = datum_obj.isocalendar()
+            return redirect(
+                f"/zeiterfassung/?ansicht=woche"
+                f"&kw={iso[1]}&jahr={iso[0]}"
+            )
 
         else:
-            # HomeOffice / Telearbeit: mit Zeitfeldern
+            # HomeOffice / Telearbeit / Hybrid: mit Zeitfeldern
             from datetime import time as dt_time
 
             beginn_str = request.POST.get("arbeitsbeginn", "")
@@ -963,6 +975,17 @@ def zeiterfassung_erstellen(request):
                 h, m = ende_str.split(":")
                 arbeitsende = dt_time(int(h), int(m))
 
+            # Manuelle Pause (optional)
+            manuelle_pause_str = request.POST.get(
+                "manuelle_pause", ""
+            )
+            manuelle_pause = None
+            if manuelle_pause_str.strip():
+                try:
+                    manuelle_pause = int(manuelle_pause_str)
+                except (ValueError, TypeError):
+                    manuelle_pause = None
+
             Zeiterfassung.objects.update_or_create(
                 mitarbeiter=mitarbeiter,
                 datum=datum_obj,
@@ -970,6 +993,7 @@ def zeiterfassung_erstellen(request):
                     "art": art,
                     "arbeitsbeginn": arbeitsbeginn,
                     "arbeitsende": arbeitsende,
+                    "manuelle_pause": manuelle_pause,
                     "soll_minuten": soll_minuten,
                     "bemerkung": bemerkung,
                 },
@@ -977,7 +1001,11 @@ def zeiterfassung_erstellen(request):
             messages.success(
                 request, "Zeiterfassung wurde gespeichert."
             )
-            return redirect("arbeitszeit:zeiterfassung_uebersicht")
+            iso = datum_obj.isocalendar()
+            return redirect(
+                f"/zeiterfassung/?ansicht=woche"
+                f"&kw={iso[1]}&jahr={iso[0]}"
+            )
 
     # GET: Bestehende Erfassung laden
     if isinstance(datum, str):
@@ -1004,7 +1032,7 @@ def zeiterfassung_erstellen(request):
     if erfassung and erfassung.brutto_minuten:
         b = erfassung.brutto_minuten
         brutto_formatiert = f"{b // 60}:{b % 60:02d}h ({b} min)"
-    if erfassung and erfassung.soll_minuten is not None:
+    if erfassung and erfassung.differenz_minuten is not None:
         diff = erfassung.differenz_minuten
         vorzeichen = "+" if diff >= 0 else ""
         abs_diff = abs(diff)
@@ -1084,6 +1112,10 @@ def zeiterfassung_uebersicht(request):
             e.datum: e for e in erfassungen_qs
         }
 
+        # Feiertagskalender fuer Standort
+        from .models import get_feiertagskalender, feiertag_name_deutsch
+        cal = get_feiertagskalender(mitarbeiter.standort)
+
         # 7 Tage Mo-So aufbauen (auch leere)
         WOCHENTAGE = [
             "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So",
@@ -1092,24 +1124,40 @@ def zeiterfassung_uebersicht(request):
         for i in range(7):
             tag_datum = montag + timedelta(days=i)
             erfassung = erfassungen_dict.get(tag_datum)
+            ist_feiertag = cal.is_holiday(tag_datum)
+            feiertag_name = (
+                feiertag_name_deutsch(cal, tag_datum)
+                if ist_feiertag else ""
+            )
             wochen_tage.append({
                 "datum": tag_datum,
                 "wochentag": WOCHENTAGE[i],
                 "ist_heute": tag_datum == heute,
                 "ist_wochenende": i >= 5,
+                "ist_feiertag": ist_feiertag,
+                "feiertag_name": feiertag_name,
                 "erfassung": erfassung,
             })
 
-        # Summen
+        # Summen (Urlaub wird nicht mitgerechnet)
+        erfassungen_ohne_urlaub = erfassungen_qs.exclude(
+            art="urlaub"
+        )
         gesamt_minuten = (
-            erfassungen_qs.aggregate(
+            erfassungen_ohne_urlaub.aggregate(
                 total=Sum("arbeitszeit_minuten")
             )["total"]
             or 0
         )
         gesamt_differenz = sum(
-            e.differenz_minuten for e in erfassungen_qs
+            e.differenz_minuten for e in erfassungen_ohne_urlaub
+            if e.differenz_minuten is not None
         )
+
+        # Wochenbericht-Status abfragen
+        wochenbericht = Wochenbericht.objects.filter(
+            mitarbeiter=mitarbeiter, jahr=jahr, kw=kw,
+        ).first()
 
         context = {
             "mitarbeiter": mitarbeiter,
@@ -1131,24 +1179,43 @@ def zeiterfassung_uebersicht(request):
             "prev_jahr": prev_jahr,
             "next_kw": next_kw,
             "next_jahr": next_jahr,
+            "wochenbericht": wochenbericht,
         }
 
     else:
         # Monatsansicht (bestehend)
         monat = int(request.GET.get("monat", heute.month))
 
+        # Feiertagskalender fuer Standort
+        from .models import get_feiertagskalender, feiertag_name_deutsch
+        cal = get_feiertagskalender(mitarbeiter.standort)
+
         erfassungen = mitarbeiter.zeiterfassungen.filter(
             datum__year=jahr, datum__month=monat,
         ).order_by("datum")
 
+        # Feiertage des Monats als Dict {datum: name}
+        import datetime as dt_mod
+        _, letzter_tag = calendar.monthrange(jahr, monat)
+        feiertage_monat = {}
+        for tag_nr in range(1, letzter_tag + 1):
+            d = dt_mod.date(jahr, monat, tag_nr)
+            if cal.is_holiday(d):
+                feiertage_monat[d] = feiertag_name_deutsch(cal, d)
+
+        # Summen (Urlaub wird nicht mitgerechnet)
+        erfassungen_ohne_urlaub = erfassungen.exclude(
+            art="urlaub"
+        )
         gesamt_minuten = (
-            erfassungen.aggregate(
+            erfassungen_ohne_urlaub.aggregate(
                 total=Sum("arbeitszeit_minuten")
             )["total"]
             or 0
         )
         gesamt_differenz = sum(
-            e.differenz_minuten for e in erfassungen
+            e.differenz_minuten for e in erfassungen_ohne_urlaub
+            if e.differenz_minuten is not None
         )
 
         context = {
@@ -1157,6 +1224,7 @@ def zeiterfassung_uebersicht(request):
             "erfassungen": erfassungen,
             "jahr": jahr,
             "monat": monat,
+            "feiertage_monat": feiertage_monat,
             "gesamt_arbeitszeit": (
                 zeitwert_to_str(gesamt_minuten) + "h"
             ),
@@ -1171,6 +1239,139 @@ def zeiterfassung_uebersicht(request):
         "arbeitszeit/zeiterfassung_uebersicht.html",
         context,
     )
+
+
+@login_required
+def zeiterfassung_loeschen(request, pk):
+    """Loescht eine einzelne Zeiterfassung des eingeloggten Nutzers."""
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except Mitarbeiter.DoesNotExist:
+        return redirect("arbeitszeit:dashboard")
+
+    erfassung = get_object_or_404(
+        Zeiterfassung, pk=pk, mitarbeiter=mitarbeiter
+    )
+
+    if request.method == "POST":
+        kw = erfassung.datum.isocalendar()[1]
+        jahr = erfassung.datum.isocalendar()[0]
+        erfassung.delete()
+        messages.success(request, "Zeiterfassung wurde geloescht.")
+        return redirect(
+            f"/zeiterfassung/?ansicht=woche&kw={kw}&jahr={jahr}"
+        )
+
+    return redirect("arbeitszeit:zeiterfassung_uebersicht")
+
+
+@login_required
+def wochenbericht_pdf(request):
+    """Generiert einen PDF-Wochenbericht fuer die angegebene KW."""
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except Mitarbeiter.DoesNotExist:
+        return redirect("arbeitszeit:dashboard")
+
+    from datetime import timedelta
+    from weasyprint import HTML
+    from .models import get_feiertagskalender, feiertag_name_deutsch
+
+    heute = timezone.now().date()
+    jahr = int(request.GET.get("jahr", heute.year))
+    kw = int(request.GET.get("kw", heute.isocalendar()[1]))
+
+    # Montag der KW berechnen (gleiche Logik wie Uebersicht)
+    jan4 = date(jahr, 1, 4)
+    montag_kw1 = jan4 - timedelta(days=jan4.weekday())
+    montag = montag_kw1 + timedelta(weeks=kw - 1)
+    sonntag = montag + timedelta(days=6)
+
+    # Erfassungen laden
+    erfassungen_qs = mitarbeiter.zeiterfassungen.filter(
+        datum__gte=montag, datum__lte=sonntag,
+    ).order_by("datum")
+    erfassungen_dict = {e.datum: e for e in erfassungen_qs}
+
+    # Feiertagskalender
+    cal = get_feiertagskalender(mitarbeiter.standort)
+
+    WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+    wochen_tage = []
+    for i in range(7):
+        tag_datum = montag + timedelta(days=i)
+        erfassung = erfassungen_dict.get(tag_datum)
+        ist_feiertag = cal.is_holiday(tag_datum)
+        feiertag_name = (
+            feiertag_name_deutsch(cal, tag_datum)
+            if ist_feiertag else ""
+        )
+        wochen_tage.append({
+            "datum": tag_datum,
+            "wochentag": WOCHENTAGE[i],
+            "ist_wochenende": i >= 5,
+            "ist_feiertag": ist_feiertag,
+            "feiertag_name": feiertag_name,
+            "erfassung": erfassung,
+        })
+
+    # Summen (Urlaub wird nicht mitgerechnet)
+    erfassungen_ohne_urlaub = erfassungen_qs.exclude(
+        art="urlaub"
+    )
+    gesamt_minuten = (
+        erfassungen_ohne_urlaub.aggregate(
+            total=Sum("arbeitszeit_minuten")
+        )["total"]
+        or 0
+    )
+    gesamt_differenz = sum(
+        e.differenz_minuten for e in erfassungen_ohne_urlaub
+        if e.differenz_minuten is not None
+    )
+
+    druckdatum = timezone.now()
+
+    context = {
+        "mitarbeiter": mitarbeiter,
+        "jahr": jahr,
+        "kw": kw,
+        "montag": montag,
+        "sonntag": sonntag,
+        "wochen_tage": wochen_tage,
+        "gesamt_arbeitszeit": zeitwert_to_str(gesamt_minuten) + "h",
+        "gesamt_differenz": gesamt_differenz,
+        "gesamt_differenz_formatiert": _minuten_formatiert(
+            gesamt_differenz
+        ),
+        "druckdatum": druckdatum,
+    }
+
+    html_string = render_to_string(
+        "arbeitszeit/pdf_wochenbericht.html", context
+    )
+    html = HTML(
+        string=html_string,
+        base_url=request.build_absolute_uri("/"),
+    )
+    pdf = html.write_pdf()
+
+    # Druckstatus tracken
+    Wochenbericht.objects.update_or_create(
+        mitarbeiter=mitarbeiter,
+        jahr=jahr,
+        kw=kw,
+    )
+
+    response = HttpResponse(pdf, content_type="application/pdf")
+    filename = (
+        f"Wochenbericht_{mitarbeiter.nachname}"
+        f"_KW{kw}_{jahr}.pdf"
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="{filename}"'
+    )
+    return response
 
 
 # --- ADMIN VIEWS ---

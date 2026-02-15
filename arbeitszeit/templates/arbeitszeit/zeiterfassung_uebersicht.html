@@ -1,4 +1,5 @@
 {% load static %}
+{% load custom_filters %}
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -256,6 +257,8 @@
 
         .badge-homeoffice { background: #d4edda; color: #155724; }
         .badge-telearbeit { background: #d1ecf1; color: #0c5460; }
+        .badge-hybrid { background: #e8daef; color: #6c3483; }
+        .badge-buero { background: #fef9e7; color: #7d6608; }
         .badge-urlaub { background: #fff3cd; color: #856404; }
         .badge-krank { background: #f8d7da; color: #721c24; }
         .badge-z_ag { background: #e2e3e5; color: #383d41; }
@@ -272,7 +275,64 @@
 
         .row-heute { background: #f0f9f4; }
         .row-wochenende { color: var(--text-secondary); }
+        .row-feiertag { background: #fff0f0; }
+        .row-feiertag td { color: #a94442; }
+        .feiertag-label {
+            font-size: 0.75rem;
+            color: #a94442;
+            font-weight: 600;
+            display: block;
+        }
         .row-leer td { color: #aab; font-style: italic; }
+
+        .aktionen {
+            display: flex;
+            gap: 0.3rem;
+            justify-content: flex-end;
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+
+        .btn-icon-add {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-icon-add:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-icon-edit {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-icon-edit:hover {
+            background: #e0a800;
+        }
+
+        .btn-icon-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-icon-delete:hover {
+            background: #c82333;
+        }
 
         .empty-state {
             text-align: center;
@@ -326,6 +386,19 @@
                 <span class="kw-label">KW {{ kw }}</span>
                 <span class="kw-dates">{{ montag|date:"d.m." }} - {{ sonntag|date:"d.m.Y" }}</span>
                 <a href="?ansicht=woche&kw={{ next_kw }}&jahr={{ next_jahr }}">&rarr;</a>
+                {% if wochenbericht %}
+                    <a href="{% url 'arbeitszeit:wochenbericht_pdf' %}?kw={{ kw }}&jahr={{ jahr }}"
+                       class="btn btn-sm"
+                       style="background: #28a745; color: white; margin-left: auto;">
+                        PDF ({{ wochenbericht.erstellt_am|date:"d.m." }})
+                    </a>
+                {% else %}
+                    <a href="{% url 'arbeitszeit:wochenbericht_pdf' %}?kw={{ kw }}&jahr={{ jahr }}"
+                       class="btn btn-sm"
+                       style="background: #6c757d; color: white; margin-left: auto;">
+                        PDF erstellen
+                    </a>
+                {% endif %}
             </div>
 
             <!-- Stats -->
@@ -356,14 +429,20 @@
                                 <th>Ist</th>
                                 <th>Differenz</th>
                                 <th>Art</th>
+                                <th style="text-align: right;"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for tag in wochen_tage %}
                                 {% if tag.erfassung %}
-                                    <tr class="{% if tag.ist_heute %}row-heute{% endif %} {% if tag.ist_wochenende %}row-wochenende{% endif %}">
+                                    <tr class="{% if tag.ist_feiertag %}row-feiertag{% endif %} {% if tag.ist_heute %}row-heute{% endif %} {% if tag.ist_wochenende %}row-wochenende{% endif %}">
                                         <td><strong>{{ tag.wochentag }}</strong></td>
-                                        <td>{{ tag.datum|date:"d.m." }}</td>
+                                        <td>
+                                            {{ tag.datum|date:"d.m." }}
+                                            {% if tag.ist_feiertag %}
+                                                <span class="feiertag-label">{{ tag.feiertag_name }}</span>
+                                            {% endif %}
+                                        </td>
                                         <td>
                                             {% if tag.erfassung.arbeitsbeginn %}
                                                 {{ tag.erfassung.arbeitsbeginn|time:"H:i" }}
@@ -379,9 +458,18 @@
                                             {% endif %}
                                         </td>
                                         <td>{{ tag.erfassung.pause_minuten }} min</td>
-                                        <td><strong>{{ tag.erfassung.arbeitszeit_formatiert }}</strong></td>
                                         <td>
-                                            {% if tag.erfassung.soll_minuten != None %}
+                                            <strong>{{ tag.erfassung.arbeitszeit_formatiert }}</strong>
+                                            {% if tag.erfassung.art == 'hybrid' %}
+                                                <span style="font-size: 0.75rem; color: #6c3483; display: block;">Brutto HO</span>
+                                            {% elif tag.erfassung.art == 'buero' %}
+                                                <span style="font-size: 0.75rem; color: #7d6608; display: block;">Notiz</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if tag.erfassung.art == 'hybrid' or tag.erfassung.art == 'buero' %}
+                                                <span style="color: var(--text-secondary); font-size: 0.85rem;">-</span>
+                                            {% elif tag.erfassung.soll_minuten != None %}
                                                 <span class="{% if tag.erfassung.differenz_minuten > 0 %}differenz-positiv{% elif tag.erfassung.differenz_minuten < 0 %}differenz-negativ{% else %}differenz-null{% endif %}">
                                                     {{ tag.erfassung.differenz_formatiert }}
                                                 </span>
@@ -394,19 +482,45 @@
                                                 {{ tag.erfassung.get_art_display }}
                                             </span>
                                         </td>
+                                        <td>
+                                            <div class="aktionen">
+                                                <a href="{% url 'arbeitszeit:zeiterfassung_erstellen' %}?datum={{ tag.datum|date:'Y-m-d' }}"
+                                                   class="btn-icon btn-icon-edit" title="Bearbeiten">&#9998;</a>
+                                                <form method="post" action="{% url 'arbeitszeit:zeiterfassung_loeschen' tag.erfassung.pk %}"
+                                                      style="margin:0;" onsubmit="return confirm('Eintrag loeschen?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn-icon btn-icon-delete" title="Loeschen">&times;</button>
+                                                </form>
+                                            </div>
+                                        </td>
                                     </tr>
                                 {% else %}
-                                    <tr class="row-leer {% if tag.ist_heute %}row-heute{% endif %} {% if tag.ist_wochenende %}row-wochenende{% endif %}">
+                                    <tr class="row-leer {% if tag.ist_feiertag %}row-feiertag{% endif %} {% if tag.ist_heute %}row-heute{% endif %} {% if tag.ist_wochenende %}row-wochenende{% endif %}">
                                         <td><strong>{{ tag.wochentag }}</strong></td>
-                                        <td>{{ tag.datum|date:"d.m." }}</td>
+                                        <td>
+                                            {{ tag.datum|date:"d.m." }}
+                                            {% if tag.ist_feiertag %}
+                                                <span class="feiertag-label">{{ tag.feiertag_name }}</span>
+                                            {% endif %}
+                                        </td>
                                         <td>-</td>
                                         <td>-</td>
                                         <td>-</td>
                                         <td>-</td>
                                         <td>-</td>
                                         <td>
-                                            {% if not tag.ist_wochenende %}
+                                            {% if tag.ist_feiertag %}
+                                                <span class="feiertag-label">Feiertag</span>
+                                            {% elif not tag.ist_wochenende %}
                                                 <span style="color: var(--text-secondary); font-size: 0.85rem;">nicht erfasst</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if not tag.ist_wochenende and not tag.ist_feiertag %}
+                                                <div class="aktionen">
+                                                    <a href="{% url 'arbeitszeit:zeiterfassung_erstellen' %}?datum={{ tag.datum|date:'Y-m-d' }}"
+                                                       class="btn-icon btn-icon-add" title="Erfassen">+</a>
+                                                </div>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -422,7 +536,7 @@
                                         {{ gesamt_differenz_formatiert }}
                                     </span>
                                 </td>
-                                <td></td>
+                                <td colspan="2"></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -487,8 +601,15 @@
                             </thead>
                             <tbody>
                                 {% for erfassung in erfassungen %}
-                                    <tr>
-                                        <td>{{ erfassung.datum|date:"d.m.Y" }}</td>
+                                    <tr class="{% if feiertage_monat|get_item:erfassung.datum %}row-feiertag{% endif %}">
+                                        <td>
+                                            {{ erfassung.datum|date:"d.m.Y" }}
+                                            {% with feiertage_monat|get_item:erfassung.datum as ft_name %}
+                                                {% if ft_name %}
+                                                    <span class="feiertag-label">{{ ft_name }}</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        </td>
                                         <td>
                                             {% if erfassung.arbeitsbeginn %}
                                                 {{ erfassung.arbeitsbeginn|time:"H:i" }}
@@ -506,9 +627,16 @@
                                         <td>{{ erfassung.pause_minuten }} min</td>
                                         <td>
                                             <strong>{{ erfassung.arbeitszeit_formatiert }}</strong>
+                                            {% if erfassung.art == 'hybrid' %}
+                                                <span style="font-size: 0.75rem; color: #6c3483; display: block;">Brutto HO</span>
+                                            {% elif erfassung.art == 'buero' %}
+                                                <span style="font-size: 0.75rem; color: #7d6608; display: block;">Notiz</span>
+                                            {% endif %}
                                         </td>
                                         <td>
-                                            {% if erfassung.soll_minuten != None %}
+                                            {% if erfassung.art == 'hybrid' or erfassung.art == 'buero' %}
+                                                <span style="color: var(--text-secondary); font-size: 0.85rem;">-</span>
+                                            {% elif erfassung.soll_minuten != None %}
                                                 <span class="{% if erfassung.differenz_minuten > 0 %}differenz-positiv{% elif erfassung.differenz_minuten < 0 %}differenz-negativ{% else %}differenz-null{% endif %}">
                                                     {{ erfassung.differenz_formatiert }}
                                                 </span>

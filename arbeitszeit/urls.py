@@ -16,6 +16,8 @@ urlpatterns = [
     # Zeiterfassung
     path('zeiterfassung/neu/', views.zeiterfassung_erstellen, name='zeiterfassung_erstellen'),
     path('zeiterfassung/', views.zeiterfassung_uebersicht, name='zeiterfassung_uebersicht'),
+    path('zeiterfassung/wochenbericht/', views.wochenbericht_pdf, name='wochenbericht_pdf'),
+    path('zeiterfassung/<int:pk>/loeschen/', views.zeiterfassung_loeschen, name='zeiterfassung_loeschen'),
     
     # Verwaltung
     path('verwaltung/', views.admin_dashboard, name='admin_dashboard'),
