@@ -299,6 +299,8 @@
                     <select name="art" id="art" required>
                         <option value="homeoffice" {% if erfassung.art == 'homeoffice' %}selected{% endif %}>HomeOffice</option>
                         <option value="telearbeit" {% if erfassung.art == 'telearbeit' %}selected{% endif %}>Telearbeit</option>
+                        <option value="hybrid" {% if erfassung.art == 'hybrid' %}selected{% endif %}>Hybrid (Buero + HomeOffice)</option>
+                        <option value="buero" {% if erfassung.art == 'buero' %}selected{% endif %}>Buero (nur Notiz)</option>
                         <option value="krank" {% if erfassung.art == 'krank' %}selected{% endif %}>Krank</option>
                         <option value="urlaub" {% if erfassung.art == 'urlaub' %}selected{% endif %}>Urlaub</option>
                         <option value="z_ag" {% if erfassung.art == 'z_ag' %}selected{% endif %}>Z-AG</option>
@@ -306,9 +308,21 @@
                 </div>
 
                 <div id="time-fields">
+                    <div id="hybrid-hinweis" class="info-box" style="display: none; background: #f3e8fd; border-color: #d2b4de; color: #6c3483;">
+                        <strong>Hybrid-Tag:</strong> Bitte die Brutto-Arbeitszeit im HomeOffice eintragen
+                        (Beginn bis Ende, ohne Pausenabzug). Die Pausenberechnung erfolgt im Hauptsystem.
+                    </div>
+
+                    <div id="buero-hinweis" class="info-box" style="display: none; background: #fef9e7; border-color: #f9e79f; color: #7d6608;">
+                        <strong>Persoenliche Notiz:</strong> Dieser Eintrag dient ausschliesslich Ihrer
+                        eigenen Dokumentation. Die Buero-Arbeitszeit wird ueber die maschinelle Zeiterfassung
+                        im Hauptsystem erfasst und dort verbindlich berechnet. Ihre Angaben hier fliessen
+                        nicht in die Soll-Ist-Berechnung ein.
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="arbeitsbeginn">Arbeitsbeginn</label>
+                            <label for="arbeitsbeginn" id="label-beginn">Arbeitsbeginn</label>
                             <input
                                 type="time"
                                 name="arbeitsbeginn"
@@ -318,7 +332,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="arbeitsende">Arbeitsende</label>
+                            <label for="arbeitsende" id="label-ende">Arbeitsende</label>
                             <input
                                 type="time"
                                 name="arbeitsende"
@@ -328,7 +342,24 @@
                         </div>
                     </div>
 
-                    <p class="help-text">Pause wird automatisch berechnet (gestaffeltes Modell).</p>
+                    <p class="help-text" id="pause-hinweis">Pause wird automatisch berechnet (gestaffeltes Modell).</p>
+
+                    <div class="form-group" id="manuelle-pause-group">
+                        <label for="manuelle_pause" id="label-manuelle-pause">Abweichende Pause (Minuten)</label>
+                        <input
+                            type="number"
+                            name="manuelle_pause"
+                            id="manuelle_pause"
+                            min="0"
+                            max="240"
+                            placeholder="z.B. 120 fuer 2h Mittagspause"
+                            value="{% if erfassung.manuelle_pause %}{{ erfassung.manuelle_pause }}{% endif %}"
+                        >
+                        <p class="help-text" id="pause-detail-hinweis">
+                            Nur ausfuellen bei laengerer Pause als gesetzlich vorgeschrieben.
+                            Es gilt immer der hoehere Wert (gesetzlich oder manuell).
+                        </p>
+                    </div>
                 </div>
 
                 <div id="urlaub-bis-field" style="display: none;">
@@ -353,32 +384,51 @@
                     >{% if erfassung %}{{ erfassung.bemerkung }}{% endif %}</textarea>
                 </div>
 
-                {% if erfassung and erfassung.arbeitsbeginn and erfassung.arbeitsende %}
+                {% if erfassung and erfassung.arbeitsbeginn and erfassung.arbeitsende and erfassung.art != 'buero' %}
                     <div class="soll-ist-box">
-                        <h3>Arbeitszeitberechnung</h3>
-                        <div class="soll-ist-row">
-                            <span class="soll-ist-label">Brutto (Beginn - Ende)</span>
-                            <span class="soll-ist-value">{{ brutto_formatiert }}</span>
-                        </div>
-                        <div class="soll-ist-row">
-                            <span class="soll-ist-label">Pause (automatisch)</span>
-                            <span class="soll-ist-value">{{ erfassung.pause_minuten }} min</span>
-                        </div>
-                        <div class="soll-ist-row">
-                            <span class="soll-ist-label">Ist-Arbeitszeit (Netto)</span>
-                            <span class="soll-ist-value">{{ erfassung.arbeitszeit_formatiert }}</span>
-                        </div>
-                        {% if erfassung.soll_minuten %}
+                        {% if erfassung.art == 'hybrid' %}
+                            <h3>Hybrid-Tag: Brutto-Arbeitszeit HomeOffice</h3>
                             <div class="soll-ist-row">
-                                <span class="soll-ist-label">Soll-Arbeitszeit</span>
-                                <span class="soll-ist-value">{{ soll_formatiert }}</span>
+                                <span class="soll-ist-label">Brutto-Arbeitszeit (Beginn - Ende)</span>
+                                <span class="soll-ist-value" style="font-size: 1.2rem;">{{ erfassung.arbeitszeit_formatiert }}</span>
+                            </div>
+                            <p class="help-text" style="margin-top: 0.75rem;">
+                                Keine Pausenberechnung und keine Ist-Soll-Differenz bei Hybrid-Tagen.
+                                Die Pausenberechnung erfolgt im Hauptsystem.
+                            </p>
+                        {% else %}
+                            <h3>Arbeitszeitberechnung</h3>
+                            <div class="soll-ist-row">
+                                <span class="soll-ist-label">Brutto (Beginn - Ende)</span>
+                                <span class="soll-ist-value">{{ brutto_formatiert }}</span>
                             </div>
                             <div class="soll-ist-row">
-                                <span class="soll-ist-label">Differenz</span>
-                                <span class="soll-ist-value {% if erfassung.differenz_minuten >= 0 %}differenz-positiv{% else %}differenz-negativ{% endif %}">
-                                    {{ differenz_formatiert }}
+                                <span class="soll-ist-label">
+                                    Pause
+                                    {% if erfassung.manuelle_pause and erfassung.manuelle_pause > 0 %}
+                                        (manuell: {{ erfassung.manuelle_pause }} min)
+                                    {% else %}
+                                        (automatisch)
+                                    {% endif %}
                                 </span>
+                                <span class="soll-ist-value">{{ erfassung.pause_minuten }} min</span>
                             </div>
+                            <div class="soll-ist-row">
+                                <span class="soll-ist-label">Ist-Arbeitszeit (Netto)</span>
+                                <span class="soll-ist-value">{{ erfassung.arbeitszeit_formatiert }}</span>
+                            </div>
+                            {% if erfassung.soll_minuten %}
+                                <div class="soll-ist-row">
+                                    <span class="soll-ist-label">Soll-Arbeitszeit</span>
+                                    <span class="soll-ist-value">{{ soll_formatiert }}</span>
+                                </div>
+                                <div class="soll-ist-row">
+                                    <span class="soll-ist-label">Differenz</span>
+                                    <span class="soll-ist-value {% if erfassung.differenz_minuten >= 0 %}differenz-positiv{% else %}differenz-negativ{% endif %}">
+                                        {{ differenz_formatiert }}
+                                    </span>
+                                </div>
+                            {% endif %}
                         {% endif %}
                     </div>
                 {% endif %}
@@ -398,12 +448,45 @@
             var urlaubBisField = document.getElementById('urlaub-bis-field');
             var arbeitsbeginn = document.getElementById('arbeitsbeginn');
             var arbeitsende = document.getElementById('arbeitsende');
+            var hybridHinweis = document.getElementById('hybrid-hinweis');
+            var pauseHinweis = document.getElementById('pause-hinweis');
+            var pauseDetailHinweis = document.getElementById('pause-detail-hinweis');
+            var labelBeginn = document.getElementById('label-beginn');
+            var labelEnde = document.getElementById('label-ende');
+            var labelPause = document.getElementById('label-manuelle-pause');
 
-            if (this.value === 'homeoffice' || this.value === 'telearbeit') {
+            var bueroHinweis = document.getElementById('buero-hinweis');
+
+            if (this.value === 'homeoffice' || this.value === 'telearbeit' || this.value === 'hybrid' || this.value === 'buero') {
                 timeFields.style.display = 'block';
                 urlaubBisField.style.display = 'none';
                 arbeitsbeginn.required = true;
                 arbeitsende.required = true;
+
+                // Alle Hinweise zuruecksetzen
+                hybridHinweis.style.display = 'none';
+                bueroHinweis.style.display = 'none';
+                pauseHinweis.style.display = 'block';
+                document.getElementById('manuelle-pause-group').style.display = 'block';
+
+                if (this.value === 'hybrid') {
+                    hybridHinweis.style.display = 'block';
+                    pauseHinweis.style.display = 'none';
+                    document.getElementById('manuelle-pause-group').style.display = 'none';
+                    labelBeginn.textContent = 'HomeOffice Beginn (Brutto)';
+                    labelEnde.textContent = 'HomeOffice Ende (Brutto)';
+                } else if (this.value === 'buero') {
+                    bueroHinweis.style.display = 'block';
+                    pauseHinweis.style.display = 'none';
+                    document.getElementById('manuelle-pause-group').style.display = 'none';
+                    labelBeginn.textContent = 'Arbeitsbeginn (Ihre Notiz)';
+                    labelEnde.textContent = 'Arbeitsende (Ihre Notiz)';
+                } else {
+                    labelBeginn.textContent = 'Arbeitsbeginn';
+                    labelEnde.textContent = 'Arbeitsende';
+                    labelPause.textContent = 'Abweichende Pause (Minuten)';
+                    pauseDetailHinweis.textContent = 'Nur ausfuellen bei laengerer Pause als gesetzlich vorgeschrieben. Es gilt immer der hoehere Wert (gesetzlich oder manuell).';
+                }
             } else if (this.value === 'urlaub') {
                 timeFields.style.display = 'none';
                 urlaubBisField.style.display = 'block';
