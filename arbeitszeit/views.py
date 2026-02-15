@@ -816,9 +816,12 @@ def vereinbarung_liste(request):
 def _soll_minuten_aus_vereinbarung(mitarbeiter, datum):
     """Ermittelt Soll-Minuten aus der gueltigen Vereinbarung.
 
-    An Feiertagen (standortabhaengig) wird 0 zurueckgegeben.
+    - An Feiertagen (standortabhaengig) wird 0 zurueckgegeben.
+    - Bei individueller Vereinbarung: tatsaechliche Tagesarbeitszeit.
+    - Bei Wechselwochen: Durchschnitt ueber alle Wochen.
+    - Bei regelmaessiger Vereinbarung: Wochenstunden / 5.
     """
-    from .models import get_feiertagskalender
+    from .models import get_feiertagskalender, Tagesarbeitszeit
 
     # Feiertags-Check: kein Soll an Feiertagen
     cal = get_feiertagskalender(mitarbeiter.standort)
@@ -826,8 +829,36 @@ def _soll_minuten_aus_vereinbarung(mitarbeiter, datum):
         return 0
 
     vereinbarung = mitarbeiter.get_aktuelle_vereinbarung(datum)
-    if vereinbarung and vereinbarung.wochenstunden:
-        # Tages-Soll = Wochenstunden / 5 Arbeitstage
+    if not vereinbarung:
+        return None
+
+    # Wochentag-Mapping: Python weekday() -> Tagesarbeitszeit
+    WOCHENTAG_MAP = {
+        0: "montag",
+        1: "dienstag",
+        2: "mittwoch",
+        3: "donnerstag",
+        4: "freitag",
+        5: "samstag",
+        6: "sonntag",
+    }
+    wochentag_name = WOCHENTAG_MAP[datum.weekday()]
+
+    if vereinbarung.arbeitszeit_typ == "individuell":
+        # Tagesarbeitszeiten fuer diesen Wochentag holen
+        tage = Tagesarbeitszeit.objects.filter(
+            vereinbarung=vereinbarung,
+            wochentag=wochentag_name,
+        )
+        if tage.exists():
+            # Durchschnitt ueber alle Wochen (z.B. Woche 1 + 2)
+            gesamt = sum(t.zeit_in_minuten for t in tage)
+            return int(round(gesamt / tage.count()))
+        # Kein Eintrag fuer diesen Tag -> 0 Soll
+        return 0
+
+    # Regelmaessig: Wochenstunden / 5
+    if vereinbarung.wochenstunden:
         tages_soll = float(vereinbarung.wochenstunden) / 5
         return int(round(tages_soll * 60))
     return None
