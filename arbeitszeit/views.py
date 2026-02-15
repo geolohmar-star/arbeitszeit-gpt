@@ -924,6 +924,22 @@ def zeiterfassung_erstellen(request):
         except (ValueError, TypeError):
             datum_obj = timezone.now().date()
 
+        # Zukunft nur fuer Urlaub und Z-AG erlaubt
+        if (
+            datum_obj > timezone.now().date()
+            and art not in ("urlaub", "z_ag")
+        ):
+            messages.error(
+                request,
+                "Arbeitszeiten koennen nicht fuer die"
+                " Zukunft erfasst werden.",
+            )
+            iso = datum_obj.isocalendar()
+            return redirect(
+                f"/zeiterfassung/?ansicht=woche"
+                f"&kw={iso[1]}&jahr={iso[0]}"
+            )
+
         # Soll-Minuten aus Vereinbarung
         soll_minuten = _soll_minuten_aus_vereinbarung(
             mitarbeiter, datum_obj
@@ -1282,6 +1298,16 @@ def zeiterfassung_uebersicht(request):
                 _minuten_formatiert(gesamt_differenz)
             ),
         }
+
+    # Jahres-Zaehler fuer Urlaub und Z-AG
+    urlaub_tage_jahr = mitarbeiter.zeiterfassungen.filter(
+        datum__year=jahr, art="urlaub",
+    ).count()
+    z_ag_tage_jahr = mitarbeiter.zeiterfassungen.filter(
+        datum__year=jahr, art="z_ag",
+    ).count()
+    context["urlaub_tage_jahr"] = urlaub_tage_jahr
+    context["z_ag_tage_jahr"] = z_ag_tage_jahr
 
     return render(
         request,
