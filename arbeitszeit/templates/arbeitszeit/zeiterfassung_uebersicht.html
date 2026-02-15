@@ -404,6 +404,10 @@
             <!-- Stats -->
             <div class="stats-row">
                 <div class="stat-card">
+                    <div class="stat-value">{{ gesamt_soll }}</div>
+                    <div class="stat-label">Soll-Stunden</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-value">{{ gesamt_arbeitszeit }}</div>
                     <div class="stat-label">Ist-Stunden</div>
                 </div>
@@ -426,6 +430,7 @@
                                 <th>Von</th>
                                 <th>Bis</th>
                                 <th>Pause</th>
+                                <th>Soll</th>
                                 <th>Ist</th>
                                 <th>Differenz</th>
                                 <th>Art</th>
@@ -458,6 +463,7 @@
                                             {% endif %}
                                         </td>
                                         <td>{{ tag.erfassung.pause_minuten }} min</td>
+                                        <td>{{ tag.soll_formatiert|default:"-" }}</td>
                                         <td>
                                             <strong>{{ tag.erfassung.arbeitszeit_formatiert }}</strong>
                                             {% if tag.erfassung.art == 'hybrid' %}
@@ -506,6 +512,7 @@
                                         <td>-</td>
                                         <td>-</td>
                                         <td>-</td>
+                                        <td>{{ tag.soll_formatiert|default:"-" }}</td>
                                         <td>-</td>
                                         <td>-</td>
                                         <td>
@@ -530,6 +537,7 @@
                         <tfoot>
                             <tr>
                                 <td colspan="5">Summe KW {{ kw }}</td>
+                                <td>{{ gesamt_soll }}</td>
                                 <td>{{ gesamt_arbeitszeit }}</td>
                                 <td>
                                     <span class="{% if gesamt_differenz >= 0 %}differenz-positiv{% else %}differenz-negativ{% endif %}">
@@ -593,6 +601,7 @@
                                     <th>Von</th>
                                     <th>Bis</th>
                                     <th>Pause</th>
+                                    <th>Soll</th>
                                     <th>Ist</th>
                                     <th>Differenz</th>
                                     <th>Art</th>
@@ -625,6 +634,7 @@
                                             {% endif %}
                                         </td>
                                         <td>{{ erfassung.pause_minuten }} min</td>
+                                        <td>{{ erfassung.soll_formatiert|default:"-" }}</td>
                                         <td>
                                             <strong>{{ erfassung.arbeitszeit_formatiert }}</strong>
                                             {% if erfassung.art == 'hybrid' %}
@@ -655,7 +665,7 @@
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="4">Summe</td>
+                                    <td colspan="5">Summe</td>
                                     <td>{{ gesamt_arbeitszeit }}</td>
                                     <td>
                                         <span class="{% if gesamt_differenz >= 0 %}differenz-positiv{% else %}differenz-negativ{% endif %}">

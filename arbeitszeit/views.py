@@ -1152,6 +1152,7 @@ def zeiterfassung_uebersicht(request):
             "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So",
         ]
         wochen_tage = []
+        gesamt_soll = 0
         for i in range(7):
             tag_datum = montag + timedelta(days=i)
             erfassung = erfassungen_dict.get(tag_datum)
@@ -1160,6 +1161,16 @@ def zeiterfassung_uebersicht(request):
                 feiertag_name_deutsch(cal, tag_datum)
                 if ist_feiertag else ""
             )
+            # Soll-Minuten fuer jeden Tag berechnen
+            soll = _soll_minuten_aus_vereinbarung(
+                mitarbeiter, tag_datum
+            )
+            soll_fmt = ""
+            if soll is not None and soll > 0:
+                soll_fmt = (
+                    f"{soll // 60}:{soll % 60:02d}h"
+                )
+                gesamt_soll += soll
             wochen_tage.append({
                 "datum": tag_datum,
                 "wochentag": WOCHENTAGE[i],
@@ -1168,6 +1179,8 @@ def zeiterfassung_uebersicht(request):
                 "ist_feiertag": ist_feiertag,
                 "feiertag_name": feiertag_name,
                 "erfassung": erfassung,
+                "soll_minuten": soll,
+                "soll_formatiert": soll_fmt,
             })
 
         # Summen (Urlaub wird nicht mitgerechnet)
@@ -1201,6 +1214,9 @@ def zeiterfassung_uebersicht(request):
             "erfassungen": erfassungen_qs,
             "gesamt_arbeitszeit": (
                 zeitwert_to_str(gesamt_minuten) + "h"
+            ),
+            "gesamt_soll": (
+                zeitwert_to_str(gesamt_soll) + "h"
             ),
             "gesamt_differenz": gesamt_differenz,
             "gesamt_differenz_formatiert": (
@@ -1329,6 +1345,7 @@ def wochenbericht_pdf(request):
 
     WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
     wochen_tage = []
+    gesamt_soll = 0
     for i in range(7):
         tag_datum = montag + timedelta(days=i)
         erfassung = erfassungen_dict.get(tag_datum)
@@ -1337,6 +1354,13 @@ def wochenbericht_pdf(request):
             feiertag_name_deutsch(cal, tag_datum)
             if ist_feiertag else ""
         )
+        soll = _soll_minuten_aus_vereinbarung(
+            mitarbeiter, tag_datum
+        )
+        soll_fmt = ""
+        if soll is not None and soll > 0:
+            soll_fmt = f"{soll // 60}:{soll % 60:02d}h"
+            gesamt_soll += soll
         wochen_tage.append({
             "datum": tag_datum,
             "wochentag": WOCHENTAGE[i],
@@ -1344,6 +1368,8 @@ def wochenbericht_pdf(request):
             "ist_feiertag": ist_feiertag,
             "feiertag_name": feiertag_name,
             "erfassung": erfassung,
+            "soll_minuten": soll,
+            "soll_formatiert": soll_fmt,
         })
 
     # Summen (Urlaub wird nicht mitgerechnet)
@@ -1371,6 +1397,7 @@ def wochenbericht_pdf(request):
         "sonntag": sonntag,
         "wochen_tage": wochen_tage,
         "gesamt_arbeitszeit": zeitwert_to_str(gesamt_minuten) + "h",
+        "gesamt_soll": zeitwert_to_str(gesamt_soll) + "h",
         "gesamt_differenz": gesamt_differenz,
         "gesamt_differenz_formatiert": _minuten_formatiert(
             gesamt_differenz

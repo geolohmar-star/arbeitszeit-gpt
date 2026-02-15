@@ -1104,6 +1104,14 @@ class Zeiterfassung(models.Model):
         return f"{vz}{abs_d // 60}:{abs_d % 60:02d}h"
 
     @property
+    def soll_formatiert(self):
+        """Gibt Soll-Arbeitszeit formatiert zurueck."""
+        if self.soll_minuten is not None and self.soll_minuten > 0:
+            s = self.soll_minuten
+            return f"{s // 60}:{s % 60:02d}h"
+        return ""
+
+    @property
     def arbeitszeit_formatiert(self):
         """Gibt Arbeitszeit formatiert zurueck."""
         if self.arbeitszeit_minuten is not None:
