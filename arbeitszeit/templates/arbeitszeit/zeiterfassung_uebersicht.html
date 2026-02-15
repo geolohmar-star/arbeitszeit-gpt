@@ -419,10 +419,38 @@
                 </div>
             </div>
 
+            <!-- Kumuliertes Jahressaldo Start/Ende KW -->
+            <p style="text-align: right; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
+                Jahressaldo Anfang KW {{ kw }}:
+                <span class="{% if saldo_start_kw >= 0 %}differenz-positiv{% else %}differenz-negativ{% endif %}" style="font-size: 0.8rem;">
+                    {{ saldo_start_kw_fmt }}
+                </span>
+                &rarr; Ende KW {{ kw }}:
+                <span class="{% if saldo_ende_kw >= 0 %}differenz-positiv{% else %}differenz-negativ{% endif %}" style="font-size: 0.8rem;">
+                    {{ saldo_ende_kw_fmt }}
+                </span>
+            </p>
+
             <!-- Jahres-Zaehler -->
-            <p style="text-align: right; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+            <p style="text-align: right; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
                 {{ jahr }}: {{ urlaub_tage_jahr }} Urlaubstag{{ urlaub_tage_jahr|pluralize:"e" }} &middot; {{ z_ag_tage_jahr }} Z-AG-Tag{{ z_ag_tage_jahr|pluralize:"e" }}
             </p>
+
+            <!-- Saldo-Korrekturen -->
+            {% if saldo_korrektur_summe != 0 %}
+                <p style="text-align: right; font-size: 0.8rem; margin-bottom: 0.75rem;">
+                    <span style="color: #dc3545; font-weight: 600;">Manueller Saldoeintrag {{ jahr }}:
+                        {{ saldo_korrektur_summe_fmt }}
+                    </span>
+                    <span style="color: #dc3545; font-size: 0.7rem; font-style: italic;">(im Jahressaldo enthalten)</span>
+                    &middot;
+                    <a href="{% url 'arbeitszeit:saldo_korrektur' %}" style="color: #dc3545; font-size: 0.8rem; text-decoration: underline;">anpassen</a>
+                </p>
+            {% else %}
+                <p style="text-align: right; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                    <a href="{% url 'arbeitszeit:saldo_korrektur' %}" style="color: var(--text-secondary); font-size: 0.8rem;">+ Saldo anpassen</a>
+                </p>
+            {% endif %}
 
             <!-- Wochentabelle -->
             <div class="card">
@@ -596,9 +624,25 @@
             </div>
 
             <!-- Jahres-Zaehler -->
-            <p style="text-align: right; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+            <p style="text-align: right; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
                 {{ jahr }}: {{ urlaub_tage_jahr }} Urlaubstag{{ urlaub_tage_jahr|pluralize:"e" }} &middot; {{ z_ag_tage_jahr }} Z-AG-Tag{{ z_ag_tage_jahr|pluralize:"e" }}
             </p>
+
+            <!-- Saldo-Korrekturen -->
+            {% if saldo_korrektur_summe != 0 %}
+                <p style="text-align: right; font-size: 0.8rem; margin-bottom: 0.75rem;">
+                    <span style="color: #dc3545; font-weight: 600;">Manueller Saldoeintrag {{ jahr }}:
+                        {{ saldo_korrektur_summe_fmt }}
+                    </span>
+                    <span style="color: #dc3545; font-size: 0.7rem; font-style: italic;">(im Jahressaldo enthalten)</span>
+                    &middot;
+                    <a href="{% url 'arbeitszeit:saldo_korrektur' %}" style="color: #dc3545; font-size: 0.8rem; text-decoration: underline;">anpassen</a>
+                </p>
+            {% else %}
+                <p style="text-align: right; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                    <a href="{% url 'arbeitszeit:saldo_korrektur' %}" style="color: var(--text-secondary); font-size: 0.8rem;">+ Saldo anpassen</a>
+                </p>
+            {% endif %}
 
             <!-- Monatstabelle -->
             <div class="card">

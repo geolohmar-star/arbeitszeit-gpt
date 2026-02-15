@@ -647,10 +647,11 @@ class Arbeitszeitvereinbarung(models.Model):
     )
     
     ANTRAGSART_CHOICES = [
+    ('ersteinrichtung', 'Ersteinrichtung'),
     ('weiterbewilligung', 'Weiterbewilligung'),
     ('verringerung', 'Verringerung'),
     ('erhoehung', 'Erhöhung'),
-    ('beendigung', 'Beendigung'),  # NEU!
+    ('beendigung', 'Beendigung'),
 ]
     antragsart = models.CharField(max_length=20, choices=ANTRAGSART_CHOICES)
     
@@ -950,6 +951,57 @@ class Wochenbericht(models.Model):
         return (
             f"{self.mitarbeiter.vollname} - KW {self.kw}/{self.jahr}"
         )
+
+
+class SaldoKorrektur(models.Model):
+    """Manuelle Saldoanpassung (Vortrag, Kappung etc.)."""
+
+    GRUND_CHOICES = [
+        ("saldovortrag", "Saldovortrag"),
+        ("kappung", "Kappung"),
+        ("korrektur", "Manuelle Korrektur"),
+        ("sonstiges", "Sonstiges"),
+    ]
+
+    bemerkung = models.TextField(blank=True)
+    datum = models.DateField(verbose_name="Stichtag")
+    erstellt_am = models.DateTimeField(auto_now_add=True)
+    grund = models.CharField(
+        max_length=20,
+        choices=GRUND_CHOICES,
+        default="saldovortrag",
+    )
+    minuten = models.IntegerField(
+        help_text="Positiv = Gutschrift, negativ = Kappung"
+    )
+    mitarbeiter = models.ForeignKey(
+        Mitarbeiter,
+        on_delete=models.CASCADE,
+        related_name="saldo_korrekturen",
+    )
+
+    class Meta:
+        ordering = ["-datum"]
+        verbose_name = "Saldokorrektur"
+        verbose_name_plural = "Saldokorrekturen"
+
+    def __str__(self):
+        vz = "+" if self.minuten >= 0 else ""
+        std = abs(self.minuten) // 60
+        rest = abs(self.minuten) % 60
+        return (
+            f"{self.mitarbeiter.vollname} - "
+            f"{self.get_grund_display()} "
+            f"{vz}{std}:{rest:02d}h "
+            f"({self.datum})"
+        )
+
+    @property
+    def minuten_formatiert(self):
+        """Formatiert als +/-H:MMh."""
+        abs_m = abs(self.minuten)
+        vz = "+" if self.minuten >= 0 else "-"
+        return f"{vz}{abs_m // 60}:{abs_m % 60:02d}h"
 
 
 def berechne_pause(brutto_minuten):

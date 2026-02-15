@@ -30,6 +30,7 @@ from .models import (
     Zeiterfassung,
     Urlaubsanspruch,
     Wochenbericht,
+    SaldoKorrektur,
 )
 from .forms import RegisterForm
 
@@ -668,121 +669,173 @@ def vereinbarung_erstellen(request):
         messages.error(request, "Sie sind keinem Mitarbeiter zugeordnet.")
         return redirect('admin:index')
     
-    # Tage-Liste für Template
-    tage_list = ['montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag']  # ← NEU!
-    
-    if request.method == 'POST':
-        antragsart = request.POST.get('antragsart')
+    # Tage-Liste fuer Template
+    tage_list = [
+        "montag", "dienstag", "mittwoch", "donnerstag", "freitag",
+    ]
 
-        # Kettenmodell: Keine Ueberschneidungspruefung noetig.
+    # Aktuelle Vereinbarung ermitteln
+    aktuelle_vereinbarung = mitarbeiter.get_aktuelle_vereinbarung()
+    hat_vereinbarung = aktuelle_vereinbarung is not None
+
+    # Tagesarbeitszeiten der aktuellen Vereinbarung (fuer Weiterbewilligung)
+    # Als Liste von (Tag-Label, Zeitwert-String) fuer einfache Anzeige
+    aktuelle_tageszeiten = []
+    if aktuelle_vereinbarung and aktuelle_vereinbarung.arbeitszeit_typ == "individuell":
+        tag_map = {}
+        for ta in aktuelle_vereinbarung.tagesarbeitszeiten.all():
+            minuten = hhmm_to_minuten(ta.zeitwert)
+            tag_map[ta.wochentag] = zeitwert_to_str(minuten)
+        for tag in tage_list:
+            aktuelle_tageszeiten.append({
+                "tag": tag.capitalize(),
+                "zeit": tag_map.get(tag, "Frei"),
+            })
+
+    if request.method == "POST":
+        antragsart = request.POST.get("antragsart")
+
         # Versionsnummer automatisch berechnen (hoechste + 1)
         letzte_version = mitarbeiter.arbeitszeitvereinbarungen.order_by(
             "-versionsnummer"
         ).values_list("versionsnummer", flat=True).first()
         naechste_version = (letzte_version or 0) + 1
 
-        # Basisvereinbarung erstellen
-        vereinbarung = Arbeitszeitvereinbarung(
-            mitarbeiter=mitarbeiter,
-            antragsart=antragsart,
-            gueltig_ab=request.POST.get('gueltig_ab'),
-            telearbeit=request.POST.get('telearbeit') == 'on',
-            status='beantragt',
-            versionsnummer=naechste_version,
-        )
-        
-        # Bei Beendigung keine Arbeitszeit
-        if antragsart == 'beendigung':
-            vereinbarung.beendigung_beantragt = True
-            vereinbarung.beendigung_datum = vereinbarung.gueltig_ab
-        else:
-            arbeitszeit_typ = request.POST.get('arbeitszeit_typ')
-            vereinbarung.arbeitszeit_typ = arbeitszeit_typ
-            
-            if arbeitszeit_typ == 'regelmaessig':
-                vereinbarung.wochenstunden = request.POST.get('wochenstunden')
-        
-        vereinbarung.save()
-        
-        # Tagesarbeitszeiten speichern (individuell)
-        if antragsart != 'beendigung' and request.POST.get('arbeitszeit_typ') == 'individuell':
-            gesamt_minuten = 0
-            
-            # Suche nach Wochen (neuantrag_montag_1, neuantrag_montag_2, etc.)
-            week = 1
-            while True:
-                found_in_week = False
-                
-                for tag in tage_list:
-                    # Suche nach neuantrag_montag_1 (MIT _1, _2, etc.)
-                    zeitwert_str = request.POST.get(f'neuantrag_{tag}_{week}')
-                    
-                    if zeitwert_str:
-                        found_in_week = True
-                        try:
-                            # Erwarte HH:MM Format vom type="time" Input
-                            if ':' in zeitwert_str:
-                                stunden, minuten = map(int, zeitwert_str.split(':'))
-                            else:
-                                # Fallback: HMM Format
-                                wert = int(zeitwert_str)
-                                stunden = wert // 100
-                                minuten = wert % 100
-                            
-                            wert_minuten = stunden * 60 + minuten
-                            
-                            # Speichere als HMM für Kompatibilität
-                            wert_hmm = stunden * 100 + minuten
-                            
-                            Tagesarbeitszeit.objects.create(
-                                vereinbarung=vereinbarung,
-                                wochentag=tag,
-                                zeitwert=wert_hmm
-                            )
-                            
-                            gesamt_minuten += wert_minuten
-                            
-                        except (ValueError, AttributeError) as e:
-                            print(f"Fehler bei {tag} Woche {week}: {e}")
-                            continue
-                
-                # Keine Daten mehr in dieser Woche? → Abbruch
-                if not found_in_week:
-                    break
-                    
-                week += 1
-            
-            # Wochenstunden berechnen
-            if gesamt_minuten > 0:
-                vereinbarung.wochenstunden = round(gesamt_minuten / 60, 2)
-                vereinbarung.save()
-        
-        # Gültigkeit
-        if antragsart != 'beendigung':
-            gueltig_bis = request.POST.get('gueltig_bis')
+        if antragsart == "weiterbewilligung" and aktuelle_vereinbarung:
+            # Weiterbewilligung: Daten aus bestehender Vereinbarung
+            # kopieren, nur gueltig_bis vom Formular
+            vereinbarung = Arbeitszeitvereinbarung(
+                mitarbeiter=mitarbeiter,
+                antragsart=antragsart,
+                gueltig_ab=aktuelle_vereinbarung.gueltig_ab,
+                arbeitszeit_typ=aktuelle_vereinbarung.arbeitszeit_typ,
+                wochenstunden=aktuelle_vereinbarung.wochenstunden,
+                telearbeit=aktuelle_vereinbarung.telearbeit,
+                status="beantragt",
+                versionsnummer=naechste_version,
+            )
+            vereinbarung.save()
+
+            # Tagesarbeitszeiten kopieren
+            for ta in aktuelle_vereinbarung.tagesarbeitszeiten.all():
+                Tagesarbeitszeit.objects.create(
+                    vereinbarung=vereinbarung,
+                    wochentag=ta.wochentag,
+                    woche=ta.woche,
+                    zeitwert=ta.zeitwert,
+                )
+
+            # Nur gueltig_bis vom Formular uebernehmen
+            gueltig_bis = request.POST.get("gueltig_bis")
             if gueltig_bis:
                 vereinbarung.gueltig_bis = gueltig_bis
-        
-        vereinbarung.save()
-        
+                vereinbarung.save()
+
+        else:
+            # Ersteinrichtung, Verringerung, Erhoehung, Beendigung
+            vereinbarung = Arbeitszeitvereinbarung(
+                mitarbeiter=mitarbeiter,
+                antragsart=antragsart,
+                gueltig_ab=request.POST.get("gueltig_ab"),
+                telearbeit=request.POST.get("telearbeit") == "on",
+                status="beantragt",
+                versionsnummer=naechste_version,
+            )
+
+            if antragsart == "beendigung":
+                vereinbarung.beendigung_beantragt = True
+                vereinbarung.beendigung_datum = vereinbarung.gueltig_ab
+            else:
+                arbeitszeit_typ = request.POST.get("arbeitszeit_typ")
+                vereinbarung.arbeitszeit_typ = arbeitszeit_typ
+                if arbeitszeit_typ == "regelmaessig":
+                    vereinbarung.wochenstunden = request.POST.get(
+                        "wochenstunden"
+                    )
+
+            vereinbarung.save()
+
+            # Tagesarbeitszeiten speichern (individuell)
+            if (
+                antragsart != "beendigung"
+                and request.POST.get("arbeitszeit_typ") == "individuell"
+            ):
+                gesamt_minuten = 0
+                week = 1
+                while True:
+                    found_in_week = False
+                    for tag in tage_list:
+                        zeitwert_str = request.POST.get(
+                            f"neuantrag_{tag}_{week}"
+                        )
+                        if zeitwert_str:
+                            found_in_week = True
+                            try:
+                                if ":" in zeitwert_str:
+                                    stunden, minuten = map(
+                                        int, zeitwert_str.split(":")
+                                    )
+                                else:
+                                    wert = int(zeitwert_str)
+                                    stunden = wert // 100
+                                    minuten = wert % 100
+                                wert_minuten = stunden * 60 + minuten
+                                wert_hmm = stunden * 100 + minuten
+                                Tagesarbeitszeit.objects.create(
+                                    vereinbarung=vereinbarung,
+                                    wochentag=tag,
+                                    zeitwert=wert_hmm,
+                                )
+                                gesamt_minuten += wert_minuten
+                            except (ValueError, AttributeError):
+                                continue
+                    if not found_in_week:
+                        break
+                    week += 1
+
+                if gesamt_minuten > 0:
+                    vereinbarung.wochenstunden = round(
+                        gesamt_minuten / 60, 2
+                    )
+                    vereinbarung.save()
+
+            # Gueltigkeit
+            if antragsart != "beendigung":
+                gueltig_bis = request.POST.get("gueltig_bis")
+                if gueltig_bis:
+                    vereinbarung.gueltig_bis = gueltig_bis
+
+            vereinbarung.save()
+
         # Historie
         ArbeitszeitHistorie.objects.create(
             vereinbarung=vereinbarung,
             aenderung_durch=request.user,
-            alter_status='entwurf',
-            neuer_status='beantragt',
-            bemerkung=f'{vereinbarung.get_antragsart_display()} erstellt und beantragt'
+            alter_status="entwurf",
+            neuer_status="beantragt",
+            bemerkung=(
+                f"{vereinbarung.get_antragsart_display()}"
+                " erstellt und beantragt"
+            ),
         )
-        
-        messages.success(request, 'Arbeitszeitvereinbarung wurde erfolgreich beantragt.')
-        return redirect('arbeitszeit:dashboard')
-    
+
+        messages.success(
+            request,
+            "Arbeitszeitvereinbarung wurde erfolgreich beantragt.",
+        )
+        return redirect("arbeitszeit:dashboard")
+
     context = {
-        'mitarbeiter': mitarbeiter,
-        'tage_list': tage_list,  # ← NEU!
+        "mitarbeiter": mitarbeiter,
+        "tage_list": tage_list,
+        "hat_vereinbarung": hat_vereinbarung,
+        "aktuelle_vereinbarung": aktuelle_vereinbarung,
+        "aktuelle_tageszeiten": aktuelle_tageszeiten,
     }
-    
-    return render(request, 'arbeitszeit/vereinbarung_form.html', context)
+
+    return render(
+        request, "arbeitszeit/vereinbarung_form.html", context
+    )
 
 
 @login_required
@@ -1216,6 +1269,46 @@ def zeiterfassung_uebersicht(request):
             if e.differenz_minuten is not None
         )
 
+        # Kumuliertes Jahressaldo bis Start/Ende dieser KW
+        jahresanfang = date(jahr, 1, 1)
+
+        # Differenz aller Vorwochen (Jahresanfang bis Sonntag davor)
+        erfassungen_vorher = (
+            mitarbeiter.zeiterfassungen.filter(
+                datum__gte=jahresanfang,
+                datum__lt=montag,
+            ).exclude(art="urlaub")
+        )
+        saldo_vorwochen = sum(
+            e.differenz_minuten for e in erfassungen_vorher
+            if e.differenz_minuten is not None
+        )
+
+        # Saldo-Korrekturen bis vor dieser Woche
+        korrektur_vor_kw = (
+            SaldoKorrektur.objects.filter(
+                mitarbeiter=mitarbeiter,
+                datum__gte=jahresanfang,
+                datum__lt=montag,
+            ).aggregate(total=Sum("minuten"))["total"]
+            or 0
+        )
+
+        # Saldo-Korrekturen innerhalb dieser Woche
+        korrektur_in_kw = (
+            SaldoKorrektur.objects.filter(
+                mitarbeiter=mitarbeiter,
+                datum__gte=montag,
+                datum__lte=sonntag,
+            ).aggregate(total=Sum("minuten"))["total"]
+            or 0
+        )
+
+        saldo_start_kw = saldo_vorwochen + korrektur_vor_kw
+        saldo_ende_kw = (
+            saldo_start_kw + gesamt_differenz + korrektur_in_kw
+        )
+
         # Wochenbericht-Status abfragen
         wochenbericht = Wochenbericht.objects.filter(
             mitarbeiter=mitarbeiter, jahr=jahr, kw=kw,
@@ -1239,6 +1332,14 @@ def zeiterfassung_uebersicht(request):
             "gesamt_differenz": gesamt_differenz,
             "gesamt_differenz_formatiert": (
                 _minuten_formatiert(gesamt_differenz)
+            ),
+            "saldo_start_kw": saldo_start_kw,
+            "saldo_start_kw_fmt": (
+                _minuten_formatiert(saldo_start_kw)
+            ),
+            "saldo_ende_kw": saldo_ende_kw,
+            "saldo_ende_kw_fmt": (
+                _minuten_formatiert(saldo_ende_kw)
             ),
             "prev_kw": prev_kw,
             "prev_jahr": prev_jahr,
@@ -1309,6 +1410,22 @@ def zeiterfassung_uebersicht(request):
     context["urlaub_tage_jahr"] = urlaub_tage_jahr
     context["z_ag_tage_jahr"] = z_ag_tage_jahr
 
+    # Saldo-Korrekturen des Jahres
+    saldo_korrekturen = SaldoKorrektur.objects.filter(
+        mitarbeiter=mitarbeiter, datum__year=jahr,
+    )
+    saldo_korrektur_summe = (
+        saldo_korrekturen.aggregate(
+            total=Sum("minuten")
+        )["total"]
+        or 0
+    )
+    context["saldo_korrekturen"] = saldo_korrekturen
+    context["saldo_korrektur_summe"] = saldo_korrektur_summe
+    context["saldo_korrektur_summe_fmt"] = (
+        _minuten_formatiert(saldo_korrektur_summe)
+    )
+
     return render(
         request,
         "arbeitszeit/zeiterfassung_uebersicht.html",
@@ -1338,6 +1455,100 @@ def zeiterfassung_loeschen(request, pk):
         )
 
     return redirect("arbeitszeit:zeiterfassung_uebersicht")
+
+
+@login_required
+def saldo_korrektur(request):
+    """Saldokorrektur erstellen (Vortrag / Kappung)."""
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except Mitarbeiter.DoesNotExist:
+        return redirect("arbeitszeit:dashboard")
+
+    if request.method == "POST":
+        datum_str = request.POST.get("datum", "")
+        try:
+            datum_obj = date.fromisoformat(datum_str)
+        except (ValueError, TypeError):
+            datum_obj = timezone.now().date()
+
+        # Vorzeichen und Wert parsen
+        vorzeichen = request.POST.get("vorzeichen", "+")
+        stunden_str = request.POST.get("stunden", "0")
+        minuten_str = request.POST.get("minuten", "0")
+        try:
+            stunden_val = int(stunden_str)
+            minuten_val = int(minuten_str)
+        except (ValueError, TypeError):
+            stunden_val = 0
+            minuten_val = 0
+
+        gesamt_minuten = stunden_val * 60 + minuten_val
+        if vorzeichen == "-":
+            gesamt_minuten = -gesamt_minuten
+
+        if gesamt_minuten == 0:
+            messages.error(
+                request,
+                "Bitte einen Wert ungleich 0 eingeben.",
+            )
+            return redirect(
+                "arbeitszeit:saldo_korrektur"
+            )
+
+        grund = request.POST.get("grund", "saldovortrag")
+        bemerkung = request.POST.get("bemerkung", "")
+
+        SaldoKorrektur.objects.create(
+            mitarbeiter=mitarbeiter,
+            datum=datum_obj,
+            minuten=gesamt_minuten,
+            grund=grund,
+            bemerkung=bemerkung,
+        )
+        messages.success(
+            request, "Saldokorrektur wurde gespeichert."
+        )
+        return redirect(
+            "arbeitszeit:zeiterfassung_uebersicht"
+        )
+
+    # GET: Formular anzeigen
+    heute = timezone.now().date()
+    korrekturen = SaldoKorrektur.objects.filter(
+        mitarbeiter=mitarbeiter,
+        datum__year=heute.year,
+    )
+    context = {
+        "mitarbeiter": mitarbeiter,
+        "datum_heute": heute,
+        "korrekturen": korrekturen,
+        "grund_choices": SaldoKorrektur.GRUND_CHOICES,
+    }
+    return render(
+        request,
+        "arbeitszeit/saldo_korrektur_form.html",
+        context,
+    )
+
+
+@login_required
+def saldo_korrektur_loeschen(request, pk):
+    """Einzelne Saldokorrektur loeschen."""
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except Mitarbeiter.DoesNotExist:
+        return redirect("arbeitszeit:dashboard")
+
+    korrektur = get_object_or_404(
+        SaldoKorrektur, pk=pk, mitarbeiter=mitarbeiter,
+    )
+    if request.method == "POST":
+        korrektur.delete()
+        messages.success(
+            request, "Saldokorrektur wurde geloescht."
+        )
+    return redirect("arbeitszeit:saldo_korrektur")
 
 
 @login_required
@@ -1757,10 +1968,11 @@ def admin_vereinbarung_docx_export(request, pk):
     
     # Betreff
     betreff_suffix = {
+        'ersteinrichtung': ' - Ersteinrichtung',
         'weiterbewilligung': ' - Weiterbewilligung',
         'verringerung': ' - Verringerung',
         'erhoehung': ' - Erhöhung',
-        'beendigung': ' - Beendigung'
+        'beendigung': ' - Beendigung',
     }.get(vereinbarung.antragsart, '')
     
     p = doc.add_paragraph()

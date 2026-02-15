@@ -1,11 +1,12 @@
 from django.contrib import admin
 from .models import (
-    Mitarbeiter, 
-    Arbeitszeitvereinbarung, 
+    Mitarbeiter,
+    Arbeitszeitvereinbarung,
     Tagesarbeitszeit,
-    ArbeitszeitHistorie, 
-    Urlaubsanspruch, 
-    Zeiterfassung
+    ArbeitszeitHistorie,
+    Urlaubsanspruch,
+    Zeiterfassung,
+    SaldoKorrektur,
 )
 
 #Workcalendar
@@ -386,7 +387,7 @@ class ZeiterfassungAdmin(admin.ModelAdmin):
     )
     
     readonly_fields = ['arbeitszeit_minuten']
-    
+
     def get_mitarbeiter(self, obj):
         """Sichere Anzeige des Mitarbeiters"""
         if obj.mitarbeiter:
@@ -394,3 +395,29 @@ class ZeiterfassungAdmin(admin.ModelAdmin):
         return '-'
     get_mitarbeiter.short_description = 'Mitarbeiter'
     get_mitarbeiter.admin_order_field = 'mitarbeiter__nachname'
+
+
+@admin.register(SaldoKorrektur)
+class SaldoKorrekturAdmin(admin.ModelAdmin):
+    list_display = [
+        "get_mitarbeiter",
+        "datum",
+        "minuten_formatiert",
+        "grund",
+        "bemerkung",
+        "erstellt_am",
+    ]
+    list_filter = ["grund", "datum"]
+    search_fields = [
+        "mitarbeiter__vorname",
+        "mitarbeiter__nachname",
+    ]
+    date_hierarchy = "datum"
+
+    def get_mitarbeiter(self, obj):
+        """Sichere Anzeige des Mitarbeiters"""
+        if obj.mitarbeiter:
+            return obj.mitarbeiter.vollname
+        return "-"
+    get_mitarbeiter.short_description = "Mitarbeiter"
+    get_mitarbeiter.admin_order_field = "mitarbeiter__nachname"

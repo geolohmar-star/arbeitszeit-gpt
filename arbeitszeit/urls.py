@@ -18,6 +18,8 @@ urlpatterns = [
     path('zeiterfassung/', views.zeiterfassung_uebersicht, name='zeiterfassung_uebersicht'),
     path('zeiterfassung/wochenbericht/', views.wochenbericht_pdf, name='wochenbericht_pdf'),
     path('zeiterfassung/<int:pk>/loeschen/', views.zeiterfassung_loeschen, name='zeiterfassung_loeschen'),
+    path('zeiterfassung/saldo/', views.saldo_korrektur, name='saldo_korrektur'),
+    path('zeiterfassung/saldo/<int:pk>/loeschen/', views.saldo_korrektur_loeschen, name='saldo_korrektur_loeschen'),
     
     # Verwaltung
     path('verwaltung/', views.admin_dashboard, name='admin_dashboard'),

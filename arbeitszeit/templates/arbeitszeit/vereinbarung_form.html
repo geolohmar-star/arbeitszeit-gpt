@@ -44,24 +44,44 @@ body { font-family: 'DM Sans', sans-serif; background: #faf9f6; color: #1f2421; 
 .btn-secondary:hover {background:#c0d4cc;}
 .time-input {font-family:'Courier New',monospace;font-size:1.1rem;text-align:center;letter-spacing:2px;}
 .time-input:focus {border-color:#1a4d2e;box-shadow:0 0 5px rgba(26,77,46,0.3);}
+.info-box {background:#d1ecf1;color:#0c5460;padding:1rem;border-radius:8px;margin-bottom:1.5rem;border-left:4px solid #0c5460;}
+.info-box-ersteinrichtung {background:#fff3cd;color:#856404;padding:1rem;border-radius:8px;margin-bottom:1.5rem;border-left:4px solid #856404;}
+.readonly-summary {background:#f8f9fa;border:2px solid #d6e4df;border-radius:8px;padding:1.5rem;margin-top:1rem;}
+.readonly-summary dt {font-weight:600;color:#1a4d2e;margin-bottom:0.25rem;}
+.readonly-summary dd {margin-left:0;margin-bottom:1rem;color:#1f2421;}
+.readonly-summary dd:last-child {margin-bottom:0;}
 </style>
 </head>
 <body>
 <!-- Header -->
 <div class="header">
     <div class="header-content">
-        <div class="logo">⏰ Arbeitszeitverwaltung</div>
-        <a href="{% url 'arbeitszeit:dashboard' %}" class="nav-link">← Zurück zum Dashboard</a>
+        <div class="logo">Arbeitszeitverwaltung</div>
+        <a href="{% url 'arbeitszeit:dashboard' %}" class="nav-link">&larr; Zurueck zum Dashboard</a>
     </div>
 </div>
 
 <div class="container">
 <h1 class="page-title">Neue Arbeitszeitvereinbarung</h1>
-<p class="page-subtitle">Beantragen Sie eine Aenderung Ihrer Arbeitszeit</p>
-<div style="background: #d1ecf1; color: #0c5460; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #0c5460;">
+<p class="page-subtitle">
+  {% if hat_vereinbarung %}
+    Beantragen Sie eine Aenderung Ihrer Arbeitszeit
+  {% else %}
+    Erfassen Sie Ihren aktuellen Arbeitsvertrag
+  {% endif %}
+</p>
+
+{% if hat_vereinbarung %}
+<div class="info-box">
     <strong>Hinweis:</strong> Diese Version wird ab dem angegebenen Datum die vorherige ersetzen.
     Bestehende Vereinbarungen bleiben als Historie erhalten.
 </div>
+{% else %}
+<div class="info-box-ersteinrichtung">
+    <strong>Ersteinrichtung:</strong> Bitte erfassen Sie die Daten Ihres gueltigen Arbeitsvertrags.
+    Dies ist notwendig, damit Soll-Stunden und Zeiterfassung korrekt berechnet werden.
+</div>
+{% endif %}
 
 <form method="post" id="vereinbarung-form">
 {% csrf_token %}
@@ -70,79 +90,130 @@ body { font-family: 'DM Sans', sans-serif; background: #faf9f6; color: #1f2421; 
 <div class="form-card">
 <h2 class="section-title">1. Art des Antrags <span class="required">*</span></h2>
 <div class="radio-group">
+
+  {% if not hat_vereinbarung %}
+  <!-- Ersteinrichtung: nur fuer Nutzer ohne bestehende Vereinbarung -->
+  <label class="radio-option">
+    <input type="radio" name="antragsart" value="ersteinrichtung" required checked>
+    <div class="option-content">
+      <div class="option-title">Ersteinrichtung</div>
+      <div class="help-text">Erstmalige Erfassung Ihres Arbeitsvertrags</div>
+    </div>
+  </label>
+  {% else %}
+  <!-- Aenderungen: nur fuer Nutzer mit bestehender Vereinbarung -->
   <label class="radio-option">
     <input type="radio" name="antragsart" value="weiterbewilligung" required>
     <div class="option-content">
-      <div class="option-title">✓ Weiterbewilligung</div>
-      <div class="help-text">Verlängerung der bestehenden Vereinbarung</div>
+      <div class="option-title">Weiterbewilligung</div>
+      <div class="help-text">Verlaengerung der bestehenden Vereinbarung</div>
     </div>
   </label>
   <label class="radio-option">
     <input type="radio" name="antragsart" value="verringerung">
     <div class="option-content">
-      <div class="option-title">↓ Verringerung</div>
+      <div class="option-title">Verringerung</div>
       <div class="help-text">Reduzierung der Arbeitszeit</div>
     </div>
   </label>
   <label class="radio-option">
     <input type="radio" name="antragsart" value="erhoehung">
     <div class="option-content">
-      <div class="option-title">↑ Erhöhung</div>
+      <div class="option-title">Erhoehung</div>
       <div class="help-text">Aufstockung der Arbeitszeit</div>
     </div>
   </label>
   <label class="radio-option">
     <input type="radio" name="antragsart" value="beendigung">
     <div class="option-content">
-      <div class="option-title">✕ Beendigung</div>
+      <div class="option-title">Beendigung</div>
       <div class="help-text">Beendigung der aktuellen Vereinbarung</div>
     </div>
   </label>
+  {% endif %}
+
 </div>
 </div>
 
-<!-- 2. Arbeitszeit-Typ (nicht für Beendigung) -->
+{% if hat_vereinbarung and aktuelle_vereinbarung %}
+<!-- Weiterbewilligung: Read-Only Zusammenfassung der aktuellen Vereinbarung -->
+<div class="form-card" id="weiterbewilligung-card" style="display:none;">
+<h2 class="section-title">2. Aktuelle Vereinbarung (wird uebernommen)</h2>
+<div class="readonly-summary">
+  <dl>
+    <dt>Arbeitszeit-Typ</dt>
+    <dd>{{ aktuelle_vereinbarung.get_arbeitszeit_typ_display }}</dd>
+
+    <dt>Wochenstunden</dt>
+    <dd>{{ aktuelle_vereinbarung.wochenstunden }} Std.</dd>
+
+    <dt>Telearbeit</dt>
+    <dd>{% if aktuelle_vereinbarung.telearbeit %}Ja{% else %}Nein{% endif %}</dd>
+
+    {% if aktuelle_vereinbarung.arbeitszeit_typ == "individuell" and aktuelle_tageszeiten %}
+    <dt>Tagesverteilung</dt>
+    <dd>
+      <table style="border-collapse:collapse;width:100%;max-width:400px;">
+        {% for eintrag in aktuelle_tageszeiten %}
+        <tr>
+          <td style="padding:0.25rem 1rem 0.25rem 0;font-weight:500;">{{ eintrag.tag }}</td>
+          <td style="padding:0.25rem 0;">{{ eintrag.zeit }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </dd>
+    {% endif %}
+
+    {% if aktuelle_vereinbarung.gueltig_ab %}
+    <dt>Gueltig ab</dt>
+    <dd>{{ aktuelle_vereinbarung.gueltig_ab|date:"d.m.Y" }}</dd>
+    {% endif %}
+  </dl>
+</div>
+</div>
+{% endif %}
+
+<!-- 2. Arbeitszeit-Typ (nicht fuer Beendigung und nicht fuer Weiterbewilligung) -->
 <div class="form-card" id="arbeitszeit-card">
 <h2 class="section-title">2. Art der Arbeitszeitverteilung <span class="required">*</span></h2>
 <div class="radio-group">
   <label class="radio-option">
     <input type="radio" name="arbeitszeit_typ" value="regelmaessig" id="radio-regelmaessig">
     <div class="option-content">
-      <div class="option-title">📅 Regelmäßig</div>
+      <div class="option-title">Regelmaessig</div>
       <div class="help-text">Gleiche Stundenzahl jeden Tag</div>
     </div>
   </label>
   <label class="radio-option">
     <input type="radio" name="arbeitszeit_typ" value="individuell" id="radio-individuell">
     <div class="option-content">
-      <div class="option-title">🗓️ Individuell</div>
+      <div class="option-title">Individuell</div>
       <div class="help-text">Unterschiedliche Stunden pro Tag</div>
     </div>
   </label>
 </div>
 
-<!-- Regelmäßig -->
+<!-- Regelmaessig -->
 <div id="regelmaessig-section" >
 <div class="form-group">
 <label for="wochenstunden" class="form-label">Wochenstunden <span class="required">*</span></label>
 <input type="number" id="wochenstunden" name="wochenstunden" class="input-field" min="1" max="48" step="0.5" placeholder="z.B. 40">
-<div class="help-text">Anzahl der wöchentlichen Arbeitsstunden</div>
+<div class="help-text">Anzahl der woechentlichen Arbeitsstunden</div>
 </div>
 </div>
 
 
 <!-- Individuell -->
 <div id="individuell-section" >
-    <p class="help-text">Geben Sie für jeden Tag die gewünschte Arbeitszeit ein:</p>
-    
+    <p class="help-text">Geben Sie fuer jeden Tag die gewuenschte Arbeitszeit ein:</p>
+
     <div id="weeks-container">
       <div class="week" data-week="1">
         <div class="week-header">
-          <!-- WICHTIG: Hier die Klasse "week-title" hinzufügen -->
           <h3 class="week-title">Woche 1</h3>
-          <button type="button" class="remove-week">✕</button>
+          <button type="button" class="remove-week">&times;</button>
         </div>
-        
+
         {% for tag in tage_list %}
         <div class="day-input">
             <label class="day-label">{{ tag|capfirst }}</label>
@@ -151,33 +222,34 @@ body { font-family: 'DM Sans', sans-serif; background: #faf9f6; color: #1f2421; 
         {% endfor %}
       </div>
     </div>
-    
-    <button type="button" id="add-week" class="btn btn-secondary" style="margin-top: 1rem;">+ Woche hinzufügen</button>
+
+    <button type="button" id="add-week" class="btn btn-secondary" style="margin-top: 1rem;">+ Woche hinzufuegen</button>
+</div>
 </div>
 
-<!-- 3. Gültigkeit / Beendigung -->
+<!-- 3. Gueltigkeit / Beendigung -->
 <div class="form-card">
-<h2 class="section-title" id="gueltigkeits-title">3. Gültigkeit</h2>
-<div class="form-group">
-<label for="datum_input" class="form-label" id="datum-label">Gültig ab <span class="required">*</span></label>
+<h2 class="section-title" id="gueltigkeits-title">3. Gueltigkeit</h2>
+<div class="form-group" id="gueltig-ab-group">
+<label for="datum_input" class="form-label" id="datum-label">Gueltig ab <span class="required">*</span></label>
 <input type="date" id="datum_input" name="gueltig_ab" class="input-field" required>
-<div class="help-text" id="datum-help">Datum, ab dem die Vereinbarung gültig ist</div>
+<div class="help-text" id="datum-help">Datum, ab dem die Vereinbarung gueltig ist</div>
 </div>
 <div class="form-group" id="gueltig-bis-group">
-<label for="gueltig_bis" class="form-label">Gültig bis (optional)</label>
+<label for="gueltig_bis" class="form-label">Gueltig bis (optional)</label>
 <input type="date" id="gueltig_bis" name="gueltig_bis" class="input-field">
-<div class="help-text">Leer lassen für unbefristet</div>
+<div class="help-text">Leer lassen fuer unbefristet</div>
 </div>
 </div>
 
-<!-- 4. Telearbeit -->
-<div class="form-card">
+<!-- 4. Telearbeit (nicht fuer Weiterbewilligung) -->
+<div class="form-card" id="telearbeit-card">
 <h2 class="section-title">4. Arbeitsort</h2>
 <div class="checkbox-group">
 <label class="checkbox-option">
 <input type="checkbox" name="telearbeit" id="telearbeit">
 <div class="option-content">
-<div class="option-title">🏠 In Telearbeit</div>
+<div class="option-title">In Telearbeit</div>
 <div class="help-text">Teilweise von zu Hause arbeiten</div>
 </div>
 </label>
@@ -194,135 +266,154 @@ body { font-family: 'DM Sans', sans-serif; background: #faf9f6; color: #1f2421; 
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  
-  // --- 1. Antragsart Toggle (Beendigung vs. Neu) ---
-  const antragsartRadios = document.querySelectorAll('input[name="antragsart"]');
-  if (antragsartRadios.length > 0) {
-      antragsartRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-          const arbeitszeitCard = document.getElementById('arbeitszeit-card');
-          const gueltigkeitTitle = document.getElementById('gueltigkeits-title');
-          const datumLabel = document.getElementById('datum-label');
-          const datumHelp = document.getElementById('datum-help');
-          const datumInput = document.getElementById('datum_input');
-          const gueltigBisGroup = document.getElementById('gueltig-bis-group');
 
-          if (!arbeitszeitCard) return; // Sicherheitscheck
+  // --- 1. Antragsart Toggle ---
+  var antragsartRadios = document.querySelectorAll('input[name="antragsart"]');
+  var arbeitszeitCard = document.getElementById('arbeitszeit-card');
+  var weiterbewilligungCard = document.getElementById('weiterbewilligung-card');
+  var gueltigkeitTitle = document.getElementById('gueltigkeits-title');
+  var datumLabel = document.getElementById('datum-label');
+  var datumHelp = document.getElementById('datum-help');
+  var datumInput = document.getElementById('datum_input');
+  var gueltigAbGroup = document.getElementById('gueltig-ab-group');
+  var gueltigBisGroup = document.getElementById('gueltig-bis-group');
+  var telearbeitCard = document.getElementById('telearbeit-card');
 
-          if (this.value === 'beendigung') {
-            arbeitszeitCard.style.display = 'none';
-            if(gueltigkeitTitle) gueltigkeitTitle.textContent = '2. Beendigungsdatum';
-            if(datumLabel) datumLabel.innerHTML = 'Beendigung zum <span class="required">*</span>';
-            if(datumHelp) datumHelp.textContent = 'Datum, zu dem die Vereinbarung beendet werden soll';
-            if(gueltigBisGroup) gueltigBisGroup.style.display = 'none';
-            if(datumInput) datumInput.name = 'beendigung_datum';
-          } else {
-            arbeitszeitCard.style.display = 'block';
-            if(gueltigkeitTitle) gueltigkeitTitle.textContent = '3. Gültigkeit';
-            if(datumLabel) datumLabel.innerHTML = 'Gültig ab <span class="required">*</span>';
-            if(datumHelp) datumHelp.textContent = 'Datum, ab dem die Vereinbarung gültig ist';
-            if(gueltigBisGroup) gueltigBisGroup.style.display = 'block';
-            if(datumInput) datumInput.name = 'gueltig_ab';
-          }
-        });
-      });
+  function handleAntragsartChange(value) {
+    if (value === 'beendigung') {
+      // Beendigung: Arbeitszeit und Telearbeit ausblenden
+      if (arbeitszeitCard) arbeitszeitCard.style.display = 'none';
+      if (weiterbewilligungCard) weiterbewilligungCard.style.display = 'none';
+      if (telearbeitCard) telearbeitCard.style.display = 'none';
+      if (gueltigkeitTitle) gueltigkeitTitle.textContent = '2. Beendigungsdatum';
+      if (datumLabel) datumLabel.innerHTML = 'Beendigung zum <span class="required">*</span>';
+      if (datumHelp) datumHelp.textContent = 'Datum, zu dem die Vereinbarung beendet werden soll';
+      if (gueltigAbGroup) gueltigAbGroup.style.display = 'block';
+      if (gueltigBisGroup) gueltigBisGroup.style.display = 'none';
+      if (datumInput) {
+        datumInput.name = 'gueltig_ab';
+        datumInput.required = true;
+      }
+    } else if (value === 'weiterbewilligung') {
+      // Weiterbewilligung: Read-only Zusammenfassung anzeigen
+      if (arbeitszeitCard) arbeitszeitCard.style.display = 'none';
+      if (weiterbewilligungCard) weiterbewilligungCard.style.display = 'block';
+      if (telearbeitCard) telearbeitCard.style.display = 'none';
+      if (gueltigkeitTitle) gueltigkeitTitle.textContent = '3. Gueltigkeit';
+      if (datumLabel) datumLabel.innerHTML = 'Gueltig ab <span class="required">*</span>';
+      if (datumHelp) datumHelp.textContent = 'Datum, ab dem die Vereinbarung gueltig ist';
+      // gueltig_ab ausblenden (wird serverseitig gesetzt)
+      if (gueltigAbGroup) gueltigAbGroup.style.display = 'none';
+      if (gueltigBisGroup) gueltigBisGroup.style.display = 'block';
+      // gueltig_ab nicht required, da serverseitig
+      if (datumInput) {
+        datumInput.name = 'gueltig_ab';
+        datumInput.required = false;
+      }
+    } else {
+      // Ersteinrichtung, Verringerung, Erhoehung: volle Eingabe
+      if (arbeitszeitCard) arbeitszeitCard.style.display = 'block';
+      if (weiterbewilligungCard) weiterbewilligungCard.style.display = 'none';
+      if (telearbeitCard) telearbeitCard.style.display = 'block';
+      if (gueltigkeitTitle) gueltigkeitTitle.textContent = '3. Gueltigkeit';
+      if (datumLabel) datumLabel.innerHTML = 'Gueltig ab <span class="required">*</span>';
+      if (datumHelp) datumHelp.textContent = 'Datum, ab dem die Vereinbarung gueltig ist';
+      if (gueltigAbGroup) gueltigAbGroup.style.display = 'block';
+      if (gueltigBisGroup) gueltigBisGroup.style.display = 'block';
+      if (datumInput) {
+        datumInput.name = 'gueltig_ab';
+        datumInput.required = true;
+      }
+    }
   }
 
-   // --- 2. Arbeitszeit-Typ Toggle (Regelmäßig vs. Individuell) ---
-  const regelRadio = document.getElementById('radio-regelmaessig');
-  const indivRadio = document.getElementById('radio-individuell');
-  const regelSection = document.getElementById('regelmaessig-section');
-  const indivSection = document.getElementById('individuell-section');
+  if (antragsartRadios.length > 0) {
+    antragsartRadios.forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        handleAntragsartChange(this.value);
+      });
+    });
+    // Initial: Falls bereits ein Radio gecheckt ist (z.B. Ersteinrichtung)
+    var checkedRadio = document.querySelector('input[name="antragsart"]:checked');
+    if (checkedRadio) {
+      handleAntragsartChange(checkedRadio.value);
+    }
+  }
+
+  // --- 2. Arbeitszeit-Typ Toggle (Regelmaessig vs. Individuell) ---
+  var regelRadio = document.getElementById('radio-regelmaessig');
+  var indivRadio = document.getElementById('radio-individuell');
+  var regelSection = document.getElementById('regelmaessig-section');
+  var indivSection = document.getElementById('individuell-section');
 
   function toggleArbeitszeit() {
-    console.log('Toggle aufgerufen');
-    console.log('Regelmäßig checked?', regelRadio?.checked);
-    console.log('Individuell checked?', indivRadio?.checked);
-    
     if (regelRadio && regelRadio.checked) {
-      console.log('→ Zeige Regelmäßig');
-      if(regelSection) {
+      if (regelSection) {
         regelSection.style.display = 'block';
         regelSection.style.visibility = 'visible';
       }
-      if(indivSection) {
+      if (indivSection) {
         indivSection.style.display = 'none';
         indivSection.style.visibility = 'hidden';
       }
     } else if (indivRadio && indivRadio.checked) {
-      console.log('→ Zeige Individuell');
-      if(indivSection) {
+      if (indivSection) {
         indivSection.style.display = 'block';
         indivSection.style.visibility = 'visible';
-        console.log('Display gesetzt:', indivSection.style.display);
       }
-      if(regelSection) {
+      if (regelSection) {
         regelSection.style.display = 'none';
         regelSection.style.visibility = 'hidden';
       }
-    } else {
-      console.log('→ Nichts gecheckt!');
     }
   }
-  // ← HIER FEHLT ES! Event-Listener registrieren:
+
   if (regelRadio && indivRadio) {
     regelRadio.addEventListener('change', toggleArbeitszeit);
     indivRadio.addEventListener('change', toggleArbeitszeit);
-    // Initial ausführen beim Laden
     toggleArbeitszeit();
   }
-  // --- 3. Wochen hinzufügen Logik ---
-  const addWeekBtn = document.getElementById('add-week');
-  const weeksContainer = document.getElementById('weeks-container');
-  
-  // Zähler initialisieren basierend auf vorhandenen Wochen
-  let weekCount = document.querySelectorAll('.week').length;
 
-  // Erste Woche: Löschen-Button ausblenden
-  const firstRemoveBtn = document.querySelector('.week .remove-week');
+  // --- 3. Wochen hinzufuegen Logik ---
+  var addWeekBtn = document.getElementById('add-week');
+  var weeksContainer = document.getElementById('weeks-container');
+  var weekCount = document.querySelectorAll('.week').length;
+
+  // Erste Woche: Loeschen-Button ausblenden
+  var firstRemoveBtn = document.querySelector('.week .remove-week');
   if (firstRemoveBtn) {
-      firstRemoveBtn.style.display = 'none';
+    firstRemoveBtn.style.display = 'none';
   }
 
   if (addWeekBtn && weeksContainer) {
-    addWeekBtn.addEventListener('click', () => {
-        weekCount++;
-        
-        // Die erste Woche als Vorlage nehmen
-        const originalWeek = weeksContainer.querySelector('.week');
-        const newWeek = originalWeek.cloneNode(true);
-        
-        // Attribute aktualisieren
-        newWeek.dataset.week = weekCount;
-        
-        // Titel aktualisieren (sucht nach .week-title)
-        const titleElement = newWeek.querySelector('.week-title');
-        if (titleElement) {
-            titleElement.textContent = `Woche ${weekCount}`;
-        }
-        
-        // Inputs bereinigen und Namen aktualisieren
-        newWeek.querySelectorAll('input').forEach(input => {
-            input.value = ''; // Inhalt leeren
-            // Name anpassen: neuantrag_montag_1 -> neuantrag_montag_2
-            const parts = input.name.split('_');
-            if (parts.length >= 3) {
-                // parts[0] = neuantrag, parts[1] = wochentag
-                input.name = `${parts[0]}_${parts[1]}_${weekCount}`;
-            }
-        });
+    addWeekBtn.addEventListener('click', function() {
+      weekCount++;
+      var originalWeek = weeksContainer.querySelector('.week');
+      var newWeek = originalWeek.cloneNode(true);
+      newWeek.dataset.week = weekCount;
 
-        // Löschen-Button für die neue Woche aktivieren
-        const removeBtn = newWeek.querySelector('.remove-week');
-        if (removeBtn) {
-            removeBtn.style.display = 'inline-block'; // Sichtbar machen
-            removeBtn.onclick = function() {
-                newWeek.remove();
-                // Optional: Nummerierung neu berechnen, hier aber nicht zwingend nötig
-            };
-        }
+      var titleElement = newWeek.querySelector('.week-title');
+      if (titleElement) {
+        titleElement.textContent = 'Woche ' + weekCount;
+      }
 
-        weeksContainer.appendChild(newWeek);
+      newWeek.querySelectorAll('input').forEach(function(input) {
+        input.value = '';
+        var parts = input.name.split('_');
+        if (parts.length >= 3) {
+          input.name = parts[0] + '_' + parts[1] + '_' + weekCount;
+        }
+      });
+
+      var removeBtn = newWeek.querySelector('.remove-week');
+      if (removeBtn) {
+        removeBtn.style.display = 'inline-block';
+        removeBtn.onclick = function() {
+          newWeek.remove();
+        };
+      }
+
+      weeksContainer.appendChild(newWeek);
     });
   }
 });
