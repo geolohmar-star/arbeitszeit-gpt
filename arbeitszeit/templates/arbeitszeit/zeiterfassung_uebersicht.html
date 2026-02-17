@@ -386,16 +386,21 @@
                 <span class="kw-label">KW {{ kw }}</span>
                 <span class="kw-dates">{{ montag|date:"d.m." }} - {{ sonntag|date:"d.m.Y" }}</span>
                 <a href="?ansicht=woche&kw={{ next_kw }}&jahr={{ next_jahr }}">&rarr;</a>
+                <a href="{% url 'arbeitszeit:wochenbericht_csv' %}?kw={{ kw }}&jahr={{ jahr }}"
+                   class="btn btn-sm"
+                   style="background: #17a2b8; color: white; margin-left: auto;">
+                    CSV
+                </a>
                 {% if wochenbericht %}
                     <a href="{% url 'arbeitszeit:wochenbericht_pdf' %}?kw={{ kw }}&jahr={{ jahr }}"
                        class="btn btn-sm"
-                       style="background: #28a745; color: white; margin-left: auto;">
+                       style="background: #28a745; color: white;">
                         PDF ({{ wochenbericht.erstellt_am|date:"d.m." }})
                     </a>
                 {% else %}
                     <a href="{% url 'arbeitszeit:wochenbericht_pdf' %}?kw={{ kw }}&jahr={{ jahr }}"
                        class="btn btn-sm"
-                       style="background: #6c757d; color: white; margin-left: auto;">
+                       style="background: #6c757d; color: white;">
                         PDF erstellen
                     </a>
                 {% endif %}
@@ -604,6 +609,14 @@
                 </select>
                 <input type="number" name="jahr" value="{{ jahr }}" min="2020" max="2050" onchange="this.form.submit()">
             </form>
+
+            <div style="text-align: right; margin-bottom: 1rem;">
+                <a href="{% url 'arbeitszeit:monatsbericht_csv' %}?monat={{ monat }}&jahr={{ jahr }}"
+                   class="btn btn-sm"
+                   style="background: #17a2b8; color: white;">
+                    CSV
+                </a>
+            </div>
 
             <!-- Stats -->
             <div class="stats-row">

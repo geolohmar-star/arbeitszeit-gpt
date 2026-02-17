@@ -1169,6 +1169,15 @@ def _minuten_formatiert(minuten):
     return f"{vz}{abs_m // 60}:{abs_m % 60:02d}h"
 
 
+def _minuten_dezimal(minuten):
+    """Minuten als Dezimalstunden mit Komma (fuer CSV/Excel)."""
+    if minuten == 0:
+        return "0,00"
+    vz = "-" if minuten < 0 else ""
+    dezimal = abs(minuten) / 60
+    return f"{vz}{dezimal:.2f}".replace(".", ",")
+
+
 @login_required
 def zeiterfassung_uebersicht(request):
     try:
@@ -1668,6 +1677,237 @@ def wochenbericht_pdf(request):
     response["Content-Disposition"] = (
         f'attachment; filename="{filename}"'
     )
+    return response
+
+
+@login_required
+def wochenbericht_csv(request):
+    """Generiert einen CSV-Wochenbericht fuer die angegebene KW."""
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except Mitarbeiter.DoesNotExist:
+        return redirect("arbeitszeit:dashboard")
+
+    from datetime import timedelta
+    from .models import get_feiertagskalender, feiertag_name_deutsch
+
+    heute = timezone.now().date()
+    jahr = int(request.GET.get("jahr", heute.year))
+    kw = int(request.GET.get("kw", heute.isocalendar()[1]))
+
+    # Montag der KW berechnen (gleiche Logik wie Uebersicht)
+    jan4 = date(jahr, 1, 4)
+    montag_kw1 = jan4 - timedelta(days=jan4.weekday())
+    montag = montag_kw1 + timedelta(weeks=kw - 1)
+    sonntag = montag + timedelta(days=6)
+
+    # Erfassungen laden
+    erfassungen_qs = mitarbeiter.zeiterfassungen.filter(
+        datum__gte=montag, datum__lte=sonntag,
+    ).order_by("datum")
+    erfassungen_dict = {e.datum: e for e in erfassungen_qs}
+
+    # Feiertagskalender
+    cal = get_feiertagskalender(mitarbeiter.standort)
+
+    WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+
+    # CSV-Response
+    filename = (
+        f"Wochenbericht_{mitarbeiter.nachname}"
+        f"_KW{kw}_{jahr}.csv"
+    )
+    response = HttpResponse(
+        content_type="text/csv; charset=utf-8"
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="{filename}"'
+    )
+    response.write("\ufeff")  # BOM fuer Excel
+
+    writer = csv.writer(response, delimiter=";")
+    writer.writerow([
+        "Datum", "Wochentag", "Art", "Beginn", "Ende",
+        "Pause (min)", "Ist (h)", "Soll (h)", "Differenz",
+    ])
+
+    gesamt_ist = 0
+    gesamt_soll = 0
+    gesamt_differenz = 0
+
+    for i in range(7):
+        tag_datum = montag + timedelta(days=i)
+        erfassung = erfassungen_dict.get(tag_datum)
+        soll = _soll_minuten_aus_vereinbarung(
+            mitarbeiter, tag_datum
+        )
+
+        if erfassung:
+            art = erfassung.get_art_display()
+            beginn = (
+                erfassung.arbeitsbeginn.strftime("%H:%M")
+                if erfassung.arbeitsbeginn else ""
+            )
+            ende = (
+                erfassung.arbeitsende.strftime("%H:%M")
+                if erfassung.arbeitsende else ""
+            )
+            pause = str(erfassung.pause_minuten)
+            ist_min = erfassung.arbeitszeit_minuten or 0
+            ist_str = _minuten_dezimal(ist_min)
+
+            soll_min = soll if soll else 0
+            soll_str = _minuten_dezimal(soll_min)
+
+            diff = erfassung.differenz_minuten
+            if diff is not None:
+                diff_str = _minuten_dezimal(diff)
+                gesamt_differenz += diff
+            else:
+                diff_str = ""
+
+            # Nur nicht-Urlaub in Ist-Summe
+            if erfassung.art != "urlaub":
+                gesamt_ist += ist_min
+        else:
+            art = ""
+            beginn = ""
+            ende = ""
+            pause = ""
+            ist_min = 0
+            ist_str = ""
+            soll_min = soll if soll else 0
+            soll_str = (
+                _minuten_dezimal(soll_min) if soll_min > 0
+                else ""
+            )
+            diff_str = ""
+
+        if soll and soll > 0:
+            gesamt_soll += soll
+
+        writer.writerow([
+            tag_datum.strftime("%d.%m.%Y"),
+            WOCHENTAGE[i],
+            art,
+            beginn,
+            ende,
+            pause,
+            ist_str,
+            soll_str,
+            diff_str,
+        ])
+
+    # Summenzeile
+    writer.writerow([
+        "", "", "", "", "", "Summe",
+        _minuten_dezimal(gesamt_ist),
+        _minuten_dezimal(gesamt_soll),
+        _minuten_dezimal(gesamt_differenz),
+    ])
+
+    return response
+
+
+@login_required
+def monatsbericht_csv(request):
+    """Generiert einen CSV-Monatsbericht."""
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except Mitarbeiter.DoesNotExist:
+        return redirect("arbeitszeit:dashboard")
+
+    heute = timezone.now().date()
+    jahr = int(request.GET.get("jahr", heute.year))
+    monat = int(request.GET.get("monat", heute.month))
+
+    MONATSNAMEN = [
+        "", "Januar", "Februar", "Maerz", "April", "Mai",
+        "Juni", "Juli", "August", "September", "Oktober",
+        "November", "Dezember",
+    ]
+    WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
+
+    erfassungen = mitarbeiter.zeiterfassungen.filter(
+        datum__year=jahr, datum__month=monat,
+    ).order_by("datum")
+
+    # CSV-Response
+    filename = (
+        f"Monatsbericht_{mitarbeiter.nachname}"
+        f"_{MONATSNAMEN[monat]}_{jahr}.csv"
+    )
+    response = HttpResponse(
+        content_type="text/csv; charset=utf-8"
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="{filename}"'
+    )
+    response.write("\ufeff")  # BOM fuer Excel
+
+    writer = csv.writer(response, delimiter=";")
+    writer.writerow([
+        "Datum", "Wochentag", "Art", "Beginn", "Ende",
+        "Pause (min)", "Ist (h)", "Soll (h)", "Differenz",
+    ])
+
+    gesamt_ist = 0
+    gesamt_soll = 0
+    gesamt_differenz = 0
+
+    for erfassung in erfassungen:
+        wochentag = WOCHENTAGE[erfassung.datum.weekday()]
+        art = erfassung.get_art_display()
+        beginn = (
+            erfassung.arbeitsbeginn.strftime("%H:%M")
+            if erfassung.arbeitsbeginn else ""
+        )
+        ende = (
+            erfassung.arbeitsende.strftime("%H:%M")
+            if erfassung.arbeitsende else ""
+        )
+        pause = str(erfassung.pause_minuten)
+
+        ist_min = erfassung.arbeitszeit_minuten or 0
+        ist_str = _minuten_dezimal(ist_min)
+
+        soll = _soll_minuten_aus_vereinbarung(
+            mitarbeiter, erfassung.datum
+        )
+        soll_min = soll if soll else 0
+        soll_str = _minuten_dezimal(soll_min)
+
+        diff = erfassung.differenz_minuten
+        if diff is not None:
+            diff_str = _minuten_dezimal(diff)
+            gesamt_differenz += diff
+        else:
+            diff_str = ""
+
+        if erfassung.art != "urlaub":
+            gesamt_ist += ist_min
+        gesamt_soll += soll_min
+
+        writer.writerow([
+            erfassung.datum.strftime("%d.%m.%Y"),
+            wochentag,
+            art,
+            beginn,
+            ende,
+            pause,
+            ist_str,
+            soll_str,
+            diff_str,
+        ])
+
+    # Summenzeile
+    writer.writerow([
+        "", "", "", "", "", "Summe",
+        _minuten_dezimal(gesamt_ist),
+        _minuten_dezimal(gesamt_soll),
+        _minuten_dezimal(gesamt_differenz),
+    ])
+
     return response
 
 
