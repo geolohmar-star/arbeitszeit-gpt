@@ -9,11 +9,9 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY
-from django.core.exceptions import ImproperlyConfigured
-
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 if not SECRET_KEY:
-    raise ImproperlyConfigured(
+    raise ValueError(
         "Umgebungsvariable DJANGO_SECRET_KEY muss gesetzt sein. "
         "Fuer lokale Entwicklung bitte in .env eintragen."
     )
