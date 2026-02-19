@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}HR – Mitarbeiterliste{% endblock %}
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">HR Mitarbeiter</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'hr:organigramm' %}" class="btn btn-outline-secondary btn-sm">Organigramm</a>
+            <span class="badge bg-secondary fs-6 fw-normal">{{ mitarbeiter.count }} MA</span>
+        </div>
+    </div>
+
+    <!-- Filter -->
+    <form method="get" class="card mb-3">
+        <div class="card-body py-2">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <input type="text" name="q" class="form-control form-control-sm"
+                           placeholder="Name suchen…" value="{{ filter.q }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="bereich" class="form-select form-select-sm">
+                        <option value="">Alle Bereiche</option>
+                        {% for b in bereiche %}
+                        <option value="{{ b.pk }}" {% if filter.bereich == b.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ b.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="rolle" class="form-select form-select-sm">
+                        <option value="">Alle Rollen</option>
+                        {% for code, label in rollen %}
+                        <option value="{{ code }}" {% if filter.rolle == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm">Filtern</button>
+                    <a href="{% url 'hr:liste' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Name</th>
+                        <th>PersNr.</th>
+                        <th>Rolle</th>
+                        <th>Bereich</th>
+                        <th>Abteilung</th>
+                        <th>Team</th>
+                        <th>Vorgesetzter</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ma in mitarbeiter %}
+                    <tr>
+                        <td class="ps-3 align-middle fw-semibold">{{ ma.vollname }}</td>
+                        <td class="align-middle text-muted small">{{ ma.personalnummer }}</td>
+                        <td class="align-middle small">{{ ma.get_rolle_display }}</td>
+                        <td class="align-middle small">{{ ma.bereich|default:"–" }}</td>
+                        <td class="align-middle small">{{ ma.abteilung.name|default:"–" }}</td>
+                        <td class="align-middle small">{{ ma.team.name|default:"–" }}</td>
+                        <td class="align-middle small text-muted">{{ ma.vorgesetzter.vollname|default:"–" }}</td>
+                        <td class="align-middle text-end pe-3">
+                            <a href="{% url 'hr:detail' ma.pk %}" class="btn btn-outline-secondary btn-sm">Detail</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">Keine Mitarbeiter gefunden.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

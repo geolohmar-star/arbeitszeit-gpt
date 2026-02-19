@@ -989,3 +989,222 @@ def zag_storno_pdf(request, pk):
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{dateiname}"'
     return response
+
+
+# ============================================================================
+# GENEHMIGUNGSWORKFLOW
+# ============================================================================
+
+def _genehmiger_mitarbeiter(user):
+    """Gibt QuerySet aller Mitarbeiter zurueck, fuer die der User
+    die guardian-Permission 'genehmigen_antraege' besitzt.
+
+    Superuser und Staff sehen alle Mitarbeiter.
+    Wird spaeter durch _offene_antraege_fuer_user ersetzt.
+    """
+    from arbeitszeit.models import Mitarbeiter
+    if user.is_superuser or user.is_staff:
+        return Mitarbeiter.objects.all()
+    from guardian.shortcuts import get_objects_for_user
+    return get_objects_for_user(
+        user,
+        "genehmigen_antraege",
+        Mitarbeiter,
+    )
+
+
+def _genehmigende_stelle(antragsteller_ma, dauer_tage=0):
+    """Delegiert an formulare.utils.genehmigende_stelle.
+
+    Bleibt als privater Alias erhalten damit bestehende interne Aufrufe
+    unveraendert funktionieren.
+    """
+    from formulare.utils import genehmigende_stelle
+    return genehmigende_stelle(antragsteller_ma, dauer_tage)
+
+
+def _offene_antraege_fuer_user(user):
+    """Gibt QuerySet der Mitarbeiter zurueck, deren Antraege der User sehen darf.
+
+    Logik:
+    - Superuser/Staff: alle Mitarbeiter
+    - Sonst: Mitarbeiter deren Stelle direkt untergeordnet zur Stelle des Users ist
+
+    Faellt auf guardian-Permissions zurueck wenn kein Stellensystem vorhanden.
+    """
+    from arbeitszeit.models import Mitarbeiter
+    from hr.models import HRMitarbeiter, Stelle
+
+    if user.is_superuser or user.is_staff:
+        return Mitarbeiter.objects.all()
+
+    # Stelle des eingeloggten Users ermitteln
+    try:
+        hr_ma = user.hr_mitarbeiter
+        user_stelle = hr_ma.stelle
+    except Exception:
+        user_stelle = None
+
+    if user_stelle is not None:
+        # Direkte Untergebene-Stellen ermitteln
+        untergeordnete_stellen = Stelle.objects.filter(
+            uebergeordnete_stelle=user_stelle
+        )
+        # HRMitarbeiter dieser Stellen
+        untergebene_hr = HRMitarbeiter.objects.filter(
+            stelle__in=untergeordnete_stellen
+        )
+        untergebene_user_ids = untergebene_hr.values_list("user_id", flat=True)
+        # arbeitszeit.Mitarbeiter der Untergebenen
+        stellen_ma = Mitarbeiter.objects.filter(user__in=untergebene_user_ids)
+        if stellen_ma.exists():
+            return stellen_ma
+
+    # Fallback: guardian-Permissions (wird spaeter entfernt)
+    from guardian.shortcuts import get_objects_for_user
+    return get_objects_for_user(user, "genehmigen_antraege", Mitarbeiter)
+
+
+@login_required
+def genehmigung_uebersicht(request):
+    """Uebersicht aller offenen Antraege fuer den eingeloggten Genehmiger.
+
+    Zeigt AenderungZeiterfassung, ZAGAntrag und ZAGStorno mit Status
+    'beantragt' fuer alle Mitarbeiter, fuer die der User die
+    guardian-Permission 'genehmigen_antraege' besitzt.
+    """
+    # Stellenbasierte Logik, Fallback auf guardian
+    berechtigte_ma = _offene_antraege_fuer_user(request.user)
+
+    if not berechtigte_ma.exists():
+        return render(
+            request,
+            "formulare/genehmigung_uebersicht.html",
+            {"kein_zugang": True},
+        )
+
+    aenderungen = (
+        AenderungZeiterfassung.objects.filter(
+            antragsteller__in=berechtigte_ma,
+            status="beantragt",
+        )
+        .select_related("antragsteller")
+        .order_by("erstellt_am")
+    )
+    zag_antraege = (
+        ZAGAntrag.objects.filter(
+            antragsteller__in=berechtigte_ma,
+            status="beantragt",
+        )
+        .select_related("antragsteller")
+        .order_by("erstellt_am")
+    )
+    zag_stornos = (
+        ZAGStorno.objects.filter(
+            antragsteller__in=berechtigte_ma,
+            status="beantragt",
+        )
+        .select_related("antragsteller")
+        .order_by("erstellt_am")
+    )
+
+    # Zuletzt erledigte Antraege fuer Historie
+    aenderungen_erledigt = (
+        AenderungZeiterfassung.objects.filter(
+            antragsteller__in=berechtigte_ma,
+            status__in=["genehmigt", "abgelehnt"],
+        )
+        .select_related("antragsteller", "bearbeitet_von")
+        .order_by("-bearbeitet_am")[:10]
+    )
+    zag_erledigt = (
+        ZAGAntrag.objects.filter(
+            antragsteller__in=berechtigte_ma,
+            status__in=["genehmigt", "abgelehnt"],
+        )
+        .select_related("antragsteller", "bearbeitet_von")
+        .order_by("-bearbeitet_am")[:10]
+    )
+    zag_storno_erledigt = (
+        ZAGStorno.objects.filter(
+            antragsteller__in=berechtigte_ma,
+            status__in=["genehmigt", "abgelehnt"],
+        )
+        .select_related("antragsteller", "bearbeitet_von")
+        .order_by("-bearbeitet_am")[:10]
+    )
+
+    gesamt_offen = aenderungen.count() + zag_antraege.count() + zag_stornos.count()
+
+    return render(
+        request,
+        "formulare/genehmigung_uebersicht.html",
+        {
+            "aenderungen": aenderungen,
+            "zag_antraege": zag_antraege,
+            "zag_stornos": zag_stornos,
+            "aenderungen_erledigt": aenderungen_erledigt,
+            "zag_erledigt": zag_erledigt,
+            "zag_storno_erledigt": zag_storno_erledigt,
+            "gesamt_offen": gesamt_offen,
+            "kein_zugang": False,
+        },
+    )
+
+
+@login_required
+def genehmigung_entscheiden(request, antrag_typ, pk):
+    """Genehmigt oder lehnt einen einzelnen Antrag ab.
+
+    # HTMX-View - gibt bei HTMX-Request nur das erledigte Zeilen-Partial zurueck.
+
+    antrag_typ: 'aenderung' | 'zag' | 'zag_storno'
+    """
+    from django.utils import timezone
+
+    if request.method != "POST":
+        return redirect("formulare:genehmigung_uebersicht")
+
+    model_map = {
+        "aenderung": AenderungZeiterfassung,
+        "zag": ZAGAntrag,
+        "zag_storno": ZAGStorno,
+    }
+    Model = model_map.get(antrag_typ)
+    if Model is None:
+        return redirect("formulare:genehmigung_uebersicht")
+
+    antrag = get_object_or_404(Model, pk=pk)
+
+    # Berechtigungspruefung: stellenbasiert mit guardian-Fallback
+    berechtigte_ma = _offene_antraege_fuer_user(request.user)
+    if antrag.antragsteller not in berechtigte_ma:
+        if request.headers.get("HX-Request"):
+            return HttpResponse(
+                '<span class="badge bg-danger">Keine Berechtigung</span>',
+                status=403,
+            )
+        return redirect("formulare:genehmigung_uebersicht")
+
+    neue_status = request.POST.get("status")
+    if neue_status not in ("genehmigt", "abgelehnt"):
+        return redirect("formulare:genehmigung_uebersicht")
+
+    antrag.status = neue_status
+    antrag.bearbeitet_von = request.user
+    antrag.bearbeitet_am = timezone.now()
+    antrag.bemerkung_bearbeiter = request.POST.get("bemerkung", "").strip()
+    antrag.save()
+
+    # HTMX: Zeile durch erledigtes Partial ersetzen
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "formulare/partials/_genehmigung_zeile_erledigt.html",
+            {
+                "antrag": antrag,
+                "antrag_typ": antrag_typ,
+            },
+        )
+
+    return redirect("formulare:genehmigung_uebersicht")

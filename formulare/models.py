@@ -14,6 +14,7 @@ class Antrag(models.Model):
         ("beantragt", "Beantragt"),
         ("genehmigt", "Genehmigt"),
         ("abgelehnt", "Abgelehnt"),
+        ("eskaliert", "Eskaliert"),
     ]
 
     aktualisiert_am = models.DateTimeField(auto_now=True)

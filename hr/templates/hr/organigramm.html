@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Organigramm{% endblock %}
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Organigramm – Apex Solutions GmbH</h2>
+        <a href="{% url 'hr:liste' %}" class="btn btn-outline-secondary btn-sm">Mitarbeiterliste</a>
+    </div>
+
+    {% for bereich in bereiche %}
+    <div class="card mb-4">
+        <div class="card-header fw-bold bg-success text-white d-flex justify-content-between">
+            <span>{{ bereich.name }}</span>
+            <span class="badge bg-white text-success fw-normal">{{ bereich.kuerzel }}</span>
+        </div>
+        <div class="card-body p-0">
+            {% for abteilung in bereich.abteilungen.all %}
+            <div class="border-bottom px-3 py-2">
+                <div class="fw-semibold text-dark mb-2">
+                    <span class="badge bg-secondary me-2">{{ abteilung.kuerzel }}</span>
+                    {{ abteilung.name }}
+                    <span class="text-muted small fw-normal ms-2">
+                        ({{ abteilung.mitarbeiter.count }} MA)
+                    </span>
+                </div>
+                {% for team in abteilung.teams.all %}
+                <div class="ms-4 mb-1">
+                    <span class="text-muted small">&#9492; </span>
+                    <span class="small fw-semibold">{{ team.name }}</span>
+                    <span class="text-muted small">
+                        – {{ team.mitarbeiter.count }} MA
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% empty %}
+            <div class="px-3 py-2 text-muted small">Keine Abteilungen.</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+</div>
+{% endblock %}

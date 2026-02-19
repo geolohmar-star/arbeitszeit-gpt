@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ ma.vollname }}{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width: 800px;">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'hr:liste' %}">HR Mitarbeiter</a></li>
+            <li class="breadcrumb-item active">{{ ma.vollname }}</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h2 class="mb-0">{{ ma.vollname }}</h2>
+            <span class="text-muted small">{{ ma.personalnummer }} &middot; {{ ma.get_rolle_display }}</span>
+        </div>
+        {% if ma.ist_fuehrungskraft %}
+        <span class="badge bg-success fs-6 fw-normal">Führungskraft</span>
+        {% endif %}
+    </div>
+
+    <!-- Stammdaten -->
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Stammdaten</div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-4 text-muted">Bereich</dt>
+                <dd class="col-8">{{ ma.bereich|default:"–" }}</dd>
+                <dt class="col-4 text-muted">Abteilung</dt>
+                <dd class="col-8">{{ ma.abteilung.name|default:"–" }}</dd>
+                <dt class="col-4 text-muted">Team</dt>
+                <dd class="col-8">{{ ma.team.name|default:"–" }}</dd>
+                <dt class="col-4 text-muted">Vorgesetzter</dt>
+                <dd class="col-8">
+                    {% if ma.vorgesetzter %}
+                        <a href="{% url 'hr:detail' ma.vorgesetzter.pk %}">{{ ma.vorgesetzter.vollname }}</a>
+                    {% else %}–{% endif %}
+                </dd>
+                {% if ma.stellvertretung_fuer %}
+                <dt class="col-4 text-muted">Stellvertretung für</dt>
+                <dd class="col-8">
+                    <a href="{% url 'hr:detail' ma.stellvertretung_fuer.pk %}">
+                        {{ ma.stellvertretung_fuer.vollname }}
+                    </a>
+                </dd>
+                {% endif %}
+                <dt class="col-4 text-muted">E-Mail</dt>
+                <dd class="col-8">{{ ma.email|default:"–" }}</dd>
+                <dt class="col-4 text-muted">Eintritt</dt>
+                <dd class="col-8">{{ ma.eintrittsdatum|date:"d.m.Y"|default:"–" }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    <!-- Direkte Berichte -->
+    {% if direkte_berichte %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold d-flex justify-content-between">
+            Direkte Berichte
+            <span class="badge bg-secondary fw-normal">{{ direkte_berichte.count }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <tbody>
+                    {% for b in direkte_berichte %}
+                    <tr>
+                        <td class="ps-3">
+                            <a href="{% url 'hr:detail' b.pk %}">{{ b.vollname }}</a>
+                        </td>
+                        <td class="text-muted small">{{ b.get_rolle_display }}</td>
+                        <td class="text-muted small">{{ b.team.name|default:"" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Stellvertreter -->
+    {% if stellvertreter %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Stellvertreter/innen</div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <tbody>
+                    {% for sv in stellvertreter %}
+                    <tr>
+                        <td class="ps-3">
+                            <a href="{% url 'hr:detail' sv.pk %}">{{ sv.vollname }}</a>
+                        </td>
+                        <td class="text-muted small">{{ sv.abteilung.name|default:"" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

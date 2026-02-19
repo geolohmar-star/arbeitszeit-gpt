@@ -9,10 +9,17 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-fallback-key-nur-fuer-entwicklung')
+from django.core.exceptions import ImproperlyConfigured
 
-# DEBUG: True lokal, False auf Render
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "Umgebungsvariable DJANGO_SECRET_KEY muss gesetzt sein. "
+        "Fuer lokale Entwicklung bitte in .env eintragen."
+    )
+
+# DEBUG: Default False – muss explizit auf 'True' gesetzt werden
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 # ALLOWED_HOSTS
 ALLOWED_HOSTS = [
@@ -40,10 +47,21 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_filters',
+    'guardian',
     'arbeitszeit.apps.ArbeitszeitConfig',
     'schichtplan',
     'formulare.apps.FormulareConfig',
+    'berechtigungen.apps.BerechtigungenConfig',
+    'hr.apps.HrConfig',
 ]
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'guardian.backends.ObjectPermissionBackend',
+]
+
+# Guardian: Anonymer User bekommt keine Rechte
+ANONYMOUS_USER_NAME = None
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -71,6 +89,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'arbeitszeit.context_processors.schichtplan_zugang',
+                'arbeitszeit.context_processors.genehmiger_rolle',
             ],
         },
     },
@@ -162,3 +182,18 @@ if sys.version_info[0] >= 3:
         locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
     except:
         pass
+
+# Email-Domain fuer stellenbasierte Adressen
+STELLEN_EMAIL_DOMAIN = os.environ.get('STELLEN_EMAIL_DOMAIN', 'firma.de')
+
+# HTTPS-Sicherheitseinstellungen (nur in Produktion aktiv, d.h. wenn DEBUG=False)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 Jahr
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
