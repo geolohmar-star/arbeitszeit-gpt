@@ -137,28 +137,44 @@
     </div>
     {% endif %}
 
-    <!-- Zeitraeume -->
-    {% if antrag.zag_daten %}
+    <!-- Zeiträume -->
+    {% if zag_daten_mit_tagen %}
     <div class="abschnitt">
-        <div class="abschnitt-titel">Z-AG Zeitraeume</div>
+        <div class="abschnitt-titel">Z-AG Zeiträume</div>
         <table class="liste">
             <thead>
                 <tr>
                     <th>Von</th>
                     <th>Bis</th>
+                    <th style="text-align:right;">Arbeitstage</th>
                 </tr>
             </thead>
             <tbody>
-                {% for zeile in antrag.zag_daten %}
+                {% for zeile in zag_daten_mit_tagen %}
                 <tr>
-                    <td>{{ zeile.von_datum }}</td>
-                    <td>{{ zeile.bis_datum }}</td>
+                    <td>{{ zeile.von_datum|date:"d-m-y" }}</td>
+                    <td>{{ zeile.bis_datum|date:"d-m-y" }}</td>
+                    <td style="text-align:right;">
+                        {% if zeile.tage is not None %}
+                            {{ zeile.tage }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
+            {% if zag_daten_mit_tagen|length > 1 %}
+            <tfoot>
+                <tr style="background:#f0f0f0; font-weight:bold;">
+                    <td colspan="2">Gesamt</td>
+                    <td style="text-align:right;">{{ gesamt_tage }}</td>
+                </tr>
+            </tfoot>
+            {% endif %}
         </table>
         <p style="font-size:10pt; color:#555;">
-            Wochenenden und Feiertage werden automatisch ausgelassen.
+            Arbeitstage exkl. Wochenenden, Feiertage und freie Tage aus der Vereinbarung.
         </p>
     </div>
     {% endif %}

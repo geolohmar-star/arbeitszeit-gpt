@@ -659,11 +659,34 @@ def zag_pdf(request, pk):
         antragsteller__user=request.user,
     )
 
+    # Arbeitstage pro Zeitraum berechnen
+    mitarbeiter = antrag.antragsteller
+    zag_daten_mit_tagen = []
+    gesamt_tage = 0
+    for zeile in (antrag.zag_daten or []):
+        try:
+            von = date_type.fromisoformat(zeile["von_datum"])
+            bis = date_type.fromisoformat(zeile["bis_datum"])
+            tage = _zaehle_zag_tage(mitarbeiter, von, bis)
+        except (KeyError, ValueError, TypeError):
+            von = None
+            bis = None
+            tage = None
+        zag_daten_mit_tagen.append({
+            "von_datum": von,
+            "bis_datum": bis,
+            "tage": tage,
+        })
+        if tage:
+            gesamt_tage += tage
+
     html_string = render_to_string(
         "formulare/pdf/zag_pdf.html",
         {
             "antrag": antrag,
             "betreff": antrag.get_betreff(),
+            "zag_daten_mit_tagen": zag_daten_mit_tagen,
+            "gesamt_tage": gesamt_tage,
         },
         request=request,
     )
