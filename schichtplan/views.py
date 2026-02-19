@@ -7,7 +7,8 @@ ANGEPASST: Filtert nur Mitarbeiter mit Kennung MA1-MA15
 from django.db.models import Count, Q
 from django.db.models.functions import Length  # ← Für Sortierung
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.decorators import user_passes_test
 from django.contrib import messages
 from django.db.models import Count
 from django.http import JsonResponse, HttpResponse
@@ -139,6 +140,27 @@ def ist_schichtplaner(user):
     print(f"In Gruppe Schichtplaner: {ergebnis}")
     
     return ergebnis
+
+
+def hat_schichtplan_zugang(user):
+    """Prueft ob der User Zugang zur Schichtplanung hat.
+
+    Superuser bekommen automatisch Zugang. Alle anderen (inkl. Staff)
+    benoetigen die explizit vergebene Permission 'schichtplan.schichtplan_zugang'.
+    """
+    if user.is_anonymous:
+        return False
+    if user.is_superuser:
+        return True
+    return user.has_perm("schichtplan.schichtplan_zugang")
+
+
+# Decorator fuer alle Schichtplan-Views
+schichtplan_zugang_erforderlich = user_passes_test(
+    hat_schichtplan_zugang,
+    login_url="/",
+    redirect_field_name=None,
+)
 
 
 def ist_kongos_mitarbeiter(user):
@@ -537,8 +559,9 @@ def excel_analyse_view(request):
 
 
 @login_required
+@schichtplan_zugang_erforderlich
 def planer_dashboard(request):
-    """Dashboard für Schichtplaner. Kongos-Mitarbeiter sehen nur veröffentlichte Pläne (Lesezugriff)."""
+    """Dashboard fuer Schichtplaner. Kongos-Mitarbeiter sehen nur veroeffentlichte Plaene (Lesezugriff)."""
     is_planer = ist_schichtplaner(request.user)
     is_kongos = ist_kongos_mitarbeiter(request.user)
 
@@ -577,8 +600,9 @@ def planer_dashboard(request):
 
 
 @login_required
+@schichtplan_zugang_erforderlich
 def mitarbeiter_uebersicht(request):
-    """Mitarbeiter-Übersicht für Schichtplaner"""
+    """Mitarbeiter-Uebersicht fuer Schichtplaner"""
     if not ist_schichtplaner(request.user):
         messages.error(request, "❌ Keine Berechtigung.")
         return redirect('arbeitszeit:dashboard')
@@ -608,8 +632,9 @@ def mitarbeiter_uebersicht(request):
 
 
 @login_required
+@schichtplan_zugang_erforderlich
 def schichtplan_detail(request, pk):
-    """Detail-Ansicht eines Schichtplans mit erweiterter Statistik. Kongos sehen nur veröffentlichte Pläne (lesend)."""
+    """Detail-Ansicht eines Schichtplans. Kongos sehen nur veroeffentlichte Plaene (lesend)."""
     schichtplan = get_object_or_404(Schichtplan, pk=pk)
 
     if not darf_schichtplan_sehen(request.user, schichtplan):
@@ -2660,11 +2685,7 @@ def wunschperiode_loeschen(request, periode_id):
     
     return render(request, 'schichtplan/wunschperiode_loeschen_confirm.html', context)
 
-# Hilfsfunktion: Ist User ein Schichtplaner?
-def ist_schichtplaner(user):
-    """Prüft, ob User Schichtplaner-Rechte hat"""
-    # ANPASSEN: Je nach Ihrer Berechtigungslogik
-    return user.is_staff or user.groups.filter(name='Schichtplaner').exists()
+# Duplikat entfernt - ist_schichtplaner ist oben in der Datei definiert
 
 
 @login_required

@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% block title %}Antraege genehmigen{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 960px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">Antraege genehmigen</h2>
+            {% if not kein_zugang %}
+            <span class="text-muted small">
+                {{ gesamt_offen }} offen
+                {% if gesamt_offen == 0 %}&nbsp;&#10003; Alles erledigt{% endif %}
+            </span>
+            {% endif %}
+        </div>
+        <a href="{% url 'formulare:dashboard' %}" class="btn btn-outline-secondary btn-sm">Zurueck</a>
+    </div>
+
+    {% if kein_zugang %}
+    <div class="alert alert-warning">
+        Sie haben keine Genehmigungsberechtigung fuer Mitarbeiter-Antraege.
+    </div>
+
+    {% else %}
+
+    {% if gesamt_offen == 0 %}
+    <div class="alert alert-success">
+        Keine offenen Antraege vorhanden.
+    </div>
+    {% endif %}
+
+    {# ------------------------------------------------------------------ #}
+    {# Aenderungsantraege                                                  #}
+    {# ------------------------------------------------------------------ #}
+    {% if aenderungen %}
+    <div class="card mb-4">
+        <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+            Aenderungsantraege Zeiterfassung
+            <span class="badge bg-warning text-dark">{{ aenderungen.count }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mitarbeiter</th>
+                        <th>Art</th>
+                        <th>Eingereicht</th>
+                        <th>Bemerkung</th>
+                        <th class="text-end">Aktion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in aenderungen %}
+                    <tr id="aenderung-{{ a.pk }}">
+                        <td class="fw-semibold">{{ a.antragsteller }}</td>
+                        <td class="text-muted small">{{ a.get_art_display|default:"–" }}</td>
+                        <td class="text-muted small">{{ a.erstellt_am|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'formulare:aenderung_pdf' a.pk %}"
+                               class="btn btn-outline-secondary btn-sm" target="_blank">PDF</a>
+                        </td>
+                        <td class="text-end">
+                            <form hx-post="{% url 'formulare:genehmigung_entscheiden' 'aenderung' a.pk %}"
+                                  hx-target="#aenderung-{{ a.pk }}"
+                                  hx-swap="outerHTML"
+                                  class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="genehmigt">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    Genehmigen
+                                </button>
+                            </form>
+                            <button type="button"
+                                    class="btn btn-danger btn-sm ms-1"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#ablehnen-aenderung-{{ a.pk }}">
+                                Ablehnen
+                            </button>
+                            <div id="ablehnen-aenderung-{{ a.pk }}" class="collapse mt-2">
+                                <form hx-post="{% url 'formulare:genehmigung_entscheiden' 'aenderung' a.pk %}"
+                                      hx-target="#aenderung-{{ a.pk }}"
+                                      hx-swap="outerHTML">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="abgelehnt">
+                                    <textarea name="bemerkung" class="form-control form-control-sm mb-1"
+                                              rows="2" placeholder="Begruendung (optional)"></textarea>
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        Ablehnen bestaetigen
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ------------------------------------------------------------------ #}
+    {# Z-AG Antraege                                                       #}
+    {# ------------------------------------------------------------------ #}
+    {% if zag_antraege %}
+    <div class="card mb-4">
+        <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+            Z-AG Antraege
+            <span class="badge bg-warning text-dark">{{ zag_antraege.count }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mitarbeiter</th>
+                        <th>Zeitraeume</th>
+                        <th>Eingereicht</th>
+                        <th>PDF</th>
+                        <th class="text-end">Aktion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for z in zag_antraege %}
+                    <tr id="zag-{{ z.pk }}">
+                        <td class="fw-semibold">{{ z.antragsteller }}</td>
+                        <td class="text-muted small">
+                            {% for zeile in z.zag_daten %}
+                                {{ zeile.von_datum }} – {{ zeile.bis_datum }}<br>
+                            {% endfor %}
+                        </td>
+                        <td class="text-muted small">{{ z.erstellt_am|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'formulare:zag_pdf' z.pk %}"
+                               class="btn btn-outline-secondary btn-sm" target="_blank">PDF</a>
+                        </td>
+                        <td class="text-end">
+                            <form hx-post="{% url 'formulare:genehmigung_entscheiden' 'zag' z.pk %}"
+                                  hx-target="#zag-{{ z.pk }}"
+                                  hx-swap="outerHTML"
+                                  class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="genehmigt">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    Genehmigen
+                                </button>
+                            </form>
+                            <button type="button"
+                                    class="btn btn-danger btn-sm ms-1"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#ablehnen-zag-{{ z.pk }}">
+                                Ablehnen
+                            </button>
+                            <div id="ablehnen-zag-{{ z.pk }}" class="collapse mt-2">
+                                <form hx-post="{% url 'formulare:genehmigung_entscheiden' 'zag' z.pk %}"
+                                      hx-target="#zag-{{ z.pk }}"
+                                      hx-swap="outerHTML">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="abgelehnt">
+                                    <textarea name="bemerkung" class="form-control form-control-sm mb-1"
+                                              rows="2" placeholder="Begruendung (optional)"></textarea>
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        Ablehnen bestaetigen
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ------------------------------------------------------------------ #}
+    {# Z-AG Stornierungen                                                  #}
+    {# ------------------------------------------------------------------ #}
+    {% if zag_stornos %}
+    <div class="card mb-4">
+        <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+            Z-AG Stornierungen
+            <span class="badge bg-warning text-dark">{{ zag_stornos.count }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mitarbeiter</th>
+                        <th>Zeitraeume</th>
+                        <th>Eingereicht</th>
+                        <th>PDF</th>
+                        <th class="text-end">Aktion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in zag_stornos %}
+                    <tr id="zag-storno-{{ s.pk }}">
+                        <td class="fw-semibold">{{ s.antragsteller }}</td>
+                        <td class="text-muted small">
+                            {% for zeile in s.storno_daten %}
+                                {{ zeile.von_datum }} – {{ zeile.bis_datum }}<br>
+                            {% endfor %}
+                        </td>
+                        <td class="text-muted small">{{ s.erstellt_am|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'formulare:zag_storno_pdf' s.pk %}"
+                               class="btn btn-outline-secondary btn-sm" target="_blank">PDF</a>
+                        </td>
+                        <td class="text-end">
+                            <form hx-post="{% url 'formulare:genehmigung_entscheiden' 'zag_storno' s.pk %}"
+                                  hx-target="#zag-storno-{{ s.pk }}"
+                                  hx-swap="outerHTML"
+                                  class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="genehmigt">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    Genehmigen
+                                </button>
+                            </form>
+                            <button type="button"
+                                    class="btn btn-danger btn-sm ms-1"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#ablehnen-zags-{{ s.pk }}">
+                                Ablehnen
+                            </button>
+                            <div id="ablehnen-zags-{{ s.pk }}" class="collapse mt-2">
+                                <form hx-post="{% url 'formulare:genehmigung_entscheiden' 'zag_storno' s.pk %}"
+                                      hx-target="#zag-storno-{{ s.pk }}"
+                                      hx-swap="outerHTML">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="abgelehnt">
+                                    <textarea name="bemerkung" class="form-control form-control-sm mb-1"
+                                              rows="2" placeholder="Begruendung (optional)"></textarea>
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        Ablehnen bestaetigen
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ------------------------------------------------------------------ #}
+    {# Historie (zuletzt erledigt)                                         #}
+    {# ------------------------------------------------------------------ #}
+    {% with alle_erledigt=aenderungen_erledigt|length|add:zag_erledigt|length|add:zag_storno_erledigt|length %}
+    {% if alle_erledigt %}
+    <div class="card mb-4">
+        <div class="card-header fw-bold text-muted">
+            Zuletzt erledigt
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mitarbeiter</th>
+                        <th>Typ</th>
+                        <th>Entschieden am</th>
+                        <th>Von</th>
+                        <th>Status</th>
+                        <th>Bemerkung</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in aenderungen_erledigt %}
+                    <tr>
+                        <td>{{ a.antragsteller }}</td>
+                        <td class="text-muted small">Aenderung</td>
+                        <td class="text-muted small">{{ a.bearbeitet_am|date:"d.m.Y H:i"|default:"–" }}</td>
+                        <td class="text-muted small">{{ a.bearbeitet_von.get_full_name|default:a.bearbeitet_von }}</td>
+                        <td>
+                            <span class="badge {% if a.status == 'genehmigt' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ a.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="text-muted small">{{ a.bemerkung_bearbeiter|default:"–" }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% for z in zag_erledigt %}
+                    <tr>
+                        <td>{{ z.antragsteller }}</td>
+                        <td class="text-muted small">Z-AG</td>
+                        <td class="text-muted small">{{ z.bearbeitet_am|date:"d.m.Y H:i"|default:"–" }}</td>
+                        <td class="text-muted small">{{ z.bearbeitet_von.get_full_name|default:z.bearbeitet_von }}</td>
+                        <td>
+                            <span class="badge {% if z.status == 'genehmigt' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ z.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="text-muted small">{{ z.bemerkung_bearbeiter|default:"–" }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% for s in zag_storno_erledigt %}
+                    <tr>
+                        <td>{{ s.antragsteller }}</td>
+                        <td class="text-muted small">Z-AG Storno</td>
+                        <td class="text-muted small">{{ s.bearbeitet_am|date:"d.m.Y H:i"|default:"–" }}</td>
+                        <td class="text-muted small">{{ s.bearbeitet_von.get_full_name|default:s.bearbeitet_von }}</td>
+                        <td>
+                            <span class="badge {% if s.status == 'genehmigt' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ s.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="text-muted small">{{ s.bemerkung_bearbeiter|default:"–" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% endif %}{# end if kein_zugang #}
+
+</div>
+{% endblock %}

@@ -14,4 +14,6 @@ urlpatterns = [
     path('', include('arbeitszeit.urls')),
     path('schichtplan/', include('schichtplan.urls')),
     path('formulare/', include('formulare.urls')),
+    path('berechtigungen/', include('berechtigungen.urls')),
+    path('hr/', include('hr.urls')),
 ]

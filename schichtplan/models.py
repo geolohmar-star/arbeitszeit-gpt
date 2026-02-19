@@ -90,6 +90,9 @@ class Schichtplan(models.Model):
         verbose_name = "Schichtplan"
         verbose_name_plural = "Schichtpläne"
         ordering = ['-start_datum']
+        permissions = [
+            ("schichtplan_zugang", "Kann die Schichtplanung aufrufen"),
+        ]
     
     def __str__(self):
         return f"{self.name} ({self.start_datum} - {self.ende_datum})"

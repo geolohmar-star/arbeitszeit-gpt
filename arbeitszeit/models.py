@@ -416,7 +416,19 @@ class Mitarbeiter(models.Model):
     )
     eintrittsdatum = models.DateField(null=True, blank=True)
     aktiv = models.BooleanField(default=True)
-    
+
+    # Vorgesetzter (Uebergangsfeld bis zur HR-Migration)
+    # Sobald arbeitszeit.Mitarbeiter in hr.HRMitarbeiter migriert wird,
+    # kann dieses Feld entfernt werden.
+    vorgesetzter = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="direkte_berichte",
+        verbose_name="Vorgesetzter/Vorgesetzte",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     # === SCHICHTPLAN-PRÄFERENZEN ===
@@ -627,6 +639,11 @@ class Mitarbeiter(models.Model):
         verbose_name = "Mitarbeiter"
         verbose_name_plural = "Mitarbeiter"
         ordering = ['nachname', 'vorname']
+        permissions = [
+            ("view_zeiterfassung", "Kann Zeiterfassung einsehen"),
+            ("genehmigen_antraege", "Kann Antraege genehmigen/ablehnen"),
+            ("view_stammdaten", "Kann Stammdaten einsehen"),
+        ]
     
     def __str__(self):
         return f"{self.nachname}, {self.vorname} ({self.personalnummer})"

@@ -1,0 +1,14 @@
+<tr class="table-{% if antrag.status == 'genehmigt' %}success{% else %}danger{% endif %} opacity-75">
+    <td colspan="5">
+        <span class="fw-semibold">{{ antrag.antragsteller }}</span>
+        &mdash;
+        {% if antrag.status == 'genehmigt' %}
+            <span class="text-success">Genehmigt</span>
+        {% else %}
+            <span class="text-danger">Abgelehnt</span>
+        {% endif %}
+        {% if antrag.bemerkung_bearbeiter %}
+            <span class="text-muted small ms-2">„{{ antrag.bemerkung_bearbeiter }}"</span>
+        {% endif %}
+    </td>
+</tr>

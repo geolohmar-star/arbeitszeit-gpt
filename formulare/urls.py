@@ -106,4 +106,15 @@ urlpatterns = [
         views.zag_storno_tage_zaehlen,
         name="zag_storno_tage_zaehlen",
     ),
+    # Genehmigungsworkflow
+    path(
+        "genehmigung/",
+        views.genehmigung_uebersicht,
+        name="genehmigung_uebersicht",
+    ),
+    path(
+        "genehmigung/<str:antrag_typ>/<int:pk>/entscheiden/",
+        views.genehmigung_entscheiden,
+        name="genehmigung_entscheiden",
+    ),
 ]

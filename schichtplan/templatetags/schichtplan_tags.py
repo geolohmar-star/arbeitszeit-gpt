@@ -18,6 +18,6 @@ def ist_schichtplaner_filter(user):
         ...
     {% endif %}
     """
-    # Importiere die bestehende Funktion aus views.py
-    from schichtplan.views import ist_schichtplaner
-    return ist_schichtplaner(user)
+    # Prueft die schichtplan_zugang Permission (nicht mehr nur Gruppe/is_staff)
+    from schichtplan.views import hat_schichtplan_zugang
+    return hat_schichtplan_zugang(user)

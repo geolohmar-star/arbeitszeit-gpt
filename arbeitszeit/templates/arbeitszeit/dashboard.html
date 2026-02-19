@@ -327,8 +327,17 @@
                 {% if is_admin %}
                     <a href="{% url 'arbeitszeit:admin_dashboard' %}">Verwaltung</a>
                 {% endif %}
+                {% if hat_genehmiger_rolle %}
+                    <a href="{% url 'formulare:genehmigung_uebersicht' %}">Genehmigungen</a>
+                {% endif %}
+                <a href="{% url 'hr:organigramm' %}">Organigramm</a>
                 {% if user.is_staff %}
+                    <a href="{% url 'berechtigungen:uebersicht' %}">Rechtevergabe</a>
+                {% endif %}
+                {% if hat_schichtplan_zugang %}
                     <a href="{% url 'schichtplan:dashboard' %}">Schichtplanung</a>
+                {% endif %}
+                {% if user.is_staff %}
                     <a href="{% url 'admin:index' %}" target="_blank">Admin</a>
                 {% endif %}
                 

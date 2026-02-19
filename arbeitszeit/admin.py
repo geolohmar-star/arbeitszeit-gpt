@@ -138,7 +138,8 @@ class MitarbeiterAdmin(admin.ModelAdmin):
         ('Basisdaten', {
             'fields': (
                 'user', 'personalnummer', 'vorname', 'nachname',
-                'telefon', 'abteilung', 'standort', 'rolle', 'eintrittsdatum', 'aktiv'
+                'telefon', 'abteilung', 'standort', 'rolle',
+                'vorgesetzter', 'eintrittsdatum', 'aktiv'
             )
         }),
         ('Schichtplan-Zuordnung', {

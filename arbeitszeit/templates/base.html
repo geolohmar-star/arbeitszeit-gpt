@@ -116,9 +116,32 @@
                     {% endif %}
                     <!-- ============================================ -->
                     
-                    <!-- Schichtplanung (nur für Schichtplaner) -->
+                    <!-- Genehmigungen (nur fuer Genehmiger) -->
+                    {% if hat_genehmiger_rolle %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'formulare:genehmigung_uebersicht' %}">
+                            Genehmigungen
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Organigramm (fuer alle eingeloggten User) -->
                     {% if user.is_authenticated %}
-                        {% if user|ist_schichtplaner %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'hr:organigramm' %}">Organigramm</a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Rechtevergabe (nur Staff/Admin) -->
+                    {% if user.is_staff %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'berechtigungen:uebersicht' %}">Rechtevergabe</a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Schichtplanung (nur fuer User mit schichtplan_zugang Permission) -->
+                    {% if user.is_authenticated %}
+                        {% if hat_schichtplan_zugang %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'schichtplan:dashboard' %}">Schichtplanung</a>
                         </li>

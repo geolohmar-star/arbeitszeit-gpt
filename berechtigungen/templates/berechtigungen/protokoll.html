@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Berechtigungsprotokoll{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 1000px;">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'berechtigungen:uebersicht' %}">Berechtigungsverwaltung</a>
+            </li>
+            <li class="breadcrumb-item active">Audit-Protokoll</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Audit-Protokoll</h2>
+        <span class="text-muted small">{{ eintraege|length }} Einträge (max. 200)</span>
+    </div>
+
+    <!-- Filter -->
+    <form method="get" class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold small">Mitarbeiter</label>
+                    <select name="mitarbeiter" class="form-select form-select-sm">
+                        <option value="">Alle</option>
+                        {% for ma in mitarbeiter_liste %}
+                        <option value="{{ ma.pk }}" {% if ma_filter == ma.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ ma.vollname }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold small">Aktion</label>
+                    <select name="aktion" class="form-select form-select-sm">
+                        <option value="">Alle</option>
+                        <option value="vergeben" {% if aktion_filter == "vergeben" %}selected{% endif %}>Vergeben</option>
+                        <option value="entzogen" {% if aktion_filter == "entzogen" %}selected{% endif %}>Entzogen</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm">Filtern</button>
+                    <a href="{% url 'berechtigungen:protokoll' %}" class="btn btn-outline-secondary btn-sm">
+                        Zurücksetzen
+                    </a>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Protokolltabelle -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Zeitpunkt</th>
+                        <th>Aktion</th>
+                        <th>Berechtigung</th>
+                        <th>Betroffener MA</th>
+                        <th>Berechtigter Nutzer</th>
+                        <th>Durchgeführt von</th>
+                        <th>Bemerkung</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eintrag in eintraege %}
+                    <tr>
+                        <td class="ps-3 text-muted small align-middle">
+                            {{ eintrag.zeitpunkt|date:"d.m.Y H:i" }}
+                        </td>
+                        <td class="align-middle">
+                            {% if eintrag.aktion == "vergeben" %}
+                                <span class="badge bg-success">Vergeben</span>
+                            {% else %}
+                                <span class="badge bg-danger">Entzogen</span>
+                            {% endif %}
+                        </td>
+                        <td class="align-middle small">
+                            {% for codename, label in verfuegbare_permissions %}
+                                {% if codename == eintrag.permission_codename %}
+                                    {{ label }}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td class="align-middle small">
+                            {{ eintrag.ziel_mitarbeiter.vollname }}
+                        </td>
+                        <td class="align-middle small">
+                            {{ eintrag.berechtigter_user.get_full_name|default:eintrag.berechtigter_user.username|default:"–" }}
+                        </td>
+                        <td class="align-middle small">
+                            {{ eintrag.durchgefuehrt_von.get_full_name|default:eintrag.durchgefuehrt_von.username|default:"–" }}
+                        </td>
+                        <td class="align-middle small text-muted">
+                            {{ eintrag.bemerkung|default:"–" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            Keine Protokolleinträge vorhanden.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
