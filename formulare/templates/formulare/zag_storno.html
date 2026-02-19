@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Z-AG Stornierung{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 780px;">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'formulare:dashboard' %}">Formulare</a>
+            </li>
+            <li class="breadcrumb-item active">Z-AG Stornierung</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-start mb-1">
+        <h2 class="mb-0">Z-AG Stornierung</h2>
+        {% if z_ag_tage_jahr is not None %}
+        <div class="text-end">
+            <span class="badge bg-secondary fs-6 fw-normal">
+                {{ z_ag_tage_jahr }} Z-AG-Tag{{ z_ag_tage_jahr|pluralize:"e" }} in {{ z_ag_jahr }}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+    <p class="text-muted mb-4">
+        Z-AG-Einträge für einen oder mehrere Zeiträume stornieren.
+        Die Einträge werden sofort aus der Zeiterfassung entfernt.
+    </p>
+
+    <div class="alert alert-warning border mb-4 small">
+        <strong>Hinweis:</strong> Die Stornierung löscht die Z-AG-Einträge sofort aus der Zeiterfassung.
+        Im Zähler oben rechts sehen Sie den aktuellen Stand vor der Stornierung.
+    </div>
+
+    <!-- Zukuenftige Z-AG-Eintraege des laufenden Jahres -->
+    {% if zag_zukunft %}
+    <div class="card mb-4">
+        <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+            Gebuchte Z-AG-Tage (ab heute, {{ z_ag_jahr }})
+            <span class="badge bg-secondary fw-normal">{{ zag_zukunft|length }} Tag{{ zag_zukunft|length|pluralize:"e" }}</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3" style="width:150px">Datum</th>
+                        <th>Wochentag</th>
+                        <th class="text-muted">Bemerkung</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eintrag in zag_zukunft %}
+                    <tr>
+                        <td class="ps-3">{{ eintrag.datum|date:"d.m.Y" }}</td>
+                        <td>{{ eintrag.datum|date:"l" }}</td>
+                        <td class="text-muted small">{{ eintrag.bemerkung|default:"–" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="px-3 py-2 border-top text-muted small">
+                Diese Liste zeigt nur Einträge des laufenden Jahres ({{ z_ag_jahr }}).
+                Zum 1. Januar wird sie automatisch für das neue Jahr zurückgesetzt.
+            </div>
+        </div>
+    </div>
+    {% elif zag_zukunft is not None %}
+    <div class="alert alert-light border mb-4 small">
+        <span class="text-muted">
+            Keine zukünftigen Z-AG-Einträge in {{ z_ag_jahr }} vorhanden. &mdash;
+            Die Liste wird jeweils zum 1. Januar für das neue Jahr zurückgesetzt.
+        </span>
+    </div>
+    {% endif %}
+
+    {% if fehler %}
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            {% for f in fehler %}
+            <li>{{ f }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="card mb-3">
+            <div class="card-header fw-bold">Zu stornierende Zeiträume</div>
+            <div class="card-body">
+
+                <div id="storno-zeilen-container">
+                    {% if storno_raws %}
+                        {% for zeile in storno_raws %}
+                        <div class="zag-storno-zeile border rounded p-3 mb-2">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-5">
+                                    <label class="form-label fw-semibold">Von Datum</label>
+                                    <input type="date"
+                                           name="storno_von_datum"
+                                           class="form-control"
+                                           value="{{ zeile.von }}"
+                                           hx-get="{% url 'formulare:zag_storno_tage_zaehlen' %}"
+                                           hx-trigger="change"
+                                           hx-target="#storno-tage-{{ zeile.row_id }}"
+                                           hx-swap="innerHTML"
+                                           hx-include="closest .zag-storno-zeile">
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label fw-semibold">Bis Datum</label>
+                                    <input type="date"
+                                           name="storno_bis_datum"
+                                           class="form-control"
+                                           value="{{ zeile.bis }}"
+                                           hx-get="{% url 'formulare:zag_storno_tage_zaehlen' %}"
+                                           hx-trigger="change"
+                                           hx-target="#storno-tage-{{ zeile.row_id }}"
+                                           hx-swap="innerHTML"
+                                           hx-include="closest .zag-storno-zeile">
+                                </div>
+                                <div class="col-3 d-flex flex-column align-items-end gap-1">
+                                    <span id="storno-tage-{{ zeile.row_id }}" class="text-muted small"></span>
+                                    <button type="button"
+                                            class="btn btn-outline-danger btn-sm"
+                                            onclick="this.closest('.zag-storno-zeile').remove()">
+                                        &times; Entfernen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        {% include "formulare/partials/_zag_storno_zeile.html" with row_id=first_row_id %}
+                    {% endif %}
+                </div>
+
+                <button type="button"
+                        class="btn btn-outline-secondary btn-sm mt-2"
+                        hx-get="{% url 'formulare:neue_zag_storno_zeile' %}"
+                        hx-target="#storno-zeilen-container"
+                        hx-swap="beforeend">
+                    + Weiterer Zeitraum
+                </button>
+
+                <p class="text-muted small mt-3 mb-0">
+                    Es werden nur tatsächlich vorhandene Z-AG-Einträge gelöscht.
+                </p>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger">Stornierung einreichen</button>
+            <a href="{% url 'formulare:zag_antrag' %}" class="btn btn-secondary">Abbrechen</a>
+        </div>
+
+    </form>
+
+</div>
+{% endblock %}

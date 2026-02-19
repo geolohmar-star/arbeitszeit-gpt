@@ -953,6 +953,30 @@ class Wochenbericht(models.Model):
         )
 
 
+class Monatsbericht(models.Model):
+    """Trackt ob ein PDF-Monatsbericht erstellt wurde."""
+    erstellt_am = models.DateTimeField(auto_now=True)
+    jahr = models.IntegerField(verbose_name="Jahr")
+    monat = models.IntegerField(verbose_name="Monat")
+    mitarbeiter = models.ForeignKey(
+        "Mitarbeiter",
+        on_delete=models.CASCADE,
+        related_name="monatsberichte",
+    )
+
+    class Meta:
+        ordering = ["-jahr", "-monat"]
+        unique_together = ["mitarbeiter", "jahr", "monat"]
+        verbose_name = "Monatsbericht"
+        verbose_name_plural = "Monatsberichte"
+
+    def __str__(self):
+        return (
+            f"{self.mitarbeiter.vollname}"
+            f" - {self.monat:02d}/{self.jahr}"
+        )
+
+
 class SaldoKorrektur(models.Model):
     """Manuelle Saldoanpassung (Vortrag, Kappung etc.)."""
 

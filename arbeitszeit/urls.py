@@ -18,6 +18,7 @@ urlpatterns = [
     path('zeiterfassung/', views.zeiterfassung_uebersicht, name='zeiterfassung_uebersicht'),
     path('zeiterfassung/wochenbericht/', views.wochenbericht_pdf, name='wochenbericht_pdf'),
     path('zeiterfassung/wochenbericht-csv/', views.wochenbericht_csv, name='wochenbericht_csv'),
+    path('zeiterfassung/monatsbericht/', views.monatsbericht_pdf, name='monatsbericht_pdf'),
     path('zeiterfassung/monatsbericht-csv/', views.monatsbericht_csv, name='monatsbericht_csv'),
     path('zeiterfassung/<int:pk>/loeschen/', views.zeiterfassung_loeschen, name='zeiterfassung_loeschen'),
     path('zeiterfassung/saldo/', views.saldo_korrektur, name='saldo_korrektur'),

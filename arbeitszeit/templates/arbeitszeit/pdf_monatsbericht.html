@@ -1,0 +1,218 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11pt;
+            color: #333;
+        }
+
+        h1 {
+            color: #1a4d2e;
+            text-align: center;
+            font-size: 18pt;
+            margin-bottom: 0.5cm;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 12pt;
+            color: #555;
+            margin-bottom: 1cm;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.5cm 0;
+        }
+
+        th, td {
+            padding: 6px 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #1a4d2e;
+            color: white;
+            font-weight: bold;
+            font-size: 9pt;
+        }
+
+        .row-feiertag {
+            background-color: #fff0f0;
+        }
+
+        .row-feiertag td {
+            color: #a94442;
+        }
+
+        .feiertag-label {
+            font-size: 7pt;
+            color: #a94442;
+            font-weight: bold;
+            display: block;
+        }
+
+        .hint-label {
+            font-size: 7pt;
+            display: block;
+        }
+
+        .hint-hybrid {
+            color: #6c3483;
+        }
+
+        .hint-buero {
+            color: #7d6608;
+        }
+
+        .differenz-positiv {
+            color: #155724;
+            font-weight: bold;
+        }
+
+        .differenz-negativ {
+            color: #721c24;
+            font-weight: bold;
+        }
+
+        tfoot td {
+            font-weight: bold;
+            border-top: 2px solid #1a4d2e;
+            background-color: #E8F5E9;
+        }
+
+        .footer {
+            margin-top: 1.5cm;
+            font-size: 9pt;
+            color: #888;
+            text-align: right;
+        }
+
+        .art-z_ag { color: #383d41; font-style: italic; }
+        .art-urlaub { color: #856404; }
+        .art-krank { color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Monatsbericht</h1>
+    <p class="subtitle">
+        {{ mitarbeiter.vollname }} ({{ mitarbeiter.personalnummer }})
+    </p>
+
+    <table class="info-table" style="margin-bottom: 1cm; border: none;">
+        <tr style="border: none;">
+            <td style="border: none; background: #E8F5E9; font-weight: bold; width: 25%;">Monat</td>
+            <td style="border: none;">{{ monatsname }} {{ jahr }}</td>
+            <td style="border: none; background: #E8F5E9; font-weight: bold; width: 20%;">Standort</td>
+            <td style="border: none;">{{ mitarbeiter.get_standort_display }}</td>
+        </tr>
+        <tr style="border: none;">
+            <td style="border: none; background: #E8F5E9; font-weight: bold;">Abteilung</td>
+            <td style="border: none;">{{ mitarbeiter.abteilung }}</td>
+            <td style="border: none; background: #E8F5E9; font-weight: bold;">Personalnr.</td>
+            <td style="border: none;">{{ mitarbeiter.personalnummer }}</td>
+        </tr>
+    </table>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Von</th>
+                <th>Bis</th>
+                <th>Pause</th>
+                <th>Soll</th>
+                <th>Ist</th>
+                <th>Differenz</th>
+                <th>Art</th>
+                <th>Bemerkung</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for erfassung in erfassungen %}
+                {% with feiertage_monat|get_item:erfassung.datum as ft_name %}
+                <tr class="{% if ft_name %}row-feiertag{% endif %}">
+                    <td>
+                        {{ erfassung.datum|date:"d.m.Y" }}
+                        {% if ft_name %}
+                            <span class="feiertag-label">{{ ft_name }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if erfassung.arbeitsbeginn %}
+                            {{ erfassung.arbeitsbeginn|time:"H:i" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if erfassung.arbeitsende %}
+                            {{ erfassung.arbeitsende|time:"H:i" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ erfassung.pause_minuten }} min</td>
+                    <td>{{ erfassung.soll_formatiert_pdf|default:"-" }}</td>
+                    <td>
+                        <strong>{{ erfassung.arbeitszeit_formatiert }}</strong>
+                        {% if erfassung.art == 'hybrid' %}
+                            <span class="hint-label hint-hybrid">Brutto HO</span>
+                        {% elif erfassung.art == 'buero' %}
+                            <span class="hint-label hint-buero">Notiz</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if erfassung.art == 'hybrid' or erfassung.art == 'buero' %}
+                            -
+                        {% elif erfassung.differenz_minuten != None %}
+                            <span class="{% if erfassung.differenz_minuten >= 0 %}differenz-positiv{% else %}differenz-negativ{% endif %}">
+                                {{ erfassung.differenz_formatiert }}
+                            </span>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="art-{{ erfassung.art }}">{{ erfassung.get_art_display }}</td>
+                    <td style="font-size: 9pt; color: #555;">{{ erfassung.bemerkung|default:"" }}</td>
+                </tr>
+                {% endwith %}
+            {% empty %}
+                <tr>
+                    <td colspan="9" style="text-align: center; color: #888; font-style: italic;">
+                        Keine Zeiterfassungen in diesem Monat.
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="4">Summe {{ monatsname }} {{ jahr }}</td>
+                <td>{{ gesamt_soll }}</td>
+                <td>{{ gesamt_arbeitszeit }}</td>
+                <td>
+                    <span class="{% if gesamt_differenz >= 0 %}differenz-positiv{% else %}differenz-negativ{% endif %}">
+                        {{ gesamt_differenz_formatiert }}
+                    </span>
+                </td>
+                <td colspan="2"></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="footer">
+        Erstellt am {{ druckdatum|date:"d.m.Y" }} um {{ druckdatum|time:"H:i" }} Uhr
+    </div>
+</body>
+</html>

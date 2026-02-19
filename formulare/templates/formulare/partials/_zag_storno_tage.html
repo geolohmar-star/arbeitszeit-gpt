@@ -1,0 +1,7 @@
+{% if tage_anzahl is not None %}
+    {% if tage_anzahl == 0 %}
+        <small class="text-warning fw-semibold">Keine Z-AG-Einträge vorhanden</small>
+    {% else %}
+        <strong class="text-danger">{{ tage_anzahl }} Z-AG-Tag{{ tage_anzahl|pluralize:"e" }} werden storniert</strong>
+    {% endif %}
+{% endif %}

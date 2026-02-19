@@ -30,6 +30,7 @@ from .models import (
     Zeiterfassung,
     Urlaubsanspruch,
     Wochenbericht,
+    Monatsbericht,
     SaldoKorrektur,
 )
 from .forms import RegisterForm
@@ -1029,25 +1030,24 @@ def zeiterfassung_erstellen(request):
                 f"&kw={iso[1]}&jahr={iso[0]}"
             )
 
-        elif art in ("krank", "z_ag"):
-            # Krank / Z-AG: keine Zeitfelder
+        elif art == "z_ag":
+            # Z-AG: Antrag ueber das Formulare-Modul stellen,
+            # Datum als Vorausfuellung uebergeben
+            return redirect(
+                f"/formulare/zag-antrag/?von={datum_obj.isoformat()}"
+            )
+
+        elif art == "krank":
+            # Krank: Soll wird gutgeschrieben, kein Abzug
             defaults = {
-                "art": art,
+                "art": "krank",
                 "arbeitsbeginn": None,
                 "arbeitsende": None,
                 "pause_minuten": 0,
                 "soll_minuten": soll_minuten,
                 "bemerkung": bemerkung,
+                "arbeitszeit_minuten": soll_minuten if soll_minuten else 0,
             }
-            if art == "z_ag":
-                # Z-AG: keine Arbeitszeit, Differenz ergibt -Soll
-                defaults["arbeitszeit_minuten"] = 0
-            elif art == "krank":
-                # Krank: Soll wird gutgeschrieben, kein Abzug
-                defaults["arbeitszeit_minuten"] = (
-                    soll_minuten if soll_minuten else 0
-                )
-
             Zeiterfassung.objects.update_or_create(
                 mitarbeiter=mitarbeiter,
                 datum=datum_obj,
@@ -1178,6 +1178,37 @@ def _minuten_dezimal(minuten):
     return f"{vz}{dezimal:.2f}".replace(".", ",")
 
 
+def _baue_zag_status_map(mitarbeiter):
+    """Baut eine Map {datum: status} fuer alle Z-AG-Eintraege des Mitarbeiters.
+
+    Liest alle ZAGAntraege des Mitarbeiters und leitet daraus ab,
+    welchen Genehmigungsstatus (beantragt/genehmigt/abgelehnt) jeder
+    einzelne Z-AG-Tag hat. Neuere Antraege ueberschreiben aeltere.
+    """
+    from formulare.models import ZAGAntrag
+    from datetime import date as date_type, timedelta
+
+    status_map = {}
+    antraege = ZAGAntrag.objects.filter(
+        antragsteller=mitarbeiter
+    ).order_by("erstellt_am")
+
+    for antrag in antraege:
+        zag_daten = antrag.zag_daten or []
+        for zeile in zag_daten:
+            try:
+                von = date_type.fromisoformat(zeile["von_datum"])
+                bis = date_type.fromisoformat(zeile["bis_datum"])
+            except (KeyError, ValueError, TypeError):
+                continue
+            aktuell = von
+            while aktuell <= bis:
+                status_map[aktuell] = antrag.status
+                aktuell += timedelta(days=1)
+
+    return status_map
+
+
 @login_required
 def zeiterfassung_uebersicht(request):
     try:
@@ -1231,6 +1262,9 @@ def zeiterfassung_uebersicht(request):
         WOCHENTAGE = [
             "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So",
         ]
+        # Z-AG Genehmigungsstatus fuer Farbkodierung
+        zag_status_map = _baue_zag_status_map(mitarbeiter)
+
         wochen_tage = []
         gesamt_soll = 0
         for i in range(7):
@@ -1261,6 +1295,7 @@ def zeiterfassung_uebersicht(request):
                 "erfassung": erfassung,
                 "soll_minuten": soll,
                 "soll_formatiert": soll_fmt,
+                "zag_status": zag_status_map.get(tag_datum),
             })
 
         # Summen (Urlaub wird nicht mitgerechnet)
@@ -1393,6 +1428,18 @@ def zeiterfassung_uebersicht(request):
             if e.differenz_minuten is not None
         )
 
+        # Z-AG Genehmigungsstatus fuer Farbkodierung
+        zag_status_map = _baue_zag_status_map(mitarbeiter)
+        erfassungen = list(erfassungen)
+        for e in erfassungen:
+            if e.art == "z_ag":
+                e.zag_status = zag_status_map.get(e.datum)
+
+        # Monatsbericht-Status abfragen
+        monatsbericht = Monatsbericht.objects.filter(
+            mitarbeiter=mitarbeiter, jahr=jahr, monat=monat,
+        ).first()
+
         context = {
             "mitarbeiter": mitarbeiter,
             "ansicht": "monat",
@@ -1407,6 +1454,7 @@ def zeiterfassung_uebersicht(request):
             "gesamt_differenz_formatiert": (
                 _minuten_formatiert(gesamt_differenz)
             ),
+            "monatsbericht": monatsbericht,
         }
 
     # Jahres-Zaehler fuer Urlaub und Z-AG
@@ -1673,6 +1721,114 @@ def wochenbericht_pdf(request):
     filename = (
         f"Wochenbericht_{mitarbeiter.nachname}"
         f"_KW{kw}_{jahr}.pdf"
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="{filename}"'
+    )
+    return response
+
+
+@login_required
+def monatsbericht_pdf(request):
+    """Generiert einen PDF-Monatsbericht fuer den angegebenen Monat."""
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except Mitarbeiter.DoesNotExist:
+        return redirect("arbeitszeit:dashboard")
+
+    import calendar as cal_mod
+    import datetime as dt_mod
+    from weasyprint import HTML
+    from .models import get_feiertagskalender, feiertag_name_deutsch
+
+    heute = timezone.now().date()
+    jahr = int(request.GET.get("jahr", heute.year))
+    monat = int(request.GET.get("monat", heute.month))
+
+    # Feiertagskalender
+    cal = get_feiertagskalender(mitarbeiter.standort)
+
+    # Erfassungen des Monats laden
+    erfassungen_qs = mitarbeiter.zeiterfassungen.filter(
+        datum__year=jahr, datum__month=monat,
+    ).order_by("datum")
+
+    # Feiertage des Monats
+    _, letzter_tag = cal_mod.monthrange(jahr, monat)
+    feiertage_monat = {}
+    for tag_nr in range(1, letzter_tag + 1):
+        d = dt_mod.date(jahr, monat, tag_nr)
+        if cal.is_holiday(d):
+            feiertage_monat[d] = feiertag_name_deutsch(cal, d)
+
+    # Soll pro erfasstem Tag berechnen
+    erfassungen = list(erfassungen_qs)
+    gesamt_soll = 0
+    for e in erfassungen:
+        soll = _soll_minuten_aus_vereinbarung(mitarbeiter, e.datum)
+        e.soll_minuten_pdf = soll
+        e.soll_formatiert_pdf = (
+            f"{soll // 60}:{soll % 60:02d}h" if soll else ""
+        )
+        if soll:
+            gesamt_soll += soll
+
+    # Summen (Urlaub wird nicht mitgerechnet)
+    erfassungen_ohne_urlaub = [
+        e for e in erfassungen if e.art != "urlaub"
+    ]
+    gesamt_minuten = sum(
+        e.arbeitszeit_minuten or 0 for e in erfassungen_ohne_urlaub
+    )
+    gesamt_differenz = sum(
+        e.differenz_minuten for e in erfassungen_ohne_urlaub
+        if e.differenz_minuten is not None
+    )
+
+    # Monatsname fuer das PDF
+    MONATE = [
+        "", "Januar", "Februar", "März", "April", "Mai", "Juni",
+        "Juli", "August", "September", "Oktober", "November", "Dezember",
+    ]
+
+    druckdatum = timezone.now()
+
+    context = {
+        "mitarbeiter": mitarbeiter,
+        "jahr": jahr,
+        "monat": monat,
+        "monatsname": MONATE[monat],
+        "erfassungen": erfassungen,
+        "feiertage_monat": feiertage_monat,
+        "gesamt_arbeitszeit": zeitwert_to_str(gesamt_minuten) + "h",
+        "gesamt_soll": zeitwert_to_str(gesamt_soll) + "h",
+        "gesamt_differenz": gesamt_differenz,
+        "gesamt_differenz_formatiert": _minuten_formatiert(
+            gesamt_differenz
+        ),
+        "druckdatum": druckdatum,
+    }
+
+    html_string = render_to_string(
+        "arbeitszeit/pdf_monatsbericht.html", context
+    )
+    html = HTML(
+        string=html_string,
+        base_url=request.build_absolute_uri("/"),
+    )
+    pdf = html.write_pdf()
+
+    # Druckstatus tracken
+    Monatsbericht.objects.update_or_create(
+        mitarbeiter=mitarbeiter,
+        jahr=jahr,
+        monat=monat,
+    )
+
+    response = HttpResponse(pdf, content_type="application/pdf")
+    filename = (
+        f"Monatsbericht_{mitarbeiter.nachname}"
+        f"_{monat:02d}_{jahr}.pdf"
     )
     response["Content-Disposition"] = (
         f'attachment; filename="{filename}"'

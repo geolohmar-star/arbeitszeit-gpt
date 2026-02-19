@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Z-AG Antrag{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 780px;">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'formulare:dashboard' %}">Formulare</a>
+            </li>
+            <li class="breadcrumb-item active">Z-AG Antrag</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-start mb-1">
+        <h2 class="mb-0">Z-AG Antrag</h2>
+        {% if z_ag_tage_jahr is not None %}
+        <div class="text-end">
+            <span class="badge bg-secondary fs-6 fw-normal">
+                {{ z_ag_tage_jahr }} Z-AG-Tag{{ z_ag_tage_jahr|pluralize:"e" }} in {{ z_ag_jahr }}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+    <p class="text-muted mb-4">
+        Zeitausgleich (Z-AG) für einen oder mehrere Zeiträume beantragen.
+        Die Einträge werden sofort in die Zeiterfassung übernommen.
+    </p>
+
+    {% if fehler %}
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            {% for f in fehler %}
+            <li>{{ f }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- Datumsbereich-Zeilen -->
+        <div class="card mb-3">
+            <div class="card-header fw-bold">Zeitraum(e)</div>
+            <div class="card-body">
+
+                <div id="zag-zeilen-container">
+                    {% if zag_raws %}
+                        {% for zeile in zag_raws %}
+                        <div class="zag-zeile border rounded p-3 mb-2">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-5">
+                                    <label class="form-label fw-semibold">Von Datum</label>
+                                    <input type="date"
+                                           name="zag_von_datum"
+                                           class="form-control"
+                                           value="{{ zeile.von }}"
+                                           hx-get="{% url 'formulare:zag_tage_zaehlen' %}"
+                                           hx-trigger="change"
+                                           hx-target="#zag-tage-{{ zeile.row_id }}"
+                                           hx-swap="innerHTML"
+                                           hx-include="closest .zag-zeile">
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label fw-semibold">Bis Datum</label>
+                                    <input type="date"
+                                           name="zag_bis_datum"
+                                           class="form-control"
+                                           value="{{ zeile.bis }}"
+                                           hx-get="{% url 'formulare:zag_tage_zaehlen' %}"
+                                           hx-trigger="change"
+                                           hx-target="#zag-tage-{{ zeile.row_id }}"
+                                           hx-swap="innerHTML"
+                                           hx-include="closest .zag-zeile">
+                                </div>
+                                <div class="col-3 d-flex flex-column align-items-end gap-1">
+                                    <span id="zag-tage-{{ zeile.row_id }}" class="text-muted small"></span>
+                                    <button type="button"
+                                            class="btn btn-outline-danger btn-sm"
+                                            onclick="this.closest('.zag-zeile').remove()">
+                                        &times; Entfernen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        {% include "formulare/partials/_zag_zeile.html" with row_id=first_row_id von_datum=first_von %}
+                    {% endif %}
+                </div>
+
+                <button type="button"
+                        class="btn btn-outline-secondary btn-sm mt-2"
+                        hx-get="{% url 'formulare:neue_zag_zeile' %}"
+                        hx-target="#zag-zeilen-container"
+                        hx-swap="beforeend">
+                    + Weiterer Zeitraum
+                </button>
+
+                <p class="text-muted small mt-3 mb-0">
+                    Wochenenden, Feiertage und freie Tage laut Vereinbarung werden automatisch übersprungen.
+                </p>
+            </div>
+        </div>
+
+        <!-- Vertretung -->
+        <div class="card mb-3">
+            <div class="card-header fw-bold">Vertretung</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-7">
+                        <label class="form-label" for="vertretung_name">
+                            Ich werde vertreten durch
+                        </label>
+                        <input type="text"
+                               id="vertretung_name"
+                               name="vertretung_name"
+                               class="form-control"
+                               placeholder="Name der Vertretung"
+                               value="{{ vertretung_name }}"
+                               required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label" for="vertretung_telefon">
+                            Telefonnummer
+                        </label>
+                        <input type="text"
+                               id="vertretung_telefon"
+                               name="vertretung_telefon"
+                               class="form-control"
+                               placeholder="z.B. 0228 123-456"
+                               value="{{ vertretung_telefon }}"
+                               required>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Absenden -->
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Antrag einreichen</button>
+            <a href="{% url 'formulare:dashboard' %}" class="btn btn-secondary">Abbrechen</a>
+        </div>
+
+    </form>
+
+</div>
+{% endblock %}

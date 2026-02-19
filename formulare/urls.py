@@ -56,4 +56,54 @@ urlpatterns = [
         views.tausch_validierung,
         name="tausch_validierung",
     ),
+    path(
+        "zag-antrag/",
+        views.zag_antrag,
+        name="zag_antrag",
+    ),
+    path(
+        "zag-antrag/<int:pk>/erfolg/",
+        views.zag_erfolg,
+        name="zag_erfolg",
+    ),
+    path(
+        "zag-antrag/<int:pk>/pdf/",
+        views.zag_pdf,
+        name="zag_pdf",
+    ),
+    path(
+        "zag-antrag/neue-zeile/",
+        views.neue_zag_zeile,
+        name="neue_zag_zeile",
+    ),
+    path(
+        "zag-antrag/tage-zaehlen/",
+        views.zag_tage_zaehlen,
+        name="zag_tage_zaehlen",
+    ),
+    path(
+        "zag-storno/",
+        views.zag_storno,
+        name="zag_storno",
+    ),
+    path(
+        "zag-storno/<int:pk>/erfolg/",
+        views.zag_storno_erfolg,
+        name="zag_storno_erfolg",
+    ),
+    path(
+        "zag-storno/<int:pk>/pdf/",
+        views.zag_storno_pdf,
+        name="zag_storno_pdf",
+    ),
+    path(
+        "zag-storno/neue-zeile/",
+        views.neue_zag_storno_zeile,
+        name="neue_zag_storno_zeile",
+    ),
+    path(
+        "zag-storno/tage-zaehlen/",
+        views.zag_storno_tage_zaehlen,
+        name="zag_storno_tage_zaehlen",
+    ),
 ]

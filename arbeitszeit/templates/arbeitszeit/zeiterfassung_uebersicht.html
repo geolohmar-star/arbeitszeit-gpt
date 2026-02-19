@@ -262,6 +262,9 @@
         .badge-urlaub { background: #fff3cd; color: #856404; }
         .badge-krank { background: #f8d7da; color: #721c24; }
         .badge-z_ag { background: #e2e3e5; color: #383d41; }
+        .badge-z_ag-beantragt { background: #f8d7da; color: #721c24; }
+        .badge-z_ag-genehmigt { background: #d4edda; color: #155724; }
+        .badge-z_ag-abgelehnt { background: #f8d7da; color: #721c24; }
 
         .differenz-positiv { color: #155724; font-weight: 600; }
         .differenz-negativ { color: #721c24; font-weight: 600; }
@@ -522,9 +525,15 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <span class="badge badge-{{ tag.erfassung.art }}">
-                                                {{ tag.erfassung.get_art_display }}
-                                            </span>
+                                            {% if tag.erfassung.art == 'z_ag' and tag.zag_status %}
+                                                <span class="badge badge-z_ag-{{ tag.zag_status }}">
+                                                    {{ tag.erfassung.get_art_display }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge badge-{{ tag.erfassung.art }}">
+                                                    {{ tag.erfassung.get_art_display }}
+                                                </span>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             <div class="aktionen">
@@ -610,12 +619,25 @@
                 <input type="number" name="jahr" value="{{ jahr }}" min="2020" max="2050" onchange="this.form.submit()">
             </form>
 
-            <div style="text-align: right; margin-bottom: 1rem;">
+            <div style="text-align: right; margin-bottom: 1rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
                 <a href="{% url 'arbeitszeit:monatsbericht_csv' %}?monat={{ monat }}&jahr={{ jahr }}"
                    class="btn btn-sm"
                    style="background: #17a2b8; color: white;">
                     CSV
                 </a>
+                {% if monatsbericht %}
+                    <a href="{% url 'arbeitszeit:monatsbericht_pdf' %}?monat={{ monat }}&jahr={{ jahr }}"
+                       class="btn btn-sm"
+                       style="background: #28a745; color: white;">
+                        PDF ({{ monatsbericht.erstellt_am|date:"d.m." }})
+                    </a>
+                {% else %}
+                    <a href="{% url 'arbeitszeit:monatsbericht_pdf' %}?monat={{ monat }}&jahr={{ jahr }}"
+                       class="btn btn-sm"
+                       style="background: #6c757d; color: white;">
+                        PDF erstellen
+                    </a>
+                {% endif %}
             </div>
 
             <!-- Stats -->
@@ -722,9 +744,15 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <span class="badge badge-{{ erfassung.art }}">
-                                                {{ erfassung.get_art_display }}
-                                            </span>
+                                            {% if erfassung.art == 'z_ag' and erfassung.zag_status %}
+                                                <span class="badge badge-z_ag-{{ erfassung.zag_status }}">
+                                                    {{ erfassung.get_art_display }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge badge-{{ erfassung.art }}">
+                                                    {{ erfassung.get_art_display }}
+                                                </span>
+                                            {% endif %}
                                         </td>
                                         <td>{{ erfassung.bemerkung|truncatewords:5 }}</td>
                                     </tr>

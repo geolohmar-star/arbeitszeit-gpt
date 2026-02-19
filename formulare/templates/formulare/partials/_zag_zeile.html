@@ -1,0 +1,35 @@
+<div class="zag-zeile border rounded p-3 mb-2">
+    <div class="row g-3 align-items-end">
+        <div class="col-5">
+            <label class="form-label fw-semibold">Von Datum</label>
+            <input type="date"
+                   name="zag_von_datum"
+                   class="form-control"
+                   value="{{ von_datum }}"
+                   hx-get="{% url 'formulare:zag_tage_zaehlen' %}"
+                   hx-trigger="change"
+                   hx-target="#zag-tage-{{ row_id }}"
+                   hx-swap="innerHTML"
+                   hx-include="closest .zag-zeile">
+        </div>
+        <div class="col-4">
+            <label class="form-label fw-semibold">Bis Datum</label>
+            <input type="date"
+                   name="zag_bis_datum"
+                   class="form-control"
+                   hx-get="{% url 'formulare:zag_tage_zaehlen' %}"
+                   hx-trigger="change"
+                   hx-target="#zag-tage-{{ row_id }}"
+                   hx-swap="innerHTML"
+                   hx-include="closest .zag-zeile">
+        </div>
+        <div class="col-3 d-flex flex-column align-items-end gap-1">
+            <span id="zag-tage-{{ row_id }}" class="text-muted small"></span>
+            <button type="button"
+                    class="btn btn-outline-danger btn-sm"
+                    onclick="this.closest('.zag-zeile').remove()">
+                &times; Entfernen
+            </button>
+        </div>
+    </div>
+</div>

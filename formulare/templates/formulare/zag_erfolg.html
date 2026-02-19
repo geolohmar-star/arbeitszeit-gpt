@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Z-AG Antrag eingereicht{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 780px;">
+
+    <div class="alert alert-success mb-4">
+        Z-AG Antrag wurde erfolgreich eingereicht. Die Einträge wurden in die Zeiterfassung übernommen.
+    </div>
+
+    {% if z_ag_tage_jahr is not None %}
+    <div class="alert alert-light border d-flex justify-content-between align-items-center mb-4 py-2">
+        <span class="text-muted small">Z-AG-Tage gesamt in {{ z_ag_jahr }}</span>
+        <span class="badge bg-secondary fs-6 fw-normal">
+            {{ z_ag_tage_jahr }} Tag{{ z_ag_tage_jahr|pluralize:"e" }}
+        </span>
+    </div>
+    {% endif %}
+
+    <!-- Betreffzeile -->
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Betreff / Aktenzeichen</div>
+        <div class="card-body">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <code class="fs-6 flex-grow-1 p-2 bg-light rounded border user-select-all">{{ betreff }}</code>
+                <button class="btn btn-outline-secondary btn-sm"
+                        data-clipboard-text="{{ betreff }}">
+                    In Zwischenablage kopieren
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Antragsdaten -->
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Antragsdaten</div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <tr><td class="text-muted ps-3" style="width:220px">Antragsdatum</td>
+                    <td>{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</td></tr>
+                <tr><td class="text-muted ps-3">Name</td>
+                    <td>{{ antrag.antragsteller.vorname }} {{ antrag.antragsteller.nachname }}</td></tr>
+                <tr><td class="text-muted ps-3">Abteilung</td>
+                    <td>{{ antrag.antragsteller.abteilung }}</td></tr>
+                <tr><td class="text-muted ps-3">Personalnummer</td>
+                    <td>{{ antrag.antragsteller.personalnummer }}</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Vertretung -->
+    {% if antrag.vertretung_name or antrag.vertretung_telefon %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Vertretung</div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                {% if antrag.vertretung_name %}
+                <tr><td class="text-muted ps-3" style="width:220px">Vertreten durch</td>
+                    <td>{{ antrag.vertretung_name }}</td></tr>
+                {% endif %}
+                {% if antrag.vertretung_telefon %}
+                <tr><td class="text-muted ps-3">Telefonnummer</td>
+                    <td>{{ antrag.vertretung_telefon }}</td></tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Zeitraeume -->
+    {% if antrag.zag_daten %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Z-AG Zeiträume</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Von</th>
+                        <th>Bis</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for zeile in antrag.zag_daten %}
+                    <tr>
+                        <td class="ps-3">{{ zeile.von_datum }}</td>
+                        <td>{{ zeile.bis_datum }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Genehmigung -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold d-flex justify-content-between">
+            Genehmigung
+            <span class="badge bg-secondary fw-normal">folgt aus Workflow</span>
+        </div>
+        <div class="card-body text-muted fst-italic">
+            Genehmigt Vorgesetzter: _______________
+            &nbsp;&nbsp;&nbsp;
+            Datum der Genehmigung: _______________
+        </div>
+    </div>
+
+    <!-- Aktionen -->
+    <div class="d-flex gap-2">
+        <a href="{% url 'formulare:zag_pdf' antrag.pk %}"
+           class="btn btn-primary">
+            PDF herunterladen
+        </a>
+        <a href="{% url 'formulare:dashboard' %}" class="btn btn-secondary">
+            Zurück zum Dashboard
+        </a>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/formulare.js' %}"></script>
+{% endblock %}

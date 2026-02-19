@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ betreff }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11pt;
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
+        .seite {
+            padding: 2cm 2.5cm;
+        }
+        h1 {
+            font-size: 14pt;
+            margin-bottom: 4px;
+        }
+        .betreff {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            font-family: monospace;
+            font-size: 11pt;
+            margin-bottom: 24px;
+            word-break: break-all;
+        }
+        table.daten {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table.daten td {
+            padding: 5px 8px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+        table.daten td.label {
+            color: #555;
+            width: 200px;
+            white-space: nowrap;
+        }
+        .abschnitt {
+            margin-bottom: 20px;
+        }
+        .abschnitt-titel {
+            font-size: 11pt;
+            font-weight: bold;
+            border-bottom: 2px solid #000;
+            padding-bottom: 3px;
+            margin-bottom: 8px;
+        }
+        table.liste {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table.liste th {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 5px 8px;
+            font-size: 10pt;
+            text-align: left;
+        }
+        table.liste td {
+            border: 1px solid #ccc;
+            padding: 5px 8px;
+            font-size: 10pt;
+        }
+        .genehmigung {
+            border: 1px solid #ccc;
+            padding: 16px;
+            margin-top: 24px;
+        }
+        .genehmigung-zeile {
+            margin-bottom: 32px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 2px;
+            color: #555;
+            font-size: 10pt;
+        }
+    </style>
+</head>
+<body>
+<div class="seite">
+
+    <h1>Z-AG Antrag</h1>
+    <p style="margin-top:2px; margin-bottom:16px; color:#555; font-size:10pt;">
+        Zeitausgleich (Z-AG)
+    </p>
+
+    <div class="betreff">{{ betreff }}</div>
+
+    <!-- Antragsdaten -->
+    <div class="abschnitt">
+        <div class="abschnitt-titel">Antragsdaten</div>
+        <table class="daten">
+            <tr>
+                <td class="label">Antragsdatum</td>
+                <td>{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</td>
+            </tr>
+            <tr>
+                <td class="label">Name</td>
+                <td>{{ antrag.antragsteller.vorname }} {{ antrag.antragsteller.nachname }}</td>
+            </tr>
+            <tr>
+                <td class="label">Abteilung</td>
+                <td>{{ antrag.antragsteller.abteilung }}</td>
+            </tr>
+            <tr>
+                <td class="label">Personalnummer</td>
+                <td>{{ antrag.antragsteller.personalnummer }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Vertretung -->
+    {% if antrag.vertretung_name or antrag.vertretung_telefon %}
+    <div class="abschnitt">
+        <div class="abschnitt-titel">Vertretung</div>
+        <table class="daten">
+            {% if antrag.vertretung_name %}
+            <tr>
+                <td class="label">Vertreten durch</td>
+                <td>{{ antrag.vertretung_name }}</td>
+            </tr>
+            {% endif %}
+            {% if antrag.vertretung_telefon %}
+            <tr>
+                <td class="label">Telefonnummer</td>
+                <td>{{ antrag.vertretung_telefon }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Zeitraeume -->
+    {% if antrag.zag_daten %}
+    <div class="abschnitt">
+        <div class="abschnitt-titel">Z-AG Zeitraeume</div>
+        <table class="liste">
+            <thead>
+                <tr>
+                    <th>Von</th>
+                    <th>Bis</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for zeile in antrag.zag_daten %}
+                <tr>
+                    <td>{{ zeile.von_datum }}</td>
+                    <td>{{ zeile.bis_datum }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p style="font-size:10pt; color:#555;">
+            Wochenenden und Feiertage werden automatisch ausgelassen.
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Genehmigung -->
+    <div class="genehmigung">
+        <div class="abschnitt-titel">Genehmigung</div>
+        <p class="genehmigung-zeile">Genehmigt Vorgesetzter:</p>
+        <p class="genehmigung-zeile">Datum der Genehmigung:</p>
+    </div>
+
+</div>
+</body>
+</html>

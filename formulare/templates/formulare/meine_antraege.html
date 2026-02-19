@@ -48,9 +48,15 @@
                             <code class="small">{{ antrag.get_betreff }}</code>
                         </td>
                         <td class="align-middle small">
-                            Änderung Zeiterfassung
-                            {% if antrag.art %}
-                                <span class="text-muted">· {{ antrag.get_art_display }}</span>
+                            {% if antrag.antrag_typ == "zag" %}
+                                Z-AG Antrag
+                            {% elif antrag.antrag_typ == "zag_storno" %}
+                                Z-AG Stornierung
+                            {% else %}
+                                Änderung Zeiterfassung
+                                {% if antrag.art %}
+                                    <span class="text-muted">· {{ antrag.get_art_display }}</span>
+                                {% endif %}
                             {% endif %}
                         </td>
                         <td class="align-middle">
@@ -63,10 +69,22 @@
                             {% endif %}
                         </td>
                         <td class="align-middle text-end">
-                            <a href="{% url 'formulare:aenderung_erfolg' antrag.pk %}"
-                               class="btn btn-outline-secondary btn-sm">
-                                Ansehen
-                            </a>
+                            {% if antrag.antrag_typ == "zag" %}
+                                <a href="{% url 'formulare:zag_erfolg' antrag.pk %}"
+                                   class="btn btn-outline-secondary btn-sm">
+                                    Ansehen
+                                </a>
+                            {% elif antrag.antrag_typ == "zag_storno" %}
+                                <a href="{% url 'formulare:zag_storno_erfolg' antrag.pk %}"
+                                   class="btn btn-outline-secondary btn-sm">
+                                    Ansehen
+                                </a>
+                            {% else %}
+                                <a href="{% url 'formulare:aenderung_erfolg' antrag.pk %}"
+                                   class="btn btn-outline-secondary btn-sm">
+                                    Ansehen
+                                </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

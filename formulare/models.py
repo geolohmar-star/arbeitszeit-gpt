@@ -159,3 +159,71 @@ class AenderungZeiterfassung(Antrag):
             f"Aenderung Zeiterfassung ({self.get_art_display()})"
             f" - {self.antragsteller}"
         )
+
+
+class ZAGAntrag(Antrag):
+    """Antrag auf Zeitausgleich (Z-AG).
+
+    Speichert einen oder mehrere Datumsbereich(e) als JSON.
+    Beim Absenden werden sofort Zeiterfassungs-Eintraege erstellt.
+    """
+
+    # Mehrere Zeilen: [{"von_datum": "2026-02-10", "bis_datum": "2026-02-12"}, ...]
+    zag_daten = models.JSONField(null=True, blank=True)
+
+    # Vertretungsfelder
+    vertretung_name = models.CharField(max_length=200, blank=True)
+    vertretung_telefon = models.CharField(max_length=50, blank=True)
+
+    class Meta:
+        ordering = ["-erstellt_am"]
+        verbose_name = "Z-AG Antrag"
+        verbose_name_plural = "Z-AG Antraege"
+
+    def get_betreff(self):
+        """Eindeutige Betreffzeile fuer diesen Antrag.
+
+        Zeitstempel wird in Ortszeit (Europe/Berlin) ausgegeben.
+        """
+        ma = self.antragsteller
+        ortszeit = timezone.localtime(self.erstellt_am)
+        zeitstempel = ortszeit.strftime("%Y%m%d-%H%M%S")
+        return (
+            f"ZAG-{ma.vorname} {ma.nachname}"
+            f"-{ma.personalnummer}"
+            f"-{zeitstempel}"
+        )
+
+    def __str__(self):
+        return f"Z-AG Antrag - {self.antragsteller}"
+
+
+class ZAGStorno(Antrag):
+    """Stornierung von Z-AG-Eintraegen in der Zeiterfassung.
+
+    Speichert einen oder mehrere Datumsbereiche als JSON.
+    Beim Absenden werden sofort die entsprechenden Zeiterfassungs-
+    Eintraege geloescht.
+    """
+
+    # Mehrere Zeilen: [{"von_datum": "2026-02-10", "bis_datum": "2026-02-12"}, ...]
+    storno_daten = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-erstellt_am"]
+        verbose_name = "Z-AG Storno"
+        verbose_name_plural = "Z-AG Stornierungen"
+
+    def get_betreff(self):
+        """Eindeutige Betreffzeile fuer diesen Storno-Antrag."""
+        ma = self.antragsteller
+        ortszeit = timezone.localtime(self.erstellt_am)
+        zeitstempel = ortszeit.strftime("%Y%m%d-%H%M%S")
+        return (
+            f"ZAGS-{ma.vorname} {ma.nachname}"
+            f"-{ma.personalnummer}"
+            f"-{zeitstempel}"
+        )
+
+    def __str__(self):
+        return f"Z-AG Storno - {self.antragsteller}"

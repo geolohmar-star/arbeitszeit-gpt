@@ -1,0 +1,34 @@
+<div class="zag-storno-zeile border rounded p-3 mb-2">
+    <div class="row g-3 align-items-end">
+        <div class="col-5">
+            <label class="form-label fw-semibold">Von Datum</label>
+            <input type="date"
+                   name="storno_von_datum"
+                   class="form-control"
+                   hx-get="{% url 'formulare:zag_storno_tage_zaehlen' %}"
+                   hx-trigger="change"
+                   hx-target="#storno-tage-{{ row_id }}"
+                   hx-swap="innerHTML"
+                   hx-include="closest .zag-storno-zeile">
+        </div>
+        <div class="col-4">
+            <label class="form-label fw-semibold">Bis Datum</label>
+            <input type="date"
+                   name="storno_bis_datum"
+                   class="form-control"
+                   hx-get="{% url 'formulare:zag_storno_tage_zaehlen' %}"
+                   hx-trigger="change"
+                   hx-target="#storno-tage-{{ row_id }}"
+                   hx-swap="innerHTML"
+                   hx-include="closest .zag-storno-zeile">
+        </div>
+        <div class="col-3 d-flex flex-column align-items-end gap-1">
+            <span id="storno-tage-{{ row_id }}" class="text-muted small"></span>
+            <button type="button"
+                    class="btn btn-outline-danger btn-sm"
+                    onclick="this.closest('.zag-storno-zeile').remove()">
+                &times; Entfernen
+            </button>
+        </div>
+    </div>
+</div>
