@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Formulare - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Formulare</h2>
+    <p class="text-muted">Digitale Antragsformulare</p>
+
+    <div class="row g-3">
+
+        <div class="col-md-4">
+            <a href="{% url 'formulare:aenderung_zeiterfassung' %}"
+               class="text-decoration-none">
+                <div class="card h-100 card-hover">
+                    <div class="card-body">
+                        <h5 class="card-title">Aenderung Zeiterfassung</h5>
+                        <p class="card-text text-muted small">
+                            Manuelle Korrektur der Zeiterfassung beantragen
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4">
+            <a href="{% url 'formulare:meine_antraege' %}"
+               class="text-decoration-none">
+                <div class="card h-100 card-hover">
+                    <div class="card-body">
+                        <h5 class="card-title">Meine Anträge</h5>
+                        <p class="card-text text-muted small">
+                            Eingereichte Anträge einsehen und Status prüfen
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Platzhalter fuer weitere Formulare -->
+
+    </div>
+</div>
+{% endblock %}

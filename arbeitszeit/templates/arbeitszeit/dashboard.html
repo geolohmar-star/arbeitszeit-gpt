@@ -511,6 +511,11 @@
                         <div class="quick-action-desc">Erfasste Zeiten einsehen</div>
                     </a>
 
+                    <a href="{% url 'formulare:dashboard' %}" class="quick-action">
+                        <div class="quick-action-title">Formulare</div>
+                        <div class="quick-action-desc">Digitale Antragsformulare</div>
+                    </a>
+
                     {% if is_admin %}
                     <a href="{% url 'arbeitszeit:admin_dashboard' %}" class="quick-action" style="border-color: var(--primary); background: rgba(26, 77, 46, 0.03);">
                         <div class="quick-action-title">Verwaltung</div>

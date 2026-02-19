@@ -1,0 +1,9 @@
+{% if kollision %}
+<div class="alert alert-warning py-1 px-2 mb-0 small">
+    <strong>Kollision:</strong> Laut Vereinbarung ist dieser Tag ein Arbeitstag – kein Tausch möglich.
+</div>
+{% elif datum_gueltig %}
+<div class="text-success small">
+    Tag ist laut Vereinbarung frei – Tausch möglich.
+</div>
+{% endif %}

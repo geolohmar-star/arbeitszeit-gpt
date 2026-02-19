@@ -1,0 +1,91 @@
+{% if art == "beruflich_unterwegs" or art == "b_taste" %}
+
+    <hr class="my-3">
+
+    <!-- Kommen-Bereich -->
+    <div class="mb-4">
+        <h6 class="fw-bold text-secondary">Kommen</h6>
+
+        <div class="mb-2">
+            <label class="form-label">Datum</label>
+            {{ form.kommen_datum }}
+            {% if form.kommen_datum.errors %}
+            <div class="text-danger small mt-1">{{ form.kommen_datum.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div>
+            {% for radio in form.kommen_terminal %}
+            <div class="form-check form-check-inline">
+                {{ radio.tag }}
+                <label class="form-check-label" for="{{ radio.id_for_label }}">
+                    {{ radio.choice_label }}
+                </label>
+            </div>
+            {% endfor %}
+            {% if form.kommen_terminal.errors %}
+            <div class="text-danger small mt-1">{{ form.kommen_terminal.errors }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Gehen-Bereich -->
+    <div class="mb-4">
+        <h6 class="fw-bold text-secondary">Gehen</h6>
+
+        <div class="mb-2">
+            <label class="form-label">Datum</label>
+            {{ form.gehen_datum }}
+            {% if form.gehen_datum.errors %}
+            <div class="text-danger small mt-1">{{ form.gehen_datum.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div>
+            {% for radio in form.gehen_terminal %}
+            <div class="form-check form-check-inline">
+                {{ radio.tag }}
+                <label class="form-check-label" for="{{ radio.id_for_label }}">
+                    {{ radio.choice_label }}
+                </label>
+            </div>
+            {% endfor %}
+            {% if form.gehen_terminal.errors %}
+            <div class="text-danger small mt-1">{{ form.gehen_terminal.errors }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+{% elif art == "k_taste" %}
+
+    <hr class="my-3">
+
+    <!-- K-Taste-Bereich -->
+    <div class="mb-4">
+        <h6 class="fw-bold text-secondary">K-Taste</h6>
+
+        <div class="mb-2">
+            <label class="form-label">Datum</label>
+            {{ form.ktaste_datum }}
+            {% if form.ktaste_datum.errors %}
+            <div class="text-danger small mt-1">{{ form.ktaste_datum.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div>
+            {% for radio in form.ktaste_terminal %}
+            <div class="form-check form-check-inline">
+                {{ radio.tag }}
+                <label class="form-check-label" for="{{ radio.id_for_label }}">
+                    {{ radio.choice_label }}
+                </label>
+            </div>
+            {% endfor %}
+            {% if form.ktaste_terminal.errors %}
+            <div class="text-danger small mt-1">{{ form.ktaste_terminal.errors }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+{% endif %}
+

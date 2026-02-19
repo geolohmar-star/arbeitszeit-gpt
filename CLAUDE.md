@@ -368,4 +368,5 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 - Bei Datenbankänderungen immer Migrations erstellen
 - Keine `print()`-Statements – stattdessen `logging`
 - **Keine Emojis in Python-Code** (auch nicht in Strings, Kommentaren oder Logs) – Windows cp1252 kann Unicode-Emojis nicht kodieren und wirft `UnicodeEncodeError`
+- **Umlaute (ä, ö, ü, ß, Ä, Ö, Ü) in HTML-Templates erlaubt** – Templates sind UTF-8 kodiert, Umlaute dürfen direkt verwendet werden. Nur in Python-Dateien weiterhin ausschreiben (ae, oe, ue usw.)
 - Partials immer in `partials/` Unterordner mit `_` Prefix benennen

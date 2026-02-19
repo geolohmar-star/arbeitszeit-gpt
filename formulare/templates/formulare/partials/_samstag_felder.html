@@ -1,0 +1,48 @@
+{% if samstag_art == "ausserhalb" %}
+
+    <div class="row g-2 mt-2">
+        <div class="col-6">
+            <label class="form-label">Anfangszeit</label>
+            {{ form.samstag_beginn }}
+            {% if form.samstag_beginn.errors %}
+            <div class="text-danger small mt-1">{{ form.samstag_beginn.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="col-6">
+            <label class="form-label">Endzeit</label>
+            {{ form.samstag_ende }}
+            {% if form.samstag_ende.errors %}
+            <div class="text-danger small mt-1">{{ form.samstag_ende.errors }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+{% elif samstag_art == "dauerfreigabe" %}
+
+    <div class="mt-2">
+        <div class="mb-2">
+            <label class="form-label">Vereinbarungsnummer</label>
+            {{ form.samstag_vereinbarungsnummer }}
+            {% if form.samstag_vereinbarungsnummer.errors %}
+            <div class="text-danger small mt-1">{{ form.samstag_vereinbarungsnummer.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="row g-2">
+            <div class="col-6">
+                <label class="form-label">Gültig ab</label>
+                {{ form.samstag_freigabe_ab }}
+                {% if form.samstag_freigabe_ab.errors %}
+                <div class="text-danger small mt-1">{{ form.samstag_freigabe_ab.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="col-6">
+                <label class="form-label">Gültig bis</label>
+                {{ form.samstag_freigabe_bis }}
+                {% if form.samstag_freigabe_bis.errors %}
+                <div class="text-danger small mt-1">{{ form.samstag_freigabe_bis.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+{% endif %}

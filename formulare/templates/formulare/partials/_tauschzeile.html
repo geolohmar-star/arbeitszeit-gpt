@@ -1,0 +1,32 @@
+<div class="tauschzeile border rounded p-3 mb-2">
+    <div class="row g-3">
+
+        <!-- Linke Spalte: Arbeitstag laut Vereinbarung (wird FREI) -->
+        <div class="col-6">
+            <label class="form-label fw-semibold">Arbeitstag laut Vereinbarung</label>
+            <input type="date"
+                   name="tausch_von_datum"
+                   class="form-control"
+                   hx-get="{% url 'formulare:soll_fuer_datum' %}"
+                   hx-trigger="change"
+                   hx-target="#soll-{{ row_id }}"
+                   hx-swap="innerHTML">
+            <div id="soll-{{ row_id }}" class="mt-1 text-muted small">→ <strong>FREI</strong></div>
+        </div>
+
+        <!-- Rechte Spalte: Neuer zu erfassender Tag -->
+        <div class="col-6">
+            <label class="form-label fw-semibold">Neuer zu erfassender Tag</label>
+            <input type="date"
+                   name="tausch_zu_datum"
+                   class="form-control"
+                   hx-get="{% url 'formulare:tausch_validierung' %}"
+                   hx-trigger="change"
+                   hx-vals='{"row_id": "{{ row_id }}"}'
+                   hx-target="#kollision-{{ row_id }}"
+                   hx-swap="innerHTML">
+            <div id="kollision-{{ row_id }}" class="mt-1"></div>
+        </div>
+
+    </div>
+</div>

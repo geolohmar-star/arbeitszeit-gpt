@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django_filters',
     'arbeitszeit.apps.ArbeitszeitConfig',
     'schichtplan',
+    'formulare.apps.FormulareConfig',
 ]
 
 MIDDLEWARE = [
@@ -133,6 +134,7 @@ FILE_CHARSET = 'utf-8'
 # Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files

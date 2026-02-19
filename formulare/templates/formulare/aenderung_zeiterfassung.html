@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Änderung Zeiterfassung manuell{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 700px;">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'formulare:dashboard' %}">Formulare</a>
+            </li>
+            <li class="breadcrumb-item active">Änderung Zeiterfassung manuell</li>
+        </ol>
+    </nav>
+
+    <h2 class="mb-4">Änderung Zeiterfassung manuell</h2>
+
+    <form method="post">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <!-- Box 1: Art der Änderung -->
+        <div class="card mb-3">
+            <div class="card-header fw-bold">Art der Änderung</div>
+            <div class="card-body">
+
+                {% for radio in form.art %}
+                <div class="form-check">
+                    <input class="form-check-input"
+                           type="radio"
+                           name="art"
+                           id="{{ radio.id_for_label }}"
+                           value="{{ radio.data.value }}"
+                           hx-get="{% url 'formulare:aenderung_felder' %}?art={{ radio.data.value }}"
+                           hx-target="#felder-container"
+                           hx-trigger="change"
+                           hx-swap="innerHTML"
+                           {% if form.art.value == radio.data.value %}checked{% endif %}>
+                    <label class="form-check-label" for="{{ radio.id_for_label }}">
+                        {{ radio.choice_label }}
+                    </label>
+                </div>
+                {% endfor %}
+
+                {% if form.art.errors %}
+                <div class="text-danger small mt-1">{{ form.art.errors }}</div>
+                {% endif %}
+
+                <!-- Dynamische Felder (HTMX-Ziel) -->
+                <div id="felder-container" class="mt-2">
+                    {% if form.art.value %}
+                    {% with art=form.art.value %}
+                    {% include "formulare/partials/_aenderung_felder.html" %}
+                    {% endwith %}
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Box 2: Tageszeiten -->
+        <div class="card mb-3">
+            <div class="card-header fw-bold">Zeiten</div>
+            <div class="card-body">
+
+                <div id="zeitzeilen-container">
+                    {% include "formulare/partials/_zeitzeile.html" %}
+                </div>
+
+                <button type="button"
+                        class="btn btn-outline-secondary btn-sm mt-2"
+                        hx-get="{% url 'formulare:neue_zeitzeile' %}"
+                        hx-target="#zeitzeilen-container"
+                        hx-swap="beforeend">
+                    + Weitere Zeile
+                </button>
+
+            </div>
+        </div>
+
+        <!-- Box 3: Samstagsarbeit -->
+        <div class="card mb-3">
+            <div class="card-header fw-bold">Samstagsarbeit</div>
+            <div class="card-body">
+
+                <p class="mb-3">
+                    Ich möchte am Samstag freiwillig Mehrarbeit leisten und
+                    bitte um die Erfassung meiner Zeit am
+                </p>
+
+                <div class="mb-3">
+                    <label class="form-label">Datum <span class="text-muted small">(nur Samstage)</span></label>
+                    {{ form.samstag_datum }}
+                    {% if form.samstag_datum.errors %}
+                    <div class="text-danger small mt-1">{{ form.samstag_datum.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Radio-Optionen für Samstagsarbeit -->
+                {% for radio in form.samstag_art %}
+                <div class="form-check">
+                    <input class="form-check-input"
+                           type="radio"
+                           name="samstag_art"
+                           id="{{ radio.id_for_label }}"
+                           value="{{ radio.data.value }}"
+                           hx-get="{% url 'formulare:samstag_felder' %}?samstag_art={{ radio.data.value }}"
+                           hx-target="#samstag-felder-container"
+                           hx-trigger="change"
+                           hx-swap="innerHTML"
+                           {% if form.samstag_art.value == radio.data.value %}checked{% endif %}>
+                    <label class="form-check-label" for="{{ radio.id_for_label }}">
+                        {{ radio.choice_label }}
+                    </label>
+                </div>
+                {% endfor %}
+
+                {% if form.samstag_art.errors %}
+                <div class="text-danger small mt-1">{{ form.samstag_art.errors }}</div>
+                {% endif %}
+
+                <!-- Dynamische Unterfelder (HTMX-Ziel) -->
+                <div id="samstag-felder-container">
+                    {% if form.samstag_art.value %}
+                    {% with samstag_art=form.samstag_art.value %}
+                    {% include "formulare/partials/_samstag_felder.html" %}
+                    {% endwith %}
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Box 4: Tausch von Arbeitstagen -->
+        <div class="card mb-3 {% if not tausch_erlaubt %}opacity-50{% endif %}">
+            <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+                Tagestausch
+                {% if not tausch_erlaubt %}
+                <span class="badge bg-secondary fw-normal">Nur bei individueller Vereinbarung</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+
+                {% if not tausch_erlaubt %}
+                <div class="alert alert-secondary py-2 mb-3 small">
+                    Diese Box steht nur Mitarbeitern mit einer individuellen
+                    Arbeitszeitvereinbarung zur Verfügung.
+                </div>
+                {% endif %}
+
+                <p class="mb-3">
+                    Ich habe eine individuelle Arbeitszeitvereinbarung und möchte Tage tauschen.
+                </p>
+
+                <fieldset {% if not tausch_erlaubt %}disabled{% endif %}>
+
+                    <!-- Spaltenüberschriften -->
+                    <div class="row g-3 mb-1">
+                        <div class="col-6">
+                            <span class="fw-semibold small text-muted">Arbeitstag laut Vereinbarung</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="fw-semibold small text-muted">Neuer zu erfassender Tag</span>
+                        </div>
+                    </div>
+
+                    <!-- Tauschzeilen-Container -->
+                    <div id="tauschzeilen-container">
+                        {% include "formulare/partials/_tauschzeile.html" with row_id="initial" %}
+                    </div>
+
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-sm mt-2"
+                            hx-get="{% url 'formulare:neue_tauschzeile' %}"
+                            hx-target="#tauschzeilen-container"
+                            hx-swap="beforeend">
+                        + Weitere Zeile
+                    </button>
+
+                </fieldset>
+
+            </div>
+        </div>
+
+        <!-- Absenden -->
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Absenden</button>
+            <a href="{% url 'formulare:dashboard' %}" class="btn btn-secondary">Abbrechen</a>
+        </div>
+
+    </form>
+
+</div>
+{% endblock %}

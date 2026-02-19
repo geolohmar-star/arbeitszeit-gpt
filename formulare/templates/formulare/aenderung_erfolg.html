@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Antrag eingereicht{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 780px;">
+
+    <div class="alert alert-success mb-4">
+        Antrag wurde erfolgreich eingereicht.
+    </div>
+
+    <!-- Betreffzeile -->
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Betreff / Aktenzeichen</div>
+        <div class="card-body">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <code class="fs-6 flex-grow-1 p-2 bg-light rounded border user-select-all">{{ betreff }}</code>
+                <button class="btn btn-outline-secondary btn-sm"
+                        data-clipboard-text="{{ betreff }}">
+                    In Zwischenablage kopieren
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Antragsdaten -->
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Antragsdaten</div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <tr><td class="text-muted ps-3" style="width:220px">Antragsdatum</td>
+                    <td>{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</td></tr>
+                <tr><td class="text-muted ps-3">Name</td>
+                    <td>{{ antrag.antragsteller.vorname }} {{ antrag.antragsteller.nachname }}</td></tr>
+                <tr><td class="text-muted ps-3">Abteilung</td>
+                    <td>{{ antrag.antragsteller.abteilung }}</td></tr>
+                <tr><td class="text-muted ps-3">Personalnummer</td>
+                    <td>{{ antrag.antragsteller.personalnummer }}</td></tr>
+                <tr><td class="text-muted ps-3">Telefon intern</td>
+                    <td class="text-muted fst-italic">folgt (neue Mitarbeiterverwaltung)</td></tr>
+                <tr><td class="text-muted ps-3">Wochenarbeitszeit</td>
+                    <td>{% if vereinbarung and vereinbarung.wochenstunden %}{{ vereinbarung.wochenstunden }} Std.{% else %}<span class="text-muted fst-italic">keine Vereinbarung gefunden</span>{% endif %}</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Art der Änderung -->
+    {% if antrag.art %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Art der Änderung</div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <tr><td class="text-muted ps-3" style="width:220px">Art</td>
+                    <td><strong>{{ antrag.get_art_display }}</strong></td></tr>
+                {% if antrag.art == "beruflich_unterwegs" or antrag.art == "b_taste" %}
+                    {% if antrag.kommen_datum %}
+                    <tr><td class="text-muted ps-3">Kommen – Datum</td>
+                        <td>{{ antrag.kommen_datum|date:"d.m.Y" }}</td></tr>
+                    <tr><td class="text-muted ps-3">Kommen – Terminal</td>
+                        <td>{{ antrag.get_kommen_terminal_display }}</td></tr>
+                    {% endif %}
+                    {% if antrag.gehen_datum %}
+                    <tr><td class="text-muted ps-3">Gehen – Datum</td>
+                        <td>{{ antrag.gehen_datum|date:"d.m.Y" }}</td></tr>
+                    <tr><td class="text-muted ps-3">Gehen – Terminal</td>
+                        <td>{{ antrag.get_gehen_terminal_display }}</td></tr>
+                    {% endif %}
+                {% elif antrag.art == "k_taste" %}
+                    <tr><td class="text-muted ps-3">K-Taste – Datum</td>
+                        <td>{{ antrag.ktaste_datum|date:"d.m.Y" }}</td></tr>
+                    <tr><td class="text-muted ps-3">K-Taste – Terminal</td>
+                        <td>{{ antrag.get_ktaste_terminal_display }}</td></tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Zeiten -->
+    {% if antrag.zeiten_daten %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Zeiten</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Datum</th>
+                        <th>Kommen</th>
+                        <th>Pause Beginn</th>
+                        <th>Pause Ende</th>
+                        <th>Gehen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for zeile in antrag.zeiten_daten %}
+                    <tr>
+                        <td class="ps-3">{{ zeile.datum|default:"–" }}</td>
+                        <td>{{ zeile.kommen|default:"–" }}</td>
+                        <td>{{ zeile.pause_gehen|default:"–" }}</td>
+                        <td>{{ zeile.pause_kommen|default:"–" }}</td>
+                        <td>{{ zeile.gehen|default:"–" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Samstagsarbeit -->
+    {% if antrag.samstag_art %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Samstagsarbeit</div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                {% if antrag.samstag_datum %}
+                <tr><td class="text-muted ps-3" style="width:220px">Datum</td>
+                    <td>{{ antrag.samstag_datum|date:"d.m.Y" }}</td></tr>
+                {% endif %}
+                <tr><td class="text-muted ps-3">Art</td>
+                    <td><strong>{{ antrag.get_samstag_art_display }}</strong></td></tr>
+                {% if antrag.samstag_art == "ausserhalb" %}
+                <tr><td class="text-muted ps-3">Anfangszeit</td>
+                    <td>{{ antrag.samstag_beginn }}</td></tr>
+                <tr><td class="text-muted ps-3">Endzeit</td>
+                    <td>{{ antrag.samstag_ende }}</td></tr>
+                {% elif antrag.samstag_art == "dauerfreigabe" %}
+                <tr><td class="text-muted ps-3">Vereinbarungsnummer</td>
+                    <td>{{ antrag.samstag_vereinbarungsnummer }}</td></tr>
+                <tr><td class="text-muted ps-3">Gültig ab</td>
+                    <td>{{ antrag.samstag_freigabe_ab|date:"d.m.Y" }}</td></tr>
+                <tr><td class="text-muted ps-3">Gültig bis</td>
+                    <td>{{ antrag.samstag_freigabe_bis|date:"d.m.Y" }}</td></tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tagestausch -->
+    {% if tausch_mit_soll %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Tagestausch</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Arbeitstag laut Vereinbarung</th>
+                        <th>Sollzeit</th>
+                        <th>Status</th>
+                        <th>Neuer Arbeitstag</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for zeile in tausch_mit_soll %}
+                    <tr>
+                        <td class="ps-3">{{ zeile.von_datum|default:"–" }}</td>
+                        <td>
+                            {% if zeile.soll %}
+                                <strong>{{ zeile.soll }} Std.</strong>
+                            {% else %}
+                                <span class="text-muted">–</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-success">FREI</span>
+                        </td>
+                        <td>{{ zeile.zu_datum|default:"–" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Genehmigung -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold d-flex justify-content-between">
+            Genehmigung
+            <span class="badge bg-secondary fw-normal">folgt aus Workflow</span>
+        </div>
+        <div class="card-body text-muted fst-italic">
+            Genehmigt Vorgesetzter: _______________
+            &nbsp;&nbsp;&nbsp;
+            Datum der Genehmigung: _______________
+        </div>
+    </div>
+
+    <!-- Aktionen -->
+    <div class="d-flex gap-2">
+        <a href="{% url 'formulare:aenderung_pdf' antrag.pk %}"
+           class="btn btn-primary">
+            PDF herunterladen
+        </a>
+        <a href="{% url 'formulare:dashboard' %}" class="btn btn-secondary">
+            Zurück zum Dashboard
+        </a>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/formulare.js' %}"></script>
+{% endblock %}

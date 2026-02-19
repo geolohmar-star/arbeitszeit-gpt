@@ -13,4 +13,5 @@ urlpatterns = [
     # APPS
     path('', include('arbeitszeit.urls')),
     path('schichtplan/', include('schichtplan.urls')),
+    path('formulare/', include('formulare.urls')),
 ]
