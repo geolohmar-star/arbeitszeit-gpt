@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <h2>Antrag-Details</h2>
+            <p class="text-muted">
+                {% if antrag_typ == "zag" %}
+                    Z-AG Antrag
+                {% elif antrag_typ == "zag_storno" %}
+                    Z-AG Stornierung
+                {% elif antrag_typ == "aenderung" %}
+                    Aenderung Zeiterfassung
+                {% endif %}
+            </p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'formulare:team_queue' %}" class="btn btn-secondary">
+                &larr; Zurueck zur Queue
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <!-- Status-Badge -->
+            <div class="mb-3">
+                {% if antrag.status == "genehmigt" %}
+                    <span class="badge bg-success">Genehmigt</span>
+                {% elif antrag.status == "in_bearbeitung" %}
+                    <span class="badge bg-primary">In Bearbeitung</span>
+                {% elif antrag.status == "beantragt" %}
+                    <span class="badge bg-warning">Beantragt</span>
+                {% elif antrag.status == "erledigt" %}
+                    <span class="badge bg-secondary">Erledigt</span>
+                {% endif %}
+
+                {% if antrag.prioritaet == 2 %}
+                    <span class="badge bg-danger">Dringend</span>
+                {% elif antrag.prioritaet == 1 %}
+                    <span class="badge bg-warning">Hoch</span>
+                {% endif %}
+            </div>
+
+            <!-- Antragsteller -->
+            <div class="row mb-3">
+                <div class="col-md-3"><strong>Antragsteller:</strong></div>
+                <div class="col-md-9">{{ antrag.antragsteller.vollname }} ({{ antrag.antragsteller.personalnummer }})</div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-3"><strong>Erstellt am:</strong></div>
+                <div class="col-md-9">{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</div>
+            </div>
+
+            {% if antrag.bearbeitet_von %}
+                <div class="row mb-3">
+                    <div class="col-md-3"><strong>Genehmigt von:</strong></div>
+                    <div class="col-md-9">{{ antrag.bearbeitet_von.get_full_name|default:antrag.bearbeitet_von.username }} am {{ antrag.bearbeitet_am|date:"d.m.Y H:i" }} Uhr</div>
+                </div>
+            {% endif %}
+
+            {% if antrag.claimed_von %}
+                <div class="row mb-3">
+                    <div class="col-md-3"><strong>Claimed von:</strong></div>
+                    <div class="col-md-9">{{ antrag.claimed_von.get_full_name|default:antrag.claimed_von.username }} am {{ antrag.claimed_am|date:"d.m.Y H:i" }} Uhr</div>
+                </div>
+            {% endif %}
+
+            <hr>
+
+            <!-- Z-AG spezifisch -->
+            {% if antrag_typ == "zag" %}
+                <h5>Zeitausgleich-Zeitraeume</h5>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Von</th>
+                            <th>Bis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for zeile in antrag.zag_daten %}
+                            <tr>
+                                <td>{{ zeile.von_datum }}</td>
+                                <td>{{ zeile.bis_datum }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                {% if antrag.vertretung_name %}
+                    <div class="row mb-2">
+                        <div class="col-md-3"><strong>Vertretung:</strong></div>
+                        <div class="col-md-9">{{ antrag.vertretung_name }}</div>
+                    </div>
+                {% endif %}
+
+                {% if antrag.vertretung_telefon %}
+                    <div class="row mb-2">
+                        <div class="col-md-3"><strong>Telefon:</strong></div>
+                        <div class="col-md-9">{{ antrag.vertretung_telefon }}</div>
+                    </div>
+                {% endif %}
+            {% endif %}
+
+            <!-- Z-AG Storno spezifisch -->
+            {% if antrag_typ == "zag_storno" %}
+                <h5>Zu stornierende Zeitraeume</h5>
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Von</th>
+                            <th>Bis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for zeile in antrag.storno_daten %}
+                            <tr>
+                                <td>{{ zeile.von_datum }}</td>
+                                <td>{{ zeile.bis_datum }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
+            <!-- Aenderung Zeiterfassung spezifisch -->
+            {% if antrag_typ == "aenderung" %}
+                <div class="row mb-2">
+                    <div class="col-md-3"><strong>Art:</strong></div>
+                    <div class="col-md-9">{{ antrag.get_art_display }}</div>
+                </div>
+
+                {% if antrag.gehen_datum %}
+                    <div class="row mb-2">
+                        <div class="col-md-3"><strong>Gehen:</strong></div>
+                        <div class="col-md-9">{{ antrag.gehen_datum }} - {{ antrag.get_gehen_terminal_display }}</div>
+                    </div>
+                {% endif %}
+
+                {% if antrag.kommen_datum %}
+                    <div class="row mb-2">
+                        <div class="col-md-3"><strong>Kommen:</strong></div>
+                        <div class="col-md-9">{{ antrag.kommen_datum }} - {{ antrag.get_kommen_terminal_display }}</div>
+                    </div>
+                {% endif %}
+            {% endif %}
+
+            {% if antrag.bemerkung_bearbeiter %}
+                <hr>
+                <div class="row mb-2">
+                    <div class="col-md-3"><strong>Bemerkung Genehmiger:</strong></div>
+                    <div class="col-md-9">{{ antrag.bemerkung_bearbeiter }}</div>
+                </div>
+            {% endif %}
+
+            <hr>
+
+            <!-- PDF Link -->
+            <div class="mb-3">
+                {% if antrag_typ == "zag" %}
+                    <a href="{% url 'formulare:zag_pdf' antrag.pk %}" class="btn btn-outline-primary" target="_blank">
+                        📄 PDF anzeigen
+                    </a>
+                {% elif antrag_typ == "zag_storno" %}
+                    <a href="{% url 'formulare:zag_storno_pdf' antrag.pk %}" class="btn btn-outline-primary" target="_blank">
+                        📄 PDF anzeigen
+                    </a>
+                {% elif antrag_typ == "aenderung" %}
+                    <a href="{% url 'formulare:aenderung_pdf' antrag.pk %}" class="btn btn-outline-primary" target="_blank">
+                        📄 PDF anzeigen
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- Aktions-Buttons -->
+            {% if antrag.claimed_von == request.user and antrag.status == "in_bearbeitung" %}
+                <div class="d-flex gap-2">
+                    <form method="post" action="{% url 'formulare:antrag_erledigen' antrag_typ antrag.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success" onclick="return confirm('Antrag als erledigt markieren?')">
+                            ✅ Erledigen
+                        </button>
+                    </form>
+
+                    <form method="post" action="{% url 'formulare:antrag_freigeben' antrag_typ antrag.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning" onclick="return confirm('Antrag zurueck in Queue?')">
+                            🔄 Freigeben
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <h1>Team-Bearbeitungsstapel</h1>
+            {% if team %}
+                <p class="text-muted">Team: <strong>{{ team.name }}</strong></p>
+            {% endif %}
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'formulare:dashboard' %}" class="btn btn-secondary">Zurueck</a>
+        </div>
+    </div>
+
+    {% if kein_team %}
+        <div class="alert alert-warning">
+            <strong>Kein Zugriff</strong>
+            <p class="mb-0">Sie sind in keinem Team fuer die Antragsbearbeitung.</p>
+        </div>
+    {% else %}
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-3" id="queueTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="queue-tab" data-bs-toggle="tab" data-bs-target="#queue" type="button" role="tab">
+                    Offene Antraege <span class="badge bg-primary">{{ queue_antraege|length }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="meine-tab" data-bs-toggle="tab" data-bs-target="#meine" type="button" role="tab">
+                    Meine Antraege <span class="badge bg-info">{{ meine_antraege|length }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="bearbeitung-tab" data-bs-toggle="tab" data-bs-target="#bearbeitung" type="button" role="tab">
+                    In Bearbeitung (Team) <span class="badge bg-secondary">{{ in_bearbeitung|length }}</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="queueTabContent">
+            <!-- Tab 1: Offene Antraege (Queue) -->
+            <div class="tab-pane fade show active" id="queue" role="tabpanel">
+                {% if queue_antraege %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Prioritaet</th>
+                                    <th>Typ</th>
+                                    <th>Antragsteller</th>
+                                    <th>Erstellt am</th>
+                                    <th>Aktion</th>
+                                </tr>
+                            </thead>
+                            <tbody id="queue-tbody">
+                                {% for antrag in queue_antraege %}
+                                    {% include "formulare/partials/_queue_antrag.html" with antrag=antrag show_claim=True %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">Keine offenen Antraege in der Queue.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Tab 2: Meine Antraege -->
+            <div class="tab-pane fade" id="meine" role="tabpanel">
+                {% if meine_antraege %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Typ</th>
+                                    <th>Antragsteller</th>
+                                    <th>Claimed am</th>
+                                    <th>Aktion</th>
+                                </tr>
+                            </thead>
+                            <tbody id="meine-tbody">
+                                {% for antrag in meine_antraege %}
+                                    {% if "Aenderung" in antrag|stringformat:"s" %}
+                                        {% with antrag_typ="aenderung" typ_label="Aenderung Zeiterfassung" %}
+                                            <tr style="cursor: pointer;" onclick="window.location='{% url 'formulare:antrag_detail' antrag_typ antrag.pk %}'">
+                                                <td>{{ typ_label }}</td>
+                                                <td>{{ antrag.antragsteller.vollname }}</td>
+                                                <td>{{ antrag.claimed_am|date:"d.m.Y H:i" }}</td>
+                                                <td><a href="{% url 'formulare:antrag_detail' antrag_typ antrag.pk %}" class="btn btn-sm btn-primary">Details</a></td>
+                                            </tr>
+                                        {% endwith %}
+                                    {% elif "Z-AG Antrag" in antrag|stringformat:"s" %}
+                                        {% with antrag_typ="zag" typ_label="Z-AG Antrag" %}
+                                            <tr style="cursor: pointer;" onclick="window.location='{% url 'formulare:antrag_detail' antrag_typ antrag.pk %}'">
+                                                <td>{{ typ_label }}</td>
+                                                <td>{{ antrag.antragsteller.vollname }}</td>
+                                                <td>{{ antrag.claimed_am|date:"d.m.Y H:i" }}</td>
+                                                <td><a href="{% url 'formulare:antrag_detail' antrag_typ antrag.pk %}" class="btn btn-sm btn-primary">Details</a></td>
+                                            </tr>
+                                        {% endwith %}
+                                    {% elif "Z-AG Storno" in antrag|stringformat:"s" %}
+                                        {% with antrag_typ="zag_storno" typ_label="Z-AG Storno" %}
+                                            <tr style="cursor: pointer;" onclick="window.location='{% url 'formulare:antrag_detail' antrag_typ antrag.pk %}'">
+                                                <td>{{ typ_label }}</td>
+                                                <td>{{ antrag.antragsteller.vollname }}</td>
+                                                <td>{{ antrag.claimed_am|date:"d.m.Y H:i" }}</td>
+                                                <td><a href="{% url 'formulare:antrag_detail' antrag_typ antrag.pk %}" class="btn btn-sm btn-primary">Details</a></td>
+                                            </tr>
+                                        {% endwith %}
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">Sie haben aktuell keine Antraege in Bearbeitung.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Tab 3: In Bearbeitung (Team) -->
+            <div class="tab-pane fade" id="bearbeitung" role="tabpanel">
+                {% if in_bearbeitung %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Typ</th>
+                                    <th>Antragsteller</th>
+                                    <th>Bearbeiter</th>
+                                    <th>Claimed am</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for antrag in in_bearbeitung %}
+                                    {% include "formulare/partials/_queue_antrag.html" with antrag=antrag show_bearbeiter=True %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">Aktuell keine Antraege in Bearbeitung.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- HTMX fuer dynamische Updates -->
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+{% endblock %}

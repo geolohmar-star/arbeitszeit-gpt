@@ -1,0 +1,80 @@
+<div class="tree-node {% if not stelle.untergeordnete_stellen.all %}no-children{% endif %}">
+    {% if stelle.untergeordnete_stellen.all %}
+        <details open>
+            <summary>
+                <span class="expand-arrow"></span>
+                <div class="stelle-node {% if not stelle.ist_besetzt %}unbesetzt{% endif %} rolle-{{ stelle.kuerzel|slice:":2" }}">
+                    <div class="stelle-title">
+                        {{ stelle.kuerzel }} - {{ stelle.bezeichnung }}
+                    </div>
+                    <div class="stelle-info">
+                        <span class="stelle-badge">{{ stelle.org_einheit.kuerzel }}</span>
+                        {% if stelle.ist_besetzt %}
+                            <span class="stelle-badge">{{ stelle.aktueller_inhaber.vollname }}</span>
+                        {% else %}
+                            <span class="stelle-badge">Unbesetzt</span>
+                        {% endif %}
+                    </div>
+                    <div class="stelle-info">
+                        <small>{{ stelle.email }}</small>
+                    </div>
+                    {% if stelle.delegiert_an or stelle.vertreten_durch %}
+                        <div class="stelle-info mt-1">
+                            {% if stelle.delegiert_an %}
+                                <small>Delegiert: {{ stelle.delegiert_an.kuerzel }}</small><br>
+                            {% endif %}
+                            {% if stelle.vertreten_durch %}
+                                <small>Vertreten: {{ stelle.vertreten_durch.kuerzel }}</small>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    <div class="stelle-actions">
+                        <a href="{% url 'hr:stelle_bearbeiten' stelle.pk %}" class="btn btn-sm btn-light">
+                            Bearbeiten
+                        </a>
+                    </div>
+                </div>
+            </summary>
+
+            <!-- Untergeordnete Stellen (horizontal eingezogen) -->
+            <div class="tree-children">
+                {% for unterstelle in stelle.untergeordnete_stellen.all %}
+                    {% include "hr/partials/_stelle_hierarchie.html" with stelle=unterstelle %}
+                {% endfor %}
+            </div>
+        </details>
+    {% else %}
+        <!-- Keine Kinder - nur die Box anzeigen -->
+        <div class="stelle-node {% if not stelle.ist_besetzt %}unbesetzt{% endif %} rolle-{{ stelle.kuerzel|slice:":2" }}">
+            <div class="stelle-title">
+                {{ stelle.kuerzel }} - {{ stelle.bezeichnung }}
+            </div>
+            <div class="stelle-info">
+                <span class="stelle-badge">{{ stelle.org_einheit.kuerzel }}</span>
+                {% if stelle.ist_besetzt %}
+                    <span class="stelle-badge">{{ stelle.aktueller_inhaber.vollname }}</span>
+                {% else %}
+                    <span class="stelle-badge">Unbesetzt</span>
+                {% endif %}
+            </div>
+            <div class="stelle-info">
+                <small>{{ stelle.email }}</small>
+            </div>
+            {% if stelle.delegiert_an or stelle.vertreten_durch %}
+                <div class="stelle-info mt-1">
+                    {% if stelle.delegiert_an %}
+                        <small>Delegiert: {{ stelle.delegiert_an.kuerzel }}</small><br>
+                    {% endif %}
+                    {% if stelle.vertreten_durch %}
+                        <small>Vertreten: {{ stelle.vertreten_durch.kuerzel }}</small>
+                    {% endif %}
+                </div>
+            {% endif %}
+            <div class="stelle-actions">
+                <a href="{% url 'hr:stelle_bearbeiten' stelle.pk %}" class="btn btn-sm btn-light">
+                    Bearbeiten
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>

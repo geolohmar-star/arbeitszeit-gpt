@@ -302,7 +302,7 @@ def aenderung_pdf(request, pk):
     # Dateiname wie Betreffzeile, Leerzeichen durch Unterstrich ersetzen
     dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
     response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{dateiname}"'
+    response["Content-Disposition"] = f'inline; filename="{dateiname}"'
     return response
 
 
@@ -608,12 +608,8 @@ def zag_antrag(request):
             vertretung_telefon=request.POST.get("vertretung_telefon", "").strip(),
         )
 
-        # Sofort Zeiterfassungs-Eintraege anlegen
-        gesamt_tage = 0
-        for zeile in zag_daten:
-            von = date_type.fromisoformat(zeile["von_datum"])
-            bis = date_type.fromisoformat(zeile["bis_datum"])
-            gesamt_tage += _erstelle_zag_eintraege(mitarbeiter, von, bis, "")
+        # KEINE Zeiterfassungs-Eintraege beim Antragstellen mehr!
+        # Werden erst bei Genehmigung erstellt (siehe genehmigung_entscheiden)
 
         return redirect("formulare:zag_erfolg", pk=antrag.pk)
 
@@ -650,14 +646,22 @@ def zag_erfolg(request, pk):
 
 @login_required
 def zag_pdf(request, pk):
-    """Gibt den Z-AG-Antrag als PDF-Download zurueck."""
+    """Gibt den Z-AG-Antrag als PDF-Download zurueck.
+
+    Zugriff: Antragsteller selbst ODER Staff ODER Team-Mitglied mit Claim.
+    """
     from weasyprint import HTML
 
-    antrag = get_object_or_404(
-        ZAGAntrag,
-        pk=pk,
-        antragsteller__user=request.user,
-    )
+    antrag = get_object_or_404(ZAGAntrag, pk=pk)
+
+    # Berechtigungspruefung
+    ist_antragsteller = antrag.antragsteller.user == request.user
+    ist_staff = request.user.is_staff or request.user.is_superuser
+    ist_team_bearbeiter = antrag.claimed_von == request.user
+
+    if not (ist_antragsteller or ist_staff or ist_team_bearbeiter):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Keine Berechtigung fuer diesen Antrag.")
 
     # Arbeitstage pro Zeitraum berechnen
     mitarbeiter = antrag.antragsteller
@@ -697,7 +701,7 @@ def zag_pdf(request, pk):
 
     dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
     response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{dateiname}"'
+    response["Content-Disposition"] = f'inline; filename="{dateiname}"'
     return response
 
 
@@ -987,7 +991,7 @@ def zag_storno_pdf(request, pk):
 
     dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
     response = HttpResponse(pdf, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{dateiname}"'
+    response["Content-Disposition"] = f'inline; filename="{dateiname}"'
     return response
 
 
@@ -1028,7 +1032,8 @@ def _offene_antraege_fuer_user(user):
 
     Logik:
     - Superuser/Staff: alle Mitarbeiter
-    - Sonst: Mitarbeiter deren Stelle direkt untergeordnet zur Stelle des Users ist
+    - Sonst: Mitarbeiter deren uebergeordnete_stelle.verantwortliche_stelle() == user_stelle
+      Das beruecksichtigt automatisch Delegation und temporaere Vertretung.
 
     Faellt auf guardian-Permissions zurueck wenn kein Stellensystem vorhanden.
     """
@@ -1046,19 +1051,28 @@ def _offene_antraege_fuer_user(user):
         user_stelle = None
 
     if user_stelle is not None:
-        # Direkte Untergebene-Stellen ermitteln
-        untergeordnete_stellen = Stelle.objects.filter(
-            uebergeordnete_stelle=user_stelle
-        )
-        # HRMitarbeiter dieser Stellen
-        untergebene_hr = HRMitarbeiter.objects.filter(
-            stelle__in=untergeordnete_stellen
-        )
-        untergebene_user_ids = untergebene_hr.values_list("user_id", flat=True)
-        # arbeitszeit.Mitarbeiter der Untergebenen
-        stellen_ma = Mitarbeiter.objects.filter(user__in=untergebene_user_ids)
-        if stellen_ma.exists():
-            return stellen_ma
+        # Alle Stellen mit uebergeordneter Stelle
+        stellen_mit_vorgesetztem = Stelle.objects.filter(
+            uebergeordnete_stelle__isnull=False
+        ).select_related("uebergeordnete_stelle")
+
+        # Filtere: welche Stellen haben user_stelle als verantwortliche Stelle?
+        berechtigte_stellen = []
+        for stelle in stellen_mit_vorgesetztem:
+            verantwortliche = stelle.uebergeordnete_stelle.verantwortliche_stelle()
+            if verantwortliche and verantwortliche.pk == user_stelle.pk:
+                berechtigte_stellen.append(stelle.pk)
+
+        if berechtigte_stellen:
+            # HRMitarbeiter dieser Stellen
+            untergebene_hr = HRMitarbeiter.objects.filter(
+                stelle__pk__in=berechtigte_stellen
+            )
+            untergebene_user_ids = untergebene_hr.values_list("user_id", flat=True)
+            # arbeitszeit.Mitarbeiter der Untergebenen
+            stellen_ma = Mitarbeiter.objects.filter(user__in=untergebene_user_ids)
+            if stellen_ma.exists():
+                return stellen_ma
 
     # Fallback: guardian-Permissions (wird spaeter entfernt)
     from guardian.shortcuts import get_objects_for_user
@@ -1195,6 +1209,46 @@ def genehmigung_entscheiden(request, antrag_typ, pk):
     antrag.bearbeitet_am = timezone.now()
     antrag.bemerkung_bearbeiter = request.POST.get("bemerkung", "").strip()
     antrag.save()
+
+    # Automatische Buchung bei Z-AG Antraegen
+    if antrag_typ == "zag" and neue_status == "genehmigt":
+        # Z-AG genehmigt → Zeiterfassungs-Eintraege erstellen
+        gesamt_tage = 0
+        for zeile in antrag.zag_daten:
+            von = date_type.fromisoformat(zeile["von_datum"])
+            bis = date_type.fromisoformat(zeile["bis_datum"])
+            bemerkung = f"Z-AG genehmigt von {request.user.get_full_name() or request.user.username}"
+            gesamt_tage += _erstelle_zag_eintraege(
+                antrag.antragsteller, von, bis, bemerkung
+            )
+
+    elif antrag_typ == "zag" and neue_status == "abgelehnt":
+        # Z-AG abgelehnt → Zeiterfassungs-Eintraege loeschen (falls vorhanden)
+        for zeile in antrag.zag_daten:
+            von = date_type.fromisoformat(zeile["von_datum"])
+            bis = date_type.fromisoformat(zeile["bis_datum"])
+            aktuell = von
+            while aktuell <= bis:
+                Zeiterfassung.objects.filter(
+                    mitarbeiter=antrag.antragsteller,
+                    datum=aktuell,
+                    art="z_ag",
+                ).delete()
+                aktuell += timedelta(days=1)
+
+    elif antrag_typ == "zag_storno" and neue_status == "genehmigt":
+        # Z-AG Storno genehmigt → Zeiterfassungs-Eintraege loeschen
+        for zeile in antrag.storno_daten:
+            von = date_type.fromisoformat(zeile["von_datum"])
+            bis = date_type.fromisoformat(zeile["bis_datum"])
+            aktuell = von
+            while aktuell <= bis:
+                Zeiterfassung.objects.filter(
+                    mitarbeiter=antrag.antragsteller,
+                    datum=aktuell,
+                    art="z_ag",
+                ).delete()
+                aktuell += timedelta(days=1)
 
     # HTMX: Zeile durch erledigtes Partial ersetzen
     if request.headers.get("HX-Request"):

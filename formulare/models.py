@@ -15,6 +15,14 @@ class Antrag(models.Model):
         ("genehmigt", "Genehmigt"),
         ("abgelehnt", "Abgelehnt"),
         ("eskaliert", "Eskaliert"),
+        ("in_bearbeitung", "In Bearbeitung"),
+        ("erledigt", "Erledigt"),
+    ]
+
+    PRIORITAET_CHOICES = [
+        (0, "Normal"),
+        (1, "Hoch"),
+        (2, "Dringend"),
     ]
 
     aktualisiert_am = models.DateTimeField(auto_now=True)
@@ -35,7 +43,33 @@ class Antrag(models.Model):
         related_name="%(class)s_bearbeitet",
     )
     bemerkung_bearbeiter = models.TextField(blank=True)
+
+    # Team-Queue Felder
+    claimed_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Claimed am",
+    )
+    claimed_von = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="%(class)s_claimed",
+        verbose_name="Claimed von",
+    )
+    erledigt_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Erledigt am",
+    )
+
     erstellt_am = models.DateTimeField(auto_now_add=True)
+    prioritaet = models.IntegerField(
+        choices=PRIORITAET_CHOICES,
+        default=0,
+        verbose_name="Prioritaet",
+    )
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
@@ -228,3 +262,88 @@ class ZAGStorno(Antrag):
 
     def __str__(self):
         return f"Z-AG Storno - {self.antragsteller}"
+
+
+class TeamQueue(models.Model):
+    """Team-Bearbeitungsstapel fuer genehmigte Antraege.
+
+    Definiert welche Teams welche Antragstypen bearbeiten.
+    Mitglieder koennen Antraege aus der Queue claimen und bearbeiten.
+    """
+
+    beschreibung = models.TextField(
+        blank=True,
+        help_text="Beschreibung des Teams und seiner Zustaendigkeiten.",
+    )
+    kuerzel = models.CharField(
+        max_length=20,
+        unique=True,
+        help_text="Eindeutiges Kuerzel (z.B. 'zeit', 'hr').",
+    )
+    mitglieder = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="team_queues",
+        verbose_name="Mitglieder",
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name="Team-Name",
+    )
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Team-Queue"
+        verbose_name_plural = "Team-Queues"
+
+    def __str__(self):
+        return self.name
+
+    def antraege_in_queue(self):
+        """Gibt alle genehmigten, ungeclaimten Antraege zurueck."""
+        from itertools import chain
+
+        aenderungen = AenderungZeiterfassung.objects.filter(
+            status="genehmigt",
+            claimed_von__isnull=True,
+        )
+        zag_antraege = ZAGAntrag.objects.filter(
+            status="genehmigt",
+            claimed_von__isnull=True,
+        )
+        zag_stornos = ZAGStorno.objects.filter(
+            status="genehmigt",
+            claimed_von__isnull=True,
+        )
+
+        # Alle zusammenfuehren und nach Prioritaet/Erstelldatum sortieren
+        alle_antraege = sorted(
+            chain(aenderungen, zag_antraege, zag_stornos),
+            key=lambda x: (-x.prioritaet, x.erstellt_am),
+        )
+        return alle_antraege
+
+    def antraege_in_bearbeitung(self):
+        """Gibt alle geclaimten Antraege des Teams zurueck."""
+        from itertools import chain
+
+        mitglieder_ids = self.mitglieder.values_list("id", flat=True)
+
+        aenderungen = AenderungZeiterfassung.objects.filter(
+            status="in_bearbeitung",
+            claimed_von__in=mitglieder_ids,
+        )
+        zag_antraege = ZAGAntrag.objects.filter(
+            status="in_bearbeitung",
+            claimed_von__in=mitglieder_ids,
+        )
+        zag_stornos = ZAGStorno.objects.filter(
+            status="in_bearbeitung",
+            claimed_von__in=mitglieder_ids,
+        )
+
+        alle_antraege = sorted(
+            chain(aenderungen, zag_antraege, zag_stornos),
+            key=lambda x: x.claimed_am,
+        )
+        return alle_antraege

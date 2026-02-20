@@ -1,6 +1,7 @@
 from django.urls import path
 
 from formulare import views
+from formulare import views_team_queue
 
 app_name = "formulare"
 
@@ -116,5 +117,31 @@ urlpatterns = [
         "genehmigung/<str:antrag_typ>/<int:pk>/entscheiden/",
         views.genehmigung_entscheiden,
         name="genehmigung_entscheiden",
+    ),
+    # Team-Queue-System
+    path(
+        "team-queue/",
+        views_team_queue.team_queue_uebersicht,
+        name="team_queue",
+    ),
+    path(
+        "team-queue/antrag/<str:antrag_typ>/<int:pk>/",
+        views_team_queue.antrag_detail,
+        name="antrag_detail",
+    ),
+    path(
+        "team-queue/claimen/<str:antrag_typ>/<int:pk>/",
+        views_team_queue.antrag_claimen,
+        name="antrag_claimen",
+    ),
+    path(
+        "team-queue/freigeben/<str:antrag_typ>/<int:pk>/",
+        views_team_queue.antrag_freigeben,
+        name="antrag_freigeben",
+    ),
+    path(
+        "team-queue/erledigen/<str:antrag_typ>/<int:pk>/",
+        views_team_queue.antrag_erledigen,
+        name="antrag_erledigen",
     ),
 ]

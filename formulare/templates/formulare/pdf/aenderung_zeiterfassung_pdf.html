@@ -257,16 +257,28 @@
 
     <!-- Genehmigung -->
     <div class="genehmigung-box">
-        <div class="abschnitt-titel">Genehmigung <span class="badge-platzhalter">(folgt aus Genehmigungsworkflow)</span></div>
+        <div class="abschnitt-titel">Genehmigung</div>
         <table style="width:100%">
             <tr>
                 <td>
                     Genehmigt Vorgesetzter:<br>
-                    <div class="genehmigung-zeile">&nbsp;</div>
+                    <div class="genehmigung-zeile">
+                        {% if antrag.bearbeitet_von %}
+                            <strong>{{ antrag.bearbeitet_von.get_full_name|default:antrag.bearbeitet_von.username }}</strong>
+                        {% else %}
+                            &nbsp;
+                        {% endif %}
+                    </div>
                 </td>
                 <td>
                     Datum der Genehmigung:<br>
-                    <div class="genehmigung-zeile">&nbsp;</div>
+                    <div class="genehmigung-zeile">
+                        {% if antrag.bearbeitet_am %}
+                            <strong>{{ antrag.bearbeitet_am|date:"d.m.Y" }}</strong>
+                        {% else %}
+                            &nbsp;
+                        {% endif %}
+                    </div>
                 </td>
             </tr>
         </table>

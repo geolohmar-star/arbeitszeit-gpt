@@ -67,6 +67,34 @@
 
         <!-- Platzhalter fuer weitere Formulare -->
 
+        <div class="col-md-4">
+            <a href="{% url 'formulare:genehmigung_uebersicht' %}"
+               class="text-decoration-none">
+                <div class="card h-100 card-hover border-warning">
+                    <div class="card-body">
+                        <h5 class="card-title">Genehmigungen</h5>
+                        <p class="card-text text-muted small">
+                            Antraege von Mitarbeitern genehmigen oder ablehnen
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-4">
+            <a href="{% url 'formulare:team_queue' %}"
+               class="text-decoration-none">
+                <div class="card h-100 card-hover border-info">
+                    <div class="card-body">
+                        <h5 class="card-title">Team-Bearbeitungsstapel</h5>
+                        <p class="card-text text-muted small">
+                            Genehmigte Antraege bearbeiten und umsetzen
+                        </p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
     </div>
 </div>
 {% endblock %}

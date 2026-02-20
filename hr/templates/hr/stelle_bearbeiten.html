@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <h1>{% if stelle %}Stelle bearbeiten{% else %}Neue Stelle anlegen{% endif %}</h1>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'hr:stellen_uebersicht' %}" class="btn btn-secondary">Zurueck zur Uebersicht</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- Basisdaten -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="kuerzel" class="form-label">Kuerzel *</label>
+                        <input
+                            type="text"
+                            name="kuerzel"
+                            id="kuerzel"
+                            class="form-control"
+                            value="{% if stelle %}{{ stelle.kuerzel }}{% endif %}"
+                            required
+                            placeholder="z.B. fm1, fm_tl1, gf1"
+                        >
+                        <small class="form-text text-muted">Eindeutiges Kuerzel (lowercase empfohlen)</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="org_einheit" class="form-label">Organisationseinheit *</label>
+                        <select name="org_einheit" id="org_einheit" class="form-select" required>
+                            <option value="">-- Bitte waehlen --</option>
+                            {% for oe in org_einheiten %}
+                                <option value="{{ oe.pk }}"
+                                    {% if stelle and stelle.org_einheit.pk == oe.pk %}selected{% endif %}>
+                                    {{ oe.kuerzel }} - {{ oe.bezeichnung }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="bezeichnung" class="form-label">Bezeichnung *</label>
+                    <input
+                        type="text"
+                        name="bezeichnung"
+                        id="bezeichnung"
+                        class="form-control"
+                        value="{% if stelle %}{{ stelle.bezeichnung }}{% endif %}"
+                        required
+                        placeholder="z.B. Facility Manager, Teamleiter Facility Management"
+                    >
+                </div>
+
+                <!-- Hierarchie -->
+                <div class="mb-3">
+                    <label for="uebergeordnete_stelle" class="form-label">Uebergeordnete Stelle</label>
+                    <select name="uebergeordnete_stelle" id="uebergeordnete_stelle" class="form-select">
+                        <option value="">-- Keine (Top-Level Stelle) --</option>
+                        {% for andere in andere_stellen %}
+                            <option value="{{ andere.pk }}"
+                                {% if stelle and stelle.uebergeordnete_stelle and stelle.uebergeordnete_stelle.pk == andere.pk %}selected{% endif %}>
+                                {{ andere.kuerzel }} ({{ andere.org_einheit.kuerzel }}) - {{ andere.bezeichnung }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">Vorgesetzten-Stelle in der Hierarchie</small>
+                </div>
+
+                <!-- Delegation (dauerhaft) -->
+                <div class="mb-3">
+                    <label for="delegiert_an" class="form-label">Delegiert an</label>
+                    <select name="delegiert_an" id="delegiert_an" class="form-select">
+                        <option value="">-- Keine Delegation --</option>
+                        {% for andere in andere_stellen %}
+                            <option value="{{ andere.pk }}"
+                                {% if stelle and stelle.delegiert_an and stelle.delegiert_an.pk == andere.pk %}selected{% endif %}>
+                                {{ andere.kuerzel }} ({{ andere.org_einheit.kuerzel }}) - {{ andere.bezeichnung }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted">Massengeschaeft dauerhaft an diese Stelle delegieren</small>
+                </div>
+
+                <!-- Kompetenzrahmen -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="max_urlaubstage_genehmigung" class="form-label">Max. Urlaubstage Genehmigung</label>
+                        <input
+                            type="number"
+                            name="max_urlaubstage_genehmigung"
+                            id="max_urlaubstage_genehmigung"
+                            class="form-control"
+                            value="{% if stelle %}{{ stelle.max_urlaubstage_genehmigung }}{% else %}0{% endif %}"
+                            min="0"
+                        >
+                        <small class="form-text text-muted">0 = unbegrenzt; darueber hinaus automatische Eskalation</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="eskalation_nach_tagen" class="form-label">Eskalation nach Tagen</label>
+                        <input
+                            type="number"
+                            name="eskalation_nach_tagen"
+                            id="eskalation_nach_tagen"
+                            class="form-control"
+                            value="{% if stelle %}{{ stelle.eskalation_nach_tagen }}{% else %}3{% endif %}"
+                            min="1"
+                        >
+                        <small class="form-text text-muted">Timeout: Nach wie vielen Tagen ohne Entscheidung eskalieren</small>
+                    </div>
+                </div>
+
+                <!-- Berechnete Felder (nur bei Bearbeitung) -->
+                {% if stelle %}
+                    <div class="alert alert-info">
+                        <strong>Email:</strong> {{ stelle.email }}<br>
+                        <strong>Status:</strong> {% if stelle.ist_besetzt %}Besetzt{% else %}Unbesetzt{% endif %}<br>
+                        {% if stelle.aktueller_inhaber %}
+                            <strong>Aktueller Inhaber:</strong> {{ stelle.aktueller_inhaber.vollname }}
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <!-- Buttons -->
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        {% if stelle %}Speichern{% else %}Anlegen{% endif %}
+                    </button>
+                    <a href="{% url 'hr:stellen_uebersicht' %}" class="btn btn-secondary">Abbrechen</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

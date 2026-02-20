@@ -1,0 +1,504 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <h1>Stellen-Organigramm</h1>
+            <p class="text-muted">Interaktive D3.js Hierarchie - Klick zum Auf-/Zuklappen</p>
+        </div>
+        <div class="col-auto">
+            <button id="expandAll" class="btn btn-secondary btn-sm">Alle aufklappen</button>
+            <button id="collapseAll" class="btn btn-secondary btn-sm">Alle zuklappen</button>
+            <button id="resetZoom" class="btn btn-info btn-sm">Zoom zuruecksetzen</button>
+            <a href="{% url 'hr:stellen_uebersicht' %}" class="btn btn-secondary">Zur Uebersicht</a>
+            <a href="{% url 'hr:stelle_neu' %}" class="btn btn-primary">+ Neue Stelle</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if orgchart_data_json != '[]' %}
+                <div id="tree-container" style="width: 100%; height: 85vh; overflow: hidden; background: #fafafa;"></div>
+            {% else %}
+                <div class="alert alert-warning m-3">
+                    <strong>Keine Top-Level Stellen gefunden.</strong>
+                    <p class="mb-0">Legen Sie zuerst Stellen ohne uebergeordnete Stelle an.</p>
+                </div>
+
+                {% if alle_stellen %}
+                    <div class="m-3">
+                        <hr>
+                        <h5>Alle vorhandenen Stellen (flach):</h5>
+                        <ul class="list-group">
+                            {% for stelle in alle_stellen %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ stelle.kuerzel }}</strong> - {{ stelle.bezeichnung }}
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ stelle.org_einheit.kuerzel }}
+                                            {% if stelle.uebergeordnete_stelle %}
+                                                | Uebergeordnet: {{ stelle.uebergeordnete_stelle.kuerzel }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <div>
+                                        {% if stelle.ist_besetzt %}
+                                            <span class="badge bg-success">Besetzt</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Unbesetzt</span>
+                                        {% endif %}
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    /* D3 Tree Styling */
+    .node circle {
+        fill: #fff;
+        stroke: steelblue;
+        stroke-width: 3px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .node circle:hover {
+        stroke-width: 5px;
+        fill: #e8f4f8;
+    }
+
+    .node text {
+        font: 12px sans-serif;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .node.node--internal circle {
+        fill: #lightsteelblue;
+    }
+
+    .node--internal text {
+        font-weight: bold;
+    }
+
+    .link {
+        fill: none;
+        stroke: #ccc;
+        stroke-width: 2px;
+    }
+
+    /* Custom Node Styling */
+    .node-gf circle {
+        fill: #f5576c;
+        stroke: #c23047;
+    }
+
+    .node-bl circle {
+        fill: #00f2fe;
+        stroke: #00a8b5;
+    }
+
+    .node-al circle {
+        fill: #38f9d7;
+        stroke: #26b89e;
+    }
+
+    .node-tl circle {
+        fill: #fee140;
+        stroke: #c2ae1c;
+    }
+
+    .node-sv circle {
+        fill: #a78bfa;
+        stroke: #7c3aed;
+    }
+
+    .node-ma circle {
+        fill: #fed6e3;
+        stroke: #f472b6;
+    }
+
+    .node-unbesetzt circle {
+        opacity: 0.5;
+        stroke-dasharray: 5,5;
+    }
+
+    /* Tooltip */
+    .tooltip {
+        position: absolute;
+        text-align: left;
+        padding: 12px;
+        font: 12px sans-serif;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        pointer-events: auto; /* ÄNDERUNG: Tooltip klickbar machen */
+        opacity: 0;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-width: 300px;
+        z-index: 1000;
+    }
+
+    .tooltip strong {
+        display: block;
+        margin-bottom: 6px;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .tooltip .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        margin-right: 4px;
+        margin-top: 4px;
+    }
+
+    #tree-container {
+        position: relative;
+    }
+</style>
+
+<!-- D3.js v7 - Lokal gespeichert (Offline-ready) -->
+<script src="{% static 'js/d3.v7.min.js' %}"></script>
+
+<script>
+// Daten aus Django
+const treeData = {{ orgchart_data_json|safe }};
+
+console.log("=== DEBUG INFO ===");
+console.log("treeData type:", typeof treeData);
+console.log("treeData:", treeData);
+console.log("treeData.length:", treeData ? treeData.length : 'undefined');
+console.log("==================");
+
+if (!treeData || treeData.length === 0) {
+    console.log("FEHLER: Keine Daten vorhanden");
+    alert("Keine Daten vorhanden! Siehe Console (F12)");
+} else {
+    // Counter für Node-IDs (muss am Anfang sein!)
+    let i = 0;
+
+    // Root Node mit allen Top-Level Stellen als Children
+    const root = {
+        name: "Organisation",
+        children: treeData
+    };
+
+    // Container Dimensionen
+    const container = d3.select("#tree-container");
+    const width = container.node().getBoundingClientRect().width;
+    const height = container.node().getBoundingClientRect().height;
+
+    // SVG erstellen
+    const svg = container.append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .call(d3.zoom()
+            .scaleExtent([0.1, 3])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            }))
+        .append("g")
+        .attr("transform", `translate(${width / 2},50)`);
+
+    const g = svg;
+
+    // Tree Layout
+    const tree = d3.tree()
+        .size([width - 200, height - 200])
+        .separation((a, b) => (a.parent === b.parent ? 1 : 1.2));
+
+    // Hierarchie erstellen
+    const rootNode = d3.hierarchy(root);
+    rootNode.x0 = 0;
+    rootNode.y0 = 0;
+
+    // Initial alle Kinder nach Ebene 2 zuklappen
+    if (rootNode.children) {
+        rootNode.children.forEach(collapse);
+    }
+
+    // Tooltip erstellen
+    const tooltip = container.append("div")
+        .attr("class", "tooltip");
+
+    update(rootNode);
+
+    // Collapse Funktion
+    function collapse(d) {
+        if (d.children) {
+            d._children = d.children;
+            d._children.forEach(collapse);
+            d.children = null;
+        }
+    }
+
+    // Expand Funktion
+    function expand(d) {
+        if (d._children) {
+            d.children = d._children;
+            d.children.forEach(expand);
+            d._children = null;
+        }
+    }
+
+    // Update Funktion
+    function update(source) {
+        const duration = 750;
+
+        // Tree Layout berechnen
+        const treeData = tree(rootNode);
+        const nodes = treeData.descendants();
+        const links = treeData.links();
+
+        // Normalisiere Y-Position für feste Tiefe
+        nodes.forEach(d => {
+            d.y = d.depth * 180;
+        });
+
+        // Nodes updaten
+        const node = g.selectAll("g.node")
+            .data(nodes, d => d.id || (d.id = ++i));
+
+        // Enter neue Nodes
+        const nodeEnter = node.enter().append("g")
+            .attr("class", d => {
+                let classes = "node";
+                if (d.data.className) {
+                    classes += " node-" + d.data.className.split("-")[1];
+                }
+                if (d.data.extra && !d.data.extra.besetzt) {
+                    classes += " node-unbesetzt";
+                }
+                return classes;
+            })
+            .attr("transform", d => `translate(${source.x0},${source.y0})`)
+            .on("click", toggleTooltip)
+            .on("dblclick", click)
+            .on("mouseover", showTooltipHover)
+            .on("mouseout", hideTooltipHover);
+
+        nodeEnter.append("circle")
+            .attr("r", 1e-6);
+
+        nodeEnter.append("text")
+            .attr("dy", ".35em")
+            .attr("y", d => d.children || d._children ? -20 : 20)
+            .attr("text-anchor", "middle")
+            .text(d => d.data.name)
+            .style("fill-opacity", 1e-6);
+
+        // Update
+        const nodeUpdate = nodeEnter.merge(node);
+
+        nodeUpdate.transition()
+            .duration(duration)
+            .attr("transform", d => `translate(${d.x},${d.y})`);
+
+        nodeUpdate.select("circle")
+            .attr("r", d => {
+                if (d.data.name === "Organisation") return 0;
+                return d.data.className && d.data.className.includes("gf") ? 12 : 8;
+            })
+            .style("fill", d => d._children ? "lightsteelblue" : "#fff");
+
+        nodeUpdate.select("text")
+            .style("fill-opacity", 1);
+
+        // Exit
+        const nodeExit = node.exit().transition()
+            .duration(duration)
+            .attr("transform", d => `translate(${source.x},${source.y})`)
+            .remove();
+
+        nodeExit.select("circle")
+            .attr("r", 1e-6);
+
+        nodeExit.select("text")
+            .style("fill-opacity", 1e-6);
+
+        // Links updaten
+        const link = g.selectAll("path.link")
+            .data(links, d => d.target.id);
+
+        const linkEnter = link.enter().insert("path", "g")
+            .attr("class", "link")
+            .attr("d", d => {
+                const o = {x: source.x0, y: source.y0};
+                return diagonal(o, o);
+            });
+
+        const linkUpdate = linkEnter.merge(link);
+
+        linkUpdate.transition()
+            .duration(duration)
+            .attr("d", d => diagonal(d.source, d.target));
+
+        link.exit().transition()
+            .duration(duration)
+            .attr("d", d => {
+                const o = {x: source.x, y: source.y};
+                return diagonal(o, o);
+            })
+            .remove();
+
+        // Position für nächste Transition speichern
+        nodes.forEach(d => {
+            d.x0 = d.x;
+            d.y0 = d.y;
+        });
+    }
+
+    // Diagonale für Links
+    function diagonal(s, d) {
+        return `M ${s.x} ${s.y}
+                C ${s.x} ${(s.y + d.y) / 2},
+                  ${d.x} ${(s.y + d.y) / 2},
+                  ${d.x} ${d.y}`;
+    }
+
+    // Click Handler
+    function click(event, d) {
+        if (d.children) {
+            d._children = d.children;
+            d.children = null;
+        } else {
+            d.children = d._children;
+            d._children = null;
+        }
+        update(d);
+    }
+
+    // Tooltip State
+    let tooltipPinned = false;
+    let currentTooltipNode = null;
+
+    // Tooltip Funktionen
+    function showTooltip(event, d, pin = false) {
+        if (!d.data.extra) return;
+
+        const extra = d.data.extra;
+        let html = `<strong>${d.data.name} - ${d.data.title}</strong>`;
+        html += `<div><span class="badge bg-info">${extra.org}</span>`;
+
+        // Mitarbeiter klickbar machen wenn besetzt
+        if (extra.besetzt && extra.inhaber_url) {
+            html += `<a href="${extra.inhaber_url}" class="badge bg-success text-decoration-none" style="color: white;" title="Zum Mitarbeiter-Profil">${extra.inhaber} 🔗</a>`;
+        } else {
+            html += `<span class="badge bg-warning">${extra.inhaber}</span>`;
+        }
+        html += `</div>`;
+
+        html += `<div style="margin-top:6px; font-size:11px; color:#666;">${extra.email}</div>`;
+        if (extra.delegiert_an) {
+            html += `<div style="margin-top:4px; font-size:11px;">Delegiert: ${extra.delegiert_an}</div>`;
+        }
+        if (extra.vertreten_durch) {
+            html += `<div style="font-size:11px;">Vertreten: ${extra.vertreten_durch}</div>`;
+        }
+
+        // Links hinzufügen
+        html += `<div style="margin-top:10px; padding-top:8px; border-top:1px solid #eee;">`;
+        html += `<a href="${extra.edit_url}" style="font-size:11px; margin-right:10px;">📝 Stelle bearbeiten</a>`;
+        if (extra.besetzt && extra.inhaber_url) {
+            html += `<a href="${extra.inhaber_url}" style="font-size:11px;">👤 Mitarbeiter-Profil</a>`;
+        }
+        html += `</div>`;
+
+        tooltip.html(html)
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 10) + "px")
+            .transition()
+            .duration(200)
+            .style("opacity", 0.95);
+
+        // Pin-Status aktualisieren
+        if (pin) {
+            tooltipPinned = true;
+            currentTooltipNode = d;
+        }
+
+        // Tooltip bleibt offen wenn man drüber hovert
+        tooltip.on("mouseenter", function() {
+            tooltip.style("opacity", 0.95);
+        }).on("mouseleave", function() {
+            // Nur verstecken wenn nicht gepinnt
+            if (!tooltipPinned) {
+                hideTooltip();
+            }
+        });
+    }
+
+    function hideTooltip() {
+        // Verzögert schließen damit man Zeit hat ins Tooltip zu hovern
+        setTimeout(() => {
+            if (!tooltip.node().matches(':hover') && !tooltipPinned) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", 0);
+            }
+        }, 100);
+    }
+
+    function toggleTooltip(event, d) {
+        // Wenn bereits zu diesem Node gepinnt → unpin und verstecke
+        if (tooltipPinned && currentTooltipNode === d) {
+            tooltipPinned = false;
+            currentTooltipNode = null;
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", 0);
+        } else {
+            // Sonst: pin zu diesem Node
+            showTooltip(event, d, true);
+        }
+        // Event stoppen damit Doppelklick nicht ausgelöst wird
+        event.stopPropagation();
+    }
+
+    function showTooltipHover(event, d) {
+        // Tooltip nur anzeigen wenn nicht bereits gepinnt
+        if (!tooltipPinned) {
+            showTooltip(event, d, false);
+        }
+    }
+
+    function hideTooltipHover() {
+        // Tooltip nur verstecken wenn nicht gepinnt
+        if (!tooltipPinned) {
+            hideTooltip();
+        }
+    }
+
+    // Buttons
+    document.getElementById("expandAll").addEventListener("click", () => {
+        rootNode.children.forEach(expand);
+        update(rootNode);
+    });
+
+    document.getElementById("collapseAll").addEventListener("click", () => {
+        rootNode.children.forEach(collapse);
+        update(rootNode);
+    });
+
+    document.getElementById("resetZoom").addEventListener("click", () => {
+        svg.transition().duration(750).call(
+            d3.zoom().transform,
+            d3.zoomIdentity.translate(width / 2, 50)
+        );
+    });
+}
+</script>
+
+{% endblock %}

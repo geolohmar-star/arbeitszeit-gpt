@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <h1>Delegation & Vertretung verwalten</h1>
+            <p class="text-muted">Dauerhafte Delegationen und temporaere Vertretungen konfigurieren</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'hr:stellen_uebersicht' %}" class="btn btn-secondary">Zur Uebersicht</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if stellen %}
+                <div class="accordion" id="delegationAccordion">
+                    {% for stelle in stellen %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ stelle.pk }}">
+                                <button class="accordion-button collapsed" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#collapse{{ stelle.pk }}">
+                                    <strong>{{ stelle.kuerzel }}</strong>
+                                    <span class="mx-2">-</span>
+                                    {{ stelle.bezeichnung }}
+                                    <span class="mx-2 text-muted">({{ stelle.org_einheit.kuerzel }})</span>
+                                    {% if stelle.delegiert_an or stelle.vertreten_durch %}
+                                        <span class="badge bg-info ms-2">Aktiv</span>
+                                    {% endif %}
+                                </button>
+                            </h2>
+                            <div id="collapse{{ stelle.pk }}" class="accordion-collapse collapse"
+                                data-bs-parent="#delegationAccordion">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <!-- Delegation (dauerhaft) -->
+                                        <div class="col-md-6 mb-3">
+                                            <h5>Delegation (dauerhaft)</h5>
+                                            {% if stelle.delegiert_an %}
+                                                <div class="alert alert-info">
+                                                    <strong>Aktuell delegiert an:</strong><br>
+                                                    {{ stelle.delegiert_an.kuerzel }} - {{ stelle.delegiert_an.bezeichnung }}
+                                                </div>
+                                                <form method="post">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="stelle_id" value="{{ stelle.pk }}">
+                                                    <input type="hidden" name="aktion" value="delegation_entfernen">
+                                                    <button type="submit" class="btn btn-warning btn-sm">
+                                                        Delegation entfernen
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <p class="text-muted mb-2">Keine Delegation aktiv.</p>
+                                                <form method="post" class="row g-2">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="stelle_id" value="{{ stelle.pk }}">
+                                                    <input type="hidden" name="aktion" value="delegation_setzen">
+                                                    <div class="col-md-9">
+                                                        <select name="delegiert_an" class="form-select form-select-sm" required>
+                                                            <option value="">-- Ziel-Stelle waehlen --</option>
+                                                            {% for andere in stellen %}
+                                                                {% if andere.pk != stelle.pk %}
+                                                                    <option value="{{ andere.pk }}">
+                                                                        {{ andere.kuerzel }} ({{ andere.org_einheit.kuerzel }})
+                                                                    </option>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                                                            Setzen
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Vertretung (temporaer) -->
+                                        <div class="col-md-6 mb-3">
+                                            <h5>Vertretung (temporaer)</h5>
+                                            {% if stelle.vertreten_durch %}
+                                                <div class="alert alert-success">
+                                                    <strong>Aktuell vertreten durch:</strong><br>
+                                                    {{ stelle.vertreten_durch.kuerzel }} - {{ stelle.vertreten_durch.bezeichnung }}<br>
+                                                    <small class="text-muted">
+                                                        Von: {{ stelle.vertretung_von|date:"d.m.Y" }} |
+                                                        Bis: {{ stelle.vertretung_bis|date:"d.m.Y" }}
+                                                    </small>
+                                                </div>
+                                                <form method="post">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="stelle_id" value="{{ stelle.pk }}">
+                                                    <input type="hidden" name="aktion" value="vertretung_entfernen">
+                                                    <button type="submit" class="btn btn-warning btn-sm">
+                                                        Vertretung entfernen
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <p class="text-muted mb-2">Keine Vertretung aktiv.</p>
+                                                <form method="post">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="stelle_id" value="{{ stelle.pk }}">
+                                                    <input type="hidden" name="aktion" value="vertretung_setzen">
+                                                    <div class="mb-2">
+                                                        <select name="vertreten_durch" class="form-select form-select-sm" required>
+                                                            <option value="">-- Vertreter waehlen --</option>
+                                                            {% for andere in stellen %}
+                                                                {% if andere.pk != stelle.pk %}
+                                                                    <option value="{{ andere.pk }}">
+                                                                        {{ andere.kuerzel }} ({{ andere.org_einheit.kuerzel }})
+                                                                    </option>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="row g-2 mb-2">
+                                                        <div class="col-6">
+                                                            <label for="von_{{ stelle.pk }}" class="form-label form-label-sm">Von:</label>
+                                                            <input type="date" name="vertretung_von" id="von_{{ stelle.pk }}"
+                                                                class="form-control form-control-sm" required>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <label for="bis_{{ stelle.pk }}" class="form-label form-label-sm">Bis:</label>
+                                                            <input type="date" name="vertretung_bis" id="bis_{{ stelle.pk }}"
+                                                                class="form-control form-control-sm" required>
+                                                        </div>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                                                        Vertretung setzen
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">Keine Stellen vorhanden.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

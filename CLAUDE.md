@@ -4,7 +4,53 @@
 - **Framework:** Django (klassisch mit Templates)
 - **Sprache:** Python 3.11+
 - **Typ:** Solo-Projekt
-- **Apps:** `schichtplan`, `arbeitszeit`, `formulare`
+- **Apps:** `schichtplan`, `arbeitszeit`, `formulare`, `hr`, `berechtigungen`
+- **Deployment:** Intranet (kein Internet)
+
+---
+
+## ⚠️ KRITISCHE ANFORDERUNG: Offline-Betrieb
+
+**Die Anwendung muss vollständig OFFLINE im Intranet ohne Internet-Anbindung funktionieren.**
+
+### Regeln für externe Ressourcen:
+
+❌ **VERBOTEN:**
+- CDN-Links (z.B. `https://cdn.jsdelivr.net/...`)
+- Externe API-Aufrufe
+- Google Fonts, Font Awesome über CDN
+- Einbindung von Libraries über externe URLs
+
+✅ **ERLAUBT:**
+- Lokale Dateien in `/static/`
+- Alle JavaScript-Libraries lokal gespeichert
+- Alle CSS-Frameworks lokal gespeichert
+- Schriftarten lokal in `/static/fonts/`
+
+### Beispiel für korrekte Einbindung:
+
+```html
+<!-- FALSCH (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+
+<!-- RICHTIG (lokal) -->
+{% load static %}
+<script src="{% static 'js/d3.v7.min.js' %}"></script>
+```
+
+### Checklist vor Deployment:
+
+- [ ] Alle `<script src="https://...">` durch lokale Dateien ersetzt
+- [ ] Alle `<link href="https://...">` durch lokale Dateien ersetzt
+- [ ] Keine `@import url('https://...')` in CSS
+- [ ] Keine externen API-Calls im JavaScript-Code
+- [ ] Alle Libraries in `/static/js/` oder `/static/css/` vorhanden
+
+### Aktuell verwendete externe Libraries (müssen lokal sein):
+
+- **D3.js v7** (`/static/js/d3.v7.min.js`) - für Organigramm in hr-App
+- **Bootstrap 5** (falls verwendet) - in `/static/css/` und `/static/js/`
+- **HTMX** (falls verwendet) - in `/static/js/htmx.min.js`
 
 ---
 
@@ -370,3 +416,130 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 - **Keine Emojis in Python-Code** (auch nicht in Strings, Kommentaren oder Logs) – Windows cp1252 kann Unicode-Emojis nicht kodieren und wirft `UnicodeEncodeError`
 - **Umlaute (ä, ö, ü, ß, Ä, Ö, Ü) in HTML-Templates erlaubt** – Templates sind UTF-8 kodiert, Umlaute dürfen direkt verwendet werden. Nur in Python-Dateien weiterhin ausschreiben (ae, oe, ue usw.)
 - Partials immer in `partials/` Unterordner mit `_` Prefix benennen
+
+---
+
+# Geplante Features (Roadmap)
+
+## 🎯 Visueller Workflow-Builder (Stichwort: "workflow plannen")
+
+**Status:** Geplant, noch nicht implementiert
+**Prioritaet:** Mittel
+**Aufwand:** 5-7 Arbeitstage
+
+### Beschreibung
+
+Ein visueller Workflow-Builder aehnlich bubble-charts/Flussdiagrammen, mit dem Workflows per Drag & Drop erstellt werden koennen.
+
+**Use Case:** Z-AG Workflow visuell definieren:
+```
+MA stellt Antrag
+  → Vorgesetzter prueft
+  → Entscheidung (genehmigt/abgelehnt)
+     → JA: Team-Queue → Erledigt
+     → NEIN: Zurueck an MA
+```
+
+### Features
+
+**Node-Typen:**
+- Start-Node: Antrag wird erstellt
+- Genehmigung-Node: User mit Rolle muss genehmigen (konfigurierbar: Vorgesetzter, GF, etc.)
+- Entscheidungs-Node: Verzweigung (ja/nein, genehmigt/abgelehnt)
+- Team-Queue-Node: Antrag landet in Team-Bearbeitungsstapel
+- Aktion-Node: Python-Code oder Webhook (Email, PDF, Zeiterfassung buchen)
+- Warte-Node: Timeout mit Eskalation
+- Ende-Node: Final-Status (erledigt, abgelehnt)
+
+**Funktionen:**
+- Drag & Drop Editor
+- Nodes verbinden mit Edges
+- Konfiguration pro Node (Rolle, Team, Bedingung)
+- Workflow als JSON speichern
+- Workflow-Templates (vordefinierte Standard-Workflows)
+- Workflow-Versionierung
+
+**Zusaetzliche Features (spaeter):**
+- Kommentare an Nodes
+- Parallele Pfade (mehrere Genehmiger gleichzeitig)
+- Sub-Workflows
+- Bedingungen mit Logik (IF Dauer > 5 Tage THEN andere Genehmiger)
+
+### Technologie
+
+**Frontend:**
+- **Rete.js** (MIT Lizenz, vanilla JS) - Empfohlen fuer Django-Setup
+- Alternative: jsPlumb, React Flow
+
+**Backend:**
+- Model: `WorkflowDefinition` (name, definition_json)
+- Model: `WorkflowInstance` (antrag, current_node, history)
+- Workflow-Engine: JSON-Definition interpretieren und ausfuehren
+
+**JSON-Struktur:**
+```json
+{
+  "name": "Z-AG Standard",
+  "version": "1.0",
+  "nodes": [
+    {"id": "node-1", "type": "start", "label": "MA stellt Antrag"},
+    {"id": "node-2", "type": "approval", "label": "Vorgesetzter",
+     "config": {"role": "vorgesetzter", "timeout_days": 3}},
+    {"id": "node-3", "type": "decision", "label": "Genehmigt?"},
+    {"id": "node-4", "type": "team_queue", "label": "Team",
+     "config": {"team": "zeit"}},
+    {"id": "node-5", "type": "end", "label": "Erledigt"}
+  ],
+  "edges": [
+    {"from": "node-1", "to": "node-2"},
+    {"from": "node-2", "to": "node-3"},
+    {"from": "node-3", "to": "node-4", "condition": "genehmigt"},
+    {"from": "node-3", "to": "node-6", "condition": "abgelehnt"}
+  ]
+}
+```
+
+### Implementierungsplan
+
+**Phase 1: Basis-Editor (2 Tage)**
+- Rete.js lokal einbinden (static/js/)
+- 3 Node-Typen: Start, Aktion, Ende
+- Nodes verbinden (Drag & Drop)
+- JSON speichern/laden via Django-Backend
+
+**Phase 2: Alle Node-Typen (1-2 Tage)**
+- Genehmigung-Node mit Rollen-Auswahl
+- Entscheidungs-Node mit Bedingungen
+- Team-Queue-Node mit Team-Auswahl
+- Konfigurations-Panel fuer Nodes
+
+**Phase 3: Workflow-Engine (2 Tage)**
+- JSON → Workflow-Instanz erstellen
+- Status-Maschine (aktueller Node, naechster Node)
+- Routing bei Entscheidungen
+- Integration mit bestehendem Antragssystem (ZAGAntrag, etc.)
+
+**Phase 4: Features (1 Tag)**
+- Workflow-Templates (Standard-Workflows vordefiniert)
+- Testen-Modus (Workflow durchspielen ohne echte Daten)
+- Versionierung
+
+### Voraussetzungen
+
+- Team-Queue-System muss existieren (bereits implementiert ✓)
+- Stellenbasierte Genehmigungen (bereits implementiert ✓)
+
+### Erinnerung an Implementierung
+
+**Wenn User sagt:** "workflow plannen", "workflows bauen", "Workflow-Builder"
+**Dann:** Diese Sektion zeigen und fragen ob jetzt implementiert werden soll.
+
+### Offline-Anforderung
+
+**WICHTIG:** Rete.js muss lokal gespeichert werden:
+```bash
+# Download von https://github.com/retejs/rete
+# Speichern unter: static/js/rete.min.js
+```
+
+Keine CDN-Links verwenden!

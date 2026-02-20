@@ -182,8 +182,18 @@
     <!-- Genehmigung -->
     <div class="genehmigung">
         <div class="abschnitt-titel">Genehmigung</div>
-        <p class="genehmigung-zeile">Genehmigt Vorgesetzter:</p>
-        <p class="genehmigung-zeile">Datum der Genehmigung:</p>
+        <p class="genehmigung-zeile">
+            Genehmigt Vorgesetzter:
+            {% if antrag.bearbeitet_von %}
+                <strong>{{ antrag.bearbeitet_von.get_full_name|default:antrag.bearbeitet_von.username }}</strong>
+            {% endif %}
+        </p>
+        <p class="genehmigung-zeile">
+            Datum der Genehmigung:
+            {% if antrag.bearbeitet_am %}
+                <strong>{{ antrag.bearbeitet_am|date:"d.m.Y" }}</strong>
+            {% endif %}
+        </p>
     </div>
 
 </div>

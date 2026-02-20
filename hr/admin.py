@@ -176,3 +176,10 @@ class HRMitarbeiterAdmin(admin.ModelAdmin):
     def stellen_email_anzeige(self, obj):
         """Zeigt die Email-Adresse der zugewiesenen Stelle."""
         return obj.stellen_email or "–"
+
+    def save_model(self, request, obj, form, change):
+        """Automatisches Setzen der Email aus der Stelle."""
+        # Wenn eine Stelle zugewiesen ist und Email leer ist, dann Stellen-Email uebernehmen
+        if obj.stelle and not obj.email:
+            obj.email = obj.stelle.email
+        super().save_model(request, obj, form, change)

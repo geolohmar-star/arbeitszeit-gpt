@@ -1,0 +1,181 @@
+{% load static %}
+
+{% comment %}
+Partial fuer einen einzelnen Antrag in der Team-Queue.
+
+Varianten:
+- show_claim: Zeigt "Claimen" Button (fuer Queue-Tab)
+- show_actions: Zeigt "Freigeben" und "Erledigen" Buttons (fuer Meine-Tab)
+- show_bearbeiter: Zeigt Bearbeiter-Info (fuer Team-Bearbeitung-Tab)
+{% endcomment %}
+
+{# Antragtyp ermitteln #}
+{% if "Aenderung" in antrag|stringformat:"s" %}
+    {% with antrag_typ="aenderung" typ_label="Aenderung Zeiterfassung" %}
+        <tr id="antrag-{{ antrag_typ }}-{{ antrag.pk }}">
+            {% if show_claim %}
+                <td>
+                    {% if antrag.prioritaet == 2 %}
+                        <span class="badge bg-danger">Dringend</span>
+                    {% elif antrag.prioritaet == 1 %}
+                        <span class="badge bg-warning">Hoch</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Normal</span>
+                    {% endif %}
+                </td>
+            {% endif %}
+
+            <td>{{ typ_label }}</td>
+            <td>{{ antrag.antragsteller.vollname }}</td>
+
+            {% if show_claim %}
+                <td>{{ antrag.erstellt_am|date:"d.m.Y H:i" }}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary"
+                            hx-post="{% url 'formulare:antrag_claimen' antrag_typ antrag.pk %}"
+                            hx-target="#antrag-{{ antrag_typ }}-{{ antrag.pk }}"
+                            hx-swap="outerHTML swap:0.2s">
+                        Claimen
+                    </button>
+                </td>
+            {% endif %}
+
+            {% if show_actions %}
+                <td>{{ antrag.claimed_am|date:"d.m.Y H:i" }}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning me-2"
+                            hx-post="{% url 'formulare:antrag_freigeben' antrag_typ antrag.pk %}"
+                            hx-target="#antrag-{{ antrag_typ }}-{{ antrag.pk }}"
+                            hx-swap="outerHTML swap:0.2s"
+                            hx-confirm="Antrag zurueck in Queue?">
+                        Freigeben
+                    </button>
+                    <button class="btn btn-sm btn-success"
+                            hx-post="{% url 'formulare:antrag_erledigen' antrag_typ antrag.pk %}"
+                            hx-target="#antrag-{{ antrag_typ }}-{{ antrag.pk }}"
+                            hx-swap="outerHTML swap:0.2s"
+                            hx-confirm="Antrag als erledigt markieren?">
+                        Erledigen
+                    </button>
+                </td>
+            {% endif %}
+
+            {% if show_bearbeiter %}
+                <td>{{ antrag.claimed_von.get_full_name|default:antrag.claimed_von.username }}</td>
+                <td>{{ antrag.claimed_am|date:"d.m.Y H:i" }}</td>
+            {% endif %}
+        </tr>
+    {% endwith %}
+{% elif "Z-AG Antrag" in antrag|stringformat:"s" %}
+    {% with antrag_typ="zag" typ_label="Z-AG Antrag" %}
+        <tr id="antrag-{{ antrag_typ }}-{{ antrag.pk }}">
+            {% if show_claim %}
+                <td>
+                    {% if antrag.prioritaet == 2 %}
+                        <span class="badge bg-danger">Dringend</span>
+                    {% elif antrag.prioritaet == 1 %}
+                        <span class="badge bg-warning">Hoch</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Normal</span>
+                    {% endif %}
+                </td>
+            {% endif %}
+
+            <td>{{ typ_label }}</td>
+            <td>{{ antrag.antragsteller.vollname }}</td>
+
+            {% if show_claim %}
+                <td>{{ antrag.erstellt_am|date:"d.m.Y H:i" }}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary"
+                            hx-post="{% url 'formulare:antrag_claimen' antrag_typ antrag.pk %}"
+                            hx-target="#antrag-{{ antrag_typ }}-{{ antrag.pk }}"
+                            hx-swap="outerHTML swap:0.2s">
+                        Claimen
+                    </button>
+                </td>
+            {% endif %}
+
+            {% if show_actions %}
+                <td>{{ antrag.claimed_am|date:"d.m.Y H:i" }}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning me-2"
+                            hx-post="{% url 'formulare:antrag_freigeben' antrag_typ antrag.pk %}"
+                            hx-target="#antrag-{{ antrag_typ }}-{{ antrag.pk }}"
+                            hx-swap="outerHTML swap:0.2s"
+                            hx-confirm="Antrag zurueck in Queue?">
+                        Freigeben
+                    </button>
+                    <button class="btn btn-sm btn-success"
+                            hx-post="{% url 'formulare:antrag_erledigen' antrag_typ antrag.pk %}"
+                            hx-target="#antrag-{{ antrag_typ }}-{{ antrag.pk }}"
+                            hx-swap="outerHTML swap:0.2s"
+                            hx-confirm="Antrag als erledigt markieren?">
+                        Erledigen
+                    </button>
+                </td>
+            {% endif %}
+
+            {% if show_bearbeiter %}
+                <td>{{ antrag.claimed_von.get_full_name|default:antrag.claimed_von.username }}</td>
+                <td>{{ antrag.claimed_am|date:"d.m.Y H:i" }}</td>
+            {% endif %}
+        </tr>
+    {% endwith %}
+{% elif "Z-AG Storno" in antrag|stringformat:"s" %}
+    {% with antrag_typ="zag_storno" typ_label="Z-AG Storno" %}
+        <tr id="antrag-{{ antrag_typ }}-{{ antrag.pk }}">
+            {% if show_claim %}
+                <td>
+                    {% if antrag.prioritaet == 2 %}
+                        <span class="badge bg-danger">Dringend</span>
+                    {% elif antrag.prioritaet == 1 %}
+                        <span class="badge bg-warning">Hoch</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Normal</span>
+                    {% endif %}
+                </td>
+            {% endif %}
+
+            <td>{{ typ_label }}</td>
+            <td>{{ antrag.antragsteller.vollname }}</td>
+
+            {% if show_claim %}
+                <td>{{ antrag.erstellt_am|date:"d.m.Y H:i" }}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary"
+                            hx-post="{% url 'formulare:antrag_claimen' antrag_typ antrag.pk %}"
+                            hx-target="#antrag-{{ antrag_typ }}-{{ antrag.pk }}"
+                            hx-swap="outerHTML swap:0.2s">
+                        Claimen
+                    </button>
+                </td>
+            {% endif %}
+
+            {% if show_actions %}
+                <td>{{ antrag.claimed_am|date:"d.m.Y H:i" }}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning me-2"
+                            hx-post="{% url 'formulare:antrag_freigeben' antrag_typ antrag.pk %}"
+                            hx-target="#antrag-{{ antrag_typ }}-{{ antrag.pk }}"
+                            hx-swap="outerHTML swap:0.2s"
+                            hx-confirm="Antrag zurueck in Queue?">
+                        Freigeben
+                    </button>
+                    <button class="btn btn-sm btn-success"
+                            hx-post="{% url 'formulare:antrag_erledigen' antrag_typ antrag.pk %}"
+                            hx-target="#antrag-{{ antrag_typ }}-{{ antrag.pk }}"
+                            hx-swap="outerHTML swap:0.2s"
+                            hx-confirm="Antrag als erledigt markieren?">
+                        Erledigen
+                    </button>
+                </td>
+            {% endif %}
+
+            {% if show_bearbeiter %}
+                <td>{{ antrag.claimed_von.get_full_name|default:antrag.claimed_von.username }}</td>
+                <td>{{ antrag.claimed_am|date:"d.m.Y H:i" }}</td>
+            {% endif %}
+        </tr>
+    {% endwith %}
+{% endif %}

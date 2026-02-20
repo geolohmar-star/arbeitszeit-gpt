@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-3">
+        <div class="col">
+            <h1>Stelle zuweisen: {{ hrm.vollname }}</h1>
+            <p class="text-muted">Personalnummer: {{ hrm.personalnummer }}</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'hr:detail' hrm.pk %}" class="btn btn-secondary">Zurueck zum Mitarbeiter</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Aktuelle Zuweisung -->
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white">
+                    <strong>Aktuelle Zuweisung</strong>
+                </div>
+                <div class="card-body">
+                    {% if hrm.stelle %}
+                        <p><strong>Stelle:</strong> {{ hrm.stelle.kuerzel }}</p>
+                        <p><strong>Bezeichnung:</strong> {{ hrm.stelle.bezeichnung }}</p>
+                        <p><strong>OrgEinheit:</strong> {{ hrm.stelle.org_einheit.kuerzel }}</p>
+                        <p><strong>Email:</strong> <small class="text-muted">{{ hrm.stelle.email }}</small></p>
+                        <hr>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="stelle" value="">
+                            <button type="submit" class="btn btn-warning btn-sm w-100">Stelle entfernen</button>
+                        </form>
+                    {% else %}
+                        <p class="text-muted">Keine Stelle zugewiesen.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Verfuegbare Stellen -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <strong>Verfuegbare Stellen</strong>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <table class="table table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Kuerzel</th>
+                                    <th>Bezeichnung</th>
+                                    <th>OrgEinheit</th>
+                                    <th>Status</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stelle in alle_stellen %}
+                                    <tr {% if hrm.stelle and hrm.stelle.pk == stelle.pk %}class="table-primary"{% endif %}>
+                                        <td><strong>{{ stelle.kuerzel }}</strong></td>
+                                        <td>{{ stelle.bezeichnung }}</td>
+                                        <td>{{ stelle.org_einheit.kuerzel }}</td>
+                                        <td>
+                                            {% if stelle.ist_besetzt %}
+                                                {% if stelle.hrmitarbeiter == hrm %}
+                                                    <span class="badge bg-primary">Aktuell zugewiesen</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Besetzt ({{ stelle.hrmitarbeiter.vollname }})</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge bg-success">Frei</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if hrm.stelle and hrm.stelle.pk == stelle.pk %}
+                                                <span class="text-muted">-- Aktiv --</span>
+                                            {% else %}
+                                                <input type="radio" name="stelle" value="{{ stelle.pk }}"
+                                                    id="stelle_{{ stelle.pk }}"
+                                                    {% if stelle.ist_besetzt and stelle.hrmitarbeiter != hrm %}disabled{% endif %}>
+                                                <label for="stelle_{{ stelle.pk }}" class="visually-hidden">Waehlen</label>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="submit" class="btn btn-primary">Ausgewaehlte Stelle zuweisen</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
