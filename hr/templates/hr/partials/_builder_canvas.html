@@ -1,0 +1,13 @@
+{% for orgeinheit in orgeinheiten %}
+    {% if not orgeinheit.uebergeordnet %}
+        {% include 'hr/partials/_builder_orgeinheit.html' with orgeinheit=orgeinheit %}
+    {% endif %}
+{% endfor %}
+
+{% if not orgeinheiten %}
+    <div class="text-center text-muted py-5">
+        <i class="fs-1">📦</i>
+        <p class="mt-3">Noch keine Struktur vorhanden</p>
+        <p>Erstelle neue Elemente über die Palette links</p>
+    </div>
+{% endif %}

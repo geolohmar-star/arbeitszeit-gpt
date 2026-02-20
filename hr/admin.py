@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import Abteilung, Bereich, HRMitarbeiter, OrgEinheit, Stelle, Team
+from .models import (
+    Abteilung,
+    Bereich,
+    HierarchieSnapshot,
+    HRMitarbeiter,
+    OrgEinheit,
+    Stelle,
+    Team,
+)
 
 
 @admin.register(Bereich)
@@ -183,3 +191,28 @@ class HRMitarbeiterAdmin(admin.ModelAdmin):
         if obj.stelle and not obj.email:
             obj.email = obj.stelle.email
         super().save_model(request, obj, form, change)
+
+
+@admin.register(HierarchieSnapshot)
+class HierarchieSnapshotAdmin(admin.ModelAdmin):
+    list_display = ["created_at", "created_by", "anzahl_orgeinheiten", "anzahl_stellen"]
+    list_filter = ["created_at"]
+    readonly_fields = ["created_at", "created_by", "snapshot_data"]
+
+    def has_add_permission(self, request):
+        """Snapshots werden nur automatisch erstellt."""
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """Snapshots sind read-only."""
+        return False
+
+    @admin.display(description="OrgEinheiten")
+    def anzahl_orgeinheiten(self, obj):
+        """Zaehlt OrgEinheiten im Snapshot."""
+        return len(obj.snapshot_data.get('orgeinheiten', []))
+
+    @admin.display(description="Stellen")
+    def anzahl_stellen(self, obj):
+        """Zaehlt Stellen im Snapshot."""
+        return len(obj.snapshot_data.get('stellen', []))

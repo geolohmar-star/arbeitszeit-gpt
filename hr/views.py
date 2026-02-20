@@ -2,7 +2,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Bereich, Abteilung, HRMitarbeiter, OrgEinheit, Stelle
+from .models import (
+    Abteilung,
+    Bereich,
+    HierarchieSnapshot,
+    HRMitarbeiter,
+    OrgEinheit,
+    Stelle,
+)
 
 
 def _ist_staff(user):
@@ -347,3 +354,338 @@ def delegation_verwalten(request):
     return render(request, "hr/delegation_verwalten.html", {
         "stellen": stellen,
     })
+
+
+# === Company Builder Views ===
+
+@login_required
+@user_passes_test(_ist_staff)
+def company_builder(request):
+    """Visueller Company Builder mit Drag & Drop."""
+    from django.db.models import Count
+    
+    orgeinheiten = OrgEinheit.objects.prefetch_related('stellen').order_by('kuerzel')
+    stellen = Stelle.objects.select_related('org_einheit').order_by('kuerzel')
+    mitarbeiter = HRMitarbeiter.objects.filter(stelle__isnull=False).count()
+    
+    return render(request, 'hr/company_builder.html', {
+        'orgeinheiten': orgeinheiten,
+        'stellen': stellen,
+        'mitarbeiter': mitarbeiter,
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def company_builder_preview(request):
+    """Organigramm-Preview Seite fuer Company Builder."""
+    return render(request, 'hr/company_builder_preview.html')
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def company_builder_neue_orgeinheit(request):
+    """HTMX: Form fuer neue OrgEinheit."""
+    if request.method == 'POST':
+        kuerzel = request.POST.get('kuerzel')
+        bezeichnung = request.POST.get('bezeichnung')
+        
+        if kuerzel and bezeichnung:
+            orgeinheit = OrgEinheit.objects.create(
+                kuerzel=kuerzel.upper(),
+                bezeichnung=bezeichnung
+            )
+            messages.success(request, f'OrgEinheit {kuerzel} erstellt!')
+            
+            # Reload Builder Canvas
+            orgeinheiten = OrgEinheit.objects.prefetch_related('stellen').order_by('kuerzel')
+            return render(request, 'hr/partials/_builder_canvas.html', {
+                'orgeinheiten': orgeinheiten
+            })
+    
+    return render(request, 'hr/partials/_form_orgeinheit.html')
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def company_builder_neue_stelle(request):
+    """HTMX: Form fuer neue Stelle."""
+    orgeinheit_id = request.GET.get('orgeinheit_id')
+    
+    if request.method == 'POST':
+        kuerzel = request.POST.get('kuerzel')
+        bezeichnung = request.POST.get('bezeichnung')
+        orgeinheit_id = request.POST.get('orgeinheit_id')
+        
+        if kuerzel and bezeichnung and orgeinheit_id:
+            orgeinheit = OrgEinheit.objects.get(id=orgeinheit_id)
+            stelle = Stelle.objects.create(
+                kuerzel=kuerzel.lower(),
+                bezeichnung=bezeichnung,
+                org_einheit=orgeinheit
+            )
+            messages.success(request, f'Stelle {kuerzel} erstellt!')
+            
+            # Reload OrgEinheit
+            return render(request, 'hr/partials/_builder_orgeinheit.html', {
+                'orgeinheit': orgeinheit
+            })
+    
+    orgeinheiten = OrgEinheit.objects.order_by('kuerzel')
+    return render(request, 'hr/partials/_form_stelle.html', {
+        'orgeinheiten': orgeinheiten,
+        'orgeinheit_id': orgeinheit_id
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def company_builder_hierarchie_update(request):
+    """HTMX: Update Hierarchie nach Drag & Drop.
+
+    Erwartet JSON-Struktur:
+    {
+        "orgeinheiten": [
+            {"id": "1", "parent_id": null, "stellen": [...]},
+            {"id": "2", "parent_id": "1", "stellen": [...]}
+        ],
+        "stellen": [
+            {"id": "10", "parent_stelle_id": null, "org_einheit_id": "1"},
+            {"id": "11", "parent_stelle_id": "10", "org_einheit_id": "1"}
+        ]
+    }
+    """
+    import json
+    from django.db import transaction
+    from django.http import JsonResponse
+
+    if request.method == 'POST':
+        structure_json = request.POST.get('structure')
+        if not structure_json:
+            return JsonResponse({'status': 'error', 'message': 'Keine Struktur ubergeben'})
+
+        try:
+            data = json.loads(structure_json)
+
+            with transaction.atomic():
+                # 1. OrgEinheiten aktualisieren
+                for org_data in data.get('orgeinheiten', []):
+                    org_id = org_data.get('id')
+                    parent_id = org_data.get('parent_id')
+
+                    try:
+                        org = OrgEinheit.objects.get(pk=org_id)
+                        if parent_id:
+                            org.uebergeordnet = OrgEinheit.objects.get(pk=parent_id)
+                        else:
+                            org.uebergeordnet = None
+                        org.save(update_fields=['uebergeordnet'])
+                    except OrgEinheit.DoesNotExist:
+                        continue
+
+                # 2. Stellen aktualisieren
+                for stelle_data in data.get('stellen', []):
+                    stelle_id = stelle_data.get('id')
+                    parent_stelle_id = stelle_data.get('parent_stelle_id')
+                    org_einheit_id = stelle_data.get('org_einheit_id')
+
+                    try:
+                        stelle = Stelle.objects.get(pk=stelle_id)
+
+                        # OrgEinheit setzen
+                        if org_einheit_id:
+                            stelle.org_einheit = OrgEinheit.objects.get(pk=org_einheit_id)
+
+                        # Uebergeordnete Stelle setzen
+                        if parent_stelle_id:
+                            stelle.uebergeordnete_stelle = Stelle.objects.get(pk=parent_stelle_id)
+                        else:
+                            stelle.uebergeordnete_stelle = None
+
+                        stelle.save(update_fields=['org_einheit', 'uebergeordnete_stelle'])
+                    except (Stelle.DoesNotExist, OrgEinheit.DoesNotExist):
+                        continue
+
+            logger.info('Hierarchie aktualisiert: %d OrgEinheiten, %d Stellen',
+                       len(data.get('orgeinheiten', [])),
+                       len(data.get('stellen', [])))
+
+            return JsonResponse({'status': 'success', 'message': 'Hierarchie gespeichert'})
+
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Ungueltige JSON-Struktur'})
+        except Exception as e:
+            logger.error('Fehler beim Hierarchie-Update: %s', str(e))
+            return JsonResponse({'status': 'error', 'message': str(e)})
+
+    return JsonResponse({'status': 'error', 'message': 'Nur POST erlaubt'})
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def company_builder_organigramm(request):
+    """API: Liefert Organigramm-Daten als JSON."""
+    import json
+    from django.http import JsonResponse
+    
+    def build_tree(stelle=None):
+        """Rekursiv Baum aufbauen."""
+        if stelle is None:
+            # Root: GF-Stellen
+            root_stellen = Stelle.objects.filter(
+                uebergeordnete_stelle__isnull=True
+            ).order_by('kuerzel')
+            
+            return {
+                'name': 'Unternehmen',
+                'children': [build_tree(s) for s in root_stellen]
+            }
+        
+        # Kinder dieser Stelle
+        kinder = Stelle.objects.filter(
+            uebergeordnete_stelle=stelle
+        ).order_by('kuerzel')
+        
+        node = {
+            'name': f"{stelle.kuerzel}",
+            'children': [build_tree(kind) for kind in kinder] if kinder.exists() else []
+        }
+        
+        return node
+    
+    tree_data = build_tree()
+    return JsonResponse(tree_data)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def snapshot_create(request):
+    """Erstellt einen Snapshot der aktuellen Hierarchie."""
+    import json
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Nur POST erlaubt'})
+
+    try:
+        # Sammle aktuelle Hierarchie-Daten
+        snapshot_data = {
+            'orgeinheiten': [],
+            'stellen': []
+        }
+
+        # Alle OrgEinheiten
+        for org in OrgEinheit.objects.all():
+            snapshot_data['orgeinheiten'].append({
+                'id': org.id,
+                'kuerzel': org.kuerzel,
+                'bezeichnung': org.bezeichnung,
+                'uebergeordnet_id': org.uebergeordnet_id,
+                'ist_reserviert': org.ist_reserviert,
+            })
+
+        # Alle Stellen
+        for stelle in Stelle.objects.all():
+            snapshot_data['stellen'].append({
+                'id': stelle.id,
+                'kuerzel': stelle.kuerzel,
+                'bezeichnung': stelle.bezeichnung,
+                'org_einheit_id': stelle.org_einheit_id,
+                'uebergeordnete_stelle_id': stelle.uebergeordnete_stelle_id,
+                'delegiert_an_id': stelle.delegiert_an_id,
+                'vertreten_durch_id': stelle.vertreten_durch_id,
+                'vertretung_von': str(stelle.vertretung_von) if stelle.vertretung_von else None,
+                'vertretung_bis': str(stelle.vertretung_bis) if stelle.vertretung_bis else None,
+                'max_urlaubstage_genehmigung': stelle.max_urlaubstage_genehmigung,
+                'eskalation_nach_tagen': stelle.eskalation_nach_tagen,
+            })
+
+        # Snapshot speichern
+        snapshot = HierarchieSnapshot.objects.create(
+            created_by=request.user,
+            snapshot_data=snapshot_data
+        )
+
+        # Alte Snapshots loeschen (nur letzte 10 behalten)
+        old_snapshots = HierarchieSnapshot.objects.all()[10:]
+        for old in old_snapshots:
+            old.delete()
+
+        logger.info('Snapshot #%d erstellt von %s', snapshot.id, request.user.username)
+
+        return JsonResponse({
+            'status': 'success',
+            'snapshot_id': snapshot.id,
+            'message': 'Snapshot erstellt'
+        })
+
+    except Exception as e:
+        logger.error('Fehler beim Snapshot-Erstellen: %s', str(e))
+        return JsonResponse({'status': 'error', 'message': str(e)})
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def snapshot_restore(request):
+    """Stellt den letzten Snapshot wieder her."""
+    import json
+    from django.http import JsonResponse
+    from django.db import transaction
+
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Nur POST erlaubt'})
+
+    try:
+        # Letzten Snapshot holen
+        snapshot = HierarchieSnapshot.objects.first()
+        if not snapshot:
+            return JsonResponse({'status': 'error', 'message': 'Kein Snapshot vorhanden'})
+
+        data = snapshot.snapshot_data
+
+        with transaction.atomic():
+            # 1. Alle OrgEinheiten wiederherstellen
+            for org_data in data.get('orgeinheiten', []):
+                try:
+                    org = OrgEinheit.objects.get(pk=org_data['id'])
+                    org.kuerzel = org_data['kuerzel']
+                    org.bezeichnung = org_data['bezeichnung']
+                    org.uebergeordnet_id = org_data.get('uebergeordnet_id')
+                    org.ist_reserviert = org_data.get('ist_reserviert', False)
+                    org.save()
+                except OrgEinheit.DoesNotExist:
+                    # OrgEinheit existiert nicht mehr, ueberspringe
+                    continue
+
+            # 2. Alle Stellen wiederherstellen
+            for stelle_data in data.get('stellen', []):
+                try:
+                    stelle = Stelle.objects.get(pk=stelle_data['id'])
+                    stelle.kuerzel = stelle_data['kuerzel']
+                    stelle.bezeichnung = stelle_data['bezeichnung']
+                    stelle.org_einheit_id = stelle_data.get('org_einheit_id')
+                    stelle.uebergeordnete_stelle_id = stelle_data.get('uebergeordnete_stelle_id')
+                    stelle.delegiert_an_id = stelle_data.get('delegiert_an_id')
+                    stelle.vertreten_durch_id = stelle_data.get('vertreten_durch_id')
+                    stelle.vertretung_von = stelle_data.get('vertretung_von')
+                    stelle.vertretung_bis = stelle_data.get('vertretung_bis')
+                    stelle.max_urlaubstage_genehmigung = stelle_data.get('max_urlaubstage_genehmigung', 0)
+                    stelle.eskalation_nach_tagen = stelle_data.get('eskalation_nach_tagen', 3)
+                    stelle.save()
+                except Stelle.DoesNotExist:
+                    # Stelle existiert nicht mehr, ueberspringe
+                    continue
+
+        # Snapshot nach erfolgreicher Wiederherstellung loeschen
+        snapshot.delete()
+
+        logger.info('Snapshot #%d wiederhergestellt von %s', snapshot.id, request.user.username)
+
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Hierarchie wiederhergestellt'
+        })
+
+    except Exception as e:
+        logger.error('Fehler beim Snapshot-Wiederherstellen: %s', str(e))
+        return JsonResponse({'status': 'error', 'message': str(e)})

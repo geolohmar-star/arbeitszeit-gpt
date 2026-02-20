@@ -1,0 +1,731 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h2>Company Builder</h2>
+            <p class="text-muted">Baue deine Organisationsstruktur per Drag & Drop</p>
+            <div class="alert alert-info py-2 px-3 small mb-0">
+                <strong>💡 Anleitung:</strong>
+                Ziehe Elemente mit dem <strong>⠿</strong> Handle um sie zu verschieben.
+                Stellen unter Stellen = Hierarchie. OrgEinheiten unter OrgEinheiten = Verschachtelung.
+                <strong>Wichtig:</strong> Klicke auf "Struktur Speichern" um Änderungen dauerhaft zu speichern!
+            </div>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-success btn-lg" onclick="saveStructure()">
+                💾 Struktur Speichern
+            </button>
+            <button class="btn btn-warning" onclick="undoLastSave()" id="undo-btn" disabled>
+                ⏮️ Rückgängig
+            </button>
+            <button class="btn btn-outline-secondary" onclick="location.reload()">
+                🔄 Verwerfen & Neu laden
+            </button>
+            <a href="{% url 'hr:company_builder_preview' %}" class="btn btn-info btn-lg" target="_blank">
+                📊 Organigramm anzeigen
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Linke Spalte: Palette -->
+        <div class="col-md-3">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">🎨 Palette</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="openModal('orgeinheit')">
+                            ➕ Neue OrgEinheit
+                        </button>
+                        <button class="btn btn-outline-success" onclick="openModal('stelle')">
+                            ➕ Neue Stelle
+                        </button>
+                        <button class="btn btn-outline-info" onclick="openModal('mitarbeiter')">
+                            👤 Neuer Mitarbeiter
+                        </button>
+                    </div>
+
+                    <hr>
+
+                    <hr>
+
+                    <h6>🔽 Ansicht</h6>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="expandAll()">
+                            ▼ Alle Ausklappen
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="collapseAll()">
+                            ▶ Alle Einklappen
+                        </button>
+                    </div>
+
+                    <hr>
+
+                    <h6>💡 Tipps:</h6>
+                    <small class="text-muted">
+                        • <strong>▼/▶</strong> Button zum Aus-/Einklappen von Zweigen<br>
+                        • <strong>⠿</strong> Handle zum Drag & Drop<br>
+                        • Klicke auf "Organigramm" um die Hierarchie zu sehen
+                    </small>
+                </div>
+            </div>
+
+            <!-- Quick-Stats -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6>📊 Statistik</h6>
+                    <div id="stats">
+                        <small class="text-muted">
+                            OrgEinheiten: <strong>{{ orgeinheiten.count }}</strong><br>
+                            Stellen: <strong>{{ stellen.count }}</strong><br>
+                            Mitarbeiter: <strong>{{ mitarbeiter.count }}</strong>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Builder Canvas (jetzt breiter) -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">🏗️ Builder Canvas</h5>
+                </div>
+                <div class="card-body" style="min-height: 600px; max-height: 80vh; overflow-y: auto;">
+                    <div id="builder-canvas">
+                        <!-- Hierarchie wird hier aufgebaut -->
+                        {% for orgeinheit in orgeinheiten %}
+                            {% include 'hr/partials/_builder_orgeinheit.html' with orgeinheit=orgeinheit %}
+                        {% endfor %}
+                    </div>
+
+                    {% if not orgeinheiten %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fs-1">📦</i>
+                            <p class="mt-3">Noch keine Struktur vorhanden</p>
+                            <p>Erstelle neue Elemente über die Palette links</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal für neue Elemente -->
+<div class="modal fade" id="elementModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" id="modal-content">
+            <!-- HTMX lädt hier den Form-Content -->
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // SortableJS für OrgEinheiten
+    initSortable();
+
+    // Collapse-State wiederherstellen
+    restoreCollapseState();
+});
+
+function initSortable() {
+    // Hauptliste für OrgEinheiten (Root-Level)
+    const canvas = document.getElementById('builder-canvas');
+    if (canvas) {
+        new Sortable(canvas, {
+            group: {
+                name: 'orgeinheiten',
+                pull: true,
+                put: true
+            },
+            animation: 150,
+            handle: '.drag-handle',
+            fallbackOnBody: true,
+            swapThreshold: 0.65,
+            onEnd: function(evt) {
+                console.log('OrgEinheit verschoben');
+                updateHierarchy();
+            }
+        });
+    }
+
+    // Nested OrgEinheiten (verschachtelte Ebenen)
+    document.querySelectorAll('.nested-orgeinheiten').forEach(function(el) {
+        new Sortable(el, {
+            group: {
+                name: 'orgeinheiten',
+                pull: true,
+                put: true
+            },
+            animation: 150,
+            handle: '.drag-handle',
+            fallbackOnBody: true,
+            swapThreshold: 0.65,
+            onEnd: function(evt) {
+                console.log('Nested OrgEinheit verschoben');
+                updateHierarchy();
+            }
+        });
+    });
+
+    // Stellen-Listen innerhalb OrgEinheiten
+    document.querySelectorAll('.stellen-liste').forEach(function(el) {
+        new Sortable(el, {
+            group: {
+                name: 'stellen',
+                pull: true,
+                put: true
+            },
+            animation: 150,
+            handle: '.drag-handle',
+            fallbackOnBody: true,
+            swapThreshold: 0.65,
+            onEnd: function(evt) {
+                console.log('Stelle verschoben');
+                updateHierarchy();
+            }
+        });
+    });
+
+    // Nested Stellen (untergeordnete Stellen)
+    document.querySelectorAll('.nested-stellen').forEach(function(el) {
+        new Sortable(el, {
+            group: {
+                name: 'stellen',
+                pull: true,
+                put: true
+            },
+            animation: 150,
+            handle: '.drag-handle',
+            fallbackOnBody: true,
+            swapThreshold: 0.65,
+            onEnd: function(evt) {
+                console.log('Nested Stelle verschoben');
+                updateHierarchy();
+            }
+        });
+    });
+}
+
+function openModal(type) {
+    // HTMX lädt Form für neues Element
+    htmx.ajax('GET', `/hr/company-builder/${type}/neu/`, {
+        target: '#modal-content',
+        swap: 'innerHTML'
+    }).then(() => {
+        const modal = new bootstrap.Modal(document.getElementById('elementModal'));
+        modal.show();
+    });
+}
+
+function updateHierarchy() {
+    // Wird nach Drag & Drop aufgerufen
+    // Speichern erfolgt nur bei explizitem Button-Klick auf "Struktur Speichern"
+    console.log('Hierarchie geändert (noch nicht gespeichert)');
+}
+
+function collectStructure() {
+    /**
+     * Sammelt die gesamte Hierarchie rekursiv aus dem DOM.
+     * Struktur: {orgeinheiten: [...], stellen: [...]}
+     */
+
+    function collectOrgEinheit(orgElement, parentId = null) {
+        const orgId = orgElement.dataset.id;
+        const orgData = {
+            id: orgId,
+            parent_id: parentId,
+            stellen: []
+        };
+
+        // Sammle direkte Stellen (ohne eigene uebergeordnete_stelle innerhalb dieser OrgEinheit)
+        const stellenListe = orgElement.querySelector('.stellen-liste');
+        if (stellenListe) {
+            stellenListe.querySelectorAll(':scope > .stelle-item').forEach(stelleEl => {
+                orgData.stellen.push(collectStelle(stelleEl, null, orgId));
+            });
+        }
+
+        return orgData;
+    }
+
+    function collectStelle(stelleElement, parentStelleId = null, orgEinheitId = null) {
+        const stelleId = stelleElement.dataset.id;
+        const stelleData = {
+            id: stelleId,
+            parent_stelle_id: parentStelleId,
+            org_einheit_id: orgEinheitId,
+            untergeordnete: []
+        };
+
+        // Sammle untergeordnete Stellen rekursiv
+        const nestedStellen = stelleElement.querySelector('.nested-stellen');
+        if (nestedStellen) {
+            nestedStellen.querySelectorAll(':scope > .stelle-item').forEach(unterEl => {
+                stelleData.untergeordnete.push(collectStelle(unterEl, stelleId, orgEinheitId));
+            });
+        }
+
+        return stelleData;
+    }
+
+    const structure = {
+        orgeinheiten: [],
+        stellen: []
+    };
+
+    // Sammle Root-OrgEinheiten aus dem Canvas
+    const canvas = document.getElementById('builder-canvas');
+    if (canvas) {
+        canvas.querySelectorAll(':scope > .orgeinheit-item').forEach(orgEl => {
+            const orgData = collectOrgEinheit(orgEl, null);
+            structure.orgeinheiten.push(orgData);
+
+            // Sammle nested OrgEinheiten rekursiv
+            function collectNestedOrgs(parentOrgEl, parentOrgId) {
+                const nestedContainer = parentOrgEl.querySelector('.nested-orgeinheiten');
+                if (nestedContainer) {
+                    nestedContainer.querySelectorAll(':scope > .orgeinheit-item').forEach(nestedOrgEl => {
+                        const nestedOrgData = collectOrgEinheit(nestedOrgEl, parentOrgId);
+                        structure.orgeinheiten.push(nestedOrgData);
+                        // Rekursion für weitere Ebenen
+                        collectNestedOrgs(nestedOrgEl, nestedOrgData.id);
+                    });
+                }
+            }
+            collectNestedOrgs(orgEl, orgData.id);
+
+            // Flatten alle Stellen in eine Liste (mit Hierarchie-Info)
+            function flattenStellen(stellenArray) {
+                stellenArray.forEach(stelle => {
+                    structure.stellen.push({
+                        id: stelle.id,
+                        parent_stelle_id: stelle.parent_stelle_id,
+                        org_einheit_id: stelle.org_einheit_id
+                    });
+                    if (stelle.untergeordnete.length > 0) {
+                        flattenStellen(stelle.untergeordnete);
+                    }
+                });
+            }
+            flattenStellen(orgData.stellen);
+        });
+    }
+
+    console.log('Gesammelte Struktur:', structure);
+    return structure;
+}
+
+function saveStructure() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Speichert...';
+
+    // 1. Snapshot der AKTUELLEN Hierarchie erstellen (vor dem Speichern)
+    createSnapshot();
+
+    // 2. Struktur sammeln und speichern
+    const structure = collectStructure();
+
+    htmx.ajax('POST', '/hr/company-builder/hierarchie/update/', {
+        values: { structure: JSON.stringify(structure) }
+    }).then(() => {
+        btn.innerHTML = '✅ Gespeichert!';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-success');
+
+        // Undo-Button aktivieren
+        document.getElementById('undo-btn').disabled = false;
+
+        // Nach 2 Sekunden zurücksetzen
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }, 2000);
+    }).catch(() => {
+        btn.innerHTML = '❌ Fehler!';
+        btn.classList.add('btn-danger');
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-danger');
+            btn.disabled = false;
+        }, 2000);
+    });
+}
+
+function createSnapshot() {
+    // Erstellt einen Snapshot der aktuellen DB-Hierarchie per API
+    fetch('/hr/company-builder/snapshot/create/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        }
+    }).then(response => response.json())
+      .then(data => {
+          console.log('Snapshot erstellt:', data.snapshot_id);
+      });
+}
+
+function undoLastSave() {
+    if (!confirm('Möchtest du die letzte Änderung wirklich rückgängig machen?')) {
+        return;
+    }
+
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Stelle wieder her...';
+
+    fetch('/hr/company-builder/snapshot/restore/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        }
+    }).then(response => response.json())
+      .then(data => {
+          if (data.status === 'success') {
+              btn.innerHTML = '✅ Wiederhergestellt!';
+              // Seite neu laden um die wiederhergestellte Struktur anzuzeigen
+              setTimeout(() => {
+                  location.reload();
+              }, 1000);
+          } else {
+              btn.innerHTML = '❌ Fehler!';
+              alert('Fehler beim Wiederherstellen: ' + data.message);
+              setTimeout(() => {
+                  btn.innerHTML = originalText;
+                  btn.disabled = false;
+              }, 2000);
+          }
+      }).catch(error => {
+          btn.innerHTML = '❌ Fehler!';
+          alert('Netzwerkfehler beim Wiederherstellen');
+          setTimeout(() => {
+              btn.innerHTML = originalText;
+              btn.disabled = false;
+          }, 2000);
+      });
+}
+
+function addStelle(orgeinheitId) {
+    // HTMX lädt Form für neue Stelle
+    htmx.ajax('GET', `/hr/company-builder/stelle/neu/?orgeinheit_id=${orgeinheitId}`, {
+        target: '#modal-content',
+        swap: 'innerHTML'
+    }).then(() => {
+        const modal = new bootstrap.Modal(document.getElementById('elementModal'));
+        modal.show();
+    });
+}
+
+function editStelle(stelleId) {
+    alert('Edit-Funktion kommt bald! Stelle ID: ' + stelleId);
+    // TODO: Implementiere Edit-Modal
+}
+
+function deleteStelle(stelleId) {
+    if (confirm('Stelle wirklich löschen?')) {
+        // TODO: Implementiere Delete via HTMX
+        alert('Delete-Funktion kommt bald! Stelle ID: ' + stelleId);
+    }
+}
+
+function deleteOrgeinheit(orgeinheitId) {
+    if (confirm('OrgEinheit wirklich löschen? Alle zugehörigen Stellen werden ebenfalls gelöscht!')) {
+        // TODO: Implementiere Delete via HTMX
+        alert('Delete-Funktion kommt bald! OrgEinheit ID: ' + orgeinheitId);
+    }
+}
+
+function toggleCollapse(btn, event) {
+    event.stopPropagation(); // Verhindere dass Drag-Event ausgeloest wird
+
+    // Finde parent item (orgeinheit-item oder stelle-item)
+    const item = btn.closest('.orgeinheit-item, .stelle-item');
+    if (!item) return;
+
+    // Toggle collapsed class
+    item.classList.toggle('collapsed');
+
+    // Toggle Button-Icon
+    if (item.classList.contains('collapsed')) {
+        btn.innerHTML = '▶';
+        btn.title = 'Einklappen';
+    } else {
+        btn.innerHTML = '▼';
+        btn.title = 'Ausklappen';
+    }
+
+    // Speichere Zustand in localStorage
+    const itemId = item.dataset.id;
+    const itemType = item.classList.contains('orgeinheit-item') ? 'org' : 'stelle';
+    const storageKey = `collapse_${itemType}_${itemId}`;
+
+    if (item.classList.contains('collapsed')) {
+        localStorage.setItem(storageKey, 'true');
+    } else {
+        localStorage.removeItem(storageKey);
+    }
+}
+
+function restoreCollapseState() {
+    // Stelle Collapse-Zustand aus localStorage wieder her
+    document.querySelectorAll('.orgeinheit-item, .stelle-item').forEach(item => {
+        const itemId = item.dataset.id;
+        const itemType = item.classList.contains('orgeinheit-item') ? 'org' : 'stelle';
+        const storageKey = `collapse_${itemType}_${itemId}`;
+
+        if (localStorage.getItem(storageKey) === 'true') {
+            item.classList.add('collapsed');
+            const toggleBtn = item.querySelector('.collapse-toggle');
+            if (toggleBtn) {
+                toggleBtn.innerHTML = '▶';
+                toggleBtn.title = 'Ausklappen';
+            }
+        }
+    });
+}
+
+function expandAll() {
+    document.querySelectorAll('.orgeinheit-item, .stelle-item').forEach(item => {
+        item.classList.remove('collapsed');
+        const toggleBtn = item.querySelector('.collapse-toggle');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = '▼';
+            toggleBtn.title = 'Einklappen';
+        }
+
+        // Aus localStorage entfernen
+        const itemId = item.dataset.id;
+        const itemType = item.classList.contains('orgeinheit-item') ? 'org' : 'stelle';
+        const storageKey = `collapse_${itemType}_${itemId}`;
+        localStorage.removeItem(storageKey);
+    });
+}
+
+function collapseAll() {
+    document.querySelectorAll('.orgeinheit-item, .stelle-item').forEach(item => {
+        item.classList.add('collapsed');
+        const toggleBtn = item.querySelector('.collapse-toggle');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = '▶';
+            toggleBtn.title = 'Ausklappen';
+        }
+
+        // In localStorage speichern
+        const itemId = item.dataset.id;
+        const itemType = item.classList.contains('orgeinheit-item') ? 'org' : 'stelle';
+        const storageKey = `collapse_${itemType}_${itemId}`;
+        localStorage.setItem(storageKey, 'true');
+    });
+}
+
+// HTMX Event Listener
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    // Nach HTMX-Updates SortableJS neu initialisieren
+    if (evt.detail.target.id === 'builder-canvas') {
+        initSortable();
+        restoreCollapseState();
+    }
+});
+</script>
+
+<style>
+.drag-handle {
+    cursor: move;
+    cursor: grab;
+    font-size: 18px;
+    color: #6c757d;
+}
+
+.drag-handle:hover {
+    color: #0d6efd;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* OrgEinheit Styling */
+.orgeinheit-item {
+    margin-bottom: 20px;
+    border: 2px solid #0d6efd;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.orgeinheit-header {
+    background: linear-gradient(135deg, #e7f1ff 0%, #cfe2ff 100%);
+    color: #0a3d7a;
+    padding: 12px;
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid #0d6efd;
+}
+
+.orgeinheit-header .drag-handle {
+    color: #0d6efd;
+    font-weight: bold;
+}
+
+.orgeinheit-header strong {
+    font-size: 16px;
+    color: #0a3d7a;
+}
+
+.orgeinheit-header .text-muted {
+    color: #495057 !important;
+}
+
+/* Nested OrgEinheiten */
+.nested-orgeinheiten {
+    min-height: 40px;
+    padding: 10px;
+    margin-left: 20px;
+    border-left: 3px dashed #adb5bd;
+    background: #f8f9fa;
+}
+
+.nested-orgeinheiten:empty::before {
+    content: "Ziehe OrgEinheiten hierher um sie unterzuordnen";
+    color: #adb5bd;
+    font-size: 12px;
+    font-style: italic;
+}
+
+/* Stellen-Liste */
+.stellen-liste {
+    min-height: 50px;
+    padding: 10px;
+    background: #fff;
+}
+
+.stellen-liste:empty::before {
+    content: "Ziehe Stellen hierher oder erstelle neue";
+    color: #adb5bd;
+    font-size: 12px;
+    font-style: italic;
+    display: block;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Stelle Styling */
+.stelle-item {
+    background: linear-gradient(135deg, #e7f3ff 0%, #d0e7ff 100%);
+    border: 2px solid #0d6efd;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.stelle-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.stelle-item:hover {
+    background: linear-gradient(135deg, #cfe2ff 0%, #b8d7ff 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    transition: all 0.2s ease;
+}
+
+/* Nested Stellen */
+.nested-stellen {
+    min-height: 30px;
+    padding-left: 25px;
+    margin-top: 8px;
+    border-left: 3px solid #0d6efd;
+}
+
+.nested-stellen:empty::before {
+    content: "Ziehe Stellen hierher um sie unterzuordnen";
+    color: #6c757d;
+    font-size: 11px;
+    font-style: italic;
+    display: block;
+    padding: 10px 0;
+}
+
+.nested-stellen > .stelle-item {
+    background: linear-gradient(135deg, #fff 0%, #f0f7ff 100%);
+    border-color: #6ea8fe;
+}
+
+/* Drag & Drop Feedback */
+.sortable-ghost {
+    opacity: 0.4;
+    background: #ffc107 !important;
+}
+
+.sortable-drag {
+    opacity: 0.8;
+    transform: rotate(3deg);
+}
+
+.sortable-chosen {
+    border: 2px dashed #198754 !important;
+}
+
+/* Drop-Zone Highlight */
+.stellen-liste.sortable-over,
+.nested-stellen.sortable-over,
+.nested-orgeinheiten.sortable-over {
+    background: #d1e7dd !important;
+    border: 2px dashed #198754;
+}
+
+/* Collapse/Expand Funktionalität */
+.collapse-toggle {
+    transition: transform 0.2s ease;
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+.collapse-toggle:hover {
+    transform: scale(1.2);
+}
+
+/* Verstecke nested Elemente wenn collapsed */
+.orgeinheit-item.collapsed > .stellen-liste,
+.orgeinheit-item.collapsed > .nested-orgeinheiten {
+    display: none;
+}
+
+.stelle-item.collapsed > .nested-stellen {
+    display: none;
+}
+
+/* Visueller Hinweis bei collapsed */
+.orgeinheit-item.collapsed,
+.stelle-item.collapsed {
+    opacity: 0.9;
+}
+
+.orgeinheit-item.collapsed .orgeinheit-header,
+.stelle-item.collapsed .stelle-header {
+    border-bottom: 3px solid #6c757d;
+}
+</style>
+{% endblock %}

@@ -309,3 +309,32 @@ class HRMitarbeiter(models.Model):
         if self.stelle:
             return self.stelle.email
         return None
+
+
+class HierarchieSnapshot(models.Model):
+    """Snapshot der Organisationshierarchie fuer Undo-Funktionalitaet.
+
+    Speichert den Zustand aller OrgEinheiten und Stellen als JSON
+    vor jeder Aenderung. Ermoeglicht Rueckgaengigmachen von Hierarchie-Aenderungen.
+    """
+
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Erstellt von",
+    )
+    snapshot_data = models.JSONField(
+        verbose_name="Snapshot-Daten",
+        help_text="JSON mit OrgEinheiten und Stellen Hierarchie",
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Hierarchie-Snapshot"
+        verbose_name_plural = "Hierarchie-Snapshots"
+
+    def __str__(self):
+        return f"Snapshot vom {self.created_at.strftime('%d.%m.%Y %H:%M')}"

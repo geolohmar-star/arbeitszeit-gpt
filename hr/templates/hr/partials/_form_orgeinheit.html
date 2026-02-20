@@ -1,0 +1,26 @@
+<div class="modal-header">
+    <h5 class="modal-title">Neue OrgEinheit</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form hx-post="{% url 'hr:company_builder_orgeinheit_neu' %}"
+      hx-target="#builder-canvas"
+      hx-swap="innerHTML">
+    {% csrf_token %}
+    <div class="modal-body">
+        <div class="mb-3">
+            <label class="form-label">Kürzel *</label>
+            <input type="text" name="kuerzel" class="form-control"
+                   placeholder="z.B. IT, BV, HR" required maxlength="10">
+            <small class="form-text text-muted">Max. 10 Zeichen, wird automatisch großgeschrieben</small>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Bezeichnung *</label>
+            <input type="text" name="bezeichnung" class="form-control"
+                   placeholder="z.B. Informationstechnik" required>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">Erstellen</button>
+    </div>
+</form>

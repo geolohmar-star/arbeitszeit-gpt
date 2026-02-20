@@ -1,0 +1,43 @@
+<div class="stelle-item" data-id="{{ stelle.id }}" data-type="stelle">
+    <div class="stelle-header">
+        <div class="d-flex align-items-center">
+            {% if stelle.untergeordnete_stellen.exists %}
+            <button class="btn btn-sm btn-link p-0 me-2 collapse-toggle"
+                    onclick="toggleCollapse(this, event)"
+                    title="Aus-/Einklappen"
+                    style="text-decoration: none; font-size: 14px; color: #0d6efd;">
+                ▼
+            </button>
+            {% else %}
+            <span style="width: 28px; display: inline-block;"></span>
+            {% endif %}
+            <span class="drag-handle me-2" title="Ziehen um zu verschieben">⠿</span>
+            <span><strong>{{ stelle.kuerzel }}</strong></span>
+            <span class="ms-2 text-muted small">{{ stelle.bezeichnung }}</span>
+            {% if stelle.ist_besetzt %}
+                <span class="ms-2 badge bg-success">✓ {{ stelle.aktueller_inhaber.vollname }}</span>
+            {% else %}
+                <span class="ms-2 badge bg-secondary">frei</span>
+            {% endif %}
+        </div>
+        <div>
+            <button class="btn btn-sm btn-outline-primary"
+                    onclick="editStelle({{ stelle.id }})"
+                    title="Bearbeiten">
+                ✏️
+            </button>
+            <button class="btn btn-sm btn-outline-danger"
+                    onclick="deleteStelle({{ stelle.id }})"
+                    title="Loeschen">
+                🗑️
+            </button>
+        </div>
+    </div>
+
+    <!-- Nested untergeordnete Stellen -->
+    <div class="nested-stellen" data-parent-stelle-id="{{ stelle.id }}">
+        {% for unterstelle in stelle.untergeordnete_stellen.all %}
+            {% include 'hr/partials/_builder_stelle.html' with stelle=unterstelle orgeinheit=orgeinheit %}
+        {% endfor %}
+    </div>
+</div>

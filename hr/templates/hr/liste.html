@@ -6,6 +6,10 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">HR Mitarbeiter</h2>
         <div class="d-flex gap-2">
+            <a href="{% url 'hr:company_builder' %}" class="btn btn-primary btn-sm">
+                Company Builder
+            </a>
+            <a href="{% url 'hr:stellen_uebersicht' %}" class="btn btn-outline-secondary btn-sm">Stellen</a>
             <a href="{% url 'hr:organigramm' %}" class="btn btn-outline-secondary btn-sm">Organigramm</a>
             <span class="badge bg-secondary fs-6 fw-normal">{{ mitarbeiter.count }} MA</span>
         </div>

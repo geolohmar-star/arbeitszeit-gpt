@@ -1,0 +1,37 @@
+<div class="modal-header">
+    <h5 class="modal-title">Neue Stelle</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form hx-post="{% url 'hr:company_builder_stelle_neu' %}"
+      hx-target="#builder-canvas"
+      hx-swap="innerHTML">
+    {% csrf_token %}
+    <div class="modal-body">
+        <div class="mb-3">
+            <label class="form-label">Kürzel *</label>
+            <input type="text" name="kuerzel" class="form-control"
+                   placeholder="z.B. gf_tech, bl_it, ma_se1" required maxlength="20">
+            <small class="form-text text-muted">Max. 20 Zeichen, kleinschreiben</small>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Bezeichnung *</label>
+            <input type="text" name="bezeichnung" class="form-control"
+                   placeholder="z.B. Geschäftsführung Technik" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">OrgEinheit *</label>
+            <select name="orgeinheit_id" class="form-select" required>
+                <option value="">-- Bitte wählen --</option>
+                {% for org in orgeinheiten %}
+                    <option value="{{ org.id }}" {% if org.id|stringformat:"s" == orgeinheit_id %}selected{% endif %}>
+                        {{ org.kuerzel }} - {{ org.bezeichnung }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">Erstellen</button>
+    </div>
+</form>

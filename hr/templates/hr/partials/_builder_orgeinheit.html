@@ -1,0 +1,47 @@
+<div class="orgeinheit-item" data-id="{{ orgeinheit.id }}">
+    <div class="orgeinheit-header">
+        <div class="d-flex align-items-center">
+            <button class="btn btn-sm btn-link p-0 me-2 collapse-toggle"
+                    onclick="toggleCollapse(this, event)"
+                    title="Aus-/Einklappen"
+                    style="text-decoration: none; font-size: 16px; color: #0d6efd;">
+                ▼
+            </button>
+            <span class="drag-handle me-2" title="Ziehen um zu verschieben">⠿</span>
+            <strong>{{ orgeinheit.kuerzel }}</strong>
+            <span class="ms-2 text-muted">{{ orgeinheit.bezeichnung }}</span>
+        </div>
+        <div>
+            <button class="btn btn-sm btn-outline-primary"
+                    onclick="addStelle({{ orgeinheit.id }})"
+                    title="Stelle hinzufuegen">
+                ➕
+            </button>
+            <button class="btn btn-sm btn-outline-danger"
+                    onclick="deleteOrgeinheit({{ orgeinheit.id }})"
+                    title="Loeschen">
+                🗑️
+            </button>
+        </div>
+    </div>
+
+    <!-- Stellen-Liste mit nested Sortable -->
+    <div class="stellen-liste" data-orgeinheit-id="{{ orgeinheit.id }}">
+        {% for stelle in orgeinheit.stellen.all %}
+            {% if not stelle.uebergeordnete_stelle or stelle.uebergeordnete_stelle.org_einheit != orgeinheit %}
+                {% include 'hr/partials/_builder_stelle.html' with stelle=stelle orgeinheit=orgeinheit %}
+            {% endif %}
+        {% empty %}
+            <div class="text-center text-muted small py-2">
+                Keine Stellen vorhanden – ziehe Stellen hierher oder erstelle neue
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Nested OrgEinheiten -->
+    <div class="nested-orgeinheiten" data-parent-id="{{ orgeinheit.id }}">
+        {% for untereinheit in orgeinheit.untereinheiten.all %}
+            {% include 'hr/partials/_builder_orgeinheit.html' with orgeinheit=untereinheit %}
+        {% endfor %}
+    </div>
+</div>
