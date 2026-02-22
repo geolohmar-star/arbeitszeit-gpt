@@ -1,0 +1,47 @@
+<!-- Modal: Neues Team -->
+<div class="modal fade show" id="teamModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); color: white;">
+                <h5 class="modal-title">Neues Team anlegen</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('modal-container').innerHTML=''"></button>
+            </div>
+            <form hx-post="{% url 'hr:kasten_team_form' %}" hx-target="#modal-container">
+                {% csrf_token %}
+                <input type="hidden" name="abteilung_kuerzel" value="{{ abteilung_kuerzel }}">
+                <div class="modal-body">
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="kuerzel" class="form-label">Kuerzel *</label>
+                        <input type="text" class="form-control" id="kuerzel" name="kuerzel"
+                               placeholder="z.B. TEAM-A" required maxlength="10"
+                               style="text-transform: uppercase;">
+                        <small class="text-muted">Eindeutige Abkuerzung (z.B. TEAM-A, DEV-TEAM-1)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bezeichnung" class="form-label">Bezeichnung *</label>
+                        <input type="text" class="form-control" id="bezeichnung" name="bezeichnung"
+                               placeholder="z.B. Entwicklungsteam Alpha" required maxlength="100">
+                        <small class="text-muted">Voller Name des Teams</small>
+                    </div>
+
+                    <p class="text-muted small mb-0">
+                        Das neue Team wird unter <strong>Abteilung {{ abteilung_kuerzel }}</strong> angelegt.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-container').innerHTML=''">
+                        Abbrechen
+                    </button>
+                    <button type="submit" class="btn text-white" style="background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);">
+                        Team anlegen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

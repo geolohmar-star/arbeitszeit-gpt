@@ -1,45 +1,67 @@
 {% extends "base.html" %}
 {% block title %}Organigramm{% endblock %}
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Organigramm – Apex Solutions GmbH</h2>
-        <a href="{% url 'hr:liste' %}" class="btn btn-outline-secondary btn-sm">Mitarbeiterliste</a>
+        <h2 class="mb-0">🏢 Organigramm</h2>
+        <div>
+            <a href="{% url 'hr:company_builder' %}" class="btn btn-outline-primary btn-sm me-2">
+                🏗️ Company Builder
+            </a>
+            <a href="{% url 'hr:liste' %}" class="btn btn-outline-secondary btn-sm">
+                👥 Mitarbeiterliste
+            </a>
+        </div>
     </div>
 
-    {% for bereich in bereiche %}
-    <div class="card mb-4">
-        <div class="card-header fw-bold bg-success text-white d-flex justify-content-between">
-            <span>{{ bereich.name }}</span>
-            <span class="badge bg-white text-success fw-normal">{{ bereich.kuerzel }}</span>
+    <!-- Rekursives Rendern der Hierarchie -->
+    {% for orgeinheit in root_orgeinheiten %}
+        {% include 'hr/partials/_organigramm_orgeinheit.html' with orgeinheit=orgeinheit level=0 %}
+    {% empty %}
+        <div class="alert alert-info">
+            <p class="mb-0">Keine Organisationsstruktur vorhanden.</p>
+            <p class="mb-0 mt-2">
+                <a href="{% url 'hr:company_builder' %}" class="alert-link">
+                    → Company Builder öffnen
+                </a>
+            </p>
         </div>
-        <div class="card-body p-0">
-            {% for abteilung in bereich.abteilungen.all %}
-            <div class="border-bottom px-3 py-2">
-                <div class="fw-semibold text-dark mb-2">
-                    <span class="badge bg-secondary me-2">{{ abteilung.kuerzel }}</span>
-                    {{ abteilung.name }}
-                    <span class="text-muted small fw-normal ms-2">
-                        ({{ abteilung.mitarbeiter.count }} MA)
-                    </span>
-                </div>
-                {% for team in abteilung.teams.all %}
-                <div class="ms-4 mb-1">
-                    <span class="text-muted small">&#9492; </span>
-                    <span class="small fw-semibold">{{ team.name }}</span>
-                    <span class="text-muted small">
-                        – {{ team.mitarbeiter.count }} MA
-                    </span>
-                </div>
-                {% endfor %}
-            </div>
-            {% empty %}
-            <div class="px-3 py-2 text-muted small">Keine Abteilungen.</div>
-            {% endfor %}
-        </div>
-    </div>
     {% endfor %}
 
 </div>
+
+<style>
+.orgeinheit-card {
+    border-left: 4px solid #0d6efd;
+    transition: all 0.2s ease;
+}
+
+.orgeinheit-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.stelle-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.stelle-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(4px);
+}
+
+.mitarbeiter-badge {
+    cursor: pointer;
+}
+
+.mitarbeiter-badge:hover {
+    transform: scale(1.05);
+}
+
+.level-0 { margin-left: 0; }
+.level-1 { margin-left: 20px; }
+.level-2 { margin-left: 40px; }
+.level-3 { margin-left: 60px; }
+</style>
 {% endblock %}

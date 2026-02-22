@@ -1,0 +1,522 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Organigramm Tree Editor{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <!-- Toolbar -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h4 class="mb-0">Organigramm Tree Editor</h4>
+                </div>
+                <div class="col-auto">
+                    <div class="btn-group me-2">
+                        <button class="btn btn-secondary btn-sm" onclick="zoomIn()">
+                            🔍+
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="zoomOut()">
+                            🔍-
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="resetZoom()">
+                            Reset
+                        </button>
+                    </div>
+                    <button class="btn btn-success" onclick="expandAll()">
+                        Alle aufklappen
+                    </button>
+                    <button class="btn btn-warning" onclick="collapseAll()">
+                        Alle zuklappen
+                    </button>
+                    <button class="btn btn-primary" onclick="zentrieren()">
+                        Zentrieren
+                    </button>
+                    <button class="btn btn-info" onclick="speichern()">
+                        Speichern
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legende -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <small>
+                <strong>Legende:</strong>
+                <span class="badge bg-primary ms-2">Blau = OrgEinheit</span>
+                <span class="badge bg-danger ms-1">Rot = Leitung</span>
+                <span class="badge bg-warning text-dark ms-1">Gelb = Stab</span>
+                <span class="badge bg-success ms-1">Gruen = Fachkraft</span>
+                <br>
+                <strong>Bedienung:</strong>
+                Klick auf Node = Auf-/Zuklappen |
+                Rechtsklick = Kontextmenu |
+                Drag & Drop = Verschieben
+            </small>
+        </div>
+    </div>
+
+    <!-- Tree Canvas -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div id="tree-container" style="background: #fafafa; overflow: auto;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Context Menu -->
+<div id="context-menu" class="dropdown-menu" style="display: none; position: absolute;">
+    <a class="dropdown-item" href="#" onclick="bearbeiten(); return false;">
+        Bearbeiten
+    </a>
+    <a class="dropdown-item" href="#" onclick="kindHinzufuegen(); return false;">
+        + Kind hinzufuegen
+    </a>
+    <div class="dropdown-divider"></div>
+    <a class="dropdown-item text-danger" href="#" onclick="loeschen(); return false;">
+        Loeschen
+    </a>
+</div>
+
+<!-- D3.js Library -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<style>
+.node circle {
+    cursor: pointer;
+    stroke-width: 3px;
+}
+
+.node text {
+    font: 12px sans-serif;
+    cursor: pointer;
+}
+
+.link {
+    fill: none;
+    stroke: #555;
+    stroke-width: 2px;
+}
+
+.node.selected circle {
+    stroke: #ff6b6b;
+    stroke-width: 4px;
+}
+</style>
+
+<script>
+// Globale Variablen
+let svg, g, tree, root;
+let selectedNode = null;
+let nodeIdCounter = 1000;
+
+const width = 2000;
+const height = 1200;
+const duration = 300;
+
+// Farben nach Kategorie
+const colors = {
+    orgeinheit: '#0d6efd',
+    leitung: '#dc3545',
+    stab: '#ffc107',
+    fachkraft: '#198754'
+};
+
+// Daten laden
+async function loadData() {
+    const response = await fetch('/hr/tree-editor/data/');
+    return await response.json();
+}
+
+// Initialisierung
+async function init() {
+    const data = await loadData();
+
+    // SVG erstellen
+    const container = d3.select('#tree-container');
+    svg = container.append('svg')
+        .attr('width', width)
+        .attr('height', height);
+
+    // Zoom & Pan
+    const zoom = d3.zoom()
+        .scaleExtent([0.1, 3])
+        .on('zoom', (event) => {
+            g.attr('transform', event.transform);
+        });
+
+    svg.call(zoom);
+
+    g = svg.append('g')
+        .attr('transform', 'translate(100,50)');
+
+    // Tree Layout
+    tree = d3.tree()
+        .size([height - 200, width - 400])
+        .separation((a, b) => (a.parent == b.parent ? 2 : 3));
+
+    // Root Node
+    root = d3.hierarchy(data);
+    root.x0 = height / 2;
+    root.y0 = 0;
+
+    // Alle Nodes initial collapsed (außer Root)
+    if (root.children) {
+        root.children.forEach(collapse);
+    }
+
+    update(root);
+
+    // Context Menu Handler
+    document.addEventListener('click', hideContextMenu);
+}
+
+// Collapse Node
+function collapse(d) {
+    if (d.children) {
+        d._children = d.children;
+        d._children.forEach(collapse);
+        d.children = null;
+    }
+}
+
+// Expand Node
+function expand(d) {
+    if (d._children) {
+        d.children = d._children;
+        d._children = null;
+    }
+}
+
+// Update Tree
+function update(source) {
+    // Compute new tree layout
+    const treeData = tree(root);
+    const nodes = treeData.descendants();
+    const links = treeData.links();
+
+    // Normalize for fixed-depth
+    nodes.forEach(d => d.y = d.depth * 250);
+
+    // Update Nodes
+    const node = g.selectAll('.node')
+        .data(nodes, d => d.id || (d.id = ++nodeIdCounter));
+
+    // Enter new nodes
+    const nodeEnter = node.enter().append('g')
+        .attr('class', 'node')
+        .attr('transform', d => `translate(${source.y0},${source.x0})`)
+        .on('click', clicked)
+        .on('contextmenu', rightClicked);
+
+    nodeEnter.append('circle')
+        .attr('r', 1e-6)
+        .style('fill', d => d._children ? colors[d.data.kategorie || d.data.type] : '#fff')
+        .style('stroke', d => colors[d.data.kategorie || d.data.type]);
+
+    nodeEnter.append('text')
+        .attr('dy', -15)
+        .attr('x', 0)
+        .attr('text-anchor', 'middle')
+        .text(d => d.data.name)
+        .style('fill-opacity', 1e-6)
+        .style('font-weight', 'bold')
+        .style('font-size', '11px')
+        .style('background', 'white')
+        .style('padding', '2px');
+
+    // Update
+    const nodeUpdate = nodeEnter.merge(node);
+
+    nodeUpdate.transition()
+        .duration(duration)
+        .attr('transform', d => `translate(${d.y},${d.x})`);
+
+    nodeUpdate.select('circle')
+        .attr('r', 10)
+        .style('fill', d => d._children ? colors[d.data.kategorie || d.data.type] : '#fff')
+        .style('stroke', d => colors[d.data.kategorie || d.data.type]);
+
+    nodeUpdate.select('text')
+        .style('fill-opacity', 1);
+
+    // Exit
+    const nodeExit = node.exit().transition()
+        .duration(duration)
+        .attr('transform', d => `translate(${source.y},${source.x})`)
+        .remove();
+
+    nodeExit.select('circle')
+        .attr('r', 1e-6);
+
+    nodeExit.select('text')
+        .style('fill-opacity', 1e-6);
+
+    // Update Links
+    const link = g.selectAll('.link')
+        .data(links, d => d.target.id);
+
+    const linkEnter = link.enter().insert('path', 'g')
+        .attr('class', 'link')
+        .attr('d', d => {
+            const o = {x: source.x0, y: source.y0};
+            return diagonal(o, o);
+        });
+
+    const linkUpdate = linkEnter.merge(link);
+
+    linkUpdate.transition()
+        .duration(duration)
+        .attr('d', d => diagonal(d.source, d.target));
+
+    link.exit().transition()
+        .duration(duration)
+        .attr('d', d => {
+            const o = {x: source.x, y: source.y};
+            return diagonal(o, o);
+        })
+        .remove();
+
+    // Stash old positions
+    nodes.forEach(d => {
+        d.x0 = d.x;
+        d.y0 = d.y;
+    });
+}
+
+// Diagonal Path
+function diagonal(s, d) {
+    return `M ${s.y} ${s.x}
+            C ${(s.y + d.y) / 2} ${s.x},
+              ${(s.y + d.y) / 2} ${d.x},
+              ${d.y} ${d.x}`;
+}
+
+// Click Handler
+function clicked(event, d) {
+    if (d.children) {
+        d._children = d.children;
+        d.children = null;
+    } else {
+        d.children = d._children;
+        d._children = null;
+    }
+    update(d);
+}
+
+// Right Click Handler
+function rightClicked(event, d) {
+    event.preventDefault();
+    selectedNode = d;
+
+    const menu = document.getElementById('context-menu');
+    menu.style.display = 'block';
+    menu.style.left = event.pageX + 'px';
+    menu.style.top = event.pageY + 'px';
+
+    d3.selectAll('.node').classed('selected', false);
+    d3.select(event.currentTarget).classed('selected', true);
+}
+
+function hideContextMenu() {
+    document.getElementById('context-menu').style.display = 'none';
+    d3.selectAll('.node').classed('selected', false);
+}
+
+// Bearbeiten
+function bearbeiten() {
+    if (!selectedNode) return;
+
+    const newName = prompt('Name:', selectedNode.data.name);
+    if (!newName) return;
+
+    selectedNode.data.name = newName;
+
+    if (selectedNode.data.type === 'stelle') {
+        const kategorie = prompt('Kategorie (leitung/stab/fachkraft):', selectedNode.data.kategorie || 'fachkraft');
+        if (kategorie) {
+            selectedNode.data.kategorie = kategorie;
+        }
+    }
+
+    update(selectedNode);
+    hideContextMenu();
+}
+
+// Kind hinzufuegen
+function kindHinzufuegen() {
+    if (!selectedNode) return;
+
+    const typ = prompt('Typ (orgeinheit/stelle):', 'orgeinheit');
+    if (!typ) return;
+
+    const name = prompt('Name:');
+    if (!name) return;
+
+    let kategorie = 'orgeinheit';
+    if (typ === 'stelle') {
+        kategorie = prompt('Kategorie (leitung/stab/fachkraft):', 'fachkraft') || 'fachkraft';
+    }
+
+    const newChild = {
+        name: name,
+        type: typ,
+        kategorie: kategorie,
+        id: `temp_${Date.now()}`,
+        children: []
+    };
+
+    if (!selectedNode.children && !selectedNode._children) {
+        selectedNode.children = [];
+    }
+
+    if (selectedNode._children) {
+        selectedNode._children.push(newChild);
+    } else {
+        selectedNode.children.push(newChild);
+    }
+
+    // Expand parent
+    if (selectedNode._children) {
+        selectedNode.children = selectedNode._children;
+        selectedNode._children = null;
+    }
+
+    update(selectedNode);
+    hideContextMenu();
+}
+
+// Loeschen
+function loeschen() {
+    if (!selectedNode || selectedNode === root) {
+        alert('Root kann nicht geloescht werden!');
+        return;
+    }
+
+    if (!confirm(`"${selectedNode.data.name}" wirklich loeschen?`)) return;
+
+    // Finde Parent
+    const parent = selectedNode.parent;
+    if (parent) {
+        if (parent.children) {
+            parent.children = parent.children.filter(d => d !== selectedNode);
+        }
+        if (parent._children) {
+            parent._children = parent._children.filter(d => d !== selectedNode);
+        }
+        update(parent);
+    }
+
+    hideContextMenu();
+}
+
+// Alle aufklappen
+function expandAll() {
+    root.descendants().forEach(d => {
+        if (d._children) {
+            d.children = d._children;
+            d._children = null;
+        }
+    });
+    update(root);
+}
+
+// Alle zuklappen
+function collapseAll() {
+    root.descendants().forEach((d, i) => {
+        if (i > 0 && d.children) {
+            d._children = d.children;
+            d.children = null;
+        }
+    });
+    update(root);
+}
+
+// Zoom-Funktionen
+function zoomIn() {
+    svg.transition().call(
+        d3.zoom().scaleBy, 1.3
+    );
+}
+
+function zoomOut() {
+    svg.transition().call(
+        d3.zoom().scaleBy, 0.7
+    );
+}
+
+function resetZoom() {
+    svg.transition().duration(750).call(
+        d3.zoom().transform,
+        d3.zoomIdentity.translate(100, 50)
+    );
+}
+
+// Zentrieren
+function zentrieren() {
+    svg.transition().duration(750).call(
+        d3.zoom().transform,
+        d3.zoomIdentity.translate(100, 50)
+    );
+}
+
+// Speichern
+async function speichern() {
+    if (!confirm('Aenderungen speichern?')) return;
+
+    const data = serializeTree(root);
+
+    try {
+        const response = await fetch('/hr/tree-editor/save/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert('Erfolgreich gespeichert!');
+            location.reload();
+        } else {
+            alert('Fehler: ' + (result.error || 'Unbekannter Fehler'));
+        }
+    } catch (error) {
+        alert('Fehler beim Speichern: ' + error.message);
+    }
+}
+
+// Tree serialisieren
+function serializeTree(node) {
+    const data = {
+        id: node.data.id,
+        name: node.data.name,
+        type: node.data.type,
+        kategorie: node.data.kategorie,
+        children: []
+    };
+
+    const children = node.children || node._children || [];
+    children.forEach(child => {
+        data.children.push(serializeTree(child));
+    });
+
+    return data;
+}
+
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', init);
+</script>
+{% endblock %}

@@ -6,6 +6,7 @@ from .models import (
     HierarchieSnapshot,
     HRMitarbeiter,
     OrgEinheit,
+    Projektgruppe,
     Stelle,
     Team,
 )
@@ -33,9 +34,10 @@ class TeamAdmin(admin.ModelAdmin):
 
 @admin.register(OrgEinheit)
 class OrgEinheitAdmin(admin.ModelAdmin):
-    list_display = ["kuerzel", "bezeichnung", "uebergeordnet", "ist_reserviert", "stellen_anzahl"]
+    list_display = ["kuerzel", "bezeichnung", "leitende_stelle", "uebergeordnet", "ist_reserviert", "stellen_anzahl"]
     list_filter = ["ist_reserviert"]
     search_fields = ["kuerzel", "bezeichnung"]
+    autocomplete_fields = ["leitende_stelle", "uebergeordnet"]
 
     def has_delete_permission(self, request, obj=None):
         """Reservierte Einheiten koennen nicht geloescht werden."""
@@ -64,16 +66,18 @@ class StelleAdmin(admin.ModelAdmin):
     list_display = [
         "kuerzel",
         "bezeichnung",
+        "kategorie",
         "org_einheit",
         "uebergeordnete_stelle",
         "get_ist_besetzt",
         "get_inhaber",
         "get_email",
+        "get_geleitete_orgeinheiten",
         "delegiert_an",
     ]
-    list_filter = ["org_einheit"]
+    list_filter = ["org_einheit", "kategorie"]
     search_fields = ["kuerzel", "bezeichnung"]
-    readonly_fields = ["get_email"]
+    readonly_fields = ["get_email", "get_geleitete_orgeinheiten"]
     fieldsets = [
         (
             "Stelle",
@@ -81,6 +85,7 @@ class StelleAdmin(admin.ModelAdmin):
                 "fields": [
                     "kuerzel",
                     "bezeichnung",
+                    "kategorie",
                     "org_einheit",
                     "uebergeordnete_stelle",
                     "get_email",
@@ -131,6 +136,14 @@ class StelleAdmin(admin.ModelAdmin):
     def get_email(self, obj):
         """Zeigt die berechnete Email-Adresse der Stelle."""
         return obj.email
+
+    @admin.display(description="Leitet OrgEinheiten")
+    def get_geleitete_orgeinheiten(self, obj):
+        """Zeigt welche OrgEinheiten von dieser Stelle geleitet werden."""
+        geleitete = obj.geleitete_orgeinheiten.all()
+        if geleitete:
+            return ", ".join([org.kuerzel for org in geleitete])
+        return "–"
 
 
 @admin.register(HRMitarbeiter)
@@ -216,3 +229,81 @@ class HierarchieSnapshotAdmin(admin.ModelAdmin):
     def anzahl_stellen(self, obj):
         """Zaehlt Stellen im Snapshot."""
         return len(obj.snapshot_data.get('stellen', []))
+
+
+@admin.register(Projektgruppe)
+class ProjektgruppeAdmin(admin.ModelAdmin):
+    """Admin-Interface fuer Projektgruppen."""
+
+    list_display = [
+        "kuerzel",
+        "name",
+        "status",
+        "leiter",
+        "start_datum",
+        "end_datum",
+        "anzahl_mitglieder",
+        "prioritaet",
+    ]
+    list_filter = ["status", "start_datum", "prioritaet"]
+    search_fields = ["kuerzel", "name", "beschreibung"]
+    date_hierarchy = "start_datum"
+    filter_horizontal = ["mitglieder"]
+
+    fieldsets = [
+        (
+            "Projektinformationen",
+            {
+                "fields": [
+                    "kuerzel",
+                    "name",
+                    "beschreibung",
+                    "status",
+                    "prioritaet",
+                ]
+            },
+        ),
+        (
+            "Zeitraum",
+            {
+                "fields": [
+                    "start_datum",
+                    "end_datum",
+                    "tatsaechliches_end_datum",
+                ]
+            },
+        ),
+        (
+            "Team",
+            {
+                "fields": [
+                    "leiter",
+                    "stellvertreter",
+                    "mitglieder",
+                ]
+            },
+        ),
+        (
+            "Metadaten",
+            {
+                "fields": [
+                    "erstellt_am",
+                    "erstellt_von",
+                ],
+                "classes": ["collapse"],
+            },
+        ),
+    ]
+
+    readonly_fields = ["erstellt_am", "erstellt_von"]
+
+    def save_model(self, request, obj, form, change):
+        """Setzt erstellt_von automatisch."""
+        if not change:
+            obj.erstellt_von = request.user
+        super().save_model(request, obj, form, change)
+
+    @admin.display(description="Mitglieder")
+    def anzahl_mitglieder(self, obj):
+        """Zeigt Anzahl Mitglieder."""
+        return obj.mitglieder_anzahl

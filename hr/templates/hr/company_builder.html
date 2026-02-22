@@ -147,12 +147,13 @@ function initSortable() {
             group: {
                 name: 'orgeinheiten',
                 pull: true,
-                put: true
+                put: ['orgeinheiten']  // NUR OrgEinheiten erlauben
             },
             animation: 150,
             handle: '.drag-handle',
             fallbackOnBody: true,
             swapThreshold: 0.65,
+            draggable: '.orgeinheit-item',  // NUR OrgEinheit-Items
             onEnd: function(evt) {
                 console.log('OrgEinheit verschoben');
                 updateHierarchy();
@@ -166,12 +167,13 @@ function initSortable() {
             group: {
                 name: 'orgeinheiten',
                 pull: true,
-                put: true
+                put: ['orgeinheiten']  // NUR OrgEinheiten erlauben
             },
             animation: 150,
             handle: '.drag-handle',
             fallbackOnBody: true,
             swapThreshold: 0.65,
+            draggable: '.orgeinheit-item',  // NUR OrgEinheit-Items
             onEnd: function(evt) {
                 console.log('Nested OrgEinheit verschoben');
                 updateHierarchy();
@@ -185,12 +187,13 @@ function initSortable() {
             group: {
                 name: 'stellen',
                 pull: true,
-                put: true
+                put: ['stellen']  // NUR Stellen erlauben
             },
             animation: 150,
             handle: '.drag-handle',
             fallbackOnBody: true,
             swapThreshold: 0.65,
+            draggable: '.stelle-item',  // NUR Stelle-Items
             onEnd: function(evt) {
                 console.log('Stelle verschoben');
                 updateHierarchy();
@@ -204,12 +207,13 @@ function initSortable() {
             group: {
                 name: 'stellen',
                 pull: true,
-                put: true
+                put: ['stellen']  // NUR Stellen erlauben
             },
             animation: 150,
             handle: '.drag-handle',
             fallbackOnBody: true,
             swapThreshold: 0.65,
+            draggable: '.stelle-item',  // NUR Stelle-Items
             onEnd: function(evt) {
                 console.log('Nested Stelle verschoben');
                 updateHierarchy();
@@ -350,7 +354,7 @@ function saveStructure() {
         // Undo-Button aktivieren
         document.getElementById('undo-btn').disabled = false;
 
-        // Nach 2 Sekunden zurücksetzen
+        // Nach 2 Sekunden Button zuruecksetzen
         setTimeout(() => {
             btn.innerHTML = originalText;
             btn.disabled = false;
@@ -438,17 +442,57 @@ function editStelle(stelleId) {
 }
 
 function deleteStelle(stelleId) {
-    if (confirm('Stelle wirklich löschen?')) {
-        // TODO: Implementiere Delete via HTMX
-        alert('Delete-Funktion kommt bald! Stelle ID: ' + stelleId);
+    if (!confirm('Stelle wirklich loeschen?\n\nHinweis: Besetzt Stellen oder Stellen mit untergeordneten Stellen koennen nicht geloescht werden.')) {
+        return;
     }
+
+    fetch(`/hr/company-builder/stelle/${stelleId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert(data.message);
+            // Seite neu laden um geloeschte Stelle zu entfernen
+            location.reload();
+        } else {
+            alert('Fehler: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Netzwerkfehler beim Loeschen der Stelle');
+        console.error('Delete error:', error);
+    });
 }
 
 function deleteOrgeinheit(orgeinheitId) {
-    if (confirm('OrgEinheit wirklich löschen? Alle zugehörigen Stellen werden ebenfalls gelöscht!')) {
-        // TODO: Implementiere Delete via HTMX
-        alert('Delete-Funktion kommt bald! OrgEinheit ID: ' + orgeinheitId);
+    if (!confirm('OrgEinheit wirklich loeschen?\n\nHinweis: Reservierte OrgEinheiten, OrgEinheiten mit Stellen oder untergeordneten Einheiten koennen nicht geloescht werden.')) {
+        return;
     }
+
+    fetch(`/hr/company-builder/orgeinheit/${orgeinheitId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert(data.message);
+            // Seite neu laden um geloeschte OrgEinheit zu entfernen
+            location.reload();
+        } else {
+            alert('Fehler: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Netzwerkfehler beim Loeschen der OrgEinheit');
+        console.error('Delete error:', error);
+    });
 }
 
 function toggleCollapse(btn, event) {

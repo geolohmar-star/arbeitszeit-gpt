@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}{{ org.kuerzel }} - {{ org.bezeichnung }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <!-- Header mit Zurueck-Button -->
+    <div class="card mb-3">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <div>
+                <a href="{% url 'hr:kasten_organigramm' %}" class="btn btn-light btn-sm me-3">
+                    ← Zurueck zum Organigramm
+                </a>
+                <h4 class="d-inline mb-0">📦 {{ org.kuerzel }} - {{ org.bezeichnung }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Breadcrumb / Hierarchie-Pfad -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            {% for item in pfad %}
+            <li class="breadcrumb-item {% if item == org %}active{% endif %}">
+                {% if item == org %}
+                    <strong>{{ item.kuerzel }}</strong>
+                {% else %}
+                    <a href="{% url 'hr:kasten_detail' item.kuerzel %}">{{ item.kuerzel }}</a>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Linke Spalte: Stellen -->
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Stellen in {{ org.kuerzel }}</h5>
+                    <button class="btn btn-light btn-sm"
+                            hx-get="{% url 'hr:kasten_stelle_form' %}?org_kuerzel={{ org.kuerzel }}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML">
+                        ➕ Neue Stelle
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if root_stellen %}
+                    <div class="list-group">
+                        {% for stelle in root_stellen %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">
+                                        {% if stelle.kategorie == 'leitung' %}👔
+                                        {% elif stelle.kategorie == 'stab' %}📎
+                                        {% else %}👤{% endif %}
+                                        <strong>{{ stelle.kuerzel }}</strong> - {{ stelle.bezeichnung }}
+                                    </h6>
+                                    <p class="mb-1 text-muted small">
+                                        <span class="badge bg-secondary">{{ stelle.get_kategorie_display }}</span>
+                                        {% if stelle.ist_besetzt %}
+                                        <span class="badge bg-success">Besetzt</span>
+                                        <small>→ {{ stelle.aktueller_inhaber.vollname }}</small>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">Unbesetzt</span>
+                                        {% endif %}
+                                    </p>
+                                    <p class="mb-0 small text-muted">
+                                        Email: <code>{{ stelle.email }}</code>
+                                    </p>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary"
+                                            hx-get="{% url 'hr:kasten_stelle_edit' stelle.id %}"
+                                            hx-target="#modal-container"
+                                            hx-swap="innerHTML">
+                                        Bearbeiten
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        Keine Stellen vorhanden. Klicke auf "➕ Neue Stelle" um eine anzulegen.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Rechte Spalte: Infos & Untereinheiten -->
+        <div class="col-md-4">
+            <!-- Basis-Informationen -->
+            <div class="card mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Informationen</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Kuerzel:</th>
+                            <td><code>{{ org.kuerzel }}</code></td>
+                        </tr>
+                        <tr>
+                            <th>Bezeichnung:</th>
+                            <td>{{ org.bezeichnung }}</td>
+                        </tr>
+                        <tr>
+                            <th>Uebergeordnet:</th>
+                            <td>
+                                {% if parent %}
+                                <a href="{% url 'hr:kasten_detail' parent.kuerzel %}">{{ parent.kuerzel }}</a>
+                                {% else %}
+                                <em class="text-muted">Oberste Ebene</em>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Stellen gesamt:</th>
+                            <td><strong>{{ alle_stellen.count }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Untereinheiten:</th>
+                            <td><strong>{{ untereinheiten.count }}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Untereinheiten -->
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Untereinheiten</h5>
+                    <button class="btn btn-light btn-sm"
+                            hx-get="{% url 'hr:kasten_abteilung_form' %}?bereich_kuerzel={{ org.kuerzel }}"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML">
+                        ➕
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if untereinheiten %}
+                    <div class="list-group">
+                        {% for unter in untereinheiten %}
+                        <a href="{% url 'hr:kasten_detail' unter.kuerzel %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ unter.kuerzel }}</strong>
+                                    <br><small class="text-muted">{{ unter.bezeichnung }}</small>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">{{ unter.stellen.count }} Stellen</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-0">Keine Untereinheiten vorhanden.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Container -->
+<div id="modal-container"></div>
+
+{% endblock %}

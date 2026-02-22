@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TEST</title>
+</head>
+<body>
+    <h1>TEST - Wenn du das siehst, funktioniert die View!</h1>
+    <p>GF Stellen: {{ gf_stellen|length }}</p>
+    <p>Bereiche: {{ bereiche|length }}</p>
+
+    <h2>GF Stellen Detail:</h2>
+    <ul>
+    {% for stelle in gf_stellen %}
+        <li>{{ stelle.kuerzel }} - {{ stelle.bezeichnung }}</li>
+    {% empty %}
+        <li>KEINE STELLEN GEFUNDEN</li>
+    {% endfor %}
+    </ul>
+
+    <h2>Bereiche Detail:</h2>
+    <ul>
+    {% for bereich in bereiche %}
+        <li>{{ bereich.kuerzel }} - {{ bereich.bezeichnung }}</li>
+    {% empty %}
+        <li>KEINE BEREICHE GEFUNDEN</li>
+    {% endfor %}
+    </ul>
+</body>
+</html>

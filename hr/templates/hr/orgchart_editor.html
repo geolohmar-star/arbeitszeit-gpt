@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Org-Chart Editor{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col">
+            <h2>🏢 Org-Chart Editor</h2>
+            <p class="text-muted">Klicke auf Elemente zum Bearbeiten • Rechtsklick für Optionen</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-success" onclick="expandAll()">Alle ausklappen</button>
+            <button class="btn btn-secondary" onclick="collapseAll()">Alle einklappen</button>
+            <button class="btn btn-primary" onclick="addRootOrgEinheit()">
+                ➕ OrgEinheit hinzufügen
+            </button>
+        </div>
+    </div>
+
+    <!-- Chart Container -->
+    <div class="card">
+        <div class="card-body p-0" style="min-height: 80vh; overflow: auto; background: #f8f9fa;">
+            <div id="chart-container"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalTitle">Element bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="editModalBody">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Context Menu -->
+<div id="contextMenu" class="dropdown-menu" style="display: none; position: absolute;">
+    <a class="dropdown-item" href="#" onclick="contextEdit()">✏️ Bearbeiten</a>
+    <a class="dropdown-item" href="#" onclick="contextAddChild()">➕ Untergeordnet hinzufügen</a>
+    <div class="dropdown-divider"></div>
+    <a class="dropdown-item text-danger" href="#" onclick="contextDelete()">🗑️ Löschen</a>
+</div>
+
+<script src="{% static 'js/d3.v7.min.js' %}"></script>
+
+<script>
+// Globale Variablen
+let chartData = null;
+let currentNode = null;
+let editModal = null;
+
+// Lade Daten vom Server
+async function loadData() {
+    const response = await fetch('/hr/orgchart-editor/data/');
+    chartData = await response.json();
+    renderChart();
+}
+
+// Chart rendern
+function renderChart() {
+    const container = d3.select('#chart-container');
+    container.selectAll('*').remove();
+
+    if (!chartData || chartData.length === 0) {
+        container.append('div')
+            .attr('class', 'text-center text-muted p-5')
+            .html('<h4>Keine Struktur vorhanden</h4><p>Füge eine OrgEinheit hinzu um zu starten</p>');
+        return;
+    }
+
+    // Erstelle verschachtelte Struktur
+    const root = {
+        name: 'Organisation',
+        type: 'root',
+        children: chartData
+    };
+
+    const width = container.node().getBoundingClientRect().width;
+    const height = Math.max(800, chartData.length * 200);
+
+    const svg = container.append('svg')
+        .attr('width', width)
+        .attr('height', height);
+
+    const g = svg.append('g')
+        .attr('transform', `translate(${width / 2}, 40)`);
+
+    // D3 Tree Layout
+    const tree = d3.tree()
+        .size([width - 200, height - 100])
+        .separation((a, b) => (a.parent === b.parent ? 1.2 : 1.5));
+
+    const rootNode = d3.hierarchy(root);
+    tree(rootNode);
+
+    // Links
+    g.selectAll('.link')
+        .data(rootNode.links())
+        .enter().append('path')
+        .attr('class', 'link')
+        .attr('fill', 'none')
+        .attr('stroke', '#aaa')
+        .attr('stroke-width', 2)
+        .attr('d', d3.linkVertical()
+            .x(d => d.x)
+            .y(d => d.y)
+        );
+
+    // Nodes
+    const node = g.selectAll('.node')
+        .data(rootNode.descendants())
+        .enter().append('g')
+        .attr('class', 'node')
+        .attr('transform', d => `translate(${d.x},${d.y})`);
+
+    // Rechtecke für Nodes
+    node.filter(d => d.data.type !== 'root')
+        .append('rect')
+        .attr('x', -100)
+        .attr('y', -30)
+        .attr('width', 200)
+        .attr('height', 60)
+        .attr('rx', 5)
+        .attr('fill', d => d.data.type === 'orgeinheit' ? '#0d6efd' : '#198754')
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2)
+        .style('cursor', 'pointer')
+        .on('click', (event, d) => openEditModal(d.data))
+        .on('contextmenu', (event, d) => {
+            event.preventDefault();
+            showContextMenu(event, d.data);
+        });
+
+    // Text
+    node.filter(d => d.data.type !== 'root')
+        .append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', -5)
+        .attr('fill', '#fff')
+        .style('font-weight', 'bold')
+        .text(d => d.data.name);
+
+    node.filter(d => d.data.type !== 'root')
+        .append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', 15)
+        .attr('fill', '#fff')
+        .style('font-size', '12px')
+        .text(d => d.data.title || '');
+
+    // + Button für OrgEinheiten
+    node.filter(d => d.data.type === 'orgeinheit')
+        .append('circle')
+        .attr('cx', 100)
+        .attr('cy', 0)
+        .attr('r', 15)
+        .attr('fill', '#28a745')
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2)
+        .style('cursor', 'pointer')
+        .on('click', (event, d) => {
+            event.stopPropagation();
+            addChild(d.data);
+        });
+
+    node.filter(d => d.data.type === 'orgeinheit')
+        .append('text')
+        .attr('x', 100)
+        .attr('y', 5)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#fff')
+        .style('font-weight', 'bold')
+        .style('cursor', 'pointer')
+        .text('+')
+        .on('click', (event, d) => {
+            event.stopPropagation();
+            addChild(d.data);
+        });
+}
+
+// Modal öffnen
+function openEditModal(data) {
+    currentNode = data;
+    const title = data.type === 'orgeinheit' ? 'OrgEinheit bearbeiten' : 'Stelle bearbeiten';
+
+    document.getElementById('editModalTitle').textContent = title;
+    document.getElementById('editModalBody').innerHTML = `
+        <form id="editForm">
+            <div class="mb-3">
+                <label class="form-label">Kürzel</label>
+                <input type="text" class="form-control" id="edit_kuerzel" value="${data.kuerzel}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Bezeichnung</label>
+                <input type="text" class="form-control" id="edit_bezeichnung" value="${data.bezeichnung}">
+            </div>
+            ${data.type === 'stelle' ? `
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" id="edit_email" value="${data.email || ''}" readonly>
+            </div>
+            ${data.inhaber ? `
+            <div class="mb-3">
+                <label class="form-label">Inhaber</label>
+                <input type="text" class="form-control" value="${data.inhaber}" readonly>
+            </div>
+            ` : ''}
+            ` : ''}
+        </form>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" onclick="saveEdit()">💾 Speichern</button>
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        </div>
+    `;
+
+    editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    editModal.show();
+}
+
+// Speichern
+async function saveEdit() {
+    const kuerzel = document.getElementById('edit_kuerzel').value;
+    const bezeichnung = document.getElementById('edit_bezeichnung').value;
+
+    const response = await fetch(`/hr/orgchart-editor/${currentNode.type}/${currentNode.id}/edit/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ kuerzel, bezeichnung })
+    });
+
+    if (response.ok) {
+        editModal.hide();
+        loadData();
+    }
+}
+
+// Hinzufügen
+function addChild(parentData) {
+    currentNode = parentData;
+    document.getElementById('editModalTitle').textContent = 'Neues Element hinzufügen';
+    document.getElementById('editModalBody').innerHTML = `
+        <form id="addForm">
+            <div class="mb-3">
+                <label class="form-label">Typ</label>
+                <select class="form-select" id="add_type">
+                    <option value="orgeinheit">OrgEinheit</option>
+                    <option value="stelle">Stelle</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Kürzel</label>
+                <input type="text" class="form-control" id="add_kuerzel">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Bezeichnung</label>
+                <input type="text" class="form-control" id="add_bezeichnung">
+            </div>
+        </form>
+        <div class="d-flex gap-2">
+            <button class="btn btn-success" onclick="saveAdd()">➕ Hinzufügen</button>
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        </div>
+    `;
+
+    editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    editModal.show();
+}
+
+async function saveAdd() {
+    const type = document.getElementById('add_type').value;
+    const kuerzel = document.getElementById('add_kuerzel').value;
+    const bezeichnung = document.getElementById('add_bezeichnung').value;
+
+    const response = await fetch('/hr/orgchart-editor/add/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            type,
+            kuerzel,
+            bezeichnung,
+            parent_type: currentNode.type,
+            parent_id: currentNode.id
+        })
+    });
+
+    if (response.ok) {
+        editModal.hide();
+        loadData();
+    }
+}
+
+// Root OrgEinheit hinzufügen
+function addRootOrgEinheit() {
+    document.getElementById('editModalTitle').textContent = 'Neue OrgEinheit (Root-Ebene)';
+    document.getElementById('editModalBody').innerHTML = `
+        <form id="addRootForm">
+            <div class="mb-3">
+                <label class="form-label">Kürzel</label>
+                <input type="text" class="form-control" id="root_kuerzel">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Bezeichnung</label>
+                <input type="text" class="form-control" id="root_bezeichnung">
+            </div>
+        </form>
+        <div class="d-flex gap-2">
+            <button class="btn btn-success" onclick="saveRootAdd()">➕ Hinzufügen</button>
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        </div>
+    `;
+
+    editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    editModal.show();
+}
+
+async function saveRootAdd() {
+    const kuerzel = document.getElementById('root_kuerzel').value;
+    const bezeichnung = document.getElementById('root_bezeichnung').value;
+
+    const response = await fetch('/hr/orgchart-editor/add/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            type: 'orgeinheit',
+            kuerzel,
+            bezeichnung,
+            parent_type: null,
+            parent_id: null
+        })
+    });
+
+    if (response.ok) {
+        editModal.hide();
+        loadData();
+    }
+}
+
+// Context Menu
+function showContextMenu(event, data) {
+    currentNode = data;
+    const menu = document.getElementById('contextMenu');
+    menu.style.display = 'block';
+    menu.style.left = event.pageX + 'px';
+    menu.style.top = event.pageY + 'px';
+}
+
+document.addEventListener('click', () => {
+    document.getElementById('contextMenu').style.display = 'none';
+});
+
+function contextEdit() {
+    openEditModal(currentNode);
+}
+
+function contextAddChild() {
+    addChild(currentNode);
+}
+
+async function contextDelete() {
+    if (!confirm(`${currentNode.name} wirklich löschen?`)) return;
+
+    const response = await fetch(`/hr/orgchart-editor/${currentNode.type}/${currentNode.id}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    });
+
+    if (response.ok) {
+        loadData();
+    }
+}
+
+// Helper
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+function expandAll() {
+    // TODO: Implementiere expand all
+}
+
+function collapseAll() {
+    // TODO: Implementiere collapse all
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', loadData);
+</script>
+
+<style>
+.node rect:hover {
+    filter: brightness(1.1);
+}
+
+#contextMenu {
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+</style>
+
+{% endblock %}

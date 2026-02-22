@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Organigramm Kästen{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <!-- Toolbar -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h4 class="mb-0">📦 Organigramm mit Kästen</h4>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-success" onclick="chart.expandAllNodes()">
+                        Alle aufklappen
+                    </button>
+                    <button class="btn btn-warning" onclick="chart.collapseAllNodes()">
+                        Alle zuklappen
+                    </button>
+                    <button class="btn btn-primary" onclick="chart.fit()">
+                        Zentrieren
+                    </button>
+                    <button class="btn btn-secondary" onclick="chart.exportPNG()">
+                        PNG Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legende -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <small>
+                <strong>Anleitung:</strong>
+                Klick auf Kasten = Auf-/Zuklappen |
+                Scroll = Zoom |
+                Drag = Verschieben
+            </small>
+        </div>
+    </div>
+
+    <!-- OrgChart Canvas -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div id="orgchart-container" style="height: 800px; background: #fafafa;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- OrgChart.js Library -->
+<script src="https://cdn.balkan.app/orgchart.js/latest/orgchart.js"></script>
+
+<style>
+/* Kasten-Styles */
+.box-geschaeftsfuehrung {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+    padding: 15px;
+    min-width: 300px;
+}
+
+.box-bereich {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    border-radius: 8px;
+    padding: 15px;
+    min-width: 280px;
+}
+
+.box-abteilung {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    border-radius: 8px;
+    padding: 15px;
+    min-width: 260px;
+}
+
+.box-team {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    color: white;
+    border-radius: 8px;
+    padding: 15px;
+    min-width: 240px;
+}
+
+.box-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    border-bottom: 2px solid rgba(255,255,255,0.3);
+    padding-bottom: 5px;
+}
+
+.box-stellen {
+    margin-top: 10px;
+}
+
+.stelle-item {
+    background: rgba(255,255,255,0.2);
+    padding: 5px 10px;
+    margin: 3px 0;
+    border-radius: 4px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+}
+
+.stelle-icon {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.stelle-kategorie-leitung {
+    background: rgba(220, 53, 69, 0.3);
+}
+
+.stelle-kategorie-stab {
+    background: rgba(255, 193, 7, 0.3);
+}
+
+.stelle-kategorie-fachkraft {
+    background: rgba(25, 135, 84, 0.3);
+}
+</style>
+
+<script>
+let chart;
+
+// Template für Geschäftsführung
+OrgChart.templates.geschaeftsfuehrung = Object.assign({}, OrgChart.templates.ana);
+OrgChart.templates.geschaeftsfuehrung.size = [320, 180];
+OrgChart.templates.geschaeftsfuehrung.node =
+    '<rect x="0" y="0" width="320" height="{h}" fill="#667eea" stroke="#764ba2" stroke-width="2" rx="8" ry="8"></rect>';
+
+// Template für Bereich
+OrgChart.templates.bereich = Object.assign({}, OrgChart.templates.ana);
+OrgChart.templates.bereich.size = [300, 160];
+OrgChart.templates.bereich.node =
+    '<rect x="0" y="0" width="300" height="{h}" fill="#f093fb" stroke="#f5576c" stroke-width="2" rx="8" ry="8"></rect>';
+
+// Template für Abteilung
+OrgChart.templates.abteilung = Object.assign({}, OrgChart.templates.ana);
+OrgChart.templates.abteilung.size = [280, 140];
+OrgChart.templates.abteilung.node =
+    '<rect x="0" y="0" width="280" height="{h}" fill="#4facfe" stroke="#00f2fe" stroke-width="2" rx="8" ry="8"></rect>';
+
+// Template für Team
+OrgChart.templates.team = Object.assign({}, OrgChart.templates.ana);
+OrgChart.templates.team.size = [260, 120];
+OrgChart.templates.team.node =
+    '<rect x="0" y="0" width="260" height="{h}" fill="#43e97b" stroke="#38f9d7" stroke-width="2" rx="8" ry="8"></rect>';
+
+// Daten laden
+async function loadData() {
+    const response = await fetch('/hr/orgchart-kasten/data/');
+    return await response.json();
+}
+
+// Initialisierung
+async function init() {
+    const data = await loadData();
+
+    chart = new OrgChart(document.getElementById('orgchart-container'), {
+        template: 'ana',
+        enableSearch: false,
+        nodeBinding: {
+            field_0: 'titel',
+            field_1: 'stellen_html'
+        },
+        nodes: data,
+        collapse: {
+            level: 2,
+            allChildren: true
+        },
+        zoom: {
+            speed: 100,
+            smooth: 10
+        },
+        padding: 30,
+        scaleInitial: 0.8,
+        mouseScrool: OrgChart.action.zoom,
+        layout: OrgChart.tree
+    });
+
+    // Custom Node Rendering
+    chart.on('render-link', function(sender, args) {
+        args.html += '<use data-ctrl-ec-id="' + args.node.id + '" xlink:href="#dots"></use>';
+    });
+}
+
+// Init beim Laden
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+{% endblock %}

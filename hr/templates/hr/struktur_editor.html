@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% block title %}Struktur Editor{% endblock %}
+{% block content %}
+<div class="container-fluid mt-3">
+    <h2 class="mb-3">📋 Einfacher Struktur-Editor</h2>
+
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#orgeinheiten">
+                OrgEinheiten
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#stellen">
+                Stellen
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <!-- OrgEinheiten Tab -->
+        <div class="tab-pane fade show active" id="orgeinheiten">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">OrgEinheiten</h5>
+                    <button class="btn btn-primary btn-sm" onclick="neueOrgEinheit()">
+                        ➕ Neue OrgEinheit
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Kürzel</th>
+                                <th>Bezeichnung</th>
+                                <th>Übergeordnet</th>
+                                <th>Stellen</th>
+                                <th>Untereinheiten</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for org in orgeinheiten %}
+                            <tr>
+                                <td><strong>{{ org.kuerzel }}</strong></td>
+                                <td>{{ org.bezeichnung }}</td>
+                                <td>
+                                    <select class="form-select form-select-sm"
+                                            onchange="updateOrgParent({{ org.id }}, this.value)">
+                                        <option value="">--- Root-Ebene ---</option>
+                                        {% for option in orgeinheiten %}
+                                            {% if option.id != org.id %}
+                                            <option value="{{ option.id }}"
+                                                {% if org.uebergeordnet and org.uebergeordnet.id == option.id %}selected{% endif %}>
+                                                {{ option.kuerzel }} - {{ option.bezeichnung }}
+                                            </option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ org.stellen.count }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ org.untereinheiten.count }}</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary"
+                                            onclick="editOrg({{ org.id }}, '{{ org.kuerzel }}', '{{ org.bezeichnung }}')">
+                                        ✏️
+                                    </button>
+                                    {% if not org.ist_reserviert %}
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            onclick="deleteOrg({{ org.id }}, '{{ org.kuerzel }}')">
+                                        🗑️
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stellen Tab -->
+        <div class="tab-pane fade" id="stellen">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Stellen</h5>
+                    <button class="btn btn-success btn-sm" onclick="neueStelle()">
+                        ➕ Neue Stelle
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Kürzel</th>
+                                    <th>Bezeichnung</th>
+                                    <th>OrgEinheit</th>
+                                    <th>Übergeordnete Stelle</th>
+                                    <th>Inhaber</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stelle in stellen %}
+                                <tr>
+                                    <td><strong>{{ stelle.kuerzel }}</strong></td>
+                                    <td>{{ stelle.bezeichnung }}</td>
+                                    <td>
+                                        <select class="form-select form-select-sm"
+                                                onchange="updateStelleOrg({{ stelle.id }}, this.value)">
+                                            {% for org in orgeinheiten %}
+                                            <option value="{{ org.id }}"
+                                                {% if stelle.org_einheit.id == org.id %}selected{% endif %}>
+                                                {{ org.kuerzel }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm"
+                                                onchange="updateStelleParent({{ stelle.id }}, this.value)">
+                                            <option value="">--- Keine ---</option>
+                                            {% for option in stellen %}
+                                                {% if option.id != stelle.id and option.org_einheit == stelle.org_einheit %}
+                                                <option value="{{ option.id }}"
+                                                    {% if stelle.uebergeordnete_stelle and stelle.uebergeordnete_stelle.id == option.id %}selected{% endif %}>
+                                                    {{ option.kuerzel }}
+                                                </option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        {% if stelle.ist_besetzt %}
+                                            <span class="badge bg-success">{{ stelle.aktueller_inhaber.vollname }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Frei</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary"
+                                                onclick="editStelle({{ stelle.id }}, '{{ stelle.kuerzel }}', '{{ stelle.bezeichnung }}')">
+                                            ✏️
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                onclick="deleteStelle({{ stelle.id }}, '{{ stelle.kuerzel }}')">
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+async function updateOrgParent(orgId, parentId) {
+    const response = await fetch(`/hr/struktur-editor/org/${orgId}/parent/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ parent_id: parentId || null })
+    });
+
+    if (response.ok) {
+        location.reload();
+    } else {
+        alert('Fehler beim Aktualisieren');
+    }
+}
+
+async function updateStelleOrg(stelleId, orgId) {
+    const response = await fetch(`/hr/struktur-editor/stelle/${stelleId}/org/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ org_id: orgId })
+    });
+
+    if (response.ok) {
+        location.reload();
+    } else {
+        alert('Fehler beim Aktualisieren');
+    }
+}
+
+async function updateStelleParent(stelleId, parentId) {
+    const response = await fetch(`/hr/struktur-editor/stelle/${stelleId}/parent/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ parent_id: parentId || null })
+    });
+
+    if (response.ok) {
+        location.reload();
+    } else {
+        alert('Fehler beim Aktualisieren');
+    }
+}
+
+function neueOrgEinheit() {
+    const kuerzel = prompt('Kürzel:');
+    if (!kuerzel) return;
+    const bezeichnung = prompt('Bezeichnung:');
+    if (!bezeichnung) return;
+
+    fetch('/hr/struktur-editor/org/add/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ kuerzel, bezeichnung })
+    }).then(() => location.reload());
+}
+
+function neueStelle() {
+    const kuerzel = prompt('Kürzel:');
+    if (!kuerzel) return;
+    const bezeichnung = prompt('Bezeichnung:');
+    if (!bezeichnung) return;
+
+    fetch('/hr/struktur-editor/stelle/add/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ kuerzel, bezeichnung })
+    }).then(() => location.reload());
+}
+
+function editOrg(id, kuerzel, bezeichnung) {
+    const newKuerzel = prompt('Kürzel:', kuerzel);
+    if (!newKuerzel) return;
+    const newBezeichnung = prompt('Bezeichnung:', bezeichnung);
+    if (!newBezeichnung) return;
+
+    fetch(`/hr/struktur-editor/org/${id}/edit/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ kuerzel: newKuerzel, bezeichnung: newBezeichnung })
+    }).then(() => location.reload());
+}
+
+function editStelle(id, kuerzel, bezeichnung) {
+    const newKuerzel = prompt('Kürzel:', kuerzel);
+    if (!newKuerzel) return;
+    const newBezeichnung = prompt('Bezeichnung:', bezeichnung);
+    if (!newBezeichnung) return;
+
+    fetch(`/hr/struktur-editor/stelle/${id}/edit/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ kuerzel: newKuerzel, bezeichnung: newBezeichnung })
+    }).then(() => location.reload());
+}
+
+function deleteOrg(id, kuerzel) {
+    if (!confirm(`OrgEinheit "${kuerzel}" wirklich löschen?`)) return;
+
+    fetch(`/hr/struktur-editor/org/${id}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    }).then(r => r.json()).then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert('Fehler: ' + data.message);
+        }
+    });
+}
+
+function deleteStelle(id, kuerzel) {
+    if (!confirm(`Stelle "${kuerzel}" wirklich löschen?`)) return;
+
+    fetch(`/hr/struktur-editor/stelle/${id}/delete/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    }).then(r => r.json()).then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert('Fehler: ' + data.message);
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -390,31 +390,46 @@ if (!treeData || treeData.length === 0) {
 
         const extra = d.data.extra;
         let html = `<strong>${d.data.name} - ${d.data.title}</strong>`;
-        html += `<div><span class="badge bg-info">${extra.org}</span>`;
 
-        // Mitarbeiter klickbar machen wenn besetzt
-        if (extra.besetzt && extra.inhaber_url) {
-            html += `<a href="${extra.inhaber_url}" class="badge bg-success text-decoration-none" style="color: white;" title="Zum Mitarbeiter-Profil">${extra.inhaber} 🔗</a>`;
+        // Unterscheide zwischen OrgEinheit und Stelle
+        if (extra.typ === 'orgeinheit') {
+            // OrgEinheit Tooltip
+            html += `<div><span class="badge bg-primary">OrgEinheit</span>`;
+            if (extra.ist_reserviert) {
+                html += `<span class="badge bg-warning ms-1">Reserviert</span>`;
+            }
+            html += `</div>`;
+            html += `<div style="margin-top:6px; font-size:11px; color:#666;">`;
+            html += `${extra.stellen_count} Stelle(n)`;
+            html += `</div>`;
         } else {
-            html += `<span class="badge bg-warning">${extra.inhaber}</span>`;
-        }
-        html += `</div>`;
+            // Stelle Tooltip
+            html += `<div><span class="badge bg-info">${extra.org}</span>`;
 
-        html += `<div style="margin-top:6px; font-size:11px; color:#666;">${extra.email}</div>`;
-        if (extra.delegiert_an) {
-            html += `<div style="margin-top:4px; font-size:11px;">Delegiert: ${extra.delegiert_an}</div>`;
-        }
-        if (extra.vertreten_durch) {
-            html += `<div style="font-size:11px;">Vertreten: ${extra.vertreten_durch}</div>`;
-        }
+            // Mitarbeiter klickbar machen wenn besetzt
+            if (extra.besetzt && extra.inhaber_url) {
+                html += `<a href="${extra.inhaber_url}" class="badge bg-success text-decoration-none" style="color: white;" title="Zum Mitarbeiter-Profil">${extra.inhaber} 🔗</a>`;
+            } else {
+                html += `<span class="badge bg-secondary ms-1">Unbesetzt</span>`;
+            }
+            html += `</div>`;
 
-        // Links hinzufügen
-        html += `<div style="margin-top:10px; padding-top:8px; border-top:1px solid #eee;">`;
-        html += `<a href="${extra.edit_url}" style="font-size:11px; margin-right:10px;">📝 Stelle bearbeiten</a>`;
-        if (extra.besetzt && extra.inhaber_url) {
-            html += `<a href="${extra.inhaber_url}" style="font-size:11px;">👤 Mitarbeiter-Profil</a>`;
+            html += `<div style="margin-top:6px; font-size:11px; color:#666;">${extra.email}</div>`;
+            if (extra.delegiert_an) {
+                html += `<div style="margin-top:4px; font-size:11px;">Delegiert: ${extra.delegiert_an}</div>`;
+            }
+            if (extra.vertreten_durch) {
+                html += `<div style="font-size:11px;">Vertreten: ${extra.vertreten_durch}</div>`;
+            }
+
+            // Links hinzufügen
+            html += `<div style="margin-top:10px; padding-top:8px; border-top:1px solid #eee;">`;
+            html += `<a href="${extra.edit_url}" style="font-size:11px; margin-right:10px;">📝 Stelle bearbeiten</a>`;
+            if (extra.besetzt && extra.inhaber_url) {
+                html += `<a href="${extra.inhaber_url}" style="font-size:11px;">👤 Mitarbeiter-Profil</a>`;
+            }
+            html += `</div>`;
         }
-        html += `</div>`;
 
         tooltip.html(html)
             .style("left", (event.pageX + 10) + "px")

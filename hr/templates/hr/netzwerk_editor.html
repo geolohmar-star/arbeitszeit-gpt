@@ -1,0 +1,583 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Netzwerk-Editor{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <!-- Toolbar -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h4 class="mb-0">🎯 Netzwerk-Editor</h4>
+                </div>
+                <div class="col-auto">
+                    <div class="btn-group me-2" role="group">
+                        <button class="btn btn-primary" onclick="modus='orgeinheit'; updateModusAnzeige()">
+                            ➕ OrgEinheit
+                        </button>
+                        <button class="btn btn-success" onclick="modus='stelle'; updateModusAnzeige()">
+                            ➕ Stelle
+                        </button>
+                        <button class="btn btn-warning" onclick="modus='verbinden'; updateModusAnzeige()">
+                            🔗 Verbinden
+                        </button>
+                        <button class="btn btn-danger" onclick="modus='schere'; updateModusAnzeige()">
+                            ✂️ Schere
+                        </button>
+                    </div>
+                    <button class="btn btn-secondary" onclick="zentrieren()">
+                        🎯 Zentrieren
+                    </button>
+                    <button class="btn btn-info" onclick="speichern()">
+                        💾 Speichern
+                    </button>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col">
+                    <div id="modus-anzeige" class="alert alert-info mb-0 py-2">
+                        <strong>Aktueller Modus:</strong> <span id="modus-text">Normaler Modus</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legende -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <small>
+                <strong>Legende:</strong>
+                <span class="badge bg-primary ms-2">▢ Blau = OrgEinheit</span>
+                <span class="badge bg-danger ms-1">◆ Rot = Leitung</span>
+                <span class="badge bg-warning text-dark ms-1">▲ Gelb = Stab</span>
+                <span class="badge bg-success ms-1">● Grün = Fachkraft</span>
+                <br>
+                <strong>Bedienung:</strong>
+                • <strong>Doppelklick</strong> → Kinder ein-/ausklappen
+                • <strong>+</strong> = eingeklappt, <strong>−</strong> = ausgeklappt
+                • ✂️ Schere-Modus → Klick auf Linie zum Trennen, Klick auf Node zum Löschen
+                • 🔗 Verbinden-Modus → Erst Start-, dann Ziel-Node klicken
+            </small>
+        </div>
+    </div>
+
+    <!-- Netzwerk Canvas -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div id="network" style="height: 75vh; background: #fafafa;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- vis.js Library -->
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+
+<script>
+// Globale Variablen
+let network;
+let nodes, edges;
+let modus = 'normal'; // normal, orgeinheit, stelle, verbinden, schere
+let verbindungStart = null;
+let collapsedNodes = new Set(); // IDs der eingeklappten Nodes
+
+// Daten vom Server laden
+async function loadData() {
+    const response = await fetch('/hr/netzwerk-editor/data/');
+    const data = await response.json();
+
+    // Konvertiere zu vis.js Format
+    const visNodes = data.nodes.map(n => {
+        let shape, size, group;
+
+        if (n.type === 'orgeinheit') {
+            shape = 'box';
+            size = 40;
+            group = 'orgeinheit';
+        } else if (n.type === 'stelle') {
+            // Verschiedene Formen basierend auf Kategorie
+            if (n.kategorie === 'leitung') {
+                shape = 'diamond';
+                size = 35;
+                group = 'stelle_leitung';
+            } else if (n.kategorie === 'stab') {
+                shape = 'triangle';
+                size = 25;
+                group = 'stelle_stab';
+            } else {
+                shape = 'dot';
+                size = 20;
+                group = 'stelle_fachkraft';
+            }
+        }
+
+        return {
+            id: `${n.type}_${n.id}`,
+            label: n.label,
+            title: n.title,
+            group: group,
+            shape: shape,
+            size: size,
+            data: n
+        };
+    });
+
+    const visEdges = data.edges.map(e => ({
+        id: e.id,
+        from: e.from,
+        to: e.to,
+        arrows: 'to'
+    }));
+
+    return { nodes: visNodes, edges: visEdges };
+}
+
+// Netzwerk initialisieren
+async function init() {
+    const data = await loadData();
+
+    const container = document.getElementById('network');
+
+    nodes = new vis.DataSet(data.nodes);
+    edges = new vis.DataSet(data.edges);
+
+    const options = {
+        nodes: {
+            shape: 'circle',
+            size: 30,
+            font: {
+                size: 14,
+                color: '#fff'
+            },
+            borderWidth: 2,
+            shadow: true
+        },
+        edges: {
+            width: 2,
+            shadow: true,
+            smooth: {
+                type: 'cubicBezier',
+                forceDirection: 'vertical'
+            }
+        },
+        groups: {
+            orgeinheit: {
+                color: {
+                    background: '#0d6efd',
+                    border: '#0a58ca',
+                    highlight: {
+                        background: '#0a58ca',
+                        border: '#084298'
+                    }
+                }
+            },
+            stelle_leitung: {
+                color: {
+                    background: '#dc3545',
+                    border: '#b02a37',
+                    highlight: {
+                        background: '#b02a37',
+                        border: '#842029'
+                    }
+                }
+            },
+            stelle_stab: {
+                color: {
+                    background: '#ffc107',
+                    border: '#d39e00',
+                    highlight: {
+                        background: '#d39e00',
+                        border: '#a77800'
+                    }
+                }
+            },
+            stelle_fachkraft: {
+                color: {
+                    background: '#198754',
+                    border: '#157347',
+                    highlight: {
+                        background: '#157347',
+                        border: '#0f5132'
+                    }
+                }
+            }
+        },
+        physics: {
+            enabled: true,
+            hierarchicalRepulsion: {
+                nodeDistance: 150,
+                centralGravity: 0.0,
+                springLength: 200,
+                springConstant: 0.01,
+                damping: 0.09
+            },
+            solver: 'hierarchicalRepulsion'
+        },
+        layout: {
+            hierarchical: {
+                direction: 'UD',
+                sortMethod: 'directed',
+                levelSeparation: 150,
+                nodeSpacing: 150
+            }
+        },
+        interaction: {
+            dragNodes: true,
+            dragView: true,
+            zoomView: true
+        }
+    };
+
+    network = new vis.Network(container, { nodes, edges }, options);
+
+    // Event Listener
+    network.on('click', onNetworkClick);
+    network.on('doubleClick', onNodeDoubleClick);
+    network.on('oncontext', onRightClick);
+
+    // Initiale Labels mit +/- aktualisieren
+    updateAllNodeLabels();
+}
+
+// Update alle Node-Labels mit +/- Indikator
+function updateAllNodeLabels() {
+    const allNodes = nodes.get();
+    allNodes.forEach(node => {
+        updateNodeLabel(node.id);
+    });
+}
+
+// Klick auf Canvas
+function onNetworkClick(params) {
+    if (params.nodes.length > 0) {
+        const nodeId = params.nodes[0];
+
+        if (modus === 'schere') {
+            // Im Schere-Modus: Node löschen
+            if (confirm('Node wirklich löschen?')) {
+                deleteNode(nodeId);
+            }
+        } else if (modus === 'verbinden') {
+            // Verbinden-Modus
+            if (!verbindungStart) {
+                verbindungStart = nodeId;
+                alert(`Start-Node ausgewählt: ${nodes.get(nodeId).label}\nJetzt Ziel-Node klicken!`);
+            } else {
+                verbinde(verbindungStart, nodeId);
+                verbindungStart = null;
+                modus = 'normal';
+                updateModusAnzeige();
+            }
+        } else if (modus === 'orgeinheit' || modus === 'stelle') {
+            // Neue Node unter geklickter Node erstellen
+            createChildNode(nodeId, modus);
+            modus = 'normal';
+            updateModusAnzeige();
+        }
+    } else if (params.edges.length > 0 && modus === 'schere') {
+        // Schere-Modus: Kante löschen
+        const edgeId = params.edges[0];
+        if (confirm('Verbindung wirklich trennen (Schere)?')) {
+            const edge = edges.get(edgeId);
+            edges.remove(edgeId);
+            // Update Labels beider Nodes
+            updateNodeLabel(edge.from);
+            updateNodeLabel(edge.to);
+        }
+    }
+}
+
+// Doppelklick auf Node
+function onNodeDoubleClick(params) {
+    if (params.nodes.length > 0) {
+        const nodeId = params.nodes[0];
+        toggleCollapse(nodeId);
+    }
+}
+
+// Node ein-/ausklappen
+function toggleCollapse(nodeId) {
+    const node = nodes.get(nodeId);
+
+    if (collapsedNodes.has(nodeId)) {
+        // Ausklappen
+        expandNode(nodeId);
+    } else {
+        // Einklappen
+        collapseNode(nodeId);
+    }
+}
+
+// Node einklappen
+function collapseNode(nodeId) {
+    const childrenIds = getChildrenRecursive(nodeId);
+
+    if (childrenIds.length === 0) {
+        alert('Diese Node hat keine Kinder zum Einklappen');
+        return;
+    }
+
+    // Verstecke alle Kinder
+    childrenIds.forEach(childId => {
+        nodes.update({ id: childId, hidden: true });
+    });
+
+    // Markiere als eingeklappt
+    collapsedNodes.add(nodeId);
+    updateNodeLabel(nodeId);
+}
+
+// Node ausklappen
+function expandNode(nodeId) {
+    const directChildren = getDirectChildren(nodeId);
+
+    // Zeige nur direkte Kinder (nicht rekursiv eingeklappte)
+    directChildren.forEach(childId => {
+        nodes.update({ id: childId, hidden: false });
+    });
+
+    // Entferne eingeklappt-Markierung
+    collapsedNodes.delete(nodeId);
+    updateNodeLabel(nodeId);
+}
+
+// Hole alle direkten Kinder einer Node
+function getDirectChildren(nodeId) {
+    const childEdges = edges.get({
+        filter: edge => edge.from === nodeId
+    });
+    return childEdges.map(edge => edge.to);
+}
+
+// Hole alle Kinder rekursiv
+function getChildrenRecursive(nodeId) {
+    const children = [];
+    const directChildren = getDirectChildren(nodeId);
+
+    directChildren.forEach(childId => {
+        children.push(childId);
+        // Nur weitere Kinder holen wenn dieser Child nicht selbst eingeklappt ist
+        if (!collapsedNodes.has(childId)) {
+            children.push(...getChildrenRecursive(childId));
+        }
+    });
+
+    return children;
+}
+
+// Update Node-Label mit +/- Indikator
+function updateNodeLabel(nodeId) {
+    const node = nodes.get(nodeId);
+    let label = node.label;
+
+    // Entferne alte Indikatoren
+    label = label.replace(/^[+\-−] /, '');
+
+    // Füge neuen Indikator hinzu
+    const hasChildren = getDirectChildren(nodeId).length > 0;
+    if (hasChildren) {
+        if (collapsedNodes.has(nodeId)) {
+            label = '+ ' + label; // Eingeklappt
+        } else {
+            label = '− ' + label; // Ausgeklappt
+        }
+    }
+
+    nodes.update({ id: nodeId, label: label });
+}
+
+// Rechtsklick
+function onRightClick(params) {
+    params.event.preventDefault();
+    // Implementiere Context-Menu wenn gewünscht
+}
+
+// Node erstellen
+function createChildNode(parentId, type) {
+    const kuerzel = prompt(`${type === 'orgeinheit' ? 'OrgEinheit' : 'Stelle'} Kürzel:`);
+    if (!kuerzel) return;
+    const bezeichnung = prompt('Bezeichnung:');
+    if (!bezeichnung) return;
+
+    let kategorie = 'fachkraft';
+    let shape = 'dot';
+    let size = 20;
+    let group = type;
+
+    if (type === 'stelle') {
+        // Kategorie abfragen
+        const kategorieWahl = prompt('Kategorie:\n1 = Leitung (Raute, rot)\n2 = Stab (Dreieck, gelb)\n3 = Fachkraft (Kreis, gruen)', '3');
+        if (kategorieWahl === '1') {
+            kategorie = 'leitung';
+            shape = 'diamond';
+            size = 35;
+            group = 'stelle_leitung';
+        } else if (kategorieWahl === '2') {
+            kategorie = 'stab';
+            shape = 'triangle';
+            size = 25;
+            group = 'stelle_stab';
+        } else {
+            kategorie = 'fachkraft';
+            shape = 'dot';
+            size = 20;
+            group = 'stelle_fachkraft';
+        }
+    } else if (type === 'orgeinheit') {
+        shape = 'box';
+        size = 40;
+        group = 'orgeinheit';
+    }
+
+    const nodeId = `temp_${Date.now()}`;
+    nodes.add({
+        id: nodeId,
+        label: kuerzel,
+        title: bezeichnung,
+        shape: shape,
+        size: size,
+        group: group,
+        data: { type, kategorie, kuerzel, bezeichnung, is_new: true }
+    });
+
+    // Verbindung zum Parent erstellen
+    edges.add({
+        id: `edge_${nodeId}`,
+        from: parentId,
+        to: nodeId,
+        arrows: 'to'
+    });
+
+    // Parent-Label aktualisieren (hat jetzt ein Kind)
+    updateNodeLabel(parentId);
+}
+
+// Nodes verbinden
+function verbinde(fromId, toId) {
+    const edgeId = `edge_${fromId}_${toId}`;
+    edges.add({
+        id: edgeId,
+        from: fromId,
+        to: toId,
+        arrows: 'to'
+    });
+    // Labels aktualisieren
+    updateNodeLabel(fromId);
+    alert('Verbindung erstellt!');
+}
+
+// Node bearbeiten
+function editNode(node) {
+    const newKuerzel = prompt('Kürzel:', node.label);
+    if (!newKuerzel) return;
+    const newBezeichnung = prompt('Bezeichnung:', node.title);
+    if (!newBezeichnung) return;
+
+    nodes.update({
+        id: node.id,
+        label: newKuerzel,
+        title: newBezeichnung
+    });
+}
+
+// Node löschen
+function deleteNode(nodeId) {
+    // Lösche Node und alle verbundenen Kanten
+    const connectedEdges = network.getConnectedEdges(nodeId);
+    edges.remove(connectedEdges);
+    nodes.remove(nodeId);
+}
+
+// Modus-Anzeige aktualisieren
+function updateModusAnzeige() {
+    const texte = {
+        'normal': 'Normaler Modus - Klick zum Auswählen',
+        'orgeinheit': '➕ OrgEinheit-Modus - Klick auf Node zum Hinzufügen',
+        'stelle': '➕ Stellen-Modus - Klick auf Node zum Hinzufügen',
+        'verbinden': '🔗 Verbinden-Modus - Erst Start, dann Ziel klicken',
+        'schere': '✂️ Schere-Modus - Klick auf Linie zum Trennen, Klick auf Node zum Löschen'
+    };
+    document.getElementById('modus-text').textContent = texte[modus] || modus;
+
+    const farben = {
+        'normal': 'info',
+        'orgeinheit': 'primary',
+        'stelle': 'success',
+        'verbinden': 'warning',
+        'schere': 'danger'
+    };
+    const alert = document.getElementById('modus-anzeige');
+    alert.className = `alert alert-${farben[modus]} mb-0 py-2`;
+}
+
+// Zentrieren
+function zentrieren() {
+    network.fit();
+}
+
+// Speichern
+async function speichern() {
+    if (!confirm('Organisationsstruktur jetzt speichern?\n\nAlle Verbindungen werden entsprechend der aktuellen Darstellung gespeichert.')) {
+        return;
+    }
+
+    // Sammle alle Nodes und Edges
+    const allNodes = nodes.get();
+    const allEdges = edges.get();
+
+    const data = {
+        nodes: allNodes.map(n => ({
+            id: n.id,
+            label: n.label,
+            title: n.title,
+            type: n.data.type,
+            kategorie: n.data.kategorie,
+            data: n.data
+        })),
+        edges: allEdges.map(e => ({
+            from: e.from,
+            to: e.to
+        }))
+    };
+
+    try {
+        const response = await fetch('/hr/netzwerk-editor/save/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert('Struktur erfolgreich gespeichert!');
+            location.reload();
+        } else {
+            alert('Fehler beim Speichern: ' + (result.error || 'Unbekannter Fehler'));
+        }
+    } catch (error) {
+        alert('Fehler beim Speichern: ' + error.message);
+    }
+}
+
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+// Init beim Laden
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+<style>
+#network {
+    border: 1px solid #dee2e6;
+}
+</style>
+{% endblock %}

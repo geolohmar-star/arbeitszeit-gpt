@@ -1,0 +1,57 @@
+<!-- Modal: Neue Stelle -->
+<div class="modal fade show" id="stelleModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Neue Stelle anlegen</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('modal-container').innerHTML=''"></button>
+            </div>
+            <form hx-post="{% url 'hr:kasten_stelle_form' %}" hx-target="#modal-container">
+                {% csrf_token %}
+                <input type="hidden" name="org_kuerzel" value="{{ org_kuerzel }}">
+                <div class="modal-body">
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="kuerzel" class="form-label">Kuerzel *</label>
+                        <input type="text" class="form-control" id="kuerzel" name="kuerzel"
+                               placeholder="z.B. fin_bl oder pers_ma1" required maxlength="20"
+                               style="text-transform: lowercase;">
+                        <small class="text-muted">Eindeutige Abkuerzung in Kleinbuchstaben (z.B. fin_bl, pers_ma1)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bezeichnung" class="form-label">Bezeichnung *</label>
+                        <input type="text" class="form-control" id="bezeichnung" name="bezeichnung"
+                               placeholder="z.B. Bereichsleiter Finanzen" required maxlength="200">
+                        <small class="text-muted">Stellenbezeichnung</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="kategorie" class="form-label">Kategorie *</label>
+                        <select class="form-select" id="kategorie" name="kategorie" required>
+                            <option value="fachkraft">👤 Fachkraft / Mitarbeiter</option>
+                            <option value="leitung">👔 Leitung</option>
+                            <option value="stab">📎 Stab / Assistenz</option>
+                        </select>
+                        <small class="text-muted">Leitungsstellen werden hervorgehoben</small>
+                    </div>
+
+                    <p class="text-muted small mb-0">
+                        Die neue Stelle wird in <strong>{{ org_kuerzel }}</strong> angelegt.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-container').innerHTML=''">
+                        Abbrechen
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Stelle anlegen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

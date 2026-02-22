@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import get_object_or_404, redirect, render
@@ -10,6 +12,8 @@ from .models import (
     OrgEinheit,
     Stelle,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _ist_staff(user):
@@ -56,15 +60,37 @@ def mitarbeiter_liste(request):
 @login_required
 @user_passes_test(_ist_staff)
 def organigramm(request):
-    """Zeigt die Organisationshierarchie."""
-    bereiche = Bereich.objects.prefetch_related(
-        "abteilungen__teams",
-        "abteilungen__mitarbeiter",
-        "mitarbeiter",
-    ).all()
+    """Uebersichtsseite fuer alle Organigramm- und Builder-Optionen."""
+    # Statistiken
+    orgeinheiten_count = OrgEinheit.objects.count()
+    stellen_count = Stelle.objects.count()
+    stellen_besetzt = Stelle.objects.filter(hrmitarbeiter__isnull=False).count()
+    mitarbeiter_count = HRMitarbeiter.objects.count()
+
+    return render(request, "hr/organigramm_hub.html", {
+        "orgeinheiten_count": orgeinheiten_count,
+        "stellen_count": stellen_count,
+        "stellen_besetzt": stellen_besetzt,
+        "mitarbeiter_count": mitarbeiter_count,
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def organigramm_karten(request):
+    """Zeigt die Organisationshierarchie als Karten basierend auf OrgEinheiten und Stellen."""
+    # Lade nur Root-OrgEinheiten (ohne uebergeordnete)
+    # Untereinheiten und Stellen werden im Template rekursiv gerendert
+    root_orgeinheiten = OrgEinheit.objects.filter(
+        uebergeordnet__isnull=True
+    ).prefetch_related(
+        'untereinheiten',
+        'stellen__hrmitarbeiter',
+        'stellen__untergeordnete_stellen'
+    ).order_by('kuerzel')
 
     return render(request, "hr/organigramm.html", {
-        "bereiche": bereiche,
+        "root_orgeinheiten": root_orgeinheiten,
     })
 
 
@@ -223,17 +249,49 @@ def mitarbeiter_stelle_zuweisen(request, pk):
 @login_required
 @user_passes_test(_ist_staff)
 def stellen_organigramm(request):
-    """Feature 4: Visuelle Hierarchie der Stellen."""
+    """Feature 4: Visuelle Hierarchie basierend auf OrgEinheiten."""
     import json
 
-    def stelle_to_dict(stelle):
-        """Konvertiert eine Stelle in OrgChart.js Format."""
+    def orgeinheit_to_dict(orgeinheit):
+        """Konvertiert eine OrgEinheit in D3 Tree Format."""
         data = {
-            "id": str(stelle.pk),
+            "id": f"org_{orgeinheit.pk}",
+            "name": orgeinheit.kuerzel,
+            "title": orgeinheit.bezeichnung,
+            "className": "node-orgeinheit",
+            "extra": {
+                "typ": "orgeinheit",
+                "stellen_count": orgeinheit.stellen.count(),
+                "ist_reserviert": orgeinheit.ist_reserviert,
+            },
+        }
+
+        # Sammle Kinder: Untergeordnete OrgEinheiten + Root-Stellen
+        children = []
+
+        # 1. Untergeordnete OrgEinheiten
+        for untereinheit in orgeinheit.untereinheiten.all():
+            children.append(orgeinheit_to_dict(untereinheit))
+
+        # 2. Root-Stellen dieser OrgEinheit (ohne uebergeordnete_stelle)
+        root_stellen = orgeinheit.stellen.filter(uebergeordnete_stelle__isnull=True)
+        for stelle in root_stellen:
+            children.append(stelle_to_dict(stelle))
+
+        if children:
+            data["children"] = children
+
+        return data
+
+    def stelle_to_dict(stelle):
+        """Konvertiert eine Stelle in D3 Tree Format."""
+        data = {
+            "id": f"stelle_{stelle.pk}",
             "name": stelle.kuerzel,
             "title": stelle.bezeichnung,
-            "className": f"rolle-{stelle.kuerzel[:2]}",
+            "className": f"node-{stelle.kuerzel[:2].lower()}",
             "extra": {
+                "typ": "stelle",
                 "org": stelle.org_einheit.kuerzel,
                 "email": stelle.email,
                 "besetzt": stelle.ist_besetzt,
@@ -249,37 +307,33 @@ def stellen_organigramm(request):
         if stelle.vertreten_durch:
             data["extra"]["vertreten_durch"] = stelle.vertreten_durch.kuerzel
 
-        # Rekursiv Kinder hinzufuegen
-        kinder = stelle.untergeordnete_stellen.select_related(
+        # Rekursiv untergeordnete Stellen hinzufuegen
+        untergeordnete = stelle.untergeordnete_stellen.select_related(
             "org_einheit"
         ).prefetch_related("untergeordnete_stellen")
 
-        if kinder.exists():
-            data["children"] = [stelle_to_dict(kind) for kind in kinder]
+        if untergeordnete.exists():
+            data["children"] = [stelle_to_dict(kind) for kind in untergeordnete]
 
         return data
 
-    # Top-Level Stellen
-    top_stellen = Stelle.objects.filter(
-        uebergeordnete_stelle__isnull=True
-    ).select_related("org_einheit").prefetch_related("untergeordnete_stellen")
+    # Root-OrgEinheiten (ohne uebergeordnete)
+    root_orgeinheiten = OrgEinheit.objects.filter(
+        uebergeordnet__isnull=True
+    ).prefetch_related(
+        'untereinheiten',
+        'stellen__untergeordnete_stellen'
+    ).order_by('kuerzel')
 
-    # Alle Stellen fuer Fallback
-    alle_stellen = Stelle.objects.select_related(
-        "org_einheit", "uebergeordnete_stelle"
-    ).prefetch_related("untergeordnete_stellen")
-
-    # Konvertiere zu OrgChart.js Format
+    # Konvertiere zu D3 Tree Format
     orgchart_data = []
-    for stelle in top_stellen:
-        orgchart_data.append(stelle_to_dict(stelle))
+    for orgeinheit in root_orgeinheiten:
+        orgchart_data.append(orgeinheit_to_dict(orgeinheit))
 
     return render(
         request,
         "hr/stellen_organigramm.html",
         {
-            "top_stellen": top_stellen,
-            "alle_stellen": alle_stellen,
             "orgchart_data_json": json.dumps(orgchart_data, ensure_ascii=False),
         },
     )
@@ -363,11 +417,16 @@ def delegation_verwalten(request):
 def company_builder(request):
     """Visueller Company Builder mit Drag & Drop."""
     from django.db.models import Count
-    
-    orgeinheiten = OrgEinheit.objects.prefetch_related('stellen').order_by('kuerzel')
+
+    # Nur Root-OrgEinheiten laden (ohne uebergeordnete Einheit)
+    # Untereinheiten werden im Template rekursiv gerendert
+    orgeinheiten = OrgEinheit.objects.filter(
+        uebergeordnet__isnull=True
+    ).prefetch_related('stellen', 'untereinheiten').order_by('kuerzel')
+
     stellen = Stelle.objects.select_related('org_einheit').order_by('kuerzel')
     mitarbeiter = HRMitarbeiter.objects.filter(stelle__isnull=False).count()
-    
+
     return render(request, 'hr/company_builder.html', {
         'orgeinheiten': orgeinheiten,
         'stellen': stellen,
@@ -524,35 +583,35 @@ def company_builder_hierarchie_update(request):
 @login_required
 @user_passes_test(_ist_staff)
 def company_builder_organigramm(request):
-    """API: Liefert Organigramm-Daten als JSON."""
+    """API: Liefert Organigramm-Daten als JSON basierend auf OrgEinheiten."""
     import json
     from django.http import JsonResponse
-    
-    def build_tree(stelle=None):
-        """Rekursiv Baum aufbauen."""
-        if stelle is None:
-            # Root: GF-Stellen
-            root_stellen = Stelle.objects.filter(
-                uebergeordnete_stelle__isnull=True
+
+    def build_tree(orgeinheit=None):
+        """Rekursiv Baum aus OrgEinheiten aufbauen."""
+        if orgeinheit is None:
+            # Root-Ebene: OrgEinheiten ohne Uebergeordnete
+            root_orgs = OrgEinheit.objects.filter(
+                uebergeordnet__isnull=True
             ).order_by('kuerzel')
-            
+
             return {
                 'name': 'Unternehmen',
-                'children': [build_tree(s) for s in root_stellen]
+                'children': [build_tree(org) for org in root_orgs]
             }
-        
-        # Kinder dieser Stelle
-        kinder = Stelle.objects.filter(
-            uebergeordnete_stelle=stelle
+
+        # Untergeordnete OrgEinheiten
+        untereinheiten = OrgEinheit.objects.filter(
+            uebergeordnet=orgeinheit
         ).order_by('kuerzel')
-        
+
         node = {
-            'name': f"{stelle.kuerzel}",
-            'children': [build_tree(kind) for kind in kinder] if kinder.exists() else []
+            'name': f"{orgeinheit.kuerzel}",
+            'children': [build_tree(kind) for kind in untereinheiten] if untereinheiten.exists() else []
         }
-        
+
         return node
-    
+
     tree_data = build_tree()
     return JsonResponse(tree_data)
 
@@ -689,3 +748,1237 @@ def snapshot_restore(request):
     except Exception as e:
         logger.error('Fehler beim Snapshot-Wiederherstellen: %s', str(e))
         return JsonResponse({'status': 'error', 'message': str(e)})
+
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def company_builder_delete_orgeinheit(request, pk):
+    """Loescht eine OrgEinheit nach Bestaetigung."""
+    from django.http import JsonResponse
+    from django.db import transaction
+
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Nur POST erlaubt'})
+
+    try:
+        orgeinheit = get_object_or_404(OrgEinheit, pk=pk)
+
+        # Pruefe ob reserviert
+        if orgeinheit.ist_reserviert:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'OrgEinheit "{orgeinheit.kuerzel}" ist reserviert und kann nicht geloescht werden.'
+            })
+
+        # Pruefe ob noch Stellen zugeordnet sind
+        stellen_count = orgeinheit.stellen.count()
+        if stellen_count > 0:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'OrgEinheit "{orgeinheit.kuerzel}" hat noch {stellen_count} Stelle(n) und kann nicht geloescht werden.'
+            })
+
+        # Pruefe ob noch untergeordnete OrgEinheiten existieren
+        untereinheiten_count = orgeinheit.untereinheiten.count()
+        if untereinheiten_count > 0:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'OrgEinheit "{orgeinheit.kuerzel}" hat noch {untereinheiten_count} untergeordnete Einheit(en) und kann nicht geloescht werden.'
+            })
+
+        # Alles OK, loesche
+        kuerzel = orgeinheit.kuerzel
+        with transaction.atomic():
+            orgeinheit.delete()
+
+        logger.info('OrgEinheit "%s" (ID %d) geloescht von %s', kuerzel, pk, request.user.username)
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f'OrgEinheit "{kuerzel}" wurde geloescht.'
+        })
+
+    except Exception as e:
+        logger.error('Fehler beim Loeschen von OrgEinheit %d: %s', pk, str(e))
+        return JsonResponse({'status': 'error', 'message': str(e)})
+
+
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+def company_builder_delete_stelle(request, pk):
+    """Loescht eine Stelle nach Bestaetigung."""
+    from django.http import JsonResponse
+    from django.db import transaction
+
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Nur POST erlaubt'})
+
+    try:
+        stelle = get_object_or_404(Stelle, pk=pk)
+
+        # Pruefe ob Stelle besetzt ist
+        if stelle.ist_besetzt:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Stelle "{stelle.kuerzel}" ist besetzt von {stelle.aktueller_inhaber.vollname} und kann nicht geloescht werden.'
+            })
+
+        # Pruefe ob noch untergeordnete Stellen existieren
+        untergeordnete_count = stelle.untergeordnete_stellen.count()
+        if untergeordnete_count > 0:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Stelle "{stelle.kuerzel}" hat noch {untergeordnete_count} untergeordnete Stelle(n) und kann nicht geloescht werden.'
+            })
+
+        # Alles OK, loesche
+        kuerzel = stelle.kuerzel
+        with transaction.atomic():
+            stelle.delete()
+
+        logger.info('Stelle "%s" (ID %d) geloescht von %s', kuerzel, pk, request.user.username)
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Stelle "{kuerzel}" wurde geloescht.'
+        })
+
+    except Exception as e:
+        logger.error('Fehler beim Loeschen von Stelle %d: %s', pk, str(e))
+        return JsonResponse({'status': 'error', 'message': str(e)})
+
+
+# ============================================================================
+# ORG-CHART EDITOR (Neuer grafischer Editor)
+# ============================================================================
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def orgchart_editor(request):
+    """Neuer grafischer Org-Chart Editor."""
+    return render(request, "hr/orgchart_editor.html")
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def orgchart_editor_data(request):
+    """API: Liefert Org-Chart Daten als JSON."""
+    import json
+    from django.http import JsonResponse
+
+    def build_tree(orgeinheit):
+        data = {
+            "id": orgeinheit.id,
+            "type": "orgeinheit",
+            "kuerzel": orgeinheit.kuerzel,
+            "name": orgeinheit.kuerzel,
+            "title": orgeinheit.bezeichnung,
+            "bezeichnung": orgeinheit.bezeichnung,
+            "children": []
+        }
+
+        # Untergeordnete OrgEinheiten
+        for unter in orgeinheit.untereinheiten.all():
+            data["children"].append(build_tree(unter))
+
+        # Root-Stellen dieser OrgEinheit
+        for stelle in orgeinheit.stellen.filter(uebergeordnete_stelle__isnull=True):
+            data["children"].append(build_stelle_tree(stelle))
+
+        return data
+
+    def build_stelle_tree(stelle):
+        data = {
+            "id": stelle.id,
+            "type": "stelle",
+            "kuerzel": stelle.kuerzel,
+            "name": stelle.kuerzel,
+            "title": stelle.bezeichnung,
+            "bezeichnung": stelle.bezeichnung,
+            "email": stelle.email,
+            "inhaber": stelle.aktueller_inhaber.vollname if stelle.ist_besetzt else None,
+            "children": []
+        }
+
+        # Untergeordnete Stellen
+        for unter in stelle.untergeordnete_stellen.all():
+            data["children"].append(build_stelle_tree(unter))
+
+        return data
+
+    # Root-OrgEinheiten
+    root_orgs = OrgEinheit.objects.filter(uebergeordnet__isnull=True).order_by('kuerzel')
+    tree_data = [build_tree(org) for org in root_orgs]
+
+    return JsonResponse(tree_data, safe=False)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def orgchart_editor_edit(request, typ, pk):
+    """API: Element bearbeiten."""
+    import json
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        kuerzel = data.get('kuerzel')
+        bezeichnung = data.get('bezeichnung')
+
+        if typ == 'orgeinheit':
+            obj = get_object_or_404(OrgEinheit, pk=pk)
+        else:
+            obj = get_object_or_404(Stelle, pk=pk)
+
+        obj.kuerzel = kuerzel
+        obj.bezeichnung = bezeichnung
+        obj.save()
+
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def orgchart_editor_add(request):
+    """API: Element hinzufuegen."""
+    import json
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        typ = data.get('type')
+        kuerzel = data.get('kuerzel')
+        bezeichnung = data.get('bezeichnung')
+        parent_type = data.get('parent_type')
+        parent_id = data.get('parent_id')
+
+        if typ == 'orgeinheit':
+            # OrgEinheit erstellen
+            parent_org = None
+            if parent_type == 'orgeinheit' and parent_id:
+                parent_org = OrgEinheit.objects.get(pk=parent_id)
+
+            OrgEinheit.objects.create(
+                kuerzel=kuerzel,
+                bezeichnung=bezeichnung,
+                uebergeordnet=parent_org
+            )
+        else:
+            # Stelle erstellen
+            if parent_type == 'orgeinheit' and parent_id:
+                org_einheit = OrgEinheit.objects.get(pk=parent_id)
+                Stelle.objects.create(
+                    kuerzel=kuerzel,
+                    bezeichnung=bezeichnung,
+                    org_einheit=org_einheit
+                )
+            elif parent_type == 'stelle' and parent_id:
+                parent_stelle = Stelle.objects.get(pk=parent_id)
+                Stelle.objects.create(
+                    kuerzel=kuerzel,
+                    bezeichnung=bezeichnung,
+                    org_einheit=parent_stelle.org_einheit,
+                    uebergeordnete_stelle=parent_stelle
+                )
+            else:
+                return JsonResponse({'error': 'Stellen brauchen eine OrgEinheit'}, status=400)
+
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def orgchart_editor_delete(request, typ, pk):
+    """API: Element loeschen."""
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        if typ == 'orgeinheit':
+            obj = get_object_or_404(OrgEinheit, pk=pk)
+            if obj.ist_reserviert:
+                return JsonResponse({'error': 'Reservierte OrgEinheit'}, status=400)
+            if obj.stellen.exists():
+                return JsonResponse({'error': 'OrgEinheit hat noch Stellen'}, status=400)
+            if obj.untereinheiten.exists():
+                return JsonResponse({'error': 'OrgEinheit hat noch Untereinheiten'}, status=400)
+        else:
+            obj = get_object_or_404(Stelle, pk=pk)
+            if obj.ist_besetzt:
+                return JsonResponse({'error': 'Stelle ist besetzt'}, status=400)
+            if obj.untergeordnete_stellen.exists():
+                return JsonResponse({'error': 'Stelle hat noch untergeordnete Stellen'}, status=400)
+
+        obj.delete()
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+# ============================================================================
+# EINFACHER STRUKTUR-EDITOR (Tabellen-basiert)
+# ============================================================================
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def struktur_editor(request):
+    """Einfacher tabellarischer Struktur-Editor."""
+    orgeinheiten = OrgEinheit.objects.all().order_by('kuerzel')
+    stellen = Stelle.objects.select_related('org_einheit', 'uebergeordnete_stelle', 'hrmitarbeiter').order_by('kuerzel')
+
+    return render(request, 'hr/struktur_editor.html', {
+        'orgeinheiten': orgeinheiten,
+        'stellen': stellen,
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def struktur_editor_org_parent(request, pk):
+    """OrgEinheit Hierarchie aendern."""
+    import json
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        parent_id = data.get('parent_id')
+
+        org = get_object_or_404(OrgEinheit, pk=pk)
+        org.uebergeordnet_id = parent_id
+        org.save(update_fields=['uebergeordnet'])
+
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def struktur_editor_stelle_org(request, pk):
+    """Stelle OrgEinheit aendern."""
+    import json
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        org_id = data.get('org_id')
+
+        stelle = get_object_or_404(Stelle, pk=pk)
+        stelle.org_einheit_id = org_id
+        stelle.save(update_fields=['org_einheit'])
+
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def struktur_editor_stelle_parent(request, pk):
+    """Stelle Hierarchie aendern."""
+    import json
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        parent_id = data.get('parent_id')
+
+        stelle = get_object_or_404(Stelle, pk=pk)
+        stelle.uebergeordnete_stelle_id = parent_id
+        stelle.save(update_fields=['uebergeordnete_stelle'])
+
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def struktur_editor_org_add(request):
+    """OrgEinheit hinzufuegen."""
+    import json
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        OrgEinheit.objects.create(
+            kuerzel=data['kuerzel'],
+            bezeichnung=data['bezeichnung']
+        )
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def struktur_editor_stelle_add(request):
+    """Stelle hinzufuegen."""
+    import json
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        # Erste OrgEinheit als default
+        erste_org = OrgEinheit.objects.first()
+        Stelle.objects.create(
+            kuerzel=data['kuerzel'],
+            bezeichnung=data['bezeichnung'],
+            org_einheit=erste_org
+        )
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def struktur_editor_org_edit(request, pk):
+    """OrgEinheit bearbeiten."""
+    import json
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        org = get_object_or_404(OrgEinheit, pk=pk)
+        org.kuerzel = data['kuerzel']
+        org.bezeichnung = data['bezeichnung']
+        org.save()
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def struktur_editor_stelle_edit(request, pk):
+    """Stelle bearbeiten."""
+    import json
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        stelle = get_object_or_404(Stelle, pk=pk)
+        stelle.kuerzel = data['kuerzel']
+        stelle.bezeichnung = data['bezeichnung']
+        stelle.save()
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def struktur_editor_org_delete(request, pk):
+    """OrgEinheit loeschen."""
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        org = get_object_or_404(OrgEinheit, pk=pk)
+        if org.ist_reserviert:
+            return JsonResponse({'status': 'error', 'message': 'Reserviert'}, status=400)
+        if org.stellen.exists():
+            return JsonResponse({'status': 'error', 'message': 'Hat noch Stellen'}, status=400)
+        org.delete()
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def struktur_editor_stelle_delete(request, pk):
+    """Stelle loeschen."""
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        stelle = get_object_or_404(Stelle, pk=pk)
+        if stelle.ist_besetzt:
+            return JsonResponse({'status': 'error', 'message': 'Stelle ist besetzt'}, status=400)
+        stelle.delete()
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+# ============================================================================
+# NETZWERK-EDITOR (Visueller Graph mit Schere & Andocken)
+# ============================================================================
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def netzwerk_editor(request):
+    """Visueller Netzwerk-Editor mit Bubbles."""
+    return render(request, 'hr/netzwerk_editor.html')
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def netzwerk_editor_data(request):
+    """API: Liefert Netzwerk-Daten."""
+    from django.http import JsonResponse
+
+    nodes = []
+    edges = []
+
+    # OrgEinheiten als Nodes
+    for org in OrgEinheit.objects.select_related('uebergeordnet', 'leitende_stelle'):
+        nodes.append({
+            'id': org.id,
+            'type': 'orgeinheit',
+            'label': org.kuerzel,
+            'title': org.bezeichnung
+        })
+        # Verbindung zur uebergeordneten OrgEinheit
+        if org.uebergeordnet:
+            edges.append({
+                'id': f'org_{org.id}_to_{org.uebergeordnet.id}',
+                'from': f'orgeinheit_{org.uebergeordnet.id}',
+                'to': f'orgeinheit_{org.id}'
+            })
+        # Verbindung zur leitenden Stelle (Bereichsleiter -> OrgEinheit)
+        if org.leitende_stelle:
+            edges.append({
+                'id': f'stelle_{org.leitende_stelle.id}_to_org_{org.id}',
+                'from': f'stelle_{org.leitende_stelle.id}',
+                'to': f'orgeinheit_{org.id}'
+            })
+
+    # Stellen als Nodes
+    for stelle in Stelle.objects.select_related('org_einheit', 'uebergeordnete_stelle'):
+        inhaber = f' ({stelle.aktueller_inhaber.vollname})' if stelle.ist_besetzt else ''
+        nodes.append({
+            'id': stelle.id,
+            'type': 'stelle',
+            'kategorie': stelle.kategorie,
+            'label': stelle.kuerzel,
+            'title': f'{stelle.bezeichnung}{inhaber}'
+        })
+        # Verbindung zur OrgEinheit (wenn Root-Stelle in dieser OrgEinheit)
+        if not stelle.uebergeordnete_stelle:
+            edges.append({
+                'id': f'org_{stelle.org_einheit.id}_to_stelle_{stelle.id}',
+                'from': f'orgeinheit_{stelle.org_einheit.id}',
+                'to': f'stelle_{stelle.id}'
+            })
+        # Verbindung zur uebergeordneten Stelle
+        else:
+            edges.append({
+                'id': f'stelle_{stelle.id}_to_{stelle.uebergeordnete_stelle.id}',
+                'from': f'stelle_{stelle.uebergeordnete_stelle.id}',
+                'to': f'stelle_{stelle.id}'
+            })
+
+    return JsonResponse({
+        'nodes': nodes,
+        'edges': edges
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def netzwerk_editor_save(request):
+    """API: Speichert Netzwerk-Aenderungen."""
+    import json
+    from django.http import JsonResponse
+    from django.db import transaction
+    from django.core.exceptions import ValidationError
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        nodes_data = data.get('nodes', [])
+        edges_data = data.get('edges', [])
+
+        with transaction.atomic():
+            # Schritt 1: Erstelle/Aktualisiere alle Nodes
+            # Mapping: temp_id -> echte DB-ID
+            id_mapping = {}
+            created_count = 0
+            updated_count = 0
+
+            for node in nodes_data:
+                node_id = node['id']
+                node_type = node.get('type') or node.get('data', {}).get('type')
+                kategorie = node.get('kategorie') or node.get('data', {}).get('kategorie', 'fachkraft')
+                kuerzel = node['label']
+                bezeichnung = node['title']
+
+                # Validierung
+                if not kuerzel or not kuerzel.strip():
+                    return JsonResponse({'error': f'Kuerzel darf nicht leer sein'}, status=400)
+                if not bezeichnung or not bezeichnung.strip():
+                    return JsonResponse({'error': f'Bezeichnung darf nicht leer sein'}, status=400)
+
+                if node_id.startswith('temp_'):
+                    # Neue Node erstellen
+                    if node_type == 'orgeinheit':
+                        # Pruefe ob Kuerzel schon existiert
+                        if OrgEinheit.objects.filter(kuerzel=kuerzel).exists():
+                            return JsonResponse({'error': f'OrgEinheit mit Kuerzel "{kuerzel}" existiert bereits'}, status=400)
+                        obj = OrgEinheit.objects.create(
+                            kuerzel=kuerzel,
+                            bezeichnung=bezeichnung
+                        )
+                        id_mapping[node_id] = f'orgeinheit_{obj.id}'
+                        created_count += 1
+                    elif node_type == 'stelle':
+                        # Pruefe ob Kuerzel schon existiert
+                        if Stelle.objects.filter(kuerzel=kuerzel).exists():
+                            return JsonResponse({'error': f'Stelle mit Kuerzel "{kuerzel}" existiert bereits'}, status=400)
+                        # Neue Stelle braucht zwingend eine OrgEinheit
+                        # Wir nehmen die erste OrgEinheit als Default
+                        default_org = OrgEinheit.objects.first()
+                        if not default_org:
+                            return JsonResponse({'error': 'Keine OrgEinheit vorhanden - erstelle zuerst eine OrgEinheit'}, status=400)
+                        obj = Stelle.objects.create(
+                            kuerzel=kuerzel,
+                            bezeichnung=bezeichnung,
+                            kategorie=kategorie,
+                            org_einheit=default_org
+                        )
+                        id_mapping[node_id] = f'stelle_{obj.id}'
+                        created_count += 1
+                else:
+                    # Bestehende Node aktualisieren
+                    if node_id.startswith('orgeinheit_'):
+                        pk = int(node_id.split('_')[1])
+                        # Pruefe ob Kuerzel-Aenderung zu Konflikt fuehrt
+                        existing = OrgEinheit.objects.filter(kuerzel=kuerzel).exclude(pk=pk)
+                        if existing.exists():
+                            return JsonResponse({'error': f'OrgEinheit mit Kuerzel "{kuerzel}" existiert bereits'}, status=400)
+                        OrgEinheit.objects.filter(pk=pk).update(
+                            kuerzel=kuerzel,
+                            bezeichnung=bezeichnung
+                        )
+                        id_mapping[node_id] = node_id
+                        updated_count += 1
+                    elif node_id.startswith('stelle_'):
+                        pk = int(node_id.split('_')[1])
+                        # Pruefe ob Kuerzel-Aenderung zu Konflikt fuehrt
+                        existing = Stelle.objects.filter(kuerzel=kuerzel).exclude(pk=pk)
+                        if existing.exists():
+                            return JsonResponse({'error': f'Stelle mit Kuerzel "{kuerzel}" existiert bereits'}, status=400)
+                        Stelle.objects.filter(pk=pk).update(
+                            kuerzel=kuerzel,
+                            bezeichnung=bezeichnung,
+                            kategorie=kategorie
+                        )
+                        id_mapping[node_id] = node_id
+                        updated_count += 1
+
+            # Schritt 2: Aktualisiere Parent-Beziehungen basierend auf Edges
+            # WICHTIG: Alle Parents auf NULL setzen - Nodes ohne Edges werden Root-Nodes
+            OrgEinheit.objects.all().update(uebergeordnet=None, leitende_stelle=None)
+            Stelle.objects.all().update(uebergeordnete_stelle=None)
+
+            edges_count = 0
+            for edge in edges_data:
+                from_id = id_mapping.get(edge['from'], edge['from'])
+                to_id = id_mapping.get(edge['to'], edge['to'])
+
+                # Edge bedeutet: from -> to, also to ist Kind von from
+                if to_id.startswith('orgeinheit_'):
+                    child_pk = int(to_id.split('_')[1])
+                    if from_id.startswith('orgeinheit_'):
+                        # OrgEinheit -> OrgEinheit: Hierarchie
+                        parent_pk = int(from_id.split('_')[1])
+                        # Pruefe auf Zirkelreferenz (vereinfacht)
+                        if child_pk == parent_pk:
+                            return JsonResponse({'error': 'Zirkelreferenz: OrgEinheit kann nicht ihr eigener Parent sein'}, status=400)
+                        OrgEinheit.objects.filter(pk=child_pk).update(
+                            uebergeordnet_id=parent_pk
+                        )
+                        edges_count += 1
+                    elif from_id.startswith('stelle_'):
+                        # Stelle -> OrgEinheit: Bereichsleiter leitet OrgEinheit
+                        stelle_pk = int(from_id.split('_')[1])
+                        OrgEinheit.objects.filter(pk=child_pk).update(
+                            leitende_stelle_id=stelle_pk
+                        )
+                        edges_count += 1
+                elif to_id.startswith('stelle_'):
+                    child_pk = int(to_id.split('_')[1])
+                    if from_id.startswith('stelle_'):
+                        # Stelle -> Stelle: Hierarchie
+                        parent_pk = int(from_id.split('_')[1])
+                        # Pruefe auf Zirkelreferenz (vereinfacht)
+                        if child_pk == parent_pk:
+                            return JsonResponse({'error': 'Zirkelreferenz: Stelle kann nicht ihr eigener Parent sein'}, status=400)
+                        Stelle.objects.filter(pk=child_pk).update(
+                            uebergeordnete_stelle_id=parent_pk
+                        )
+                        edges_count += 1
+                    elif from_id.startswith('orgeinheit_'):
+                        # OrgEinheit -> Stelle: Stelle gehoert zu OrgEinheit
+                        org_pk = int(from_id.split('_')[1])
+                        Stelle.objects.filter(pk=child_pk).update(
+                            org_einheit_id=org_pk
+                        )
+                        edges_count += 1
+
+        message = f'Struktur gespeichert! ({created_count} erstellt, {updated_count} aktualisiert, {edges_count} Verbindungen)'
+        return JsonResponse({'status': 'success', 'message': message})
+    except ValidationError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'Fehler: {str(e)}'}, status=400)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def tree_editor(request):
+    """Tree Editor mit D3.js"""
+    return render(request, 'hr/tree_editor.html')
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def tree_editor_data(request):
+    """API: Liefert Baumdaten fuer Tree Editor"""
+    from django.http import JsonResponse
+
+    def org_to_tree(org, visited=None):
+        """Konvertiert OrgEinheit zu Tree-Format"""
+        if visited is None:
+            visited = set()
+
+        # Vermeide Zyklen
+        org_key = f'org_{org.id}'
+        if org_key in visited:
+            return None
+        visited.add(org_key)
+
+        node = {
+            'id': org_key,
+            'name': f'{org.kuerzel} - {org.bezeichnung}',
+            'type': 'orgeinheit',
+            'db_id': org.id,
+            'children': []
+        }
+
+        # Stellen in dieser OrgEinheit (Root-Stellen)
+        for stelle in org.stellen.filter(uebergeordnete_stelle__isnull=True).order_by('kuerzel'):
+            child = stelle_to_tree(stelle, visited)
+            if child:
+                node['children'].append(child)
+
+        # Untereinheiten
+        for child_org in org.untereinheiten.order_by('kuerzel'):
+            child = org_to_tree(child_org, visited)
+            if child:
+                node['children'].append(child)
+
+        return node
+
+    def stelle_to_tree(stelle, visited=None):
+        """Konvertiert Stelle zu Tree-Format"""
+        if visited is None:
+            visited = set()
+
+        # Vermeide Zyklen
+        stelle_key = f'stelle_{stelle.id}'
+        if stelle_key in visited:
+            return None
+        visited.add(stelle_key)
+
+        node = {
+            'id': stelle_key,
+            'name': f'{stelle.kuerzel} - {stelle.bezeichnung}',
+            'type': 'stelle',
+            'kategorie': stelle.kategorie,
+            'db_id': stelle.id,
+            'children': []
+        }
+
+        # Untergeordnete Stellen
+        for child_stelle in stelle.untergeordnete_stellen.order_by('kuerzel'):
+            child = stelle_to_tree(child_stelle, visited)
+            if child:
+                node['children'].append(child)
+
+        return node
+
+    # Root finden
+    root_org = OrgEinheit.objects.filter(uebergeordnet__isnull=True).first()
+    if not root_org:
+        return JsonResponse({'error': 'Keine Root-OrgEinheit gefunden'}, status=404)
+
+    tree_data = org_to_tree(root_org)
+    return JsonResponse(tree_data)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def tree_editor_save(request):
+    """API: Speichert Tree-Aenderungen"""
+    import json
+    from django.http import JsonResponse
+    from django.db import transaction
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Nur POST'}, status=400)
+    
+    try:
+        data = json.loads(request.body)
+        
+        with transaction.atomic():
+            # TODO: Implementiere Save-Logik
+            # Das ist komplex weil die gesamte Baumstruktur neu aufgebaut werden muss
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Save noch nicht implementiert - Vorschau'
+            })
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def orgchart_kasten(request):
+    """OrgChart mit Kaesten"""
+    return render(request, 'hr/orgchart_kasten.html')
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def orgchart_kasten_data(request):
+    """API: Liefert Daten fuer OrgChart.js Kaesten"""
+    from django.http import JsonResponse
+    
+    nodes = []
+    node_id = 1
+    
+    # 1. Geschaeftsfuehrung
+    gf_org = OrgEinheit.objects.filter(kuerzel='GF').first()
+    if gf_org:
+        gf_stellen = gf_org.stellen.filter(uebergeordnete_stelle__isnull=True)
+        stellen_html = '<div class="box-stellen">'
+        for stelle in gf_stellen:
+            kategorie_class = f'stelle-kategorie-{stelle.kategorie}'
+            icon = '👔' if stelle.kategorie == 'leitung' else '👤'
+            stellen_html += f'<div class="stelle-item {kategorie_class}">'
+            stellen_html += f'<span class="stelle-icon">{icon}</span>'
+            stellen_html += f'<span>{stelle.kuerzel} - {stelle.bezeichnung}</span>'
+            stellen_html += '</div>'
+        stellen_html += '</div>'
+        
+        gf_node = {
+            'id': node_id,
+            'titel': f'<div class="box-title">📋 {gf_org.bezeichnung}</div>',
+            'stellen_html': stellen_html,
+            'tags': ['geschaeftsfuehrung']
+        }
+        nodes.append(gf_node)
+        gf_node_id = node_id
+        node_id += 1
+    
+    # 2. Bereiche (VW, PT, VM)
+    bereiche = OrgEinheit.objects.filter(uebergeordnet=gf_org).order_by('kuerzel')
+    for bereich in bereiche:
+        bereich_stellen = bereich.stellen.filter(uebergeordnete_stelle__isnull=True)
+        stellen_html = '<div class="box-stellen">'
+        for stelle in bereich_stellen:
+            kategorie_class = f'stelle-kategorie-{stelle.kategorie}'
+            icon = '👔' if stelle.kategorie == 'leitung' else ('📎' if stelle.kategorie == 'stab' else '👤')
+            stellen_html += f'<div class="stelle-item {kategorie_class}">'
+            stellen_html += f'<span class="stelle-icon">{icon}</span>'
+            stellen_html += f'<span>{stelle.kuerzel}</span>'
+            stellen_html += '</div>'
+        stellen_html += '</div>'
+        
+        bereich_node = {
+            'id': node_id,
+            'pid': gf_node_id,
+            'titel': f'<div class="box-title">📦 BEREICH: {bereich.bezeichnung}</div>',
+            'stellen_html': stellen_html,
+            'tags': ['bereich']
+        }
+        nodes.append(bereich_node)
+        bereich_node_id = node_id
+        node_id += 1
+        
+        # 3. Abteilungen unter diesem Bereich
+        abteilungen = bereich.untereinheiten.order_by('kuerzel')
+        for abteilung in abteilungen:
+            abt_stellen = abteilung.stellen.filter(uebergeordnete_stelle__isnull=True)
+            stellen_html = '<div class="box-stellen">'
+            for stelle in abt_stellen:
+                kategorie_class = f'stelle-kategorie-{stelle.kategorie}'
+                icon = '👔' if stelle.kategorie == 'leitung' else '👤'
+                inhaber = f' ({stelle.aktueller_inhaber.vollname})' if stelle.ist_besetzt else ''
+                stellen_html += f'<div class="stelle-item {kategorie_class}">'
+                stellen_html += f'<span class="stelle-icon">{icon}</span>'
+                stellen_html += f'<span>{stelle.kuerzel}{inhaber}</span>'
+                stellen_html += '</div>'
+            stellen_html += '</div>'
+            
+            abt_node = {
+                'id': node_id,
+                'pid': bereich_node_id,
+                'titel': f'<div class="box-title">🏢 {abteilung.bezeichnung}</div>',
+                'stellen_html': stellen_html,
+                'tags': ['abteilung']
+            }
+            nodes.append(abt_node)
+            node_id += 1
+    
+    return JsonResponse(nodes, safe=False)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def kasten_organigramm(request):
+    """Einfaches Kasten-Organigramm mit HTML/CSS"""
+
+    # Geschaeftsfuehrung
+    gf_org = OrgEinheit.objects.filter(kuerzel='GF').first()
+    gf_stellen = gf_org.stellen.filter(uebergeordnete_stelle__isnull=True) if gf_org else []
+
+    # Bereiche mit Abteilungen
+    bereiche_data = []
+    if gf_org:
+        bereiche = OrgEinheit.objects.filter(uebergeordnet=gf_org).order_by('kuerzel')
+        for bereich in bereiche:
+            bereich_stellen = bereich.stellen.filter(uebergeordnete_stelle__isnull=True)
+            abteilungen = bereich.untereinheiten.order_by('kuerzel')
+
+            abteilungen_data = []
+            for abt in abteilungen:
+                abt_stellen = abt.stellen.filter(uebergeordnete_stelle__isnull=True)
+
+                # Teams unter Abteilung
+                teams = abt.untereinheiten.order_by('kuerzel')
+                teams_data = []
+                for team in teams:
+                    team_stellen = team.stellen.filter(uebergeordnete_stelle__isnull=True)
+                    teams_data.append({
+                        'kuerzel': team.kuerzel,
+                        'bezeichnung': team.bezeichnung,
+                        'stellen': team_stellen
+                    })
+
+                abteilungen_data.append({
+                    'kuerzel': abt.kuerzel,
+                    'bezeichnung': abt.bezeichnung,
+                    'stellen': abt_stellen,
+                    'teams': teams_data
+                })
+
+            bereiche_data.append({
+                'kuerzel': bereich.kuerzel,
+                'bezeichnung': bereich.bezeichnung,
+                'stellen': bereich_stellen,
+                'abteilungen': abteilungen_data
+            })
+
+    return render(request, 'hr/kasten_organigramm.html', {
+        'gf_stellen': gf_stellen,
+        'bereiche': bereiche_data
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def kasten_bereich_form(request):
+    """HTMX: Formular zum Anlegen eines neuen Bereichs"""
+    if request.method == 'POST':
+        kuerzel = request.POST.get('kuerzel', '').strip().upper()
+        bezeichnung = request.POST.get('bezeichnung', '').strip()
+
+        if not kuerzel or not bezeichnung:
+            return render(request, 'hr/partials/kasten_bereich_form.html', {
+                'error': 'Bitte Kuerzel und Bezeichnung eingeben'
+            })
+
+        # Pruefe ob Kuerzel schon existiert
+        if OrgEinheit.objects.filter(kuerzel=kuerzel).exists():
+            return render(request, 'hr/partials/kasten_bereich_form.html', {
+                'error': f'Kuerzel "{kuerzel}" existiert bereits'
+            })
+
+        # GF als Parent
+        gf_org = OrgEinheit.objects.filter(kuerzel='GF').first()
+        if not gf_org:
+            return render(request, 'hr/partials/kasten_bereich_form.html', {
+                'error': 'GF OrgEinheit nicht gefunden'
+            })
+
+        # Erstelle Bereich
+        OrgEinheit.objects.create(
+            kuerzel=kuerzel,
+            bezeichnung=bezeichnung,
+            uebergeordnet=gf_org
+        )
+
+        logger.info(f'Neuer Bereich erstellt: {kuerzel} - {bezeichnung}')
+
+        # Erfolg: Seite neu laden
+        from django.http import HttpResponse
+        return HttpResponse('<script>location.reload()</script>')
+
+    return render(request, 'hr/partials/kasten_bereich_form.html')
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def kasten_abteilung_form(request):
+    """HTMX: Formular zum Anlegen einer neuen Abteilung"""
+    bereich_kuerzel = request.GET.get('bereich_kuerzel')
+
+    if request.method == 'POST':
+        kuerzel = request.POST.get('kuerzel', '').strip().upper()
+        bezeichnung = request.POST.get('bezeichnung', '').strip()
+        bereich_kuerzel = request.POST.get('bereich_kuerzel', '')
+
+        if not kuerzel or not bezeichnung or not bereich_kuerzel:
+            return render(request, 'hr/partials/kasten_abteilung_form.html', {
+                'bereich_kuerzel': bereich_kuerzel,
+                'error': 'Bitte alle Felder ausfuellen'
+            })
+
+        # Pruefe ob Kuerzel schon existiert
+        if OrgEinheit.objects.filter(kuerzel=kuerzel).exists():
+            return render(request, 'hr/partials/kasten_abteilung_form.html', {
+                'bereich_kuerzel': bereich_kuerzel,
+                'error': f'Kuerzel "{kuerzel}" existiert bereits'
+            })
+
+        # Bereich finden
+        bereich = OrgEinheit.objects.filter(kuerzel=bereich_kuerzel).first()
+        if not bereich:
+            return render(request, 'hr/partials/kasten_abteilung_form.html', {
+                'bereich_kuerzel': bereich_kuerzel,
+                'error': f'Bereich "{bereich_kuerzel}" nicht gefunden'
+            })
+
+        # Erstelle Abteilung
+        OrgEinheit.objects.create(
+            kuerzel=kuerzel,
+            bezeichnung=bezeichnung,
+            uebergeordnet=bereich
+        )
+
+        logger.info(f'Neue Abteilung erstellt: {kuerzel} - {bezeichnung} unter {bereich_kuerzel}')
+
+        # Erfolg: Seite neu laden
+        from django.http import HttpResponse
+        return HttpResponse('<script>location.reload()</script>')
+
+    return render(request, 'hr/partials/kasten_abteilung_form.html', {
+        'bereich_kuerzel': bereich_kuerzel
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def kasten_stelle_form(request):
+    """HTMX: Formular zum Anlegen einer neuen Stelle"""
+    org_kuerzel = request.GET.get('org_kuerzel')
+
+    if request.method == 'POST':
+        kuerzel = request.POST.get('kuerzel', '').strip().lower()
+        bezeichnung = request.POST.get('bezeichnung', '').strip()
+        kategorie = request.POST.get('kategorie', 'fachkraft')
+        org_kuerzel = request.POST.get('org_kuerzel', '')
+
+        if not kuerzel or not bezeichnung or not org_kuerzel:
+            return render(request, 'hr/partials/kasten_stelle_form.html', {
+                'org_kuerzel': org_kuerzel,
+                'error': 'Bitte alle Felder ausfuellen'
+            })
+
+        # Pruefe ob Kuerzel schon existiert
+        if Stelle.objects.filter(kuerzel=kuerzel).exists():
+            return render(request, 'hr/partials/kasten_stelle_form.html', {
+                'org_kuerzel': org_kuerzel,
+                'error': f'Kuerzel "{kuerzel}" existiert bereits'
+            })
+
+        # OrgEinheit finden
+        org = OrgEinheit.objects.filter(kuerzel=org_kuerzel).first()
+        if not org:
+            return render(request, 'hr/partials/kasten_stelle_form.html', {
+                'org_kuerzel': org_kuerzel,
+                'error': f'OrgEinheit "{org_kuerzel}" nicht gefunden'
+            })
+
+        # Erstelle Stelle
+        Stelle.objects.create(
+            kuerzel=kuerzel,
+            bezeichnung=bezeichnung,
+            kategorie=kategorie,
+            org_einheit=org
+        )
+
+        logger.info(f'Neue Stelle erstellt: {kuerzel} - {bezeichnung} in {org_kuerzel}')
+
+        # Erfolg: Seite neu laden
+        from django.http import HttpResponse
+        return HttpResponse('<script>location.reload()</script>')
+
+    return render(request, 'hr/partials/kasten_stelle_form.html', {
+        'org_kuerzel': org_kuerzel
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def kasten_team_form(request):
+    """HTMX: Formular zum Anlegen eines neuen Teams"""
+    abteilung_kuerzel = request.GET.get('abteilung_kuerzel')
+
+    if request.method == 'POST':
+        kuerzel = request.POST.get('kuerzel', '').strip().upper()
+        bezeichnung = request.POST.get('bezeichnung', '').strip()
+        abteilung_kuerzel = request.POST.get('abteilung_kuerzel', '')
+
+        if not kuerzel or not bezeichnung or not abteilung_kuerzel:
+            return render(request, 'hr/partials/kasten_team_form.html', {
+                'abteilung_kuerzel': abteilung_kuerzel,
+                'error': 'Bitte alle Felder ausfuellen'
+            })
+
+        # Pruefe ob Kuerzel schon existiert
+        if OrgEinheit.objects.filter(kuerzel=kuerzel).exists():
+            return render(request, 'hr/partials/kasten_team_form.html', {
+                'abteilung_kuerzel': abteilung_kuerzel,
+                'error': f'Kuerzel "{kuerzel}" existiert bereits'
+            })
+
+        # Abteilung finden
+        abteilung = OrgEinheit.objects.filter(kuerzel=abteilung_kuerzel).first()
+        if not abteilung:
+            return render(request, 'hr/partials/kasten_team_form.html', {
+                'abteilung_kuerzel': abteilung_kuerzel,
+                'error': f'Abteilung "{abteilung_kuerzel}" nicht gefunden'
+            })
+
+        # Erstelle Team
+        OrgEinheit.objects.create(
+            kuerzel=kuerzel,
+            bezeichnung=bezeichnung,
+            uebergeordnet=abteilung
+        )
+
+        logger.info(f'Neues Team erstellt: {kuerzel} - {bezeichnung} unter {abteilung_kuerzel}')
+
+        # Erfolg: Seite neu laden
+        from django.http import HttpResponse
+        return HttpResponse('<script>location.reload()</script>')
+
+    return render(request, 'hr/partials/kasten_team_form.html', {
+        'abteilung_kuerzel': abteilung_kuerzel
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def kasten_stelle_edit(request, pk):
+    """HTMX: Formular zum Bearbeiten einer Stelle"""
+    stelle = get_object_or_404(Stelle, pk=pk)
+
+    if request.method == 'POST':
+        bezeichnung = request.POST.get('bezeichnung', '').strip()
+        kategorie = request.POST.get('kategorie', 'fachkraft')
+
+        if not bezeichnung:
+            return render(request, 'hr/partials/kasten_stelle_edit.html', {
+                'stelle': stelle,
+                'error': 'Bitte Bezeichnung eingeben'
+            })
+
+        # Update Stelle
+        stelle.bezeichnung = bezeichnung
+        stelle.kategorie = kategorie
+        stelle.save()
+
+        logger.info(f'Stelle aktualisiert: {stelle.kuerzel}')
+
+        # Erfolg: Seite neu laden
+        from django.http import HttpResponse
+        return HttpResponse('<script>location.reload()</script>')
+
+    return render(request, 'hr/partials/kasten_stelle_edit.html', {
+        'stelle': stelle
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def kasten_detail(request, kuerzel):
+    """Detail-Ansicht fuer eine OrgEinheit mit allen Stellen und Untereinheiten"""
+    org = get_object_or_404(OrgEinheit, kuerzel=kuerzel)
+
+    # Alle Stellen dieser OrgEinheit (inklusive untergeordneter Stellen)
+    alle_stellen = org.stellen.all().order_by('kategorie', 'kuerzel')
+
+    # Root-Stellen (ohne Parent)
+    root_stellen = org.stellen.filter(uebergeordnete_stelle__isnull=True).order_by('kategorie', 'kuerzel')
+
+    # Direkte Untereinheiten
+    untereinheiten = org.untereinheiten.all().order_by('kuerzel')
+
+    # Uebergeordnete OrgEinheit
+    parent = org.uebergeordnet
+
+    # Hierarchie-Pfad (Breadcrumb)
+    pfad = []
+    current = org
+    while current:
+        pfad.insert(0, current)
+        current = current.uebergeordnet
+
+    return render(request, 'hr/kasten_detail.html', {
+        'org': org,
+        'alle_stellen': alle_stellen,
+        'root_stellen': root_stellen,
+        'untereinheiten': untereinheiten,
+        'parent': parent,
+        'pfad': pfad
+    })

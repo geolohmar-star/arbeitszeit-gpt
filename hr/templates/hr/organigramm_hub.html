@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Organigramm & Struktur{% endblock %}
+{% block content %}
+<div class="container mt-4">
+
+    <div class="mb-4">
+        <h1 class="mb-2">🏢 Organisationsstruktur & Verwaltung</h1>
+        <p class="text-muted">Waehle eine Ansicht oder erstelle deine Unternehmensstruktur</p>
+    </div>
+
+    <!-- Statistik -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h3 class="text-primary mb-0">{{ orgeinheiten_count }}</h3>
+                    <small class="text-muted">OrgEinheiten</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h3 class="text-success mb-0">{{ stellen_count }}</h3>
+                    <small class="text-muted">Stellen gesamt</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h3 class="text-info mb-0">{{ stellen_besetzt }}</h3>
+                    <small class="text-muted">Stellen besetzt</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h3 class="text-warning mb-0">{{ mitarbeiter_count }}</h3>
+                    <small class="text-muted">Mitarbeiter</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Builder & Editor -->
+    <h3 class="mb-3">🏗️ Strukturverwaltung</h3>
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">📦 Kasten-Organigramm</h5>
+                    <small>⭐⭐⭐ EMPFOHLEN!</small>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Professionelles Organigramm mit Kaesten!
+                        Stellen gruppiert in Kaesten.
+                    </p>
+                    <ul class="small text-muted mb-3">
+                        <li>📦 Geschaeftsfuehrung</li>
+                        <li>📦 Bereiche</li>
+                        <li>📦 Abteilungen</li>
+                        <li>📦 Teams (kommt noch)</li>
+                    </ul>
+                    <a href="{% url 'hr:kasten_organigramm' %}" class="btn btn-warning w-100">
+                        → Kasten-Organigramm
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">🌳 Tree Editor</h5>
+                    <small>Aufklappbare Kaesten!</small>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Hierarchisches Organigramm mit aufklappbaren Kaesten!
+                        Drill-down von oben nach unten.
+                    </p>
+                    <ul class="small text-muted mb-3">
+                        <li>📦 Kaesten auf-/zuklappen</li>
+                        <li>✏️ Bearbeiten per Rechtsklick</li>
+                        <li>➕ Kinder hinzufuegen</li>
+                        <li>✂️ Loeschen & Verschieben</li>
+                    </ul>
+                    <a href="{% url 'hr:tree_editor' %}" class="btn btn-danger w-100">
+                        → Tree Editor
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">🎯 Netzwerk-Editor</h5>
+                    <small>Visuell & Interaktiv!</small>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Grafischer Bubble-Editor mit Schere! Baue Zweige,
+                        schaffe Andockpunkte, trenne Verbindungen visuell.
+                    </p>
+                    <ul class="small text-muted mb-3">
+                        <li>🔵 Bubble-Visualisierung</li>
+                        <li>✂️ Virtuelle Schere</li>
+                        <li>🔗 Verbindungen ziehen</li>
+                        <li>➕ Zweige anbauen</li>
+                    </ul>
+                    <a href="{% url 'hr:netzwerk_editor' %}" class="btn btn-success w-100">
+                        → Netzwerk-Editor
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📋 Struktur-Editor</h5>
+                    <small>Tabellen-basiert</small>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Tabellarischer Editor - klar, übersichtlich.
+                        Dropdown zur Zuordnung, Inline-Bearbeitung.
+                    </p>
+                    <ul class="small text-muted mb-3">
+                        <li>✅ Alles in Tabellen</li>
+                        <li>✅ Dropdown zur Zuordnung</li>
+                        <li>✅ Inline-Bearbeitung</li>
+                        <li>✅ Einfach & schnell</li>
+                    </ul>
+                    <a href="{% url 'hr:struktur_editor' %}" class="btn btn-primary w-100">
+                        → Struktur-Editor
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">📋 Stellen-Uebersicht</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Tabellarische Liste aller Stellen mit Filter.
+                        Stellen bearbeiten, Besetzung & Delegation verwalten.
+                    </p>
+                    <ul class="small text-muted mb-3">
+                        <li>Alle Stellen im Ueberblick</li>
+                        <li>Filter nach OrgEinheit</li>
+                        <li>Stellen bearbeiten</li>
+                        <li>Delegation & Vertretung</li>
+                    </ul>
+                    <a href="{% url 'hr:stellen_uebersicht' %}" class="btn btn-info w-100 text-white">
+                        → Stellen-Uebersicht
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visualisierungen -->
+    <h3 class="mb-3">📊 Organigramme & Visualisierungen</h3>
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">🌳 Organigramm (Karten)</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text small">
+                        Hierarchische Kartenansicht mit klickbaren Stellen.
+                        Zeigt OrgEinheiten, Stellen und Mitarbeiter in einer
+                        uebersichtlichen Baumstruktur.
+                    </p>
+                    <ul class="small text-muted mb-3">
+                        <li>OrgEinheiten als Karten</li>
+                        <li>Klickbare Stellen mit Details</li>
+                        <li>Mitarbeiter-Namen & Links</li>
+                        <li>Delegation & Vertretung sichtbar</li>
+                    </ul>
+                    <a href="{% url 'hr:organigramm_karten' %}" class="btn btn-info w-100 text-white">
+                        → Karten-Ansicht
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">⭕ Bubble-Organigramm</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text small">
+                        Interaktives D3.js Bubble-Diagramm mit Zoom & Pan.
+                        Farbcodierte Rollen, klickbare Bubbles mit Tooltips
+                        und Links zu Mitarbeiter-Profilen.
+                    </p>
+                    <ul class="small text-muted mb-3">
+                        <li>D3.js Visualisierung</li>
+                        <li>Zoom & Pan Navigation</li>
+                        <li>Farbcodiert nach Rollen</li>
+                        <li>Auf-/Zuklappen der Hierarchie</li>
+                    </ul>
+                    <a href="{% url 'hr:stellen_organigramm' %}" class="btn btn-warning w-100">
+                        → Bubble-Ansicht
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">🎯 Builder Preview</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text small">
+                        Live-Vorschau der Organisationsstruktur direkt aus dem
+                        Company Builder. Zeigt die aktuelle Hierarchie als
+                        interaktiven Baum.
+                    </p>
+                    <ul class="small text-muted mb-3">
+                        <li>Live-Vorschau aus Builder</li>
+                        <li>D3.js Baumansicht</li>
+                        <li>Zoom & Pan</li>
+                        <li>Automatisch aktualisiert</li>
+                    </ul>
+                    <a href="{% url 'hr:company_builder_preview' %}" class="btn btn-secondary w-100">
+                        → Preview oeffnen
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="card bg-light">
+        <div class="card-body">
+            <h5 class="card-title">🔗 Weitere Links</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <a href="{% url 'hr:liste' %}" class="btn btn-outline-secondary btn-sm w-100 mb-2">
+                        👥 Mitarbeiterliste
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <a href="{% url 'hr:delegation_verwalten' %}" class="btn btn-outline-secondary btn-sm w-100 mb-2">
+                        🔄 Delegation verwalten
+                    </a>
+                </div>
+                <div class="col-md-4">
+                    <a href="{% url 'hr:stelle_neu' %}" class="btn btn-outline-success btn-sm w-100 mb-2">
+                        ➕ Neue Stelle erstellen
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+<div class="card orgeinheit-card mb-3 level-{{ level }}">
+    <div class="card-header {% if level == 0 %}bg-primary text-white{% else %}bg-light{% endif %} d-flex justify-content-between align-items-center">
+        <div>
+            <strong>{{ orgeinheit.kuerzel }}</strong>
+            <span class="ms-2">{{ orgeinheit.bezeichnung }}</span>
+            {% if orgeinheit.ist_reserviert %}
+                <span class="badge bg-warning text-dark ms-2">Reserviert</span>
+            {% endif %}
+        </div>
+        <div>
+            <span class="badge {% if level == 0 %}bg-white text-primary{% else %}bg-secondary{% endif %}">
+                {{ orgeinheit.stellen.count }} Stellen
+            </span>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <!-- Stellen dieser OrgEinheit (nur Root-Stellen ohne uebergeordnete_stelle) -->
+        {% for stelle in orgeinheit.stellen.all %}
+            {% if not stelle.uebergeordnete_stelle %}
+                {% include 'hr/partials/_organigramm_stelle.html' with stelle=stelle stelle_level=0 %}
+            {% endif %}
+        {% empty %}
+            <p class="text-muted small mb-0">Keine Stellen in dieser Einheit.</p>
+        {% endfor %}
+
+        <!-- Untergeordnete OrgEinheiten (rekursiv) -->
+        {% if orgeinheit.untereinheiten.exists %}
+            <div class="mt-3">
+                {% for untereinheit in orgeinheit.untereinheiten.all %}
+                    {% include 'hr/partials/_organigramm_orgeinheit.html' with orgeinheit=untereinheit level=level|add:1 %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>

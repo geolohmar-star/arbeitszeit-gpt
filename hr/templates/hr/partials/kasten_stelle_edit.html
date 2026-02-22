@@ -1,0 +1,65 @@
+<!-- Modal: Stelle bearbeiten -->
+<div class="modal fade show" id="stelleEditModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Stelle bearbeiten: {{ stelle.kuerzel }}</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('modal-container').innerHTML=''"></button>
+            </div>
+            <form hx-post="{% url 'hr:kasten_stelle_edit' stelle.id %}" hx-target="#modal-container">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Kuerzel</label>
+                        <input type="text" class="form-control" value="{{ stelle.kuerzel }}" disabled>
+                        <small class="text-muted">Kuerzel kann nicht geaendert werden</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bezeichnung" class="form-label">Bezeichnung *</label>
+                        <input type="text" class="form-control" id="bezeichnung" name="bezeichnung"
+                               value="{{ stelle.bezeichnung }}" required maxlength="200">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="kategorie" class="form-label">Kategorie *</label>
+                        <select class="form-select" id="kategorie" name="kategorie" required>
+                            <option value="fachkraft" {% if stelle.kategorie == 'fachkraft' %}selected{% endif %}>👤 Fachkraft / Mitarbeiter</option>
+                            <option value="leitung" {% if stelle.kategorie == 'leitung' %}selected{% endif %}>👔 Leitung</option>
+                            <option value="stab" {% if stelle.kategorie == 'stab' %}selected{% endif %}>📎 Stab / Assistenz</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Organisationseinheit</label>
+                        <input type="text" class="form-control" value="{{ stelle.org_einheit.kuerzel }} - {{ stelle.org_einheit.bezeichnung }}" disabled>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="text" class="form-control" value="{{ stelle.email }}" disabled>
+                        <small class="text-muted">Wird automatisch aus Kuerzel generiert</small>
+                    </div>
+
+                    {% if stelle.ist_besetzt %}
+                    <div class="alert alert-info">
+                        <strong>Besetzt von:</strong> {{ stelle.aktueller_inhaber.vorname }} {{ stelle.aktueller_inhaber.nachname }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-container').innerHTML=''">
+                        Abbrechen
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Speichern
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,46 @@
+<!-- Modal: Neuer Bereich -->
+<div class="modal fade show" id="bereichModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Neuer Bereich anlegen</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('modal-container').innerHTML=''"></button>
+            </div>
+            <form hx-post="{% url 'hr:kasten_bereich_form' %}" hx-target="#modal-container">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="kuerzel" class="form-label">Kuerzel *</label>
+                        <input type="text" class="form-control" id="kuerzel" name="kuerzel"
+                               placeholder="z.B. FIN" required maxlength="10"
+                               style="text-transform: uppercase;">
+                        <small class="text-muted">Eindeutige Abkuerzung (z.B. FIN, PERS, TECH)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bezeichnung" class="form-label">Bezeichnung *</label>
+                        <input type="text" class="form-control" id="bezeichnung" name="bezeichnung"
+                               placeholder="z.B. Finanzen & Controlling" required maxlength="100">
+                        <small class="text-muted">Voller Name des Bereichs</small>
+                    </div>
+
+                    <p class="text-muted small mb-0">
+                        Der neue Bereich wird unter <strong>Geschaeftsfuehrung</strong> angelegt.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-container').innerHTML=''">
+                        Abbrechen
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        Bereich anlegen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

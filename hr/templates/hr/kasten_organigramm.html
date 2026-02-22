@@ -1,0 +1,462 @@
+{% extends "base.html" %}
+
+{% block title %}Kasten-Organigramm Editor{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="card mb-3">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">📦 Kasten-Organigramm Editor</h4>
+            <div>
+                <a href="/admin/hr/projektgruppe/" class="btn btn-warning btn-sm me-2">
+                    🚀 Projektgruppen
+                </a>
+                <button class="btn btn-light btn-sm" onclick="location.reload()">🔄 Aktualisieren</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+
+    <!-- Organigramm -->
+    <div class="organigramm-container" id="organigramm-main">
+
+        <!-- Ebene 1: Geschaeftsfuehrung -->
+        <div class="org-ebene">
+            <div class="org-kasten kasten-gf">
+                <div class="kasten-header">
+                    <div onclick="toggleKasten(this)" style="flex: 1; cursor: pointer;">
+                        <h5 class="d-inline">📋 GESCHÄFTSFÜHRUNG</h5>
+                        <span class="toggle-icon ms-2">▼</span>
+                    </div>
+                    <div class="btn-group btn-group-sm ms-2">
+                        <a href="{% url 'hr:kasten_detail' 'GF' %}" class="btn btn-sm btn-outline-light" title="Details anzeigen">
+                            🔍
+                        </a>
+                        <button class="btn btn-sm btn-light"
+                                hx-get="{% url 'hr:kasten_stelle_form' %}?org_kuerzel=GF"
+                                hx-target="#modal-container"
+                                hx-swap="innerHTML"
+                                title="Neue Stelle hinzufuegen">
+                            ➕ Stelle
+                        </button>
+                    </div>
+                </div>
+                <div class="kasten-inhalt">
+                    {% for stelle in gf_stellen %}
+                    <div class="stelle-zeile stelle-{{ stelle.kategorie }}">
+                        <span class="stelle-icon">
+                            {% if stelle.kategorie == 'leitung' %}👔
+                            {% elif stelle.kategorie == 'stab' %}📎
+                            {% else %}👤{% endif %}
+                        </span>
+                        <span class="stelle-name">{{ stelle.kuerzel }} - {{ stelle.bezeichnung }}</span>
+                        {% if stelle.ist_besetzt %}
+                        <span class="stelle-inhaber">({{ stelle.aktueller_inhaber.vollname }})</span>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="text-muted small">Keine Stellen vorhanden</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="org-connector">↓</div>
+
+        <!-- Button: Neuer Bereich -->
+        <div class="text-center mb-3">
+            <button class="btn btn-success btn-sm"
+                    hx-get="{% url 'hr:kasten_bereich_form' %}"
+                    hx-target="#modal-container"
+                    hx-swap="innerHTML">
+                ➕ Neuer Bereich
+            </button>
+        </div>
+
+        <!-- Ebene 2: Bereiche -->
+        <div class="org-ebene org-ebene-flex">
+            {% for bereich in bereiche %}
+            <div class="org-kasten kasten-bereich">
+                <div class="kasten-header">
+                    <div onclick="toggleKasten(this)" style="flex: 1; cursor: pointer;">
+                        <h6 class="d-inline">📦 {{ bereich.bezeichnung|upper }}</h6>
+                        <span class="toggle-icon ms-2">▼</span>
+                    </div>
+                    <div class="btn-group-vertical btn-group-sm ms-2">
+                        <a href="{% url 'hr:kasten_detail' bereich.kuerzel %}" class="btn btn-outline-light btn-sm" title="Details anzeigen">
+                            🔍 Details
+                        </a>
+                        <button class="btn btn-light btn-sm"
+                                hx-get="{% url 'hr:kasten_stelle_form' %}?org_kuerzel={{ bereich.kuerzel }}"
+                                hx-target="#modal-container"
+                                hx-swap="innerHTML"
+                                title="Neue Stelle">
+                            ➕ Stelle
+                        </button>
+                        <button class="btn btn-light btn-sm"
+                                hx-get="{% url 'hr:kasten_abteilung_form' %}?bereich_kuerzel={{ bereich.kuerzel }}"
+                                hx-target="#modal-container"
+                                hx-swap="innerHTML"
+                                title="Neue Abteilung">
+                            ➕ Abteilung
+                        </button>
+                    </div>
+                </div>
+                <div class="kasten-inhalt">
+                    {% for stelle in bereich.stellen %}
+                    <div class="stelle-zeile stelle-{{ stelle.kategorie }}">
+                        <span class="stelle-icon">
+                            {% if stelle.kategorie == 'leitung' %}👔
+                            {% elif stelle.kategorie == 'stab' %}📎
+                            {% else %}👤{% endif %}
+                        </span>
+                        <span class="stelle-name">{{ stelle.kuerzel }} - {{ stelle.bezeichnung }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-muted small">Keine Stellen vorhanden</div>
+                    {% endfor %}
+
+                    <!-- Abteilungen -->
+                    {% if bereich.abteilungen %}
+                    <div class="org-connector-small">↓</div>
+                    <div class="abteilungen-container">
+                        {% for abteilung in bereich.abteilungen %}
+                        <div class="org-kasten-klein kasten-abteilung">
+                            <div class="kasten-header-klein">
+                                <div onclick="toggleKasten(this)" style="flex: 1; cursor: pointer;">
+                                    <strong>🏢 {{ abteilung.kuerzel }}</strong>
+                                    <span class="toggle-icon-klein ms-1">▼</span>
+                                </div>
+                                <div class="btn-group-vertical btn-group-sm" style="font-size: 10px;">
+                                    <a href="{% url 'hr:kasten_detail' abteilung.kuerzel %}" class="btn btn-outline-light btn-sm" style="font-size: 10px; padding: 2px 4px;" title="Details">
+                                        🔍
+                                    </a>
+                                    <button class="btn btn-light btn-sm"
+                                            style="font-size: 10px; padding: 2px 4px;"
+                                            hx-get="{% url 'hr:kasten_stelle_form' %}?org_kuerzel={{ abteilung.kuerzel }}"
+                                            hx-target="#modal-container"
+                                            hx-swap="innerHTML"
+                                            title="Neue Stelle">
+                                        ➕ Stelle
+                                    </button>
+                                    <button class="btn btn-light btn-sm"
+                                            style="font-size: 10px; padding: 2px 4px;"
+                                            hx-get="{% url 'hr:kasten_team_form' %}?abteilung_kuerzel={{ abteilung.kuerzel }}"
+                                            hx-target="#modal-container"
+                                            hx-swap="innerHTML"
+                                            title="Neues Team">
+                                        ➕ Team
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="kasten-inhalt-klein">
+                                {% for stelle in abteilung.stellen %}
+                                <div class="stelle-zeile-klein stelle-{{ stelle.kategorie }}">
+                                    {% if stelle.kategorie == 'leitung' %}👔
+                                    {% elif stelle.kategorie == 'stab' %}📎
+                                    {% else %}👤{% endif %}
+                                    {{ stelle.kuerzel }}
+                                    {% if stelle.ist_besetzt %}
+                                    <br><small>({{ stelle.aktueller_inhaber.vollname }})</small>
+                                    {% endif %}
+                                </div>
+                                {% empty %}
+                                <div class="text-muted small">Keine Stellen</div>
+                                {% endfor %}
+
+                                <!-- Teams unter Abteilung -->
+                                {% if abteilung.teams %}
+                                <div class="org-connector-smaller">↓</div>
+                                <div class="teams-container">
+                                    {% for team in abteilung.teams %}
+                                    <div class="org-kasten-tiny kasten-team">
+                                        <div class="kasten-header-tiny">
+                                            <div onclick="toggleKasten(this)" style="flex: 1; cursor: pointer;">
+                                                <strong>👥 {{ team.kuerzel }}</strong>
+                                                <span class="toggle-icon-tiny ms-1">▼</span>
+                                            </div>
+                                            <button class="btn btn-light btn-sm"
+                                                    style="font-size: 8px; padding: 1px 3px;"
+                                                    hx-get="{% url 'hr:kasten_stelle_form' %}?org_kuerzel={{ team.kuerzel }}"
+                                                    hx-target="#modal-container"
+                                                    hx-swap="innerHTML"
+                                                    title="Neue Stelle">
+                                                ➕
+                                            </button>
+                                        </div>
+                                        <div class="kasten-inhalt-tiny">
+                                            {% for stelle in team.stellen %}
+                                            <div class="stelle-zeile-tiny">
+                                                {% if stelle.kategorie == 'leitung' %}👔
+                                                {% elif stelle.kategorie == 'stab' %}📎
+                                                {% else %}👤{% endif %}
+                                                {{ stelle.kuerzel }}
+                                            </div>
+                                            {% empty %}
+                                            <div class="text-muted" style="font-size: 8px;">Leer</div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-muted">Keine Bereiche vorhanden. Klicke oben auf "➕ Neuer Bereich"</div>
+            {% endfor %}
+        </div>
+
+    </div>
+</div>
+
+<style>
+.organigramm-container {
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.org-ebene {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.org-ebene-flex {
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.org-kasten {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    min-width: 300px;
+    max-width: 400px;
+    overflow: hidden;
+}
+
+.kasten-gf {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.kasten-bereich {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.kasten-header {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(255,255,255,0.3);
+}
+
+.kasten-header h5, .kasten-header h6 {
+    margin: 0;
+}
+
+.toggle-icon {
+    font-size: 14px;
+    transition: transform 0.3s;
+}
+
+.kasten-header.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.kasten-inhalt {
+    padding: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.kasten-header.collapsed + .kasten-inhalt {
+    display: none;
+}
+
+.stelle-zeile {
+    padding: 8px 12px;
+    margin: 5px 0;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stelle-leitung {
+    background: rgba(220, 53, 69, 0.3);
+    font-weight: bold;
+}
+
+.stelle-stab {
+    background: rgba(255, 193, 7, 0.3);
+}
+
+.stelle-fachkraft {
+    background: rgba(25, 135, 84, 0.2);
+}
+
+.stelle-icon {
+    font-size: 18px;
+}
+
+.stelle-name {
+    flex: 1;
+}
+
+.stelle-inhaber {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.org-connector {
+    text-align: center;
+    font-size: 24px;
+    color: #6c757d;
+    margin: 10px 0;
+}
+
+.org-connector-small {
+    text-align: center;
+    font-size: 18px;
+    color: rgba(255,255,255,0.7);
+    margin: 10px 0;
+}
+
+.abteilungen-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.org-kasten-klein {
+    background: rgba(255,255,255,0.3);
+    border-radius: 6px;
+    padding: 8px;
+    min-width: 120px;
+    flex: 1;
+}
+
+.kasten-abteilung {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+}
+
+.kasten-header-klein {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+    margin-bottom: 5px;
+}
+
+.toggle-icon-klein {
+    font-size: 10px;
+}
+
+.kasten-header-klein.collapsed .toggle-icon-klein {
+    transform: rotate(-90deg);
+}
+
+.kasten-inhalt-klein {
+    padding: 5px;
+}
+
+.kasten-header-klein.collapsed + .kasten-inhalt-klein {
+    display: none;
+}
+
+.stelle-zeile-klein {
+    padding: 4px 6px;
+    margin: 3px 0;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.2);
+    font-size: 12px;
+}
+
+/* Teams (4. Ebene) */
+.org-connector-smaller {
+    text-align: center;
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    margin: 8px 0;
+}
+
+.teams-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.org-kasten-tiny {
+    background: rgba(255,255,255,0.25);
+    border-radius: 4px;
+    padding: 4px;
+    min-width: 80px;
+    flex: 1;
+    max-width: 150px;
+}
+
+.kasten-team {
+    background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+    color: white;
+}
+
+.kasten-header-tiny {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    margin-bottom: 3px;
+    font-size: 10px;
+}
+
+.toggle-icon-tiny {
+    font-size: 8px;
+}
+
+.kasten-header-tiny.collapsed .toggle-icon-tiny {
+    transform: rotate(-90deg);
+}
+
+.kasten-inhalt-tiny {
+    padding: 3px;
+    font-size: 9px;
+}
+
+.kasten-header-tiny.collapsed + .kasten-inhalt-tiny {
+    display: none;
+}
+
+.stelle-zeile-tiny {
+    padding: 2px 4px;
+    margin: 2px 0;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.2);
+    font-size: 9px;
+}
+</style>
+
+<script>
+function toggleKasten(header) {
+    header.classList.toggle('collapsed');
+}
+</script>
+
+{% endblock %}
