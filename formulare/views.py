@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import date as date_type, timedelta
 from itertools import chain
@@ -5,7 +6,7 @@ from operator import attrgetter
 
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 
@@ -15,8 +16,14 @@ from arbeitszeit.models import (
     Zeiterfassung,
     get_feiertagskalender,
 )
-from formulare.forms import AenderungZeiterfassungForm
-from formulare.models import AenderungZeiterfassung, ZAGAntrag, ZAGStorno
+from formulare.forms import AenderungZeiterfassungForm, DienstreiseantragForm
+from formulare.models import (
+    AenderungZeiterfassung,
+    Dienstreiseantrag,
+    TeamQueue,
+    ZAGAntrag,
+    ZAGStorno,
+)
 
 WOCHENTAG_MAP = {
     0: "montag",
@@ -1262,3 +1269,380 @@ def genehmigung_entscheiden(request, antrag_typ, pk):
         )
 
     return redirect("formulare:genehmigung_uebersicht")
+
+# ============================================================================
+# DIENSTREISE-VIEWS
+# ============================================================================
+
+
+@login_required
+def dienstreise_erstellen(request):
+    """Erstelle einen neuen Dienstreiseantrag.
+
+    HTMX-Pattern: Inline-Validierung + Partial-Rendering.
+    """
+    mitarbeiter = get_object_or_404(
+        request.user.mitarbeiter.__class__,
+        user=request.user
+    )
+
+    if request.method == "POST":
+        form = DienstreiseantragForm(request.POST)
+        if form.is_valid():
+            antrag = form.save(commit=False)
+            antrag.antragsteller = mitarbeiter
+            antrag.save()
+
+            # Workflow automatisch starten (via Signal - siehe signals.py)
+
+            # HTMX: Erfolgs-Partial
+            if request.headers.get("HX-Request"):
+                return render(
+                    request,
+                    "formulare/partials/_dienstreise_erfolg.html",
+                    {"antrag": antrag},
+                )
+
+            return redirect("formulare:dienstreise_uebersicht")
+
+        # HTMX: Formular mit Fehlern zurueckgeben
+        if request.headers.get("HX-Request"):
+            return render(
+                request,
+                "formulare/partials/_dienstreise_formular.html",
+                {"form": form},
+            )
+
+    else:
+        form = DienstreiseantragForm()
+
+    context = {"form": form}
+
+    # HTMX: Nur Formular-Partial
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "formulare/partials/_dienstreise_formular.html",
+            context,
+        )
+
+    return render(request, "formulare/dienstreise_erstellen.html", context)
+
+
+@login_required
+def dienstreise_uebersicht(request):
+    """Zeigt alle Dienstreiseantraege des Users."""
+    mitarbeiter = get_object_or_404(
+        request.user.mitarbeiter.__class__,
+        user=request.user
+    )
+
+    antraege = Dienstreiseantrag.objects.filter(
+        antragsteller=mitarbeiter
+    ).select_related("workflow_instance").order_by("-erstellt_am")
+
+    context = {"antraege": antraege}
+
+    # HTMX: Partial
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "formulare/partials/_dienstreise_liste.html",
+            context,
+        )
+
+    return render(request, "formulare/dienstreise_uebersicht.html", context)
+
+
+@login_required
+def api_team_queues(request):
+    """API-Endpunkt: Gibt alle Team-Queues als JSON zurueck.
+
+    Wird vom Workflow-Editor verwendet um Team-Dropdown zu befuellen.
+    """
+    teams = TeamQueue.objects.all().order_by("name")
+
+    data = {
+        "teams": [
+            {
+                "id": team.id,
+                "name": team.name,
+            }
+            for team in teams
+        ]
+    }
+
+    return JsonResponse(data)
+
+
+# ============================================================================
+# TEAM-BUILDER
+# ============================================================================
+
+@login_required
+def team_builder(request):
+    """Team-Builder: Visuelle Verwaltung von Team-Queues."""
+    from django.contrib.auth import get_user_model
+    from hr.models import OrgEinheit
+
+    User = get_user_model()
+
+    # OrgEinheit aus Query-Parameter
+    org_kuerzel = request.GET.get("org")
+    org = None
+    if org_kuerzel:
+        try:
+            org = OrgEinheit.objects.get(kuerzel=org_kuerzel)
+        except OrgEinheit.DoesNotExist:
+            pass
+
+    teams = TeamQueue.objects.all().prefetch_related("mitglieder").order_by("name")
+
+    # User-Liste: Wenn OrgEinheit angegeben, zuerst deren Mitarbeiter
+    org_users = None
+    other_users = None
+    all_users = None
+
+    if org:
+        # Mitarbeiter dieser OrgEinheit (via HRMitarbeiter -> Stelle -> OrgEinheit)
+        org_users = User.objects.filter(
+            is_active=True,
+            hr_mitarbeiter__stelle__org_einheit=org
+        ).distinct().order_by("last_name", "first_name", "username")
+
+        # Andere Mitarbeiter
+        other_users = User.objects.filter(is_active=True).exclude(
+            id__in=org_users.values_list("id", flat=True)
+        ).order_by("last_name", "first_name", "username")
+    else:
+        all_users = User.objects.filter(is_active=True).order_by(
+            "last_name", "first_name", "username"
+        )
+
+    context = {
+        "teams": teams,
+        "all_users": all_users,
+        "org_users": org_users,
+        "other_users": other_users,
+        "org": org,
+        "org_kuerzel": org_kuerzel,
+    }
+
+    return render(request, "formulare/team_builder.html", context)
+
+
+@login_required
+def team_builder_detail(request, pk):
+    """API: Team-Details laden."""
+    team = get_object_or_404(TeamQueue, pk=pk)
+
+    data = {
+        "id": team.id,
+        "name": team.name,
+        "beschreibung": team.beschreibung,
+    }
+
+    return JsonResponse(data)
+
+
+@login_required
+def team_builder_create(request):
+    """API: Neues Team erstellen."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        name = data.get("name", "").strip()
+        beschreibung = data.get("beschreibung", "").strip()
+
+        if not name:
+            return JsonResponse({"error": "Name erforderlich"}, status=400)
+
+        team = TeamQueue.objects.create(
+            name=name,
+            beschreibung=beschreibung
+        )
+
+        return JsonResponse({
+            "success": True,
+            "id": team.id,
+            "message": f"Team '{team.name}' erstellt"
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Ungueltige JSON-Daten"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def team_builder_update(request, pk):
+    """API: Team bearbeiten."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    team = get_object_or_404(TeamQueue, pk=pk)
+
+    try:
+        data = json.loads(request.body)
+        name = data.get("name", "").strip()
+        beschreibung = data.get("beschreibung", "").strip()
+
+        if not name:
+            return JsonResponse({"error": "Name erforderlich"}, status=400)
+
+        team.name = name
+        team.beschreibung = beschreibung
+        team.save()
+
+        return JsonResponse({
+            "success": True,
+            "message": f"Team '{team.name}' aktualisiert"
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Ungueltige JSON-Daten"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def team_builder_delete(request, pk):
+    """API: Team loeschen."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    team = get_object_or_404(TeamQueue, pk=pk)
+
+    # Pruefe ob Team in Workflows verwendet wird
+    from workflow.models import WorkflowStep, WorkflowTask
+
+    verwendung_steps = WorkflowStep.objects.filter(zustaendig_team=team).count()
+    verwendung_tasks = WorkflowTask.objects.filter(zugewiesen_an_team=team).count()
+
+    if verwendung_steps > 0 or verwendung_tasks > 0:
+        return JsonResponse({
+            "error": f"Team wird in {verwendung_steps} Workflow-Schritten und {verwendung_tasks} Tasks verwendet"
+        }, status=400)
+
+    team_name = team.name
+    team.delete()
+
+    return JsonResponse({
+        "success": True,
+        "message": f"Team '{team_name}' geloescht"
+    })
+
+
+@login_required
+def team_builder_add_member(request, pk):
+    """API: Mitglied zum Team hinzufuegen."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    team = get_object_or_404(TeamQueue, pk=pk)
+
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+
+        if not user_id:
+            return JsonResponse({"error": "User-ID erforderlich"}, status=400)
+
+        user = get_object_or_404(User, pk=user_id)
+
+        if team.mitglieder.filter(id=user.id).exists():
+            return JsonResponse({"error": "User ist bereits Mitglied"}, status=400)
+
+        team.mitglieder.add(user)
+
+        return JsonResponse({
+            "success": True,
+            "message": f"{user.username} zu '{team.name}' hinzugefuegt"
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Ungueltige JSON-Daten"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def team_builder_remove_member(request, pk):
+    """API: Mitglied aus Team entfernen."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    team = get_object_or_404(TeamQueue, pk=pk)
+
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+
+        if not user_id:
+            return JsonResponse({"error": "User-ID erforderlich"}, status=400)
+
+        user = get_object_or_404(User, pk=user_id)
+        team.mitglieder.remove(user)
+
+        return JsonResponse({
+            "success": True,
+            "message": f"{user.username} aus '{team.name}' entfernt"
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Ungueltige JSON-Daten"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def meine_dienstreisen(request):
+    """Uebersicht ueber alle Dienstreisen des aktuellen Users.
+
+    Zeigt Status, Workflow-Fortschritt und ermoeglicht Zugriff
+    auf detaillierte Workflow-Status-Ansicht.
+    """
+    # Hole Mitarbeiter des Users
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except AttributeError:
+        # User hat keinen Mitarbeiter -> keine Dienstreisen
+        return render(request, "formulare/meine_dienstreisen.html", {
+            "antraege": [],
+            "anzahl_beantragt": 0,
+            "anzahl_genehmigt": 0,
+            "anzahl_abgelehnt": 0,
+        })
+
+    # Hole alle Dienstreiseantraege des Mitarbeiters
+    antraege = Dienstreiseantrag.objects.filter(
+        antragsteller=mitarbeiter
+    ).select_related(
+        "workflow_instance",
+        "workflow_instance__template",
+        "workflow_instance__aktueller_schritt",
+    ).order_by("-erstellt_am")
+
+    # Statistiken
+    anzahl_beantragt = antraege.filter(
+        status__in=["beantragt", "in_bearbeitung"]
+    ).count()
+    anzahl_genehmigt = antraege.filter(status="genehmigt").count()
+    anzahl_abgelehnt = antraege.filter(status="abgelehnt").count()
+
+    context = {
+        "antraege": antraege,
+        "anzahl_beantragt": anzahl_beantragt,
+        "anzahl_genehmigt": anzahl_genehmigt,
+        "anzahl_abgelehnt": anzahl_abgelehnt,
+    }
+
+    return render(request, "formulare/meine_dienstreisen.html", context)

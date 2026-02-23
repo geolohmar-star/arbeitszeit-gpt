@@ -16,4 +16,5 @@ urlpatterns = [
     path('formulare/', include('formulare.urls')),
     path('berechtigungen/', include('berechtigungen.urls')),
     path('hr/', include('hr.urls')),
+    path('workflow/', include('workflow.urls')),
 ]

@@ -13,6 +13,11 @@
                 </a>
                 <h4 class="d-inline mb-0">📦 {{ org.kuerzel }} - {{ org.bezeichnung }}</h4>
             </div>
+            <div>
+                <a href="{% url 'formulare:team_builder' %}?org={{ org.kuerzel }}" class="btn btn-success btn-sm">
+                    👥 Team-Builder ({{ org.kuerzel }})
+                </a>
+            </div>
         </div>
     </div>
 

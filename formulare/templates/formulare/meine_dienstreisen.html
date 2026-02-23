@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Meine Dienstreisen{% endblock %}
+
+{% block extra_css %}
+<style>
+    .antrag-card {
+        border-left: 4px solid #6c757d;
+        transition: transform 0.2s;
+    }
+
+    .antrag-card:hover {
+        transform: translateX(5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .antrag-card.beantragt {
+        border-left-color: #ffc107;
+    }
+
+    .antrag-card.genehmigt {
+        border-left-color: #28a745;
+    }
+
+    .antrag-card.abgelehnt {
+        border-left-color: #dc3545;
+    }
+
+    .antrag-card.in_bearbeitung {
+        border-left-color: #0d6efd;
+    }
+
+    .workflow-badge {
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="mb-3">Meine Dienstreisen</h1>
+            <p class="text-muted">Übersicht über alle Ihre Dienstreiseanträge</p>
+        </div>
+        <div class="col-auto">
+            <a href="{% url 'formulare:dienstreise_erstellen' %}" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> Neue Dienstreise beantragen
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistik-Karten -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h3 class="text-warning mb-0">{{ anzahl_beantragt }}</h3>
+                    <p class="text-muted mb-0 small">In Bearbeitung</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h3 class="text-success mb-0">{{ anzahl_genehmigt }}</h3>
+                    <p class="text-muted mb-0 small">Genehmigt</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <h3 class="text-danger mb-0">{{ anzahl_abgelehnt }}</h3>
+                    <p class="text-muted mb-0 small">Abgelehnt</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h3 class="text-primary mb-0">{{ antraege.count }}</h3>
+                    <p class="text-muted mb-0 small">Gesamt</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if not antraege %}
+    <!-- Keine Anträge -->
+    <div class="alert alert-info">
+        <h4 class="alert-heading"><i class="bi bi-info-circle"></i> Noch keine Dienstreisen</h4>
+        <p class="mb-0">
+            Sie haben noch keine Dienstreisen beantragt.
+            <a href="{% url 'formulare:dienstreise_erstellen' %}" class="alert-link">Jetzt erste Dienstreise beantragen</a>
+        </p>
+    </div>
+    {% else %}
+
+    <!-- Anträge-Liste -->
+    <div class="row">
+        <div class="col-12">
+            {% for antrag in antraege %}
+            <div class="card antrag-card {{ antrag.status }} mb-3">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5 class="card-title">
+                                <i class="bi bi-airplane"></i> {{ antrag.ziel }}
+                                <span class="badge bg-{{ antrag.status|slice:':1' }} ms-2">
+                                    {{ antrag.get_status_display }}
+                                </span>
+                            </h5>
+
+                            <div class="row mt-3">
+                                <div class="col-md-4">
+                                    <p class="text-muted mb-1 small"><strong>Reisezeitraum:</strong></p>
+                                    <p class="mb-0">
+                                        {{ antrag.von_datum|date:"d.m.Y" }} - {{ antrag.bis_datum|date:"d.m.Y" }}
+                                        <span class="badge bg-secondary">{{ antrag.dauer_tage }} Tag{% if antrag.dauer_tage != 1 %}e{% endif %}</span>
+                                    </p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="text-muted mb-1 small"><strong>Kosten:</strong></p>
+                                    <p class="mb-0">{{ antrag.geschaetzte_kosten|floatformat:2 }} EUR</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="text-muted mb-1 small"><strong>Beantragt am:</strong></p>
+                                    <p class="mb-0">{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <p class="text-muted mb-1 small"><strong>Zweck:</strong></p>
+                                <p class="mb-0">{{ antrag.zweck|truncatewords:20 }}</p>
+                            </div>
+
+                            <!-- Workflow-Status -->
+                            {% if antrag.workflow_instance %}
+                            <div class="mt-3 pt-3 border-top">
+                                <p class="text-muted mb-2 small">
+                                    <i class="bi bi-diagram-3"></i> <strong>Workflow-Status:</strong>
+                                </p>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-3" style="height: 25px;">
+                                        <div class="progress-bar bg-primary" role="progressbar"
+                                             style="width: {{ antrag.workflow_instance.fortschritt }}%"
+                                             aria-valuenow="{{ antrag.workflow_instance.fortschritt }}"
+                                             aria-valuemin="0" aria-valuemax="100">
+                                            {{ antrag.workflow_instance.fortschritt|floatformat:0 }}%
+                                        </div>
+                                    </div>
+                                    <span class="badge workflow-badge bg-{{ antrag.workflow_instance.status|slice:':1' }}">
+                                        {{ antrag.workflow_instance.get_status_display }}
+                                    </span>
+                                </div>
+                                {% if antrag.workflow_instance.aktueller_schritt %}
+                                <p class="small text-muted mb-0 mt-2">
+                                    <i class="bi bi-arrow-right-circle"></i>
+                                    Aktueller Schritt: <strong>{{ antrag.workflow_instance.aktueller_schritt.titel }}</strong>
+                                </p>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-4 text-end">
+                            {% if antrag.workflow_instance %}
+                            <a href="{% url 'workflow:workflow_status' antrag.workflow_instance.pk %}"
+                               class="btn btn-primary btn-lg mb-2">
+                                <i class="bi bi-diagram-3"></i> Workflow-Status
+                            </a>
+                            {% endif %}
+
+                            {% if antrag.status == 'beantragt' or antrag.status == 'in_bearbeitung' %}
+                            <p class="text-muted small mb-0">
+                                <i class="bi bi-clock-history"></i> In Bearbeitung
+                            </p>
+                            {% elif antrag.status == 'genehmigt' %}
+                            <p class="text-success small mb-2">
+                                <i class="bi bi-check-circle-fill"></i> Genehmigt
+                            </p>
+                            {% if antrag.bearbeitet_am %}
+                            <p class="text-muted small mb-0">
+                                am {{ antrag.bearbeitet_am|date:"d.m.Y" }}
+                            </p>
+                            {% endif %}
+                            {% if antrag.einladungscode %}
+                            <div class="alert alert-success mt-2 py-2">
+                                <small><strong>Einladungscode:</strong></small><br>
+                                <code class="fs-6">{{ antrag.einladungscode }}</code>
+                            </div>
+                            {% endif %}
+                            {% elif antrag.status == 'abgelehnt' %}
+                            <p class="text-danger small mb-2">
+                                <i class="bi bi-x-circle-fill"></i> Abgelehnt
+                            </p>
+                            {% if antrag.bearbeitet_am %}
+                            <p class="text-muted small mb-0">
+                                am {{ antrag.bearbeitet_am|date:"d.m.Y" }}
+                            </p>
+                            {% endif %}
+                            {% if antrag.bemerkung_bearbeiter %}
+                            <div class="alert alert-danger mt-2 py-2">
+                                <small><strong>Grund:</strong></small><br>
+                                <small>{{ antrag.bemerkung_bearbeiter }}</small>
+                            </div>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}

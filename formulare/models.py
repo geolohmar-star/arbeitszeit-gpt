@@ -264,6 +264,83 @@ class ZAGStorno(Antrag):
         return f"Z-AG Storno - {self.antragsteller}"
 
 
+class Dienstreiseantrag(Antrag):
+    """Antrag auf Dienstreise.
+
+    Speichert Reisedaten und wird mit Workflow-System verknuepft.
+    Nach Genehmigung kann Einladungscode generiert werden fuer
+    Reisezeit-Antrag (1/3 ausserhalb Arbeitszeit).
+    """
+
+    # Reisedaten
+    von_datum = models.DateField(verbose_name="Reisebeginn")
+    bis_datum = models.DateField(verbose_name="Reiseende")
+    ziel = models.CharField(
+        max_length=200,
+        verbose_name="Reiseziel",
+        help_text="Stadt, Land oder Veranstaltungsort",
+    )
+    zweck = models.TextField(
+        verbose_name="Zweck der Dienstreise",
+        help_text="Grund und Ziel der Reise (z.B. Kundentermin, Schulung, Messe)",
+    )
+
+    # Kosten
+    geschaetzte_kosten = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name="Geschaetzte Kosten (EUR)",
+        help_text="Geschaetzte Gesamtkosten inkl. Fahrt, Unterkunft, Verpflegung",
+    )
+
+    # Workflow-Verknuepfung
+    workflow_instance = models.ForeignKey(
+        "workflow.WorkflowInstance",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="dienstreiseantraege",
+        verbose_name="Workflow-Instanz",
+    )
+
+    # Einladungscode fuer Reisezeit-Antrag (wird nach Genehmigung generiert)
+    einladungscode = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        unique=True,
+        verbose_name="Einladungscode",
+        help_text="Code fuer Mitarbeiter um Reisezeit-Antrag zu stellen",
+    )
+
+    class Meta:
+        ordering = ["-erstellt_am"]
+        verbose_name = "Dienstreiseantrag"
+        verbose_name_plural = "Dienstreiseantraege"
+
+    def get_betreff(self):
+        """Eindeutige Betreffzeile fuer diesen Antrag."""
+        ma = self.antragsteller
+        ortszeit = timezone.localtime(self.erstellt_am)
+        zeitstempel = ortszeit.strftime("%Y%m%d-%H%M%S")
+        return (
+            f"DR-{ma.vorname} {ma.nachname}"
+            f"-{ma.personalnummer}"
+            f"-{zeitstempel}"
+        )
+
+    def __str__(self):
+        return f"Dienstreise {self.ziel} ({self.von_datum} - {self.bis_datum}) - {self.antragsteller}"
+
+    @property
+    def dauer_tage(self):
+        """Berechnet die Dauer der Dienstreise in Tagen."""
+        if self.von_datum and self.bis_datum:
+            return (self.bis_datum - self.von_datum).days + 1
+        return 0
+
+
 class TeamQueue(models.Model):
     """Team-Bearbeitungsstapel fuer genehmigte Antraege.
 

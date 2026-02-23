@@ -1,0 +1,80 @@
+{% if antraege %}
+<div class="row">
+    {% for antrag in antraege %}
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ antrag.ziel }}</h5>
+                    {% if antrag.status == 'beantragt' %}
+                    <span class="badge bg-warning">Beantragt</span>
+                    {% elif antrag.status == 'genehmigt' %}
+                    <span class="badge bg-success">Genehmigt</span>
+                    {% elif antrag.status == 'abgelehnt' %}
+                    <span class="badge bg-danger">Abgelehnt</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ antrag.get_status_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>Zeitraum:</strong><br>
+                    {{ antrag.von_datum|date:"d.m.Y" }} - {{ antrag.bis_datum|date:"d.m.Y" }}
+                    ({{ antrag.dauer_tage }} Tag{% if antrag.dauer_tage != 1 %}e{% endif %})
+                </p>
+                <p class="mb-2">
+                    <strong>Zweck:</strong><br>
+                    {{ antrag.zweck|truncatewords:20 }}
+                </p>
+                <p class="mb-2">
+                    <strong>Kosten:</strong> {{ antrag.geschaetzte_kosten|floatformat:2 }} EUR
+                </p>
+                <p class="mb-2">
+                    <strong>Erstellt am:</strong> {{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr
+                </p>
+
+                {% if antrag.workflow_instance %}
+                <hr>
+                <div class="mb-2">
+                    <strong>Workflow-Status:</strong>
+                    <span class="badge bg-info">{{ antrag.workflow_instance.get_status_display }}</span>
+                </div>
+                {% if antrag.workflow_instance.status == 'laufend' %}
+                <div class="progress mb-2">
+                    <div class="progress-bar" role="progressbar"
+                         style="width: {{ antrag.workflow_instance.fortschritt }}%"
+                         aria-valuenow="{{ antrag.workflow_instance.fortschritt }}"
+                         aria-valuemin="0" aria-valuemax="100">
+                        {{ antrag.workflow_instance.fortschritt }}%
+                    </div>
+                </div>
+                <p class="small text-muted mb-0">
+                    Aktueller Schritt: {{ antrag.workflow_instance.aktueller_schritt.titel }}
+                </p>
+                {% endif %}
+                {% endif %}
+
+                {% if antrag.einladungscode %}
+                <hr>
+                <div class="alert alert-info mb-0">
+                    <strong>Einladungscode:</strong>
+                    <code class="fs-5">{{ antrag.einladungscode }}</code>
+                    <p class="small mb-0 mt-2">
+                        Mit diesem Code koennen Sie Reisezeit-Antraege stellen.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+    <h5 class="alert-heading">Keine Antraege vorhanden</h5>
+    <p class="mb-0">
+        Sie haben noch keine Dienstreiseantraege erstellt.
+    </p>
+</div>
+{% endif %}

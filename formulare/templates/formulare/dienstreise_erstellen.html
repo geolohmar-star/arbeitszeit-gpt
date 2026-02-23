@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Dienstreiseantrag erstellen{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Dienstreiseantrag erstellen</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Bitte fuellen Sie alle Felder aus. Nach dem Absenden wird automatisch
+                        ein Genehmigungsworkflow gestartet.
+                    </p>
+
+                    <div id="formular-container">
+                        {% include "formulare/partials/_dienstreise_formular.html" %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <a href="{% url 'formulare:dienstreise_uebersicht' %}" class="btn btn-secondary">
+                    &larr; Zurueck zur Uebersicht
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

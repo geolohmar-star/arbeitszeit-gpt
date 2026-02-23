@@ -61,17 +61,21 @@ def mitarbeiter_liste(request):
 @user_passes_test(_ist_staff)
 def organigramm(request):
     """Uebersichtsseite fuer alle Organigramm- und Builder-Optionen."""
+    from formulare.models import TeamQueue
+
     # Statistiken
     orgeinheiten_count = OrgEinheit.objects.count()
     stellen_count = Stelle.objects.count()
     stellen_besetzt = Stelle.objects.filter(hrmitarbeiter__isnull=False).count()
     mitarbeiter_count = HRMitarbeiter.objects.count()
+    teams_count = TeamQueue.objects.count()
 
     return render(request, "hr/organigramm_hub.html", {
         "orgeinheiten_count": orgeinheiten_count,
         "stellen_count": stellen_count,
         "stellen_besetzt": stellen_besetzt,
         "mitarbeiter_count": mitarbeiter_count,
+        "teams_count": teams_count,
     })
 
 

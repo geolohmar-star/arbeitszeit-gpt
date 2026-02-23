@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+
+{% block title %}{{ task.step.titel }} - Workflow{% endblock %}
+
+{% block extra_css %}
+<style>
+    .workflow-step {
+        padding: 15px;
+        margin-bottom: 10px;
+        border-left: 4px solid #dee2e6;
+        background-color: #f8f9fa;
+    }
+
+    .workflow-step.current {
+        border-left-color: #0d6efd;
+        background-color: #e7f1ff;
+    }
+
+    .workflow-step.completed {
+        border-left-color: #28a745;
+        background-color: #e8f5e9;
+    }
+
+    .task-info-box {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #0d6efd;
+    }
+
+    .decision-btn {
+        min-width: 150px;
+        margin: 5px;
+    }
+
+    .content-object-box {
+        background-color: #fff3cd;
+        border: 1px solid #ffc107;
+        padding: 15px;
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Zurück-Button -->
+    <div class="mb-3">
+        <a href="{% url 'workflow:arbeitsstapel' %}" class="btn btn-secondary">
+            &larr; Zurück zum Arbeitsstapel
+        </a>
+        <a href="{% url 'workflow:workflow_status' task.instance.pk %}" class="btn btn-outline-primary">
+            <i class="bi bi-diagram-3"></i> Workflow-Status anzeigen
+        </a>
+    </div>
+
+    <!-- Task-Überschrift -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1>{{ task.step.titel }}</h1>
+            <p class="text-muted">Workflow: {{ task.instance.template.name }}</p>
+        </div>
+        <div class="col-auto">
+            {% if task.ist_ueberfaellig %}
+            <span class="badge bg-danger fs-5">ÜBERFÄLLIG</span>
+            {% elif task.ist_heute_faellig %}
+            <span class="badge bg-warning text-dark fs-5">HEUTE FÄLLIG</span>
+            {% else %}
+            <span class="badge bg-primary fs-5">{{ task.get_status_display|upper }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Linke Spalte: Task-Details -->
+        <div class="col-md-8">
+            <!-- Verknüpftes Objekt -->
+            {% if task.instance.content_object %}
+            <div class="content-object-box mb-4">
+                <h5 class="mb-3">Verknüpftes Objekt</h5>
+                <p class="mb-2">
+                    <strong>Typ:</strong> {{ task.instance.content_type }}
+                </p>
+                <p class="mb-0">
+                    <strong>Objekt:</strong> {{ task.instance.content_object }}
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Schritt-Beschreibung -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Aufgabenbeschreibung</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Aktion:</strong> {{ task.step.get_aktion_typ_display }}
+                    </p>
+                    {% if task.step.beschreibung %}
+                    <p class="mb-0">{{ task.step.beschreibung|linebreaks }}</p>
+                    {% else %}
+                    <p class="text-muted mb-0">Keine zusätzliche Beschreibung vorhanden.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Entscheidung treffen -->
+            {% if task.status != 'erledigt' %}
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Entscheidung treffen</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'workflow:task_bearbeiten' task.pk %}">
+                        {% csrf_token %}
+
+                        <!-- Entscheidungs-Buttons -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Ihre Entscheidung:</label>
+                            <div class="d-flex flex-wrap justify-content-center">
+                                <button type="submit" name="entscheidung" value="genehmigt"
+                                        class="btn btn-success decision-btn">
+                                    ✓ Genehmigen
+                                </button>
+                                <button type="submit" name="entscheidung" value="abgelehnt"
+                                        class="btn btn-danger decision-btn">
+                                    ✗ Ablehnen
+                                </button>
+                                <button type="submit" name="entscheidung" value="zurueckgestellt"
+                                        class="btn btn-warning decision-btn">
+                                    ⏸ Zurückstellen
+                                </button>
+                                <button type="submit" name="entscheidung" value="weitergeleitet"
+                                        class="btn btn-info decision-btn">
+                                    → Weiterleiten
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Kommentar -->
+                        <div class="mb-3">
+                            <label for="kommentar" class="form-label fw-bold">Kommentar (optional):</label>
+                            <textarea class="form-control" id="kommentar" name="kommentar"
+                                      rows="4" placeholder="Optionale Anmerkung zu Ihrer Entscheidung..."></textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <!-- Task bereits erledigt -->
+            <div class="alert alert-success">
+                <h5 class="alert-heading">Task bereits erledigt</h5>
+                <p class="mb-2">
+                    <strong>Entscheidung:</strong> {{ task.get_entscheidung_display }}
+                </p>
+                <p class="mb-2">
+                    <strong>Erledigt am:</strong> {{ task.erledigt_am|date:"d.m.Y H:i" }}
+                </p>
+                <p class="mb-2">
+                    <strong>Erledigt von:</strong> {{ task.erledigt_von }}
+                </p>
+                {% if task.kommentar %}
+                <hr>
+                <p class="mb-0"><strong>Kommentar:</strong><br>{{ task.kommentar|linebreaks }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Workflow-Verlauf -->
+            <div class="card mt-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Workflow-Verlauf</h5>
+                </div>
+                <div class="card-body">
+                    {% for wf_task in workflow_tasks %}
+                    <div class="workflow-step {% if wf_task.pk == task.pk %}current{% elif wf_task.status == 'erledigt' %}completed{% endif %}">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6>
+                                    {% if wf_task.status == 'erledigt' %}
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                    {% elif wf_task.pk == task.pk %}
+                                    <i class="bi bi-arrow-right-circle-fill text-primary"></i>
+                                    {% else %}
+                                    <i class="bi bi-circle text-muted"></i>
+                                    {% endif %}
+                                    {{ wf_task.step.reihenfolge }}. {{ wf_task.step.titel }}
+                                </h6>
+                                <p class="text-muted mb-0 small ms-4">
+                                    {{ wf_task.step.get_aktion_typ_display }}
+                                    {% if wf_task.zugewiesen_an_user %}
+                                    | <strong>Zuständig:</strong> {{ wf_task.zugewiesen_an_user.get_full_name|default:wf_task.zugewiesen_an_user.username }}
+                                    {% elif wf_task.zugewiesen_an_stelle %}
+                                    | <strong>Zuständig:</strong> {{ wf_task.zugewiesen_an_stelle.bezeichnung }}
+                                    {% if wf_task.zugewiesen_an_stelle.ist_besetzt %}
+                                    ({{ wf_task.zugewiesen_an_stelle.aktueller_inhaber.user.get_full_name|default:wf_task.zugewiesen_an_stelle.aktueller_inhaber.user.username }})
+                                    {% endif %}
+                                    {% elif wf_task.zugewiesen_an_team %}
+                                    | <strong>Zuständig:</strong> Team {{ wf_task.zugewiesen_an_team.name }}
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                {% if wf_task.status == 'erledigt' %}
+                                <span class="badge bg-success">✓ Erledigt</span>
+                                <p class="small text-muted mb-0">
+                                    {{ wf_task.erledigt_am|date:"d.m.Y H:i" }}
+                                </p>
+                                <p class="small text-muted mb-0">
+                                    von {{ wf_task.erledigt_von.get_full_name|default:wf_task.erledigt_von.username }}
+                                </p>
+                                {% elif wf_task.pk == task.pk %}
+                                <span class="badge bg-primary">◄ Sie sind hier</span>
+                                <p class="small text-muted mb-0">
+                                    Frist: {{ wf_task.frist|date:"d.m.Y" }}
+                                </p>
+                                {% else %}
+                                <span class="badge bg-secondary">Wartet</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if wf_task.status == 'erledigt' %}
+                        <div class="mt-2 small ms-4">
+                            <strong>Entscheidung:</strong> {{ wf_task.get_entscheidung_display }}
+                            {% if wf_task.kommentar %}
+                            <br><strong>Kommentar:</strong> {{ wf_task.kommentar }}
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Rechte Spalte: Task-Informationen -->
+        <div class="col-md-4">
+            <div class="task-info-box">
+                <h5 class="mb-3">Task-Informationen</h5>
+
+                <div class="mb-3">
+                    <strong>Status:</strong><br>
+                    <span class="badge bg-{{ task.status|slice:':1' }}">{{ task.get_status_display }}</span>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Frist:</strong><br>
+                    <span class="{% if task.ist_ueberfaellig %}text-danger{% elif task.ist_heute_faellig %}text-warning{% endif %}">
+                        {{ task.frist|date:"d.m.Y H:i" }} Uhr
+                    </span>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Erstellt am:</strong><br>
+                    {{ task.erstellt_am|date:"d.m.Y H:i" }} Uhr
+                </div>
+
+                <div class="mb-3">
+                    <strong>Zugewiesen an:</strong><br>
+                    {% if task.zugewiesen_an_user %}
+                        {{ task.zugewiesen_an_user.get_full_name }}
+                    {% elif task.zugewiesen_an_stelle %}
+                        {{ task.zugewiesen_an_stelle.bezeichnung }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+
+                {% if task.step.frist_tage %}
+                <div class="mb-3">
+                    <strong>Standard-Frist:</strong><br>
+                    {{ task.step.frist_tage }} Tag{% if task.step.frist_tage != 1 %}e{% endif %}
+                </div>
+                {% endif %}
+
+                <hr>
+
+                <h6 class="mb-3">Workflow-Info</h6>
+
+                <div class="mb-3">
+                    <strong>Template:</strong><br>
+                    {{ task.instance.template.name }}
+                </div>
+
+                <div class="mb-3">
+                    <strong>Kategorie:</strong><br>
+                    {{ task.instance.template.get_kategorie_display }}
+                </div>
+
+                <div class="mb-3">
+                    <strong>Fortschritt:</strong><br>
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar"
+                             style="width: {{ task.instance.fortschritt }}%"
+                             aria-valuenow="{{ task.instance.fortschritt }}"
+                             aria-valuemin="0" aria-valuemax="100">
+                            {{ task.instance.fortschritt }}%
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-0">
+                    <strong>Gestartet am:</strong><br>
+                    {{ task.instance.gestartet_am|date:"d.m.Y H:i" }} Uhr
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

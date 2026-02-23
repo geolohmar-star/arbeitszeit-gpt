@@ -1,0 +1,73 @@
+<form hx-post="{% url 'formulare:dienstreise_erstellen' %}"
+      hx-target="#formular-container"
+      hx-swap="innerHTML">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+        {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    <div class="mb-3">
+        <label for="{{ form.von_datum.id_for_label }}" class="form-label">
+            {{ form.von_datum.label }} *
+        </label>
+        {{ form.von_datum }}
+        {% if form.von_datum.errors %}
+        <div class="text-danger small">{{ form.von_datum.errors }}</div>
+        {% endif %}
+    </div>
+
+    <div class="mb-3">
+        <label for="{{ form.bis_datum.id_for_label }}" class="form-label">
+            {{ form.bis_datum.label }} *
+        </label>
+        {{ form.bis_datum }}
+        {% if form.bis_datum.errors %}
+        <div class="text-danger small">{{ form.bis_datum.errors }}</div>
+        {% endif %}
+    </div>
+
+    <div class="mb-3">
+        <label for="{{ form.ziel.id_for_label }}" class="form-label">
+            {{ form.ziel.label }} *
+        </label>
+        {{ form.ziel }}
+        {% if form.ziel.errors %}
+        <div class="text-danger small">{{ form.ziel.errors }}</div>
+        {% endif %}
+        <small class="form-text text-muted">{{ form.ziel.help_text }}</small>
+    </div>
+
+    <div class="mb-3">
+        <label for="{{ form.zweck.id_for_label }}" class="form-label">
+            {{ form.zweck.label }} *
+        </label>
+        {{ form.zweck }}
+        {% if form.zweck.errors %}
+        <div class="text-danger small">{{ form.zweck.errors }}</div>
+        {% endif %}
+        <small class="form-text text-muted">{{ form.zweck.help_text }}</small>
+    </div>
+
+    <div class="mb-3">
+        <label for="{{ form.geschaetzte_kosten.id_for_label }}" class="form-label">
+            {{ form.geschaetzte_kosten.label }} *
+        </label>
+        <div class="input-group">
+            {{ form.geschaetzte_kosten }}
+            <span class="input-group-text">EUR</span>
+        </div>
+        {% if form.geschaetzte_kosten.errors %}
+        <div class="text-danger small">{{ form.geschaetzte_kosten.errors }}</div>
+        {% endif %}
+        <small class="form-text text-muted">{{ form.geschaetzte_kosten.help_text }}</small>
+    </div>
+
+    <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-primary btn-lg">
+            Antrag absenden
+        </button>
+    </div>
+</form>

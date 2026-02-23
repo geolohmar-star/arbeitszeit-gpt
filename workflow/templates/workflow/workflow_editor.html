@@ -1,0 +1,834 @@
+{% extends "base.html" %}
+
+{% block title %}Workflow-Editor{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <!-- Toolbar -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h4 class="mb-0">⚙️ Workflow-Editor</h4>
+                    <small class="text-muted" id="template-name">Neues Workflow-Template</small>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-primary me-2" onclick="showLoadDialog()">
+                        📂 Template laden
+                    </button>
+                    <div class="btn-group me-2" role="group">
+                        <button class="btn btn-primary" onclick="modus='schritt'; updateModusAnzeige()">
+                            ➕ Schritt
+                        </button>
+                        <button class="btn btn-warning" onclick="modus='verbinden'; updateModusAnzeige()">
+                            🔗 Verbinden
+                        </button>
+                        <button class="btn btn-danger" onclick="modus='schere'; updateModusAnzeige()">
+                            ✂️ Schere
+                        </button>
+                        <button class="btn btn-secondary" onclick="modus='bearbeiten'; updateModusAnzeige()">
+                            ✏️ Bearbeiten
+                        </button>
+                    </div>
+                    <button class="btn btn-secondary" onclick="zentrieren()">
+                        🎯 Zentrieren
+                    </button>
+                    <button class="btn btn-success" onclick="showSaveDialog()">
+                        💾 Speichern
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="clearCanvas()">
+                        🗑️ Leeren
+                    </button>
+                    <a href="{% url 'workflow:arbeitsstapel' %}" class="btn btn-info">
+                        📋 Arbeitsstapel
+                    </a>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col">
+                    <div id="modus-anzeige" class="alert alert-info mb-0 py-2">
+                        <strong>Aktueller Modus:</strong> <span id="modus-text">Normaler Modus</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legende -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <small>
+                <strong>Legende:</strong>
+                <span class="badge bg-primary ms-2">◆ Genehmigung</span>
+                <span class="badge bg-info ms-1">◆ Pruefung</span>
+                <span class="badge bg-warning text-dark ms-1">◆ Information</span>
+                <span class="badge bg-success ms-1">◆ Bearbeitung</span>
+                <br>
+                <strong>Bedienung:</strong>
+                • <strong>➕ Schritt</strong> → Klick auf Canvas um neuen Schritt zu erstellen
+                • <strong>🔗 Verbinden</strong> → Erst Start-, dann Ziel-Schritt klicken
+                • <strong>✂️ Schere</strong> → Klick auf Linie zum Trennen, Klick auf Schritt zum Loeschen
+                • <strong>✏️ Bearbeiten</strong> → Klick auf Schritt zum Bearbeiten
+            </small>
+        </div>
+    </div>
+
+    <!-- Workflow Canvas -->
+    <div class="card">
+        <div class="card-body p-0">
+            <div id="workflow-network" style="height: 70vh; background: #fafafa;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Schritt bearbeiten -->
+<div class="modal fade" id="schrittModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="schrittModalTitle">Schritt bearbeiten</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="schrittForm">
+                    <input type="hidden" id="schritt-id">
+
+                    <div class="mb-3">
+                        <label for="schritt-titel" class="form-label">Titel *</label>
+                        <input type="text" class="form-control" id="schritt-titel" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="schritt-beschreibung" class="form-label">Beschreibung</label>
+                        <textarea class="form-control" id="schritt-beschreibung" rows="3"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="schritt-aktion" class="form-label">Aktionstyp *</label>
+                            <select class="form-select" id="schritt-aktion" required>
+                                <option value="genehmigen">Genehmigen</option>
+                                <option value="pruefen">Pruefen</option>
+                                <option value="informieren">Informieren</option>
+                                <option value="bearbeiten">Bearbeiten</option>
+                                <option value="freigeben">Freigeben</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="schritt-rolle" class="form-label">Zustaendige Rolle *</label>
+                            <select class="form-select" id="schritt-rolle" required onchange="toggleTeamDropdown()">
+                                <option value="antragsteller">Antragsteller</option>
+                                <option value="direkte_fuehrungskraft">Direkte Fuehrungskraft</option>
+                                <option value="abteilungsleitung">Abteilungsleitung</option>
+                                <option value="bereichsleitung">Bereichsleitung</option>
+                                <option value="hr">HR</option>
+                                <option value="gf">Geschaeftsfuehrung</option>
+                                <option value="feste_stelle">Feste Stelle</option>
+                                <option value="team_queue">Team-Queue</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row" id="team-row" style="display: none;">
+                        <div class="col-md-12 mb-3">
+                            <label for="schritt-team" class="form-label">Team-Queue *</label>
+                            <select class="form-select" id="schritt-team">
+                                <option value="">-- Team auswaehlen --</option>
+                                <!-- Wird via JavaScript gefuellt -->
+                            </select>
+                            <small class="text-muted">Nur vorhandene Team-Queues koennen ausgewaehlt werden</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="schritt-frist" class="form-label">Frist (Tage)</label>
+                            <input type="number" class="form-control" id="schritt-frist" value="3" min="0">
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Parallel</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="schritt-parallel">
+                                <label class="form-check-label" for="schritt-parallel">
+                                    Kann parallel laufen
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="schritt-eskalation" class="form-label">Eskalation (Tage)</label>
+                            <input type="number" class="form-control" id="schritt-eskalation" value="0" min="0">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" onclick="saveSchritt()">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Template laden -->
+<div class="modal fade" id="loadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Workflow-Template laden</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Waehlen Sie ein Template um es im Editor zu visualisieren:</p>
+                <div id="template-liste" class="list-group">
+                    <!-- Wird via JavaScript gefuellt -->
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Laden...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Template speichern -->
+<div class="modal fade" id="saveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Workflow-Template speichern</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="saveForm">
+                    <div class="mb-3">
+                        <label for="template-name-input" class="form-label">Template-Name *</label>
+                        <input type="text" class="form-control" id="template-name-input" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="template-beschreibung" class="form-label">Beschreibung</label>
+                        <textarea class="form-control" id="template-beschreibung" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="template-kategorie" class="form-label">Kategorie *</label>
+                        <select class="form-select" id="template-kategorie" required>
+                            <option value="genehmigung">Genehmigung</option>
+                            <option value="pruefung">Pruefung</option>
+                            <option value="information">Information</option>
+                            <option value="bearbeitung">Bearbeitung</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="template-trigger" class="form-label">Trigger-Event (optional)</label>
+                        <input type="text" class="form-control" id="template-trigger"
+                               placeholder="z.B. zag_antrag_erstellt">
+                        <small class="text-muted">Event das diesen Workflow automatisch startet</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-success" onclick="saveWorkflow()">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- vis.js Library -->
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+
+<script>
+// Globale Variablen
+let network;
+let nodes, edges;
+let modus = 'normal';
+let verbindungStart = null;
+let nextNodeId = 1;
+let currentEditNode = null;
+
+// Schritt-Daten (wird beim Speichern ans Backend geschickt)
+let schritte = [];
+
+// Aktionstyp zu Farbe (hellere Farben fuer bessere Lesbarkeit)
+const aktionColors = {
+    'genehmigen': '#66b3ff',  // Hellblau
+    'pruefen': '#66d9ef',     // Hellcyan
+    'informieren': '#ffe066', // Hellgelb
+    'bearbeiten': '#66cc99',  // Hellgruen
+    'freigeben': '#b3b3b3'    // Hellgrau
+};
+
+// Netzwerk initialisieren
+function init() {
+    const container = document.getElementById('workflow-network');
+
+    nodes = new vis.DataSet([]);
+    edges = new vis.DataSet([]);
+
+    const options = {
+        nodes: {
+            shape: 'diamond',
+            size: 30,
+            font: {
+                size: 16,
+                color: '#000',
+                face: 'Arial'
+            },
+            borderWidth: 2,
+            shadow: true
+        },
+        edges: {
+            width: 2,
+            shadow: true,
+            arrows: 'to',
+            smooth: {
+                type: 'cubicBezier',
+                forceDirection: 'horizontal'
+            }
+        },
+        physics: {
+            enabled: true,
+            hierarchicalRepulsion: {
+                nodeDistance: 200
+            }
+        },
+        interaction: {
+            dragNodes: true,
+            dragView: true,
+            zoomView: true
+        }
+    };
+
+    network = new vis.Network(container, { nodes, edges }, options);
+
+    // Event-Handler
+    network.on('click', handleClick);
+}
+
+// Klick-Handler
+function handleClick(params) {
+    if (modus === 'schritt') {
+        // Neuen Schritt erstellen
+        if (params.nodes.length === 0) {
+            createNewSchritt(params.pointer.canvas);
+        }
+    } else if (modus === 'verbinden') {
+        // Verbindung erstellen
+        if (params.nodes.length > 0) {
+            const clickedNode = params.nodes[0];
+            if (verbindungStart === null) {
+                verbindungStart = clickedNode;
+                alert(`Start-Schritt ausgewaehlt: ${nodes.get(clickedNode).label}`);
+            } else {
+                createEdge(verbindungStart, clickedNode);
+                verbindungStart = null;
+            }
+        }
+    } else if (modus === 'schere') {
+        // Loeschen
+        if (params.nodes.length > 0) {
+            deleteNode(params.nodes[0]);
+        } else if (params.edges.length > 0) {
+            deleteEdge(params.edges[0]);
+        }
+    } else if (modus === 'bearbeiten') {
+        // Schritt bearbeiten
+        if (params.nodes.length > 0) {
+            editSchritt(params.nodes[0]);
+        }
+    }
+}
+
+// Neuen Schritt erstellen
+function createNewSchritt(position) {
+    currentEditNode = null;
+    document.getElementById('schritt-id').value = '';
+    document.getElementById('schritt-titel').value = '';
+    document.getElementById('schritt-beschreibung').value = '';
+    document.getElementById('schritt-aktion').value = 'genehmigen';
+    document.getElementById('schritt-rolle').value = 'direkte_fuehrungskraft';
+    document.getElementById('schritt-team').value = '';
+    document.getElementById('schritt-frist').value = '3';
+    document.getElementById('schritt-parallel').checked = false;
+    document.getElementById('schritt-eskalation').value = '0';
+
+    // Team-Dropdown ausblenden (default Rolle ist nicht team_queue)
+    toggleTeamDropdown();
+
+    document.getElementById('schrittModalTitle').textContent = 'Neuen Schritt erstellen';
+
+    const modal = new bootstrap.Modal(document.getElementById('schrittModal'));
+    modal.show();
+}
+
+// Schritt speichern
+function saveSchritt() {
+    const id = document.getElementById('schritt-id').value;
+    const titel = document.getElementById('schritt-titel').value;
+    const beschreibung = document.getElementById('schritt-beschreibung').value;
+    const aktion = document.getElementById('schritt-aktion').value;
+    const rolle = document.getElementById('schritt-rolle').value;
+    const teamId = document.getElementById('schritt-team').value;
+    const frist = parseInt(document.getElementById('schritt-frist').value);
+    const parallel = document.getElementById('schritt-parallel').checked;
+    const eskalation = parseInt(document.getElementById('schritt-eskalation').value);
+
+    if (!titel) {
+        alert('Bitte einen Titel eingeben!');
+        return;
+    }
+
+    // Validierung: Team-Queue Rolle benoetigt Team-Auswahl
+    if (rolle === 'team_queue' && !teamId) {
+        alert('Bitte ein Team auswaehlen!');
+        return;
+    }
+
+    const color = aktionColors[aktion] || '#6c757d';
+
+    // Team-Name fuer Anzeige holen
+    let displayRolle = rolle;
+    if (rolle === 'team_queue' && teamId) {
+        const teamSelect = document.getElementById('schritt-team');
+        const teamOption = teamSelect.options[teamSelect.selectedIndex];
+        displayRolle = `Team: ${teamOption.text}`;
+    }
+
+    if (id) {
+        // Bestehenden Schritt aktualisieren
+        nodes.update({
+            id: id,
+            label: titel,
+            title: `${titel}\n${aktion}\n${displayRolle}`,
+            color: {
+                background: color,
+                border: color,
+                highlight: { background: color, border: color }
+            },
+            data: {
+                titel, beschreibung, aktion, rolle, teamId, frist, parallel, eskalation
+            }
+        });
+
+        // In schritte-Array aktualisieren
+        const idx = schritte.findIndex(s => s.id === id);
+        if (idx >= 0) {
+            schritte[idx] = { id, titel, beschreibung, aktion, rolle, teamId, frist, parallel, eskalation };
+        }
+    } else {
+        // Neuen Schritt hinzufuegen
+        const nodeId = `node_${nextNodeId++}`;
+        nodes.add({
+            id: nodeId,
+            label: titel,
+            title: `${titel}\n${aktion}\n${displayRolle}`,
+            color: {
+                background: color,
+                border: color,
+                highlight: { background: color, border: color }
+            },
+            data: {
+                titel, beschreibung, aktion, rolle, teamId, frist, parallel, eskalation
+            }
+        });
+
+        schritte.push({ id: nodeId, titel, beschreibung, aktion, rolle, teamId, frist, parallel, eskalation });
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById('schrittModal')).hide();
+}
+
+// Schritt bearbeiten
+function editSchritt(nodeId) {
+    const node = nodes.get(nodeId);
+    if (!node) return;
+
+    const data = node.data || {};
+
+    currentEditNode = nodeId;
+    document.getElementById('schritt-id').value = nodeId;
+    document.getElementById('schritt-titel').value = data.titel || node.label;
+    document.getElementById('schritt-beschreibung').value = data.beschreibung || '';
+    document.getElementById('schritt-aktion').value = data.aktion || 'genehmigen';
+    document.getElementById('schritt-rolle').value = data.rolle || 'direkte_fuehrungskraft';
+    document.getElementById('schritt-team').value = data.teamId || '';
+    document.getElementById('schritt-frist').value = data.frist || 3;
+    document.getElementById('schritt-parallel').checked = data.parallel || false;
+    document.getElementById('schritt-eskalation').value = data.eskalation || 0;
+
+    // Team-Dropdown ein/ausblenden
+    toggleTeamDropdown();
+
+    document.getElementById('schrittModalTitle').textContent = 'Schritt bearbeiten';
+
+    const modal = new bootstrap.Modal(document.getElementById('schrittModal'));
+    modal.show();
+}
+
+// Verbindung erstellen
+function createEdge(fromId, toId) {
+    if (fromId === toId) {
+        alert('Ein Schritt kann nicht mit sich selbst verbunden werden!');
+        return;
+    }
+
+    // Pruefe ob Verbindung bereits existiert
+    const existingEdges = edges.get({
+        filter: edge => edge.from === fromId && edge.to === toId
+    });
+
+    if (existingEdges.length > 0) {
+        alert('Diese Verbindung existiert bereits!');
+        return;
+    }
+
+    edges.add({
+        id: `edge_${fromId}_${toId}`,
+        from: fromId,
+        to: toId
+    });
+
+    alert('Verbindung erstellt!');
+}
+
+// Node loeschen
+function deleteNode(nodeId) {
+    if (confirm(`Schritt "${nodes.get(nodeId).label}" wirklich loeschen?`)) {
+        // Entferne aus schritte-Array
+        schritte = schritte.filter(s => s.id !== nodeId);
+
+        // Entferne alle verbundenen Edges
+        const connectedEdges = edges.get({
+            filter: edge => edge.from === nodeId || edge.to === nodeId
+        });
+        connectedEdges.forEach(edge => edges.remove(edge.id));
+
+        // Entferne Node
+        nodes.remove(nodeId);
+    }
+}
+
+// Edge loeschen
+function deleteEdge(edgeId) {
+    if (confirm('Verbindung wirklich loeschen?')) {
+        edges.remove(edgeId);
+    }
+}
+
+// Zentrieren
+function zentrieren() {
+    network.fit();
+}
+
+// Modus-Anzeige aktualisieren
+function updateModusAnzeige() {
+    const modusTexte = {
+        'normal': 'Normaler Modus',
+        'schritt': '➕ Schritt hinzufuegen - Klick auf Canvas',
+        'verbinden': '🔗 Verbinden - Erst Start-, dann Ziel-Schritt klicken',
+        'schere': '✂️ Schere - Klick auf Schritt oder Verbindung zum Loeschen',
+        'bearbeiten': '✏️ Bearbeiten - Klick auf Schritt zum Bearbeiten'
+    };
+
+    document.getElementById('modus-text').textContent = modusTexte[modus] || 'Unbekannt';
+
+    verbindungStart = null;
+}
+
+// Speichern-Dialog anzeigen
+function showSaveDialog() {
+    if (nodes.length === 0) {
+        alert('Bitte erst Schritte erstellen!');
+        return;
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('saveModal'));
+    modal.show();
+}
+
+// Workflow speichern
+async function saveWorkflow() {
+    const name = document.getElementById('template-name-input').value;
+    const beschreibung = document.getElementById('template-beschreibung').value;
+    const kategorie = document.getElementById('template-kategorie').value;
+    const trigger = document.getElementById('template-trigger').value;
+
+    if (!name) {
+        alert('Bitte einen Template-Namen eingeben!');
+        return;
+    }
+
+    // Reihenfolge berechnen (topologische Sortierung basierend auf Edges)
+    const schritteMitReihenfolge = calculateReihenfolge();
+
+    const data = {
+        template: {
+            name,
+            beschreibung,
+            kategorie,
+            trigger_event: trigger
+        },
+        schritte: schritteMitReihenfolge
+    };
+
+    try {
+        const response = await fetch('/workflow/editor/save/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            alert(`Workflow "${name}" erfolgreich gespeichert!`);
+            bootstrap.Modal.getInstance(document.getElementById('saveModal')).hide();
+
+            // Optional: Seite neu laden oder zum Admin weiterleiten
+            if (confirm('Zum Admin-Bereich wechseln?')) {
+                window.location.href = `/admin/workflow/workflowtemplate/${result.template_id}/change/`;
+            }
+        } else {
+            const error = await response.json();
+            alert(`Fehler beim Speichern: ${error.error || 'Unbekannter Fehler'}`);
+        }
+    } catch (error) {
+        alert(`Fehler beim Speichern: ${error.message}`);
+    }
+}
+
+// Reihenfolge berechnen
+function calculateReihenfolge() {
+    // Einfache Strategie: Breadth-First von Nodes ohne eingehende Edges
+    const allEdges = edges.get();
+    const allNodes = nodes.get();
+
+    const inDegree = {};
+    allNodes.forEach(n => inDegree[n.id] = 0);
+    allEdges.forEach(e => {
+        if (inDegree[e.to] !== undefined) {
+            inDegree[e.to]++;
+        }
+    });
+
+    const queue = allNodes.filter(n => inDegree[n.id] === 0);
+    const sorted = [];
+    let reihenfolge = 1;
+
+    while (queue.length > 0) {
+        const node = queue.shift();
+        const schrittData = schritte.find(s => s.id === node.id);
+        if (schrittData) {
+            sorted.push({ ...schrittData, reihenfolge: reihenfolge++ });
+        }
+
+        // Reduziere inDegree fuer alle Nachfolger
+        allEdges.filter(e => e.from === node.id).forEach(e => {
+            inDegree[e.to]--;
+            if (inDegree[e.to] === 0) {
+                const nextNode = allNodes.find(n => n.id === e.to);
+                if (nextNode) queue.push(nextNode);
+            }
+        });
+    }
+
+    // Falls nicht alle Nodes sortiert wurden (Zyklen), fuege sie am Ende hinzu
+    schritte.forEach(s => {
+        if (!sorted.find(x => x.id === s.id)) {
+            sorted.push({ ...s, reihenfolge: reihenfolge++ });
+        }
+    });
+
+    return sorted;
+}
+
+// Template laden Dialog anzeigen
+async function showLoadDialog() {
+    const modal = new bootstrap.Modal(document.getElementById('loadModal'));
+    modal.show();
+
+    // Templates vom Server laden
+    try {
+        const response = await fetch('/workflow/editor/templates/');
+        const data = await response.json();
+
+        const container = document.getElementById('template-liste');
+        container.innerHTML = '';
+
+        if (data.templates.length === 0) {
+            container.innerHTML = '<div class="alert alert-info">Keine Templates vorhanden.</div>';
+            return;
+        }
+
+        data.templates.forEach(t => {
+            const item = document.createElement('a');
+            item.href = '#';
+            item.className = 'list-group-item list-group-item-action';
+            item.innerHTML = `
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">${t.name}</h6>
+                    <small>${t.ist_aktiv ? '<span class="badge bg-success">Aktiv</span>' : '<span class="badge bg-secondary">Inaktiv</span>'}</small>
+                </div>
+                <p class="mb-1 small text-muted">Kategorie: ${t.kategorie} | Schritte: ${t.schritte_anzahl}</p>
+            `;
+            item.onclick = (e) => {
+                e.preventDefault();
+                loadTemplate(t.id);
+                modal.hide();
+            };
+            container.appendChild(item);
+        });
+    } catch (error) {
+        document.getElementById('template-liste').innerHTML =
+            `<div class="alert alert-danger">Fehler beim Laden: ${error.message}</div>`;
+    }
+}
+
+// Template vom Server laden und visualisieren
+async function loadTemplate(templateId) {
+    try {
+        const response = await fetch(`/workflow/editor/load/${templateId}/`);
+        const data = await response.json();
+
+        // Template-Info anzeigen
+        document.getElementById('template-name').textContent = data.template.name;
+
+        // Canvas leeren
+        nodes.clear();
+        edges.clear();
+        schritte = [];
+
+        // Nodes hinzufuegen (gleiche Farben wie oben)
+        const aktionColors = {
+            'genehmigen': '#66b3ff',
+            'pruefen': '#66d9ef',
+            'informieren': '#ffe066',
+            'bearbeiten': '#66cc99',
+            'freigeben': '#b3b3b3'
+        };
+
+        const nodePositions = {};
+        let xPos = 100;
+        const yPos = 300;
+        const xSpacing = 250;
+
+        data.nodes.forEach((nodeData, index) => {
+            const nodeId = nodeData.id;
+            const color = aktionColors[nodeData.aktion] || '#6c757d';
+
+            nodes.add({
+                id: nodeId,
+                label: nodeData.titel,
+                title: `${nodeData.titel}\\n${nodeData.aktion}\\n${nodeData.rolle}`,
+                color: {
+                    background: color,
+                    border: color,
+                    highlight: { background: color, border: color }
+                },
+                x: xPos,
+                y: yPos,
+                data: nodeData
+            });
+
+            schritte.push({
+                id: nodeId,
+                titel: nodeData.titel,
+                beschreibung: nodeData.beschreibung,
+                aktion: nodeData.aktion,
+                rolle: nodeData.rolle,
+                frist: nodeData.frist,
+                parallel: nodeData.parallel,
+                eskalation: nodeData.eskalation,
+                reihenfolge: nodeData.reihenfolge
+            });
+
+            xPos += xSpacing;
+        });
+
+        // Edges hinzufuegen
+        data.edges.forEach(edgeData => {
+            edges.add({
+                id: `edge_${edgeData.from}_${edgeData.to}`,
+                from: edgeData.from,
+                to: edgeData.to
+            });
+        });
+
+        // nextNodeId auf naechste freie ID setzen
+        const maxId = Math.max(...data.nodes.map(n => {
+            const match = n.id.match(/node_(\d+)/);
+            return match ? parseInt(match[1]) : 0;
+        }), 0);
+        nextNodeId = maxId + 1;
+
+        // Zentrieren
+        network.fit();
+
+        alert(`Template "${data.template.name}" erfolgreich geladen!`);
+    } catch (error) {
+        alert(`Fehler beim Laden: ${error.message}`);
+    }
+}
+
+// Canvas leeren
+function clearCanvas() {
+    if (confirm('Canvas wirklich leeren? Alle Schritte werden geloescht.')) {
+        nodes.clear();
+        edges.clear();
+        schritte = [];
+        nextNodeId = 1;
+        document.getElementById('template-name').textContent = 'Neues Workflow-Template';
+    }
+}
+
+// Team-Queue Funktionen
+function toggleTeamDropdown() {
+    const rolle = document.getElementById('schritt-rolle').value;
+    const teamRow = document.getElementById('team-row');
+
+    if (rolle === 'team_queue') {
+        teamRow.style.display = 'block';
+        document.getElementById('schritt-team').required = true;
+    } else {
+        teamRow.style.display = 'none';
+        document.getElementById('schritt-team').required = false;
+        document.getElementById('schritt-team').value = '';
+    }
+}
+
+async function loadTeamQueues() {
+    try {
+        const response = await fetch('/formulare/api/team-queues/');
+        const data = await response.json();
+
+        const select = document.getElementById('schritt-team');
+        // Bestehende Optionen loeschen (ausser erste)
+        select.innerHTML = '<option value="">-- Team auswaehlen --</option>';
+
+        data.teams.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team.id;
+            option.textContent = team.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Fehler beim Laden der Team-Queues:', error);
+    }
+}
+
+// Init beim Laden
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    loadTeamQueues();
+});
+</script>
+{% endblock %}

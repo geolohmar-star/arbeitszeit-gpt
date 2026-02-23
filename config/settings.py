@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'formulare.apps.FormulareConfig',
     'berechtigungen.apps.BerechtigungenConfig',
     'hr.apps.HrConfig',
+    'workflow.apps.WorkflowConfig',
 ]
 
 AUTHENTICATION_BACKENDS = [

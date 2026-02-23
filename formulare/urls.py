@@ -118,11 +118,68 @@ urlpatterns = [
         views.genehmigung_entscheiden,
         name="genehmigung_entscheiden",
     ),
+    # Dienstreise
+    path(
+        "dienstreise/erstellen/",
+        views.dienstreise_erstellen,
+        name="dienstreise_erstellen",
+    ),
+    path(
+        "dienstreise/uebersicht/",
+        views.dienstreise_uebersicht,
+        name="dienstreise_uebersicht",
+    ),
+    path(
+        "dienstreise/meine/",
+        views.meine_dienstreisen,
+        name="meine_dienstreisen",
+    ),
     # Team-Queue-System
     path(
         "team-queue/",
         views_team_queue.team_queue_uebersicht,
         name="team_queue",
+    ),
+    path(
+        "api/team-queues/",
+        views.api_team_queues,
+        name="api_team_queues",
+    ),
+    # Team-Builder
+    path(
+        "team-builder/",
+        views.team_builder,
+        name="team_builder",
+    ),
+    path(
+        "team-builder/team/<int:pk>/",
+        views.team_builder_detail,
+        name="team_builder_detail",
+    ),
+    path(
+        "team-builder/team/create/",
+        views.team_builder_create,
+        name="team_builder_create",
+    ),
+    path(
+        "team-builder/team/<int:pk>/update/",
+        views.team_builder_update,
+        name="team_builder_update",
+    ),
+    path(
+        "team-builder/team/<int:pk>/delete/",
+        views.team_builder_delete,
+        name="team_builder_delete",
+    ),
+    path(
+        "team-builder/team/<int:pk>/member/add/",
+        views.team_builder_add_member,
+        name="team_builder_add_member",
+    ),
+    path(
+        "team-builder/team/<int:pk>/member/remove/",
+        views.team_builder_remove_member,
+        name="team_builder_remove_member",
     ),
     path(
         "team-queue/antrag/<str:antrag_typ>/<int:pk>/",

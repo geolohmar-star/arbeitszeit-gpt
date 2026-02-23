@@ -10,7 +10,7 @@
 
     <!-- Statistik -->
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card border-primary">
                 <div class="card-body text-center">
                     <h3 class="text-primary mb-0">{{ orgeinheiten_count }}</h3>
@@ -18,7 +18,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card border-success">
                 <div class="card-body text-center">
                     <h3 class="text-success mb-0">{{ stellen_count }}</h3>
@@ -26,7 +26,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card border-info">
                 <div class="card-body text-center">
                     <h3 class="text-info mb-0">{{ stellen_besetzt }}</h3>
@@ -34,11 +34,19 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card border-warning">
                 <div class="card-body text-center">
                     <h3 class="text-warning mb-0">{{ mitarbeiter_count }}</h3>
                     <small class="text-muted">Mitarbeiter</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <h3 class="text-danger mb-0">{{ teams_count }}</h3>
+                    <small class="text-muted">Team-Queues</small>
                 </div>
             </div>
         </div>
@@ -66,6 +74,30 @@
                     </ul>
                     <a href="{% url 'hr:kasten_organigramm' %}" class="btn btn-warning w-100">
                         → Kasten-Organigramm
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 shadow-sm border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">👥 Team-Builder</h5>
+                    <small>Workflow Teams!</small>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Erstelle Team-Queues fuer Workflow-Aufgaben!
+                        Teams koennen gemeinsam Antraege bearbeiten.
+                    </p>
+                    <ul class="small text-muted mb-3">
+                        <li>👥 Teams erstellen</li>
+                        <li>➕ Mitglieder hinzufuegen</li>
+                        <li>⚙️ Workflow-Integration</li>
+                        <li>📋 Gemeinsamer Stapel</li>
+                    </ul>
+                    <a href="{% url 'formulare:team_builder' %}" class="btn btn-success w-100">
+                        → Team-Builder
                     </a>
                 </div>
             </div>

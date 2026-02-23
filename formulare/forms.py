@@ -1,6 +1,6 @@
 from django import forms
 
-from formulare.models import AenderungZeiterfassung
+from formulare.models import AenderungZeiterfassung, Dienstreiseantrag
 
 
 class AenderungZeiterfassungForm(forms.ModelForm):
@@ -157,5 +157,68 @@ class AenderungZeiterfassungForm(forms.ModelForm):
                 self.add_error("samstag_freigabe_ab", "Datum erforderlich.")
             if not cleaned_data.get("samstag_freigabe_bis"):
                 self.add_error("samstag_freigabe_bis", "Datum erforderlich.")
+
+        return cleaned_data
+
+
+class DienstreiseantragForm(forms.ModelForm):
+    """Formular fuer Dienstreiseantraege."""
+
+    class Meta:
+        model = Dienstreiseantrag
+        fields = [
+            "von_datum",
+            "bis_datum",
+            "ziel",
+            "zweck",
+            "geschaetzte_kosten",
+        ]
+        widgets = {
+            "von_datum": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "class": "form-control",
+                }
+            ),
+            "bis_datum": forms.DateInput(
+                attrs={
+                    "type": "date",
+                    "class": "form-control",
+                }
+            ),
+            "ziel": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "z.B. München, Berlin, Paris",
+                }
+            ),
+            "zweck": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 4,
+                    "placeholder": "Beschreiben Sie den Grund und das Ziel der Dienstreise...",
+                }
+            ),
+            "geschaetzte_kosten": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
+        }
+
+    def clean(self):
+        """Validiere Datumsbereiche."""
+        cleaned_data = super().clean()
+        von_datum = cleaned_data.get("von_datum")
+        bis_datum = cleaned_data.get("bis_datum")
+
+        if von_datum and bis_datum:
+            if bis_datum < von_datum:
+                self.add_error(
+                    "bis_datum",
+                    "Reiseende muss nach Reisebeginn liegen."
+                )
 
         return cleaned_data

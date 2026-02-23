@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}Team-Builder{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h2>Team-Builder{% if org %} - {{ org.bezeichnung }}{% endif %}</h2>
+            <p class="text-muted">
+                Verwalte Team-Queues fuer Workflow-Aufgaben
+                {% if org %}
+                    <span class="badge bg-primary">{{ org.kuerzel }}</span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="col-auto">
+            {% if org %}
+            <a href="{% url 'hr:kasten_detail' org.kuerzel %}" class="btn btn-outline-secondary">
+                ← Zurueck zu {{ org.kuerzel }}
+            </a>
+            {% endif %}
+            <button class="btn btn-success btn-lg" onclick="openTeamModal()">
+                ➕ Neues Team erstellen
+            </button>
+            <a href="{% url 'workflow:workflow_editor' %}" class="btn btn-info">
+                ⚙️ Workflow-Editor
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Statistik Sidebar -->
+        <div class="col-md-3">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📊 Uebersicht</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>Teams</h6>
+                        <div class="display-6">{{ teams.count }}</div>
+                        <small class="text-muted">Insgesamt</small>
+                    </div>
+                    <hr>
+                    <div>
+                        <h6>💡 Info</h6>
+                        <small class="text-muted">
+                            Team-Queues werden im Workflow-Editor verwendet um Aufgaben an ganze Teams statt einzelne Personen zuzuweisen.
+                            {% if org %}
+                            <br><br>
+                            <strong>OrgEinheit: {{ org.kuerzel }}</strong><br>
+                            Mitarbeiter dieser Abteilung werden beim Hinzufuegen zuerst angezeigt.
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team-Liste -->
+        <div class="col-md-9">
+            <div id="teams-container">
+                {% if teams %}
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        {% for team in teams %}
+                        <div class="col">
+                            <div class="card h-100 shadow-sm" id="team-{{ team.id }}">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">👥 {{ team.name }}</h5>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="editTeam({{ team.id }})">
+                                            ✏️
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="deleteTeam({{ team.id }}, '{{ team.name }}')">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    {% if team.beschreibung %}
+                                        <p class="text-muted small">{{ team.beschreibung }}</p>
+                                    {% endif %}
+
+                                    <h6 class="mt-3">Mitglieder ({{ team.mitglieder.count }})</h6>
+                                    {% if team.mitglieder.exists %}
+                                        <div class="list-group list-group-flush">
+                                            {% for mitglied in team.mitglieder.all %}
+                                            <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                                                <span>
+                                                    <strong>{{ mitglied.get_full_name|default:mitglied.username }}</strong>
+                                                    <br>
+                                                    <small class="text-muted">{{ mitglied.username }}</small>
+                                                </span>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        onclick="removeMember({{ team.id }}, {{ mitglied.id }}, '{{ mitglied.username }}')">
+                                                    ✖️
+                                                </button>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <p class="text-muted small">Noch keine Mitglieder</p>
+                                    {% endif %}
+
+                                    <button class="btn btn-sm btn-outline-success mt-3 w-100"
+                                            onclick="addMemberModal({{ team.id }}, '{{ team.name }}')">
+                                        ➕ Mitglied hinzufuegen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <h5>Noch keine Teams vorhanden</h5>
+                        <p>Klicke auf "Neues Team erstellen" um dein erstes Team anzulegen.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Team erstellen/bearbeiten -->
+<div class="modal fade" id="teamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="teamModalTitle">Neues Team erstellen</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="teamForm">
+                    <input type="hidden" id="team-id">
+
+                    <div class="mb-3">
+                        <label for="team-name" class="form-label">Team-Name *</label>
+                        <input type="text" class="form-control" id="team-name" required>
+                        <small class="text-muted">z.B. "Reisemanagement-Team", "Personalabteilung"</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="team-beschreibung" class="form-label">Beschreibung</label>
+                        <textarea class="form-control" id="team-beschreibung" rows="3"></textarea>
+                        <small class="text-muted">Wofuer ist dieses Team zustaendig?</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-success" onclick="saveTeam()">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Mitglied hinzufuegen -->
+<div class="modal fade" id="memberModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="memberModalTitle">Mitglied hinzufuegen</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="member-team-id">
+
+                <div class="mb-3">
+                    <label for="member-select" class="form-label">User auswaehlen *</label>
+                    <select class="form-select" id="member-select" required>
+                        <option value="">-- Bitte waehlen --</option>
+                        {% if org %}
+                            {% if org_users %}
+                            <optgroup label="👥 Mitarbeiter {{ org.kuerzel }}">
+                                {% for user in org_users %}
+                                <option value="{{ user.id }}">
+                                    {{ user.get_full_name|default:user.username }} ({{ user.username }})
+                                </option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                            {% if other_users %}
+                            <optgroup label="Andere Mitarbeiter">
+                                {% for user in other_users %}
+                                <option value="{{ user.id }}">
+                                    {{ user.get_full_name|default:user.username }} ({{ user.username }})
+                                </option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                        {% else %}
+                            {% for user in all_users %}
+                            <option value="{{ user.id }}">
+                                {{ user.get_full_name|default:user.username }} ({{ user.username }})
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" onclick="saveMember()">Hinzufuegen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// CSRF Token
+const csrftoken = document.querySelector('meta[name="csrf-token"]').content;
+
+// Team Modal oeffnen (Neu)
+function openTeamModal() {
+    document.getElementById('team-id').value = '';
+    document.getElementById('team-name').value = '';
+    document.getElementById('team-beschreibung').value = '';
+    document.getElementById('teamModalTitle').textContent = 'Neues Team erstellen';
+
+    const modal = new bootstrap.Modal(document.getElementById('teamModal'));
+    modal.show();
+}
+
+// Team bearbeiten
+async function editTeam(teamId) {
+    try {
+        const response = await fetch(`/formulare/team-builder/team/${teamId}/`);
+        const data = await response.json();
+
+        document.getElementById('team-id').value = data.id;
+        document.getElementById('team-name').value = data.name;
+        document.getElementById('team-beschreibung').value = data.beschreibung || '';
+        document.getElementById('teamModalTitle').textContent = 'Team bearbeiten';
+
+        const modal = new bootstrap.Modal(document.getElementById('teamModal'));
+        modal.show();
+    } catch (error) {
+        alert('Fehler beim Laden: ' + error);
+    }
+}
+
+// Team speichern
+async function saveTeam() {
+    const teamId = document.getElementById('team-id').value;
+    const name = document.getElementById('team-name').value;
+    const beschreibung = document.getElementById('team-beschreibung').value;
+
+    if (!name) {
+        alert('Bitte einen Namen eingeben!');
+        return;
+    }
+
+    const url = teamId
+        ? `/formulare/team-builder/team/${teamId}/update/`
+        : '/formulare/team-builder/team/create/';
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ name, beschreibung })
+        });
+
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('teamModal')).hide();
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Fehler: ' + (error.error || 'Unbekannter Fehler'));
+        }
+    } catch (error) {
+        alert('Fehler beim Speichern: ' + error);
+    }
+}
+
+// Team loeschen
+async function deleteTeam(teamId, teamName) {
+    if (!confirm(`Team "${teamName}" wirklich loeschen?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/formulare/team-builder/team/${teamId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken
+            }
+        });
+
+        if (response.ok) {
+            document.getElementById(`team-${teamId}`).remove();
+            location.reload();
+        } else {
+            alert('Fehler beim Loeschen');
+        }
+    } catch (error) {
+        alert('Fehler: ' + error);
+    }
+}
+
+// Mitglied hinzufuegen Modal
+function addMemberModal(teamId, teamName) {
+    document.getElementById('member-team-id').value = teamId;
+    document.getElementById('memberModalTitle').textContent = `Mitglied zu "${teamName}" hinzufuegen`;
+    document.getElementById('member-select').value = '';
+
+    const modal = new bootstrap.Modal(document.getElementById('memberModal'));
+    modal.show();
+}
+
+// Mitglied speichern
+async function saveMember() {
+    const teamId = document.getElementById('member-team-id').value;
+    const userId = document.getElementById('member-select').value;
+
+    if (!userId) {
+        alert('Bitte einen User auswaehlen!');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/formulare/team-builder/team/${teamId}/member/add/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ user_id: userId })
+        });
+
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('memberModal')).hide();
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert('Fehler: ' + (error.error || 'Unbekannter Fehler'));
+        }
+    } catch (error) {
+        alert('Fehler: ' + error);
+    }
+}
+
+// Mitglied entfernen
+async function removeMember(teamId, userId, username) {
+    if (!confirm(`User "${username}" aus dem Team entfernen?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/formulare/team-builder/team/${teamId}/member/remove/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ user_id: userId })
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Fehler beim Entfernen');
+        }
+    } catch (error) {
+        alert('Fehler: ' + error);
+    }
+}
+</script>
+
+{% endblock %}
