@@ -205,6 +205,28 @@
             </div>
             <div class="modal-body">
                 <form id="saveForm">
+                    <!-- Aktueller Workflow Info (wenn geladen) -->
+                    <div id="current-template-info" class="alert alert-info" style="display: none;">
+                        <strong>Aktueller Workflow:</strong> <span id="current-template-name-display"></span>
+                    </div>
+
+                    <!-- Speicher-Modus -->
+                    <div class="mb-3" id="save-mode-group" style="display: none;">
+                        <label class="form-label">Speichermodus</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="save-mode" id="save-mode-update" value="update" checked>
+                            <label class="form-check-label" for="save-mode-update">
+                                Bestehendes Template ueberschreiben
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="save-mode" id="save-mode-new" value="new">
+                            <label class="form-check-label" for="save-mode-new">
+                                Als neues Template speichern
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label for="template-name-input" class="form-label">Template-Name *</label>
                         <input type="text" class="form-control" id="template-name-input" required>
@@ -231,6 +253,18 @@
                                placeholder="z.B. zag_antrag_erstellt">
                         <small class="text-muted">Event das diesen Workflow automatisch startet</small>
                     </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="template-aktiv" checked>
+                        <label class="form-check-label" for="template-aktiv">
+                            Workflow aktiv (kann fuer neue Instanzen verwendet werden)
+                        </label>
+                    </div>
+
+                    <!-- Zugehoerige Prozesse -->
+                    <div id="template-prozesse" class="alert alert-secondary" style="display: none;">
+                        <strong>Zugehoeriger Prozess:</strong> <span id="template-prozess-name"></span>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -252,6 +286,9 @@ let modus = 'normal';
 let verbindungStart = null;
 let nextNodeId = 1;
 let currentEditNode = null;
+let currentTemplateId = null;
+let currentTemplateName = '';
+let currentTemplateAktiv = false;
 
 // Schritt-Daten (wird beim Speichern ans Backend geschickt)
 let schritte = [];
@@ -296,8 +333,23 @@ function init() {
         physics: {
             enabled: true,
             hierarchicalRepulsion: {
-                nodeDistance: 200
-            }
+                nodeDistance: 200,
+                centralGravity: 0.1,
+                springLength: 150,
+                springConstant: 0.01,
+                damping: 0.5,
+                avoidOverlap: 0.5
+            },
+            stabilization: {
+                enabled: true,
+                iterations: 300,
+                updateInterval: 25
+            },
+            solver: 'hierarchicalRepulsion',
+            timestep: 0.3,
+            adaptiveTimestep: true,
+            minVelocity: 0.75,
+            maxVelocity: 20
         },
         interaction: {
             dragNodes: true,
@@ -310,6 +362,41 @@ function init() {
 
     // Event-Handler
     network.on('click', handleClick);
+
+    // Antrag-Startknoten hinzufuegen
+    createAntragNode();
+}
+
+// Erstelle den "Antrag" Start-Knoten
+function createAntragNode() {
+    // Pruefe ob Antrag-Knoten schon existiert
+    if (nodes.get('antrag_start')) {
+        return;
+    }
+
+    nodes.add({
+        id: 'antrag_start',
+        label: '📋 Antrag\n(Antragsteller)',
+        shape: 'box',
+        color: {
+            background: '#e3f2fd',
+            border: '#1976d2',
+            highlight: {
+                background: '#bbdefb',
+                border: '#0d47a1'
+            }
+        },
+        font: {
+            size: 14,
+            color: '#0d47a1',
+            bold: true
+        },
+        fixed: false,
+        x: -300,
+        y: 0,
+        borderWidth: 3,
+        margin: 10
+    });
 }
 
 // Klick-Handler
@@ -500,6 +587,12 @@ function createEdge(fromId, toId) {
 
 // Node loeschen
 function deleteNode(nodeId) {
+    // Verhindere Loeschen des Antrag-Knotens
+    if (nodeId === 'antrag_start') {
+        alert('Der Antrag-Startknoten kann nicht geloescht werden.');
+        return;
+    }
+
     if (confirm(`Schritt "${nodes.get(nodeId).label}" wirklich loeschen?`)) {
         // Entferne aus schritte-Array
         schritte = schritte.filter(s => s.id !== nodeId);
@@ -549,6 +642,29 @@ function showSaveDialog() {
         return;
     }
 
+    // Felder vorausfuellen wenn Template geladen wurde
+    if (currentTemplateId) {
+        // Zeige Info-Box mit aktuellem Template
+        document.getElementById('current-template-info').style.display = 'block';
+        document.getElementById('current-template-name-display').textContent = currentTemplateName;
+
+        // Zeige Speichermodus-Optionen
+        document.getElementById('save-mode-group').style.display = 'block';
+
+        // Vorausfuellen
+        document.getElementById('template-name-input').value = currentTemplateName;
+        document.getElementById('template-aktiv').checked = currentTemplateAktiv;
+
+        // Radio button auf "update" setzen
+        document.getElementById('save-mode-update').checked = true;
+    } else {
+        // Neues Template - verstecke Speichermodus
+        document.getElementById('current-template-info').style.display = 'none';
+        document.getElementById('save-mode-group').style.display = 'none';
+        document.getElementById('template-name-input').value = '';
+        document.getElementById('template-aktiv').checked = true;
+    }
+
     const modal = new bootstrap.Modal(document.getElementById('saveModal'));
     modal.show();
 }
@@ -559,10 +675,24 @@ async function saveWorkflow() {
     const beschreibung = document.getElementById('template-beschreibung').value;
     const kategorie = document.getElementById('template-kategorie').value;
     const trigger = document.getElementById('template-trigger').value;
+    const aktiv = document.getElementById('template-aktiv').checked;
 
     if (!name) {
         alert('Bitte einen Template-Namen eingeben!');
         return;
+    }
+
+    // Pruefe Speichermodus (update oder new)
+    let saveMode = 'new';
+    let templateIdToUpdate = null;
+
+    if (currentTemplateId) {
+        const saveModeRadio = document.querySelector('input[name="save-mode"]:checked');
+        saveMode = saveModeRadio ? saveModeRadio.value : 'new';
+
+        if (saveMode === 'update') {
+            templateIdToUpdate = currentTemplateId;
+        }
     }
 
     // Reihenfolge berechnen (topologische Sortierung basierend auf Edges)
@@ -573,7 +703,9 @@ async function saveWorkflow() {
             name,
             beschreibung,
             kategorie,
-            trigger_event: trigger
+            trigger_event: trigger,
+            aktiv: aktiv,
+            template_id: templateIdToUpdate  // null wenn neu, sonst ID zum Update
         },
         schritte: schritteMitReihenfolge
     };
@@ -699,6 +831,11 @@ async function loadTemplate(templateId) {
         const response = await fetch(`/workflow/editor/load/${templateId}/`);
         const data = await response.json();
 
+        // Globale Template-Variablen setzen
+        currentTemplateId = templateId;
+        currentTemplateName = data.template.name;
+        currentTemplateAktiv = data.template.ist_aktiv || false;
+
         // Template-Info anzeigen
         document.getElementById('template-name').textContent = data.template.name;
 
@@ -770,6 +907,9 @@ async function loadTemplate(templateId) {
         }), 0);
         nextNodeId = maxId + 1;
 
+        // Antrag-Startknoten hinzufuegen
+        createAntragNode();
+
         // Zentrieren
         network.fit();
 
@@ -787,6 +927,9 @@ function clearCanvas() {
         schritte = [];
         nextNodeId = 1;
         document.getElementById('template-name').textContent = 'Neues Workflow-Template';
+
+        // Antrag-Startknoten wieder hinzufuegen
+        createAntragNode();
     }
 }
 
@@ -829,6 +972,19 @@ async function loadTeamQueues() {
 document.addEventListener('DOMContentLoaded', () => {
     init();
     loadTeamQueues();
+
+    // Event Listener fuer Speichermodus-Radio-Buttons
+    document.getElementById('save-mode-update').addEventListener('change', function() {
+        if (this.checked && currentTemplateName) {
+            document.getElementById('template-name-input').value = currentTemplateName;
+        }
+    });
+
+    document.getElementById('save-mode-new').addEventListener('change', function() {
+        if (this.checked && currentTemplateName) {
+            document.getElementById('template-name-input').value = currentTemplateName + ' (Kopie)';
+        }
+    });
 });
 </script>
 {% endblock %}

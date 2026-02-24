@@ -503,6 +503,53 @@ def company_builder_neue_stelle(request):
 
 @login_required
 @user_passes_test(_ist_staff)
+def company_builder_neuer_mitarbeiter(request):
+    """HTMX: Form fuer neuen HRMitarbeiter."""
+    if request.method == 'POST':
+        vorname = request.POST.get('vorname')
+        nachname = request.POST.get('nachname')
+        personalnummer = request.POST.get('personalnummer')
+        email = request.POST.get('email', '')
+        rolle = request.POST.get('rolle', 'mitarbeiter')
+        stelle_id = request.POST.get('stelle_id')
+
+        if vorname and nachname and personalnummer:
+            try:
+                # Erstelle HRMitarbeiter
+                mitarbeiter_data = {
+                    'vorname': vorname,
+                    'nachname': nachname,
+                    'personalnummer': personalnummer,
+                    'email': email,
+                    'rolle': rolle,
+                }
+
+                # Stelle zuweisen falls angegeben
+                if stelle_id:
+                    stelle = Stelle.objects.get(id=stelle_id)
+                    mitarbeiter_data['stelle'] = stelle
+
+                mitarbeiter = HRMitarbeiter.objects.create(**mitarbeiter_data)
+                messages.success(request, f'Mitarbeiter {vorname} {nachname} erstellt!')
+
+                # Reload Builder Canvas
+                orgeinheiten = OrgEinheit.objects.prefetch_related('stellen').order_by('kuerzel')
+                return render(request, 'hr/partials/_builder_canvas.html', {
+                    'orgeinheiten': orgeinheiten
+                })
+            except Exception as e:
+                messages.error(request, f'Fehler beim Erstellen: {str(e)}')
+
+    # GET Request: Formular anzeigen
+    stellen = Stelle.objects.select_related('org_einheit').order_by('kuerzel')
+    return render(request, 'hr/partials/_form_mitarbeiter.html', {
+        'stellen': stellen,
+        'rolle_choices': HRMitarbeiter.ROLLE_CHOICES
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
 def company_builder_hierarchie_update(request):
     """HTMX: Update Hierarchie nach Drag & Drop.
 

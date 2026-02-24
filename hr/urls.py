@@ -67,6 +67,7 @@ urlpatterns = [
     path("company-builder/preview/", views.company_builder_preview, name="company_builder_preview"),
     path("company-builder/orgeinheit/neu/", views.company_builder_neue_orgeinheit, name="company_builder_orgeinheit_neu"),
     path("company-builder/stelle/neu/", views.company_builder_neue_stelle, name="company_builder_stelle_neu"),
+    path("company-builder/mitarbeiter/neu/", views.company_builder_neuer_mitarbeiter, name="company_builder_mitarbeiter_neu"),
     path("company-builder/hierarchie/update/", views.company_builder_hierarchie_update, name="company_builder_hierarchie_update"),
     path("company-builder/organigramm/", views.company_builder_organigramm, name="company_builder_organigramm"),
     path("company-builder/snapshot/create/", views.snapshot_create, name="snapshot_create"),

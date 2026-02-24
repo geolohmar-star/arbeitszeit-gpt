@@ -54,6 +54,23 @@ def arbeitsstapel(request):
     heute_faellig = [t for t in tasks if t.ist_heute_faellig and not t.ist_ueberfaellig]
     demnaechst = [t for t in tasks if not t.ist_ueberfaellig and not t.ist_heute_faellig]
 
+    # Erledigte Tasks des Users (letzte 30 Tage)
+    from datetime import timedelta
+    vor_30_tagen = timezone.now() - timedelta(days=30)
+
+    erledigte_tasks = (
+        WorkflowTask.objects.filter(erledigt_von=user, status="erledigt")
+        .filter(erledigt_am__gte=vor_30_tagen)
+        .select_related(
+            "instance",
+            "instance__template",
+            "step",
+            "zugewiesen_an_stelle",
+            "zugewiesen_an_user",
+        )
+        .order_by("-erledigt_am")[:20]  # Max 20 neueste
+    )
+
     context = {
         "tasks": tasks,
         "ueberfaellig": ueberfaellig,
@@ -62,6 +79,8 @@ def arbeitsstapel(request):
         "anzahl_gesamt": tasks.count(),
         "anzahl_ueberfaellig": len(ueberfaellig),
         "anzahl_heute": len(heute_faellig),
+        "erledigte_tasks": erledigte_tasks,
+        "anzahl_erledigt": erledigte_tasks.count(),
     }
 
     return render(request, "workflow/arbeitsstapel.html", context)
@@ -84,8 +103,14 @@ def task_detail(request, pk):
     )
 
     # Pruefe ob User berechtigt ist diesen Task zu sehen
-    if not task.kann_bearbeiten(request.user):
-        messages.error(request, "Sie sind nicht berechtigt, diesen Task zu bearbeiten.")
+    # Erlaubt: Tasks die man bearbeiten kann ODER die man selbst erledigt hat
+    kann_ansehen = (
+        task.kann_bearbeiten(request.user) or
+        (task.status == "erledigt" and task.erledigt_von == request.user)
+    )
+
+    if not kann_ansehen:
+        messages.error(request, "Sie sind nicht berechtigt, diesen Task anzusehen.")
         return redirect("workflow:arbeitsstapel")
 
     # Hole alle Tasks dieser Workflow-Instanz
@@ -121,6 +146,7 @@ def task_bearbeiten(request, pk):
     if request.method == "POST":
         entscheidung = request.POST.get("entscheidung")
         kommentar = request.POST.get("kommentar", "")
+        kuerzel_weiterleiten = request.POST.get("kuerzel_weiterleiten", "").strip()
 
         # Validiere Entscheidung
         gueltige_entscheidungen = [choice[0] for choice in WorkflowTask.ENTSCHEIDUNG_CHOICES]
@@ -128,15 +154,45 @@ def task_bearbeiten(request, pk):
             messages.error(request, "Ungueltige Entscheidung.")
             return redirect("workflow:task_detail", pk=pk)
 
+        # Bei Weiterleiten: Finde Ziel-User anhand Kuerzel
+        ziel_user = None
+        if entscheidung == "weitergeleitet":
+            if not kuerzel_weiterleiten:
+                messages.error(request, "Bitte geben Sie ein Kuerzel fuer die Weiterleitung ein.")
+                return redirect("workflow:task_detail", pk=pk)
+
+            # Suche User anhand Kuerzel (in hr.Stelle oder arbeitszeit.Mitarbeiter)
+            from hr.models import Stelle
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+
+            try:
+                # Versuche zuerst ueber Stelle zu finden
+                stelle = Stelle.objects.get(kuerzel__iexact=kuerzel_weiterleiten)
+                if stelle.ist_besetzt:
+                    ziel_user = stelle.aktueller_inhaber.user
+                else:
+                    messages.error(request, f"Stelle '{kuerzel_weiterleiten}' ist nicht besetzt.")
+                    return redirect("workflow:task_detail", pk=pk)
+            except Stelle.DoesNotExist:
+                # Falls keine Stelle gefunden, versuche ueber Username
+                try:
+                    ziel_user = User.objects.get(username__iexact=kuerzel_weiterleiten)
+                except User.DoesNotExist:
+                    messages.error(request, f"Kein User mit Kuerzel '{kuerzel_weiterleiten}' gefunden.")
+                    return redirect("workflow:task_detail", pk=pk)
+
         # Nutze Workflow-Engine zum Bearbeiten des Tasks
         engine = WorkflowEngine()
-        neue_tasks = engine.complete_task(task, entscheidung, kommentar, request.user)
+        neue_tasks = engine.complete_task(
+            task, entscheidung, kommentar, request.user, ziel_user=ziel_user
+        )
 
         # Erfolgsmeldung
         if task.instance.status == "abgeschlossen":
             messages.success(
                 request,
-                f"Workflow '{task.instance.template.name}' erfolgreich abgeschlossen!"
+                f"✓ Workflow '{task.instance.template.name}' erfolgreich abgeschlossen!"
             )
         elif task.instance.status == "abgebrochen":
             messages.warning(
@@ -146,15 +202,16 @@ def task_bearbeiten(request, pk):
         elif neue_tasks:
             messages.success(
                 request,
-                f"Task '{task.step.titel}' erfolgreich bearbeitet. {len(neue_tasks)} neue Task(s) erstellt."
+                f"✓ Task '{task.step.titel}' erfolgreich bearbeitet. {len(neue_tasks)} neue Task(s) erstellt."
             )
         else:
             messages.success(
                 request,
-                f"Task '{task.step.titel}' erfolgreich bearbeitet."
+                f"✓ Task '{task.step.titel}' erfolgreich bearbeitet."
             )
 
-        return redirect("workflow:arbeitsstapel")
+        # Bleibe auf der Task-Detail-Seite statt zum Arbeitsstapel zu springen
+        return redirect("workflow:task_detail", pk=pk)
 
     # GET → Leite zu Detail-Seite weiter
     return redirect("workflow:task_detail", pk=pk)
@@ -259,14 +316,37 @@ def workflow_editor_save(request):
         if len(schritte_data) == 0:
             return JsonResponse({"error": "Mindestens ein Schritt erforderlich"}, status=400)
 
-        # Template erstellen
-        template = WorkflowTemplate.objects.create(
-            name=template_data["name"],
-            beschreibung=template_data.get("beschreibung", ""),
-            kategorie=template_data.get("kategorie", "genehmigung"),
-            trigger_event=template_data.get("trigger_event", ""),
-            erstellt_von=request.user,
-        )
+        # Pruefe ob Update oder Create
+        template_id = template_data.get("template_id")
+
+        if template_id:
+            # Update bestehendes Template
+            try:
+                template = WorkflowTemplate.objects.get(id=template_id)
+                template.name = template_data["name"]
+                template.beschreibung = template_data.get("beschreibung", "")
+                template.kategorie = template_data.get("kategorie", "genehmigung")
+                template.trigger_event = template_data.get("trigger_event", "")
+                template.ist_aktiv = template_data.get("aktiv", True)
+                template.save()
+
+                # Loesche alte Schritte
+                template.schritte.all().delete()
+
+                is_update = True
+            except WorkflowTemplate.DoesNotExist:
+                return JsonResponse({"error": f"Template mit ID {template_id} nicht gefunden"}, status=404)
+        else:
+            # Template erstellen
+            template = WorkflowTemplate.objects.create(
+                name=template_data["name"],
+                beschreibung=template_data.get("beschreibung", ""),
+                kategorie=template_data.get("kategorie", "genehmigung"),
+                trigger_event=template_data.get("trigger_event", ""),
+                ist_aktiv=template_data.get("aktiv", True),
+                erstellt_von=request.user,
+            )
+            is_update = False
 
         # Schritte erstellen
         for schritt_data in schritte_data:
@@ -296,10 +376,11 @@ def workflow_editor_save(request):
                 eskalation_nach_tagen=schritt_data.get("eskalation", 0),
             )
 
+        action = "aktualisiert" if is_update else "erstellt"
         return JsonResponse({
             "success": True,
             "template_id": template.id,
-            "message": f"Workflow-Template '{template.name}' erfolgreich erstellt"
+            "message": f"Workflow-Template '{template.name}' erfolgreich {action}"
         })
 
     except json.JSONDecodeError:

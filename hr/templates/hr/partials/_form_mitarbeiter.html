@@ -1,0 +1,61 @@
+<div class="modal-header">
+    <h5 class="modal-title">Neuer Mitarbeiter</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<form hx-post="{% url 'hr:company_builder_mitarbeiter_neu' %}"
+      hx-target="#builder-canvas"
+      hx-swap="innerHTML">
+    {% csrf_token %}
+    <div class="modal-body">
+        <div class="mb-3">
+            <label class="form-label">Vorname *</label>
+            <input type="text" name="vorname" class="form-control"
+                   placeholder="z.B. Max" required maxlength="100">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Nachname *</label>
+            <input type="text" name="nachname" class="form-control"
+                   placeholder="z.B. Mustermann" required maxlength="100">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Personalnummer *</label>
+            <input type="text" name="personalnummer" class="form-control"
+                   placeholder="z.B. MA1234" required maxlength="20">
+            <small class="form-text text-muted">Max. 20 Zeichen, muss eindeutig sein</small>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control"
+                   placeholder="z.B. max.mustermann@firma.de" maxlength="254">
+            <small class="form-text text-muted">Optional</small>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Rolle *</label>
+            <select name="rolle" class="form-select" required>
+                {% for value, label in rolle_choices %}
+                    <option value="{{ value }}" {% if value == "mitarbeiter" %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Stelle</label>
+            <select name="stelle_id" class="form-select">
+                <option value="">-- Keine Stelle zuweisen --</option>
+                {% for stelle in stellen %}
+                    <option value="{{ stelle.id }}" {% if stelle.ist_besetzt %}disabled{% endif %}>
+                        {{ stelle.kuerzel }} - {{ stelle.bezeichnung }}
+                        {% if stelle.org_einheit %} ({{ stelle.org_einheit.kuerzel }}){% endif %}
+                        {% if stelle.ist_besetzt %} [Besetzt]{% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+            <small class="form-text text-muted">Optional - kann auch spaeter zugewiesen werden</small>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button type="submit" class="btn btn-primary">Erstellen</button>
+    </div>
+</form>
