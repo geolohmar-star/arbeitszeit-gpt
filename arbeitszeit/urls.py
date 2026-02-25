@@ -1,6 +1,7 @@
 
 from django.urls import path
 from . import views
+from . import views_debug
 
 app_name = 'arbeitszeit'
 
@@ -59,4 +60,7 @@ urlpatterns = [
         views.mitarbeiter_soll_uebersicht,
         name='mitarbeiter_soll_uebersicht'
     ),
+
+    # Debug (nur fuer Staff/Admin)
+    path('debug/berechtigungen/', views_debug.debug_berechtigungen, name='debug_berechtigungen'),
 ]
