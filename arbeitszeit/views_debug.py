@@ -92,57 +92,81 @@ def debug_berechtigungen(request):
 @staff_member_required
 def fix_schichtplan_permission(request):
     """Vergibt fehlende schichtplan_zugang Permission."""
-    from django.contrib.contenttypes.models import ContentType
-    from django.contrib.auth.models import Permission
-    from schichtplan.models import Schichtplan
-
     output = []
     output.append("=" * 70)
     output.append("FIX: Schichtplan-Zugang Permission")
     output.append("=" * 70)
 
-    # Permission holen/erstellen
-    content_type = ContentType.objects.get_for_model(Schichtplan)
-    permission, created = Permission.objects.get_or_create(
-        codename='schichtplan_zugang',
-        name='Kann Schichtplan-Bereich nutzen',
-        content_type=content_type,
-    )
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from django.contrib.auth.models import Permission
+        from schichtplan.models import Schichtplan
 
-    if created:
-        output.append("\nPermission erstellt!")
-    else:
-        output.append("\nPermission existiert bereits.")
+        # Permission holen/erstellen
+        output.append("\n1. Permission erstellen/pruefen...")
+        content_type = ContentType.objects.get_for_model(Schichtplan)
+        permission, created = Permission.objects.get_or_create(
+            codename='schichtplan_zugang',
+            name='Kann Schichtplan-Bereich nutzen',
+            content_type=content_type,
+        )
 
-    # User finden
-    users_to_grant = []
-
-    # Gruppe "Schichtplaner"
-    users_in_gruppe = User.objects.filter(groups__name='Schichtplaner')
-    for user in users_in_gruppe:
-        users_to_grant.append(user)
-        output.append(f"  - {user.username} (Gruppe)")
-
-    # Rolle "schichtplaner"
-    mitarbeiter_sp = Mitarbeiter.objects.filter(rolle__iexact='schichtplaner')
-    for ma in mitarbeiter_sp:
-        if ma.user and ma.user not in users_to_grant:
-            users_to_grant.append(ma.user)
-            output.append(f"  - {ma.user.username} (Rolle)")
-
-    output.append(f"\nGefunden: {len(users_to_grant)} User")
-
-    # Permission vergeben
-    for user in users_to_grant:
-        if not user.has_perm('schichtplan.schichtplan_zugang'):
-            user.user_permissions.add(permission)
-            output.append(f"OK: Permission vergeben an {user.username}")
+        if created:
+            output.append("   -> Permission erstellt!")
         else:
-            output.append(f"  {user.username} hat Permission bereits")
+            output.append(f"   -> Permission existiert bereits (ID: {permission.id})")
 
-    output.append("\n" + "=" * 70)
-    output.append("FERTIG! Testen Sie jetzt den Schichtplan-Zugang.")
-    output.append("=" * 70)
+        # User finden
+        output.append("\n2. User mit Schichtplaner-Berechtigung suchen...")
+        users_to_grant = []
+
+        # Gruppe "Schichtplaner"
+        users_in_gruppe = User.objects.filter(groups__name='Schichtplaner')
+        output.append(f"   -> {users_in_gruppe.count()} User in Gruppe 'Schichtplaner'")
+        for user in users_in_gruppe:
+            users_to_grant.append(user)
+            output.append(f"      - {user.username} (Gruppe)")
+
+        # Rolle "schichtplaner"
+        mitarbeiter_sp = Mitarbeiter.objects.filter(rolle__iexact='schichtplaner')
+        output.append(f"   -> {mitarbeiter_sp.count()} Mitarbeiter mit Rolle 'schichtplaner'")
+        for ma in mitarbeiter_sp:
+            try:
+                if ma.user:
+                    if ma.user not in users_to_grant:
+                        users_to_grant.append(ma.user)
+                        output.append(f"      - {ma.user.username} (Rolle)")
+                else:
+                    output.append(f"      - {ma.vorname} {ma.nachname} (kein User verknuepft)")
+            except Exception as e:
+                output.append(f"      - FEHLER bei MA {ma.id}: {e}")
+
+        output.append(f"\n3. Gefunden: {len(users_to_grant)} User")
+
+        # Permission vergeben
+        output.append("\n4. Permission vergeben...")
+        for user in users_to_grant:
+            try:
+                if not user.has_perm('schichtplan.schichtplan_zugang'):
+                    user.user_permissions.add(permission)
+                    output.append(f"   OK: Permission vergeben an {user.username}")
+                else:
+                    output.append(f"   --: {user.username} hat Permission bereits")
+            except Exception as e:
+                output.append(f"   FEHLER bei {user.username}: {e}")
+
+        output.append("\n" + "=" * 70)
+        output.append("FERTIG! Testen Sie jetzt den Schichtplan-Zugang.")
+        output.append("https://arbeitszeit-gpt.up.railway.app/schichtplan/")
+        output.append("=" * 70)
+
+    except Exception as e:
+        import traceback
+        output.append("\n\n!!! KRITISCHER FEHLER !!!\n")
+        output.append(f"Exception: {type(e).__name__}")
+        output.append(f"Message: {str(e)}")
+        output.append("\nTraceback:")
+        output.append(traceback.format_exc())
 
     html = "<html><body><pre>" + "\n".join(output) + "</pre></body></html>"
     return HttpResponse(html, content_type="text/html; charset=utf-8")
