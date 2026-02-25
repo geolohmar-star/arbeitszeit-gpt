@@ -1,6 +1,10 @@
 from django import forms
 
-from formulare.models import AenderungZeiterfassung, Dienstreiseantrag
+from formulare.models import (
+    AenderungZeiterfassung,
+    Dienstreiseantrag,
+    Zeitgutschrift,
+)
 
 
 class AenderungZeiterfassungForm(forms.ModelForm):
@@ -222,3 +226,116 @@ class DienstreiseantragForm(forms.ModelForm):
                 )
 
         return cleaned_data
+
+
+class ZeitgutschriftForm(forms.ModelForm):
+    """Formular fuer Zeitgutschriften.
+
+    Unterstuetzt drei Arten:
+    - Haertefallregelung (dynamische Zeilen)
+    - Ehrenamt (dynamische Zeilen)
+    - Fortbildung (Checkbox-gesteuert mit Berechnung)
+    """
+
+    # Multi-File-Upload fuer Belege
+    belege = forms.FileField(
+        required=False,
+        widget=forms.FileInput(attrs={"class": "form-control"}),
+        label="Belege (optional)",
+        help_text="PDF, JPG oder PNG, max. 10 MB pro Datei",
+    )
+
+    class Meta:
+        model = Zeitgutschrift
+        fields = [
+            "art",
+            "fortbildung_aktiv",
+            "fortbildung_typ",
+            "fortbildung_wochenstunden_regulaer",
+            "fortbildung_von_datum",
+            "fortbildung_bis_datum",
+            "fortbildung_massnahme_nr",
+        ]
+        widgets = {
+            "art": forms.RadioSelect(
+                attrs={"class": "form-check-input"}
+            ),
+            "fortbildung_aktiv": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
+            ),
+            "fortbildung_typ": forms.RadioSelect(
+                attrs={"class": "form-check-input"}
+            ),
+            "fortbildung_wochenstunden_regulaer": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "min": "0",
+                }
+            ),
+            "fortbildung_von_datum": forms.DateInput(
+                attrs={"type": "date", "class": "form-control"}
+            ),
+            "fortbildung_bis_datum": forms.DateInput(
+                attrs={"type": "date", "class": "form-control"}
+            ),
+            "fortbildung_massnahme_nr": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+        }
+
+    def clean(self):
+        """Validierung je nach Art."""
+        cleaned_data = super().clean()
+        art = cleaned_data.get("art")
+
+        # Fortbildung: Wenn aktiviert, alle Felder Pflicht
+        if art == "fortbildung" and cleaned_data.get("fortbildung_aktiv"):
+            erforderlich = [
+                ("fortbildung_typ", "Typ ist erforderlich."),
+                (
+                    "fortbildung_wochenstunden_regulaer",
+                    "Wochenstunden sind erforderlich.",
+                ),
+                ("fortbildung_von_datum", "Von-Datum ist erforderlich."),
+                ("fortbildung_bis_datum", "Bis-Datum ist erforderlich."),
+                ("fortbildung_massnahme_nr", "Massnahmen-Nr ist erforderlich."),
+            ]
+
+            for feld, fehlertext in erforderlich:
+                if not cleaned_data.get(feld):
+                    self.add_error(feld, fehlertext)
+
+            # Von-Bis-Validierung
+            von_datum = cleaned_data.get("fortbildung_von_datum")
+            bis_datum = cleaned_data.get("fortbildung_bis_datum")
+            if von_datum and bis_datum and bis_datum < von_datum:
+                self.add_error(
+                    "fortbildung_bis_datum",
+                    "Bis-Datum muss nach Von-Datum liegen.",
+                )
+
+        return cleaned_data
+
+    def clean_belege(self):
+        """Validiere Upload-Dateien."""
+        dateien = self.files.getlist("belege")
+        erlaubte_typen = ["pdf", "jpg", "jpeg", "png"]
+        max_groesse = 10 * 1024 * 1024  # 10 MB
+
+        for datei in dateien:
+            # Dateityp pruefen
+            dateiname = datei.name.lower()
+            erweiterung = dateiname.split(".")[-1]
+            if erweiterung not in erlaubte_typen:
+                raise forms.ValidationError(
+                    f"Ungueltige Datei '{datei.name}'. Nur PDF, JPG, PNG erlaubt."
+                )
+
+            # Dateigroesse pruefen
+            if datei.size > max_groesse:
+                raise forms.ValidationError(
+                    f"Datei '{datei.name}' ist zu gross (max. 10 MB)."
+                )
+
+        return dateien

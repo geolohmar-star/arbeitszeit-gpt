@@ -178,4 +178,54 @@ Varianten:
             {% endif %}
         </tr>
     {% endwith %}
+{% elif "Zeitgutschrift" in antrag|stringformat:"s" %}
+    <tr id="antrag-zeitgutschrift-{{ antrag.pk }}">
+        {% if show_claim %}
+            <td>
+                {% if antrag.prioritaet == 2 %}
+                    <span class="badge bg-danger">Dringend</span>
+                {% elif antrag.prioritaet == 1 %}
+                    <span class="badge bg-warning">Hoch</span>
+                {% else %}
+                    <span class="badge bg-secondary">Normal</span>
+                {% endif %}
+            </td>
+        {% endif %}
+
+        <td>Zeitgutschrift ({{ antrag.get_art_display }})</td>
+        <td>{{ antrag.antragsteller.vollname }}</td>
+
+        {% if show_claim %}
+            <td>{{ antrag.erstellt_am|date:"d.m.Y H:i" }}</td>
+            <td>
+                <a href="{% url 'formulare:zeitgutschrift_detail' antrag.pk %}"
+                   class="btn btn-sm btn-primary me-1" target="_blank">
+                    <i class="bi bi-eye"></i> Details
+                </a>
+                <a href="{% url 'formulare:zeitgutschrift_pdf' antrag.pk %}"
+                   class="btn btn-sm btn-outline-danger" target="_blank">
+                    <i class="bi bi-file-pdf"></i>
+                </a>
+            </td>
+        {% endif %}
+
+        {% if show_actions %}
+            <td>{{ antrag.claimed_am|date:"d.m.Y H:i" }}</td>
+            <td>
+                <a href="{% url 'formulare:zeitgutschrift_detail' antrag.pk %}"
+                   class="btn btn-sm btn-primary me-1" target="_blank">
+                    <i class="bi bi-eye"></i> Details
+                </a>
+                <a href="{% url 'formulare:zeitgutschrift_pdf' antrag.pk %}"
+                   class="btn btn-sm btn-outline-danger" target="_blank">
+                    <i class="bi bi-file-pdf"></i>
+                </a>
+            </td>
+        {% endif %}
+
+        {% if show_bearbeiter %}
+            <td>{{ antrag.claimed_von.get_full_name|default:antrag.claimed_von.username }}</td>
+            <td>{{ antrag.claimed_am|date:"d.m.Y H:i" }}</td>
+        {% endif %}
+    </tr>
 {% endif %}

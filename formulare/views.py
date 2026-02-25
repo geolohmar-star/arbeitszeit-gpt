@@ -16,13 +16,19 @@ from arbeitszeit.models import (
     Zeiterfassung,
     get_feiertagskalender,
 )
-from formulare.forms import AenderungZeiterfassungForm, DienstreiseantragForm
+from formulare.forms import (
+    AenderungZeiterfassungForm,
+    DienstreiseantragForm,
+    ZeitgutschriftForm,
+)
 from formulare.models import (
     AenderungZeiterfassung,
     Dienstreiseantrag,
     TeamQueue,
     ZAGAntrag,
     ZAGStorno,
+    Zeitgutschrift,
+    ZeitgutschriftBeleg,
 )
 
 WOCHENTAG_MAP = {
@@ -98,8 +104,11 @@ def meine_antraege(request):
     ZAGStorno.objects.filter(
         erstellt_am__date__lt=loeschgrenze
     ).delete()
+    Zeitgutschrift.objects.filter(
+        erstellt_am__date__lt=loeschgrenze
+    ).delete()
 
-    # Beide Antragstypen zusammenfuehren und nach Datum sortieren
+    # Alle Antragstypen zusammenfuehren und nach Datum sortieren
     aenderungen = list(
         AenderungZeiterfassung.objects.filter(
             antragsteller__user=request.user
@@ -124,8 +133,16 @@ def meine_antraege(request):
     for s in zag_stornos:
         s.antrag_typ = "zag_storno"
 
+    zeitgutschriften = list(
+        Zeitgutschrift.objects.filter(
+            antragsteller__user=request.user
+        )
+    )
+    for z in zeitgutschriften:
+        z.antrag_typ = "zeitgutschrift"
+
     alle_antraege = sorted(
-        chain(aenderungen, zag_antraege, zag_stornos),
+        chain(aenderungen, zag_antraege, zag_stornos, zeitgutschriften),
         key=attrgetter("erstellt_am"),
         reverse=True,
     )
@@ -1128,6 +1145,14 @@ def genehmigung_uebersicht(request):
         .select_related("antragsteller")
         .order_by("erstellt_am")
     )
+    zeitgutschriften = (
+        Zeitgutschrift.objects.filter(
+            antragsteller__in=berechtigte_ma,
+            status="beantragt",
+        )
+        .select_related("antragsteller")
+        .order_by("erstellt_am")
+    )
 
     # Zuletzt erledigte Antraege fuer Historie
     aenderungen_erledigt = (
@@ -1154,8 +1179,19 @@ def genehmigung_uebersicht(request):
         .select_related("antragsteller", "bearbeitet_von")
         .order_by("-bearbeitet_am")[:10]
     )
+    zeitgutschriften_erledigt = (
+        Zeitgutschrift.objects.filter(
+            antragsteller__in=berechtigte_ma,
+            status__in=["genehmigt", "abgelehnt"],
+        )
+        .select_related("antragsteller", "bearbeitet_von")
+        .order_by("-bearbeitet_am")[:10]
+    )
 
-    gesamt_offen = aenderungen.count() + zag_antraege.count() + zag_stornos.count()
+    gesamt_offen = (
+        aenderungen.count() + zag_antraege.count() +
+        zag_stornos.count() + zeitgutschriften.count()
+    )
 
     return render(
         request,
@@ -1164,9 +1200,11 @@ def genehmigung_uebersicht(request):
             "aenderungen": aenderungen,
             "zag_antraege": zag_antraege,
             "zag_stornos": zag_stornos,
+            "zeitgutschriften": zeitgutschriften,
             "aenderungen_erledigt": aenderungen_erledigt,
             "zag_erledigt": zag_erledigt,
             "zag_storno_erledigt": zag_storno_erledigt,
+            "zeitgutschriften_erledigt": zeitgutschriften_erledigt,
             "gesamt_offen": gesamt_offen,
             "kein_zugang": False,
         },
@@ -1179,7 +1217,7 @@ def genehmigung_entscheiden(request, antrag_typ, pk):
 
     # HTMX-View - gibt bei HTMX-Request nur das erledigte Zeilen-Partial zurueck.
 
-    antrag_typ: 'aenderung' | 'zag' | 'zag_storno'
+    antrag_typ: 'aenderung' | 'zag' | 'zag_storno' | 'zeitgutschrift'
     """
     from django.utils import timezone
 
@@ -1190,6 +1228,7 @@ def genehmigung_entscheiden(request, antrag_typ, pk):
         "aenderung": AenderungZeiterfassung,
         "zag": ZAGAntrag,
         "zag_storno": ZAGStorno,
+        "zeitgutschrift": Zeitgutschrift,
     }
     Model = model_map.get(antrag_typ)
     if Model is None:
@@ -1327,6 +1366,66 @@ def dienstreise_erstellen(request):
         )
 
     return render(request, "formulare/dienstreise_erstellen.html", context)
+
+
+@login_required
+def dienstreise_bearbeiten(request, pk):
+    """Bearbeite einen bestehenden Dienstreiseantrag.
+
+    Nur der Antragsteller kann seinen eigenen Antrag bearbeiten.
+    Wird verwendet wenn Antrag zur Ueberarbeitung zurueckgesendet wurde.
+    """
+    antrag = get_object_or_404(Dienstreiseantrag, pk=pk)
+
+    # Pruefe Berechtigung: Nur Antragsteller darf bearbeiten
+    if request.user != antrag.antragsteller.user:
+        messages.error(request, "Sie koennen nur Ihre eigenen Antraege bearbeiten.")
+        return redirect("formulare:meine_dienstreisen")
+
+    if request.method == "POST":
+        form = DienstreiseantragForm(request.POST, instance=antrag)
+        if form.is_valid():
+            antrag = form.save()
+
+            messages.success(
+                request,
+                "Ihre Aenderungen wurden gespeichert. "
+                "Bitte kehren Sie zum Workflow-Task zurueck um die Bearbeitung abzuschliessen."
+            )
+
+            # Zurueck zur Workflow-Task-Ansicht falls task_id uebergeben
+            task_id = request.GET.get("task_id")
+            if task_id:
+                return redirect("workflow:task_detail", pk=task_id)
+
+            return redirect("formulare:meine_dienstreisen")
+
+        # HTMX: Formular mit Fehlern
+        if request.headers.get("HX-Request"):
+            return render(
+                request,
+                "formulare/partials/_dienstreise_formular.html",
+                {"form": form, "bearbeiten": True},
+            )
+
+    else:
+        form = DienstreiseantragForm(instance=antrag)
+
+    context = {
+        "form": form,
+        "antrag": antrag,
+        "bearbeiten": True,
+    }
+
+    # HTMX: Nur Formular-Partial
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "formulare/partials/_dienstreise_formular.html",
+            context,
+        )
+
+    return render(request, "formulare/dienstreise_bearbeiten.html", context)
 
 
 @login_required
@@ -1646,3 +1745,360 @@ def meine_dienstreisen(request):
     }
 
     return render(request, "formulare/meine_dienstreisen.html", context)
+
+
+def _berechne_fortbildung(mitarbeiter, von_datum, bis_datum, wochenstunden_regulaer):
+    """Berechnet Zeitgutschrift fuer ganztaegige Fortbildung.
+
+    Iteriert ueber Arbeitstage (Mo-Fr ohne Feiertage) und vergleicht:
+    - Fortbildungs-Soll (eingegebene taegliche Sollzeit)
+    - Vereinbarungs-Soll (aus get_aktuelle_vereinbarung)
+
+    Gibt JSON-Struktur mit Zeilen, Summen und Differenz zurueck.
+    """
+    try:
+        # Feiertagskalender
+        feiertage = get_feiertagskalender(mitarbeiter.standort)
+
+        # Taegliche Sollzeit aus eingegebenen Wochenstunden
+        taegliche_sollzeit = wochenstunden_regulaer / 5
+
+        zeilen = []
+        summe_fortbildung = 0
+        summe_vereinbarung = 0
+
+        # Iteriere ueber Datumsbereich
+        aktuell = von_datum
+        while aktuell <= bis_datum:
+            # Nur Werktage (Mo-Fr) ohne Feiertage
+            if aktuell.weekday() < 5 and aktuell not in feiertage:
+                # Vereinbarungs-Soll holen
+                vereinbarung = mitarbeiter.get_aktuelle_vereinbarung(aktuell)
+                if vereinbarung:
+                    wochentag_name = WOCHENTAG_MAP.get(aktuell.weekday(), "")
+                    vereinbarung_soll = getattr(
+                        vereinbarung,
+                        f"stunden_{wochentag_name}",
+                        0,
+                    ) or 0
+                else:
+                    vereinbarung_soll = 0
+
+                # Wochentag als Text
+                wochentag_text = [
+                    "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag",
+                    "Samstag", "Sonntag"
+                ][aktuell.weekday()]
+
+                zeilen.append({
+                    "datum": aktuell.strftime("%d.%m.%Y"),
+                    "wochentag": wochentag_text,
+                    "fortbildung_soll": f"{float(taegliche_sollzeit):.2f}",
+                    "vereinbarung_soll": f"{float(vereinbarung_soll):.2f}",
+                })
+
+                summe_fortbildung += float(taegliche_sollzeit)
+                summe_vereinbarung += float(vereinbarung_soll)
+
+            aktuell += timedelta(days=1)
+
+        # Differenz berechnen
+        differenz = abs(summe_fortbildung - summe_vereinbarung)
+        differenz_hoeherer = (
+            "fortbildung" if summe_fortbildung > summe_vereinbarung
+            else "vereinbarung"
+        )
+
+        return {
+            "zeilen": zeilen,
+            "summe_fortbildung": f"{summe_fortbildung:.2f}",
+            "summe_vereinbarung": f"{summe_vereinbarung:.2f}",
+            "differenz": f"{differenz:.2f}",
+            "differenz_hoeherer": differenz_hoeherer,
+        }
+    except Exception:
+        return None
+
+
+@login_required
+def zeitgutschrift_antrag(request):
+    """Haupt-View fuer Zeitgutschrift-Antraege.
+
+    Unterstuetzt drei Arten:
+    - Haertefallregelung
+    - Ehrenamt
+    - Fortbildung (mit Berechnung)
+    """
+    form = ZeitgutschriftForm(request.POST or None, request.FILES or None)
+
+    if request.method == "POST":
+        if form.is_valid():
+            antrag = form.save(commit=False)
+            antrag.antragsteller = request.user.mitarbeiter
+
+            # Art-spezifische Verarbeitung
+            art = antrag.art
+
+            if art in ("haertefall", "ehrenamt"):
+                # Zeilen aus POST sammeln
+                zeile_datums = request.POST.getlist("zeile_datum")
+                zeile_von_zeits = request.POST.getlist("zeile_von_zeit")
+                zeile_bis_zeits = request.POST.getlist("zeile_bis_zeit")
+
+                zeilen_daten = []
+                for i in range(len(zeile_datums)):
+                    zeile = {
+                        "datum": zeile_datums[i] if i < len(zeile_datums) else "",
+                        "von_zeit": zeile_von_zeits[i] if i < len(zeile_von_zeits) else "",
+                        "bis_zeit": zeile_bis_zeits[i] if i < len(zeile_bis_zeits) else "",
+                    }
+                    if any(zeile.values()):
+                        zeilen_daten.append(zeile)
+
+                if not zeilen_daten:
+                    form.add_error(None, "Mindestens eine Zeile ist erforderlich.")
+                    context = {"form": form}
+                    return render(
+                        request,
+                        "formulare/zeitgutschrift_antrag.html",
+                        context,
+                    )
+
+                antrag.zeilen_daten = zeilen_daten
+
+            elif art == "fortbildung" and antrag.fortbildung_aktiv:
+                # Berechnung durchfuehren
+                berechnung = _berechne_fortbildung(
+                    request.user.mitarbeiter,
+                    antrag.fortbildung_von_datum,
+                    antrag.fortbildung_bis_datum,
+                    antrag.fortbildung_wochenstunden_regulaer,
+                )
+                antrag.fortbildung_berechnung = berechnung
+
+            # Antrag speichern
+            antrag.save()
+
+            # Belege hochladen
+            belege = request.FILES.getlist("belege")
+            for beleg in belege:
+                ZeitgutschriftBeleg.objects.create(
+                    zeitgutschrift=antrag,
+                    datei=beleg,
+                    dateiname_original=beleg.name,
+                )
+
+            # Erfolgs-Seite
+            return redirect("formulare:zeitgutschrift_erfolg", pk=antrag.pk)
+
+        # Fehler: HTMX-Support
+        if request.headers.get("HX-Request"):
+            return render(
+                request,
+                "formulare/partials/_zeitgutschrift_felder.html",
+                {"form": form},
+            )
+
+    context = {"form": form}
+    return render(request, "formulare/zeitgutschrift_antrag.html", context)
+
+
+@login_required
+def zeitgutschrift_felder(request):
+    """HTMX-View: Gibt Art-abhaengige Felder zurueck."""
+    art = request.GET.get("art", "")
+    form = ZeitgutschriftForm(initial={"art": art})
+
+    context = {
+        "form": form,
+        "art": art,
+    }
+    return render(
+        request,
+        "formulare/partials/_zeitgutschrift_felder.html",
+        context,
+    )
+
+
+@login_required
+def neue_zeitgutschrift_zeile(request):
+    """HTMX-View: Gibt neue leere Zeile zurueck."""
+    return render(request, "formulare/partials/_zeitgutschrift_zeile.html")
+
+
+@login_required
+def zeitgutschrift_fortbildung_berechnen(request):
+    """HTMX-View: Live-Berechnung fuer Fortbildung."""
+    # Daten aus POST holen
+    von_datum_str = request.POST.get("fortbildung_von_datum")
+    bis_datum_str = request.POST.get("fortbildung_bis_datum")
+    wochenstunden_str = request.POST.get("fortbildung_wochenstunden_regulaer")
+
+    berechnung = None
+
+    try:
+        if von_datum_str and bis_datum_str and wochenstunden_str:
+            from datetime import datetime
+            von_datum = datetime.strptime(von_datum_str, "%Y-%m-%d").date()
+            bis_datum = datetime.strptime(bis_datum_str, "%Y-%m-%d").date()
+            wochenstunden = float(wochenstunden_str)
+
+            berechnung = _berechne_fortbildung(
+                request.user.mitarbeiter,
+                von_datum,
+                bis_datum,
+                wochenstunden,
+            )
+    except (ValueError, AttributeError):
+        pass
+
+    context = {"berechnung": berechnung}
+    return render(
+        request,
+        "formulare/partials/_fortbildung_berechnung.html",
+        context,
+    )
+
+
+@login_required
+def zeitgutschrift_detail(request, pk):
+    """Detail-Ansicht fuer Genehmiger, Antragsteller und Workflow-Bearbeiter."""
+    antrag = get_object_or_404(Zeitgutschrift, pk=pk)
+
+    # Berechtigungspruefung: Antragsteller oder Genehmiger
+    berechtigte_ma = _offene_antraege_fuer_user(request.user)
+    ist_antragsteller = antrag.antragsteller.user == request.user
+    ist_genehmiger = antrag.antragsteller in berechtigte_ma
+
+    # Workflow-Berechtigung: Hat User einen Task fuer diesen Antrag?
+    hat_workflow_task = False
+    if antrag.workflow_instance:
+        from workflow.models import WorkflowTask
+        # Direkt zugewiesene Tasks
+        hat_workflow_task = WorkflowTask.objects.filter(
+            instance=antrag.workflow_instance,
+            status__in=["offen", "in_bearbeitung"],
+            zugewiesen_an_user=request.user
+        ).exists()
+
+        # Oder Tasks an die Stelle des Users
+        if not hat_workflow_task and hasattr(request.user, "hr_mitarbeiter"):
+            stelle = request.user.hr_mitarbeiter.stelle
+            hat_workflow_task = WorkflowTask.objects.filter(
+                instance=antrag.workflow_instance,
+                status__in=["offen", "in_bearbeitung"],
+                zugewiesen_an_stelle=stelle
+            ).exists()
+
+        # Oder Tasks an ein Team, in dem der User Mitglied ist
+        if not hat_workflow_task:
+            from formulare.models import TeamQueue
+            user_teams = TeamQueue.objects.filter(mitglieder=request.user)
+            hat_workflow_task = WorkflowTask.objects.filter(
+                instance=antrag.workflow_instance,
+                status__in=["offen", "in_bearbeitung"],
+                zugewiesen_an_team__in=user_teams
+            ).exists()
+
+    # Team-Queue-Berechtigung: Hat User den Antrag geclaimed?
+    hat_antrag_geclaimed = antrag.claimed_von == request.user
+
+    if not (ist_antragsteller or ist_genehmiger or hat_workflow_task or hat_antrag_geclaimed):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Keine Berechtigung")
+
+    context = {
+        "antrag": antrag,
+        "ist_genehmiger": ist_genehmiger,
+        "ist_antragsteller": ist_antragsteller,
+    }
+    return render(request, "formulare/zeitgutschrift_detail.html", context)
+
+
+@login_required
+def zeitgutschrift_erfolg(request, pk):
+    """Erfolgs-Seite nach Antragstellung."""
+    antrag = get_object_or_404(Zeitgutschrift, pk=pk)
+
+    # Berechtigungspruefung: Antragsteller oder Genehmiger
+    berechtigte_ma = _offene_antraege_fuer_user(request.user)
+    if (
+        antrag.antragsteller.user != request.user
+        and antrag.antragsteller not in berechtigte_ma
+    ):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Keine Berechtigung")
+
+    context = {"antrag": antrag}
+    return render(request, "formulare/zeitgutschrift_erfolg.html", context)
+
+
+@login_required
+def zeitgutschrift_pdf(request, pk):
+    """PDF-Download fuer Zeitgutschrift-Antrag."""
+    antrag = get_object_or_404(Zeitgutschrift, pk=pk)
+
+    # Berechtigungspruefung: Antragsteller, Genehmiger oder Workflow-Bearbeiter
+    berechtigte_ma = _offene_antraege_fuer_user(request.user)
+    ist_antragsteller = antrag.antragsteller.user == request.user
+    ist_genehmiger = antrag.antragsteller in berechtigte_ma
+
+    # Workflow-Berechtigung: Hat User einen Task fuer diesen Antrag?
+    hat_workflow_task = False
+    if antrag.workflow_instance:
+        from workflow.models import WorkflowTask
+        # Direkt zugewiesene Tasks
+        hat_workflow_task = WorkflowTask.objects.filter(
+            instance=antrag.workflow_instance,
+            status__in=["offen", "in_bearbeitung"],
+            zugewiesen_an_user=request.user
+        ).exists()
+
+        # Oder Tasks an die Stelle des Users
+        if not hat_workflow_task and hasattr(request.user, "hr_mitarbeiter"):
+            stelle = request.user.hr_mitarbeiter.stelle
+            hat_workflow_task = WorkflowTask.objects.filter(
+                instance=antrag.workflow_instance,
+                status__in=["offen", "in_bearbeitung"],
+                zugewiesen_an_stelle=stelle
+            ).exists()
+
+        # Oder Tasks an ein Team, in dem der User Mitglied ist
+        if not hat_workflow_task:
+            from formulare.models import TeamQueue
+            user_teams = TeamQueue.objects.filter(mitglieder=request.user)
+            hat_workflow_task = WorkflowTask.objects.filter(
+                instance=antrag.workflow_instance,
+                status__in=["offen", "in_bearbeitung"],
+                zugewiesen_an_team__in=user_teams
+            ).exists()
+
+    # Team-Queue-Berechtigung: Hat User den Antrag geclaimed?
+    hat_antrag_geclaimed = antrag.claimed_von == request.user
+
+    if not (ist_antragsteller or ist_genehmiger or hat_workflow_task or hat_antrag_geclaimed):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Keine Berechtigung")
+
+    # PDF mit WeasyPrint generieren
+    try:
+        from weasyprint import HTML
+
+        html_string = render_to_string(
+            "formulare/pdf/zeitgutschrift_pdf.html",
+            {"antrag": antrag},
+        )
+
+        html = HTML(string=html_string, base_url=request.build_absolute_uri())
+        pdf = html.write_pdf()
+
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="zeitgutschrift_{antrag.id}.pdf"'
+        )
+        return response
+    except ImportError:
+        return HttpResponse(
+            "WeasyPrint nicht installiert. Bitte 'weasyprint' installieren.",
+            status=500,
+        )

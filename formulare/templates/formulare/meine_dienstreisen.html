@@ -143,18 +143,72 @@
                                 </p>
                                 <div class="d-flex align-items-center">
                                     <div class="progress flex-grow-1 me-3" style="height: 25px;">
+                                        {% if antrag.workflow_instance.status == 'abgeschlossen' %}
+                                        <div class="progress-bar bg-success" role="progressbar"
+                                             style="width: {{ antrag.workflow_instance.fortschritt }}%"
+                                             aria-valuenow="{{ antrag.workflow_instance.fortschritt }}"
+                                             aria-valuemin="0" aria-valuemax="100">
+                                            {{ antrag.workflow_instance.fortschritt|floatformat:0 }}%
+                                        </div>
+                                        {% elif antrag.workflow_instance.status == 'abgebrochen' %}
+                                        <div class="progress-bar bg-danger" role="progressbar"
+                                             style="width: {{ antrag.workflow_instance.fortschritt }}%"
+                                             aria-valuenow="{{ antrag.workflow_instance.fortschritt }}"
+                                             aria-valuemin="0" aria-valuemax="100">
+                                            {{ antrag.workflow_instance.fortschritt|floatformat:0 }}%
+                                        </div>
+                                        {% else %}
                                         <div class="progress-bar bg-primary" role="progressbar"
                                              style="width: {{ antrag.workflow_instance.fortschritt }}%"
                                              aria-valuenow="{{ antrag.workflow_instance.fortschritt }}"
                                              aria-valuemin="0" aria-valuemax="100">
                                             {{ antrag.workflow_instance.fortschritt|floatformat:0 }}%
                                         </div>
+                                        {% endif %}
                                     </div>
-                                    <span class="badge workflow-badge bg-{{ antrag.workflow_instance.status|slice:':1' }}">
-                                        {{ antrag.workflow_instance.get_status_display }}
+                                    {% if antrag.workflow_instance.status == 'abgeschlossen' %}
+                                    <span class="badge workflow-badge bg-success">
+                                        <i class="bi bi-check-circle-fill"></i> {{ antrag.workflow_instance.get_status_display }}
                                     </span>
+                                    {% elif antrag.workflow_instance.status == 'abgebrochen' %}
+                                    <span class="badge workflow-badge bg-danger">
+                                        <i class="bi bi-x-circle-fill"></i> {{ antrag.workflow_instance.get_status_display }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge workflow-badge bg-primary">
+                                        <i class="bi bi-hourglass-split"></i> {{ antrag.workflow_instance.get_status_display }}
+                                    </span>
+                                    {% endif %}
                                 </div>
-                                {% if antrag.workflow_instance.aktueller_schritt %}
+                                {% if antrag.workflow_instance.status == 'abgeschlossen' or antrag.workflow_instance.status == 'abgebrochen' %}
+                                    {% comment %}Zeige letzte Entscheidung bei abgeschlossenem/abgebrochenem Workflow{% endcomment %}
+                                    {% for task in antrag.workflow_instance.tasks.all %}
+                                        {% if forloop.last and task.status == 'erledigt' %}
+                                        <div class="mt-2 p-2 rounded {% if task.entscheidung == 'abgelehnt' %}bg-danger bg-opacity-10{% else %}bg-success bg-opacity-10{% endif %}">
+                                            <p class="small mb-1">
+                                                <strong>
+                                                    {% if task.entscheidung == 'genehmigt' %}
+                                                    <i class="bi bi-check-circle-fill text-success"></i> Genehmigt
+                                                    {% elif task.entscheidung == 'abgelehnt' %}
+                                                    <i class="bi bi-x-circle-fill text-danger"></i> Abgelehnt
+                                                    {% else %}
+                                                    {{ task.get_entscheidung_display }}
+                                                    {% endif %}
+                                                </strong>
+                                                von {{ task.erledigt_von.get_full_name|default:task.erledigt_von.username }}
+                                            </p>
+                                            <p class="small text-muted mb-0">
+                                                am {{ task.erledigt_am|date:"d.m.Y H:i" }} Uhr
+                                            </p>
+                                            {% if task.kommentar %}
+                                            <p class="small mb-0 mt-1">
+                                                <strong>Kommentar:</strong> {{ task.kommentar|truncatewords:15 }}
+                                            </p>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% elif antrag.workflow_instance.aktueller_schritt %}
                                 <p class="small text-muted mb-0 mt-2">
                                     <i class="bi bi-arrow-right-circle"></i>
                                     Aktueller Schritt: <strong>{{ antrag.workflow_instance.aktueller_schritt.titel }}</strong>

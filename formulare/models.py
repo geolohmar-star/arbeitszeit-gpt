@@ -170,6 +170,16 @@ class AenderungZeiterfassung(Antrag):
     tausch_daten = models.JSONField(null=True, blank=True)
     zeiten_daten = models.JSONField(null=True, blank=True)
 
+    # Workflow-Verknuepfung
+    workflow_instance = models.ForeignKey(
+        "workflow.WorkflowInstance",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="aenderungen_zeiterfassung",
+        verbose_name="Workflow-Instanz",
+    )
+
     class Meta:
         ordering = ["-erstellt_am"]
         verbose_name = "Aenderung Zeiterfassung"
@@ -341,6 +351,143 @@ class Dienstreiseantrag(Antrag):
         return 0
 
 
+class Zeitgutschrift(Antrag):
+    """Antrag auf Zeitgutschrift.
+
+    Unterstuetzt drei Arten:
+    - Haertefallregelung
+    - Wahrnehmung von Ehrenamtern
+    - Ganztaegige Fortbildung bei individueller Arbeitszeit
+    """
+
+    ART_CHOICES = [
+        ("haertefall", "Haertefallregelung"),
+        ("ehrenamt", "Wahrnehmung von Ehrenamtern"),
+        (
+            "fortbildung",
+            "Ganztaegige Fortbildung bei individueller Arbeitszeit",
+        ),
+    ]
+
+    FORTBILDUNG_TYP_CHOICES = [
+        ("typ_a", "Typ A"),
+        ("typ_b", "Typ B"),
+    ]
+
+    # Art der Zeitgutschrift
+    art = models.CharField(max_length=20, choices=ART_CHOICES)
+
+    # Gemeinsame Felder (Haertefall + Ehrenamt)
+    # Format: [{"datum": "2026-02-10", "von_zeit": "08:00", "bis_zeit": "16:00"}, ...]
+    zeilen_daten = models.JSONField(null=True, blank=True)
+
+    # Fortbildungs-Felder
+    fortbildung_aktiv = models.BooleanField(default=False)
+    fortbildung_typ = models.CharField(
+        max_length=10,
+        choices=FORTBILDUNG_TYP_CHOICES,
+        blank=True,
+    )
+    fortbildung_wochenstunden_regulaer = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    fortbildung_von_datum = models.DateField(null=True, blank=True)
+    fortbildung_bis_datum = models.DateField(null=True, blank=True)
+    fortbildung_massnahme_nr = models.CharField(max_length=100, blank=True)
+
+    # Berechnungsergebnis als JSON gespeichert
+    # Format: {"zeilen": [...], "summe_fortbildung": "38.0", "summe_vereinbarung": "40.0", "differenz": "2.0"}
+    fortbildung_berechnung = models.JSONField(null=True, blank=True)
+
+    # Workflow-Verknuepfung
+    workflow_instance = models.ForeignKey(
+        "workflow.WorkflowInstance",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="zeitgutschriften",
+        verbose_name="Workflow-Instanz",
+    )
+
+    class Meta:
+        ordering = ["-erstellt_am"]
+        verbose_name = "Zeitgutschrift"
+        verbose_name_plural = "Zeitgutschriften"
+
+    def get_betreff(self):
+        """Eindeutige Betreffzeile fuer diesen Antrag.
+
+        Zeitstempel wird in Ortszeit (Europe/Berlin) ausgegeben.
+        """
+        ma = self.antragsteller
+        ortszeit = timezone.localtime(self.erstellt_am)
+        zeitstempel = ortszeit.strftime("%Y%m%d-%H%M%S")
+        return (
+            f"ZGH-{ma.vorname} {ma.nachname}"
+            f"-{ma.personalnummer}"
+            f"-{zeitstempel}"
+        )
+
+    def __str__(self):
+        return (
+            f"Zeitgutschrift ({self.get_art_display()}) "
+            f"- {self.antragsteller}"
+        )
+
+
+class ZeitgutschriftBeleg(models.Model):
+    """Beleg-Datei fuer Zeitgutschrift-Antrag.
+
+    Unterstuetzt PDF, JPG, PNG-Uploads.
+    """
+
+    datei = models.FileField(
+        upload_to="zeitgutschriften/belege/%Y/%m/",
+    )
+    dateiname_original = models.CharField(max_length=255)
+    hochgeladen_am = models.DateTimeField(auto_now_add=True)
+    zeitgutschrift = models.ForeignKey(
+        Zeitgutschrift,
+        on_delete=models.CASCADE,
+        related_name="belege",
+    )
+
+    class Meta:
+        ordering = ["hochgeladen_am"]
+        verbose_name = "Zeitgutschrift-Beleg"
+        verbose_name_plural = "Zeitgutschrift-Belege"
+
+    def __str__(self):
+        return f"{self.dateiname_original} ({self.zeitgutschrift.id})"
+
+    def dateityp(self):
+        """Gibt Dateityp zurueck (pdf, jpg, png)."""
+        erweiterung = self.dateiname_original.lower().split(".")[-1]
+        if erweiterung in ["jpg", "jpeg"]:
+            return "jpg"
+        elif erweiterung == "png":
+            return "png"
+        elif erweiterung == "pdf":
+            return "pdf"
+        return "unbekannt"
+
+    def dateigroesse_formatiert(self):
+        """Formatierte Dateigroesse (z.B. '2.4 MB')."""
+        try:
+            groesse_bytes = self.datei.size
+            if groesse_bytes < 1024:
+                return f"{groesse_bytes} B"
+            elif groesse_bytes < 1024 * 1024:
+                return f"{groesse_bytes / 1024:.1f} KB"
+            else:
+                return f"{groesse_bytes / (1024 * 1024):.1f} MB"
+        except (OSError, AttributeError):
+            return "Unbekannt"
+
+
 class TeamQueue(models.Model):
     """Team-Bearbeitungsstapel fuer genehmigte Antraege.
 
@@ -392,10 +539,14 @@ class TeamQueue(models.Model):
             status="genehmigt",
             claimed_von__isnull=True,
         )
+        zeitgutschriften = Zeitgutschrift.objects.filter(
+            status="genehmigt",
+            claimed_von__isnull=True,
+        )
 
         # Alle zusammenfuehren und nach Prioritaet/Erstelldatum sortieren
         alle_antraege = sorted(
-            chain(aenderungen, zag_antraege, zag_stornos),
+            chain(aenderungen, zag_antraege, zag_stornos, zeitgutschriften),
             key=lambda x: (-x.prioritaet, x.erstellt_am),
         )
         return alle_antraege
@@ -418,9 +569,18 @@ class TeamQueue(models.Model):
             status="in_bearbeitung",
             claimed_von__in=mitglieder_ids,
         )
+        zeitgutschriften = Zeitgutschrift.objects.filter(
+            status="in_bearbeitung",
+            claimed_von__in=mitglieder_ids,
+        )
 
         alle_antraege = sorted(
-            chain(aenderungen, zag_antraege, zag_stornos),
+            chain(
+                aenderungen,
+                zag_antraege,
+                zag_stornos,
+                zeitgutschriften,
+            ),
             key=lambda x: x.claimed_am,
         )
         return alle_antraege

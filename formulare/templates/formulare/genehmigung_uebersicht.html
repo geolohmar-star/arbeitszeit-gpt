@@ -246,9 +246,81 @@
     {% endif %}
 
     {# ------------------------------------------------------------------ #}
+    {# Zeitgutschriften                                                    #}
+    {# ------------------------------------------------------------------ #}
+    {% if zeitgutschriften %}
+    <div class="card mb-4">
+        <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+            Zeitgutschriften
+            <span class="badge bg-warning text-dark">{{ zeitgutschriften.count }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mitarbeiter</th>
+                        <th>Art</th>
+                        <th>Eingereicht</th>
+                        <th>Details</th>
+                        <th class="text-end">Aktion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for zg in zeitgutschriften %}
+                    <tr id="zeitgutschrift-{{ zg.pk }}">
+                        <td class="fw-semibold">{{ zg.antragsteller }}</td>
+                        <td class="text-muted small">{{ zg.get_art_display }}</td>
+                        <td class="text-muted small">{{ zg.erstellt_am|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'formulare:zeitgutschrift_detail' zg.pk %}"
+                               class="btn btn-outline-primary btn-sm"
+                               title="Details anzeigen">
+                                <i class="bi bi-eye"></i> Details
+                            </a>
+                        </td>
+                        <td class="text-end">
+                            <form hx-post="{% url 'formulare:genehmigung_entscheiden' 'zeitgutschrift' zg.pk %}"
+                                  hx-target="#zeitgutschrift-{{ zg.pk }}"
+                                  hx-swap="outerHTML"
+                                  class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="genehmigt">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    Genehmigen
+                                </button>
+                            </form>
+                            <button type="button"
+                                    class="btn btn-danger btn-sm ms-1"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#ablehnen-zeitgutschrift-{{ zg.pk }}">
+                                Ablehnen
+                            </button>
+                            <div id="ablehnen-zeitgutschrift-{{ zg.pk }}" class="collapse mt-2">
+                                <form hx-post="{% url 'formulare:genehmigung_entscheiden' 'zeitgutschrift' zg.pk %}"
+                                      hx-target="#zeitgutschrift-{{ zg.pk }}"
+                                      hx-swap="outerHTML">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="abgelehnt">
+                                    <textarea name="bemerkung" class="form-control form-control-sm mb-1"
+                                              rows="2" placeholder="Begruendung (optional)"></textarea>
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        Ablehnen bestaetigen
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ------------------------------------------------------------------ #}
     {# Historie (zuletzt erledigt)                                         #}
     {# ------------------------------------------------------------------ #}
-    {% with alle_erledigt=aenderungen_erledigt|length|add:zag_erledigt|length|add:zag_storno_erledigt|length %}
+    {% with alle_erledigt=aenderungen_erledigt|length|add:zag_erledigt|length|add:zag_storno_erledigt|length|add:zeitgutschriften_erledigt|length %}
     {% if alle_erledigt %}
     <div class="card mb-4">
         <div class="card-header fw-bold text-muted">
@@ -307,6 +379,20 @@
                             </span>
                         </td>
                         <td class="text-muted small">{{ s.bemerkung_bearbeiter|default:"–" }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% for zg in zeitgutschriften_erledigt %}
+                    <tr>
+                        <td>{{ zg.antragsteller }}</td>
+                        <td class="text-muted small">Zeitgutschrift</td>
+                        <td class="text-muted small">{{ zg.bearbeitet_am|date:"d.m.Y H:i"|default:"–" }}</td>
+                        <td class="text-muted small">{{ zg.bearbeitet_von.get_full_name|default:zg.bearbeitet_von }}</td>
+                        <td>
+                            <span class="badge {% if zg.status == 'genehmigt' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ zg.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="text-muted small">{{ zg.bemerkung_bearbeiter|default:"–" }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

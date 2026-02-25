@@ -13,6 +13,7 @@ from django.utils import timezone
 from arbeitszeit.models import Zeiterfassung
 from formulare.models import AenderungZeiterfassung, TeamQueue, ZAGAntrag, ZAGStorno
 from formulare.views import _erstelle_zag_eintraege
+from workflow.models import WorkflowTask
 
 
 @login_required
@@ -54,6 +55,16 @@ def team_queue_uebersicht(request):
         )
     meine_antraege = sorted(meine_antraege, key=lambda x: x.claimed_am)
 
+    # Workflow-Tasks fuer dieses Team
+    workflow_tasks_offen = WorkflowTask.objects.filter(
+        zugewiesen_an_team=team,
+        status__in=["offen", "in_bearbeitung"]
+    ).select_related(
+        "instance",
+        "instance__template",
+        "step",
+    ).order_by("frist", "erstellt_am")
+
     return render(
         request,
         "formulare/team_queue_uebersicht.html",
@@ -63,6 +74,7 @@ def team_queue_uebersicht(request):
             "in_bearbeitung": in_bearbeitung,
             "meine_antraege": meine_antraege,
             "user_teams": user_teams,
+            "workflow_tasks": workflow_tasks_offen,
         },
     )
 

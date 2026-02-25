@@ -1,0 +1,23 @@
+<div class="zeile border rounded p-3 mb-2">
+    <div class="row g-3 align-items-end">
+        <div class="col-4">
+            <label class="form-label fw-semibold">Datum</label>
+            <input type="date" name="zeile_datum" class="form-control" required>
+        </div>
+        <div class="col-3">
+            <label class="form-label fw-semibold">Von (Zeit)</label>
+            <input type="time" name="zeile_von_zeit" class="form-control" required>
+        </div>
+        <div class="col-3">
+            <label class="form-label fw-semibold">Bis (Zeit)</label>
+            <input type="time" name="zeile_bis_zeit" class="form-control" required>
+        </div>
+        <div class="col-2">
+            <button type="button"
+                    class="btn btn-outline-danger btn-sm w-100"
+                    onclick="this.closest('.zeile').remove()">
+                Entfernen
+            </button>
+        </div>
+    </div>
+</div>

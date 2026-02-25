@@ -28,6 +28,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="workflow-tab" data-bs-toggle="tab" data-bs-target="#workflow" type="button" role="tab">
+                    Workflow-Aufgaben <span class="badge bg-warning text-dark">{{ workflow_tasks|length }}</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="meine-tab" data-bs-toggle="tab" data-bs-target="#meine" type="button" role="tab">
                     Meine Antraege <span class="badge bg-info">{{ meine_antraege|length }}</span>
                 </button>
@@ -68,7 +73,92 @@
                 {% endif %}
             </div>
 
-            <!-- Tab 2: Meine Antraege -->
+            <!-- Tab 2: Workflow-Aufgaben -->
+            <div class="tab-pane fade" id="workflow" role="tabpanel">
+                {% if workflow_tasks %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Workflow</th>
+                                    <th>Schritt</th>
+                                    <th>Antrag</th>
+                                    <th>Frist</th>
+                                    <th>Status</th>
+                                    <th>Aktion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in workflow_tasks %}
+                                    <tr style="cursor: pointer;" onclick="window.location='{% url 'workflow:task_detail' task.pk %}'">
+                                        <td>{{ task.instance.template.name }}</td>
+                                        <td>{{ task.step.titel }}</td>
+                                        <td>
+                                            {% if task.instance.content_object %}
+                                                {% if task.instance.content_type.model == 'dienstreiseantrag' %}
+                                                    {% with antrag=task.instance.content_object %}
+                                                        <strong>{{ antrag.antragsteller }}</strong><br>
+                                                        <small class="text-muted">
+                                                            {{ antrag.ziel }} | {{ antrag.von_datum|date:"d.m.Y" }} - {{ antrag.bis_datum|date:"d.m.Y" }}
+                                                        </small>
+                                                    {% endwith %}
+                                                {% elif task.instance.content_type.model == 'zeitgutschrift' %}
+                                                    {% with antrag=task.instance.content_object %}
+                                                        <strong>{{ antrag.antragsteller }}</strong><br>
+                                                        <small class="text-muted">
+                                                            {{ antrag.get_art_display }}
+                                                            {% if antrag.art == "fortbildung" and antrag.fortbildung_aktiv %}
+                                                            | {{ antrag.fortbildung_von_datum|date:"d.m.Y" }} - {{ antrag.fortbildung_bis_datum|date:"d.m.Y" }}
+                                                            {% endif %}
+                                                        </small>
+                                                        <div class="mt-1">
+                                                            <a href="{% url 'formulare:zeitgutschrift_detail' antrag.pk %}"
+                                                               class="btn btn-sm btn-outline-primary me-1" target="_blank">
+                                                                <i class="bi bi-eye"></i> Details
+                                                            </a>
+                                                            <a href="{% url 'formulare:zeitgutschrift_pdf' antrag.pk %}"
+                                                               class="btn btn-sm btn-outline-danger" target="_blank">
+                                                                <i class="bi bi-file-pdf"></i> PDF
+                                                            </a>
+                                                        </div>
+                                                    {% endwith %}
+                                                {% else %}
+                                                    {{ task.instance.content_object }}
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if task.ist_ueberfaellig %}
+                                                <span class="badge bg-danger">UEBERFAELLIG</span><br>
+                                                <small class="text-danger">{{ task.frist|date:"d.m.Y H:i" }}</small>
+                                            {% elif task.ist_heute_faellig %}
+                                                <span class="badge bg-warning text-dark">HEUTE</span><br>
+                                                <small>{{ task.frist|date:"d.m.Y H:i" }}</small>
+                                            {% else %}
+                                                <small>{{ task.frist|date:"d.m.Y H:i" }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ task.status|slice:':1' }}">{{ task.get_status_display }}</span>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'workflow:task_detail' task.pk %}" class="btn btn-sm btn-primary">Bearbeiten</a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p class="mb-0">Keine offenen Workflow-Aufgaben fuer Ihr Team.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Tab 3: Meine Antraege -->
             <div class="tab-pane fade" id="meine" role="tabpanel">
                 {% if meine_antraege %}
                     <div class="table-responsive">
@@ -110,6 +200,22 @@
                                                 <td><a href="{% url 'formulare:antrag_detail' antrag_typ antrag.pk %}" class="btn btn-sm btn-primary">Details</a></td>
                                             </tr>
                                         {% endwith %}
+                                    {% elif "Zeitgutschrift" in antrag|stringformat:"s" %}
+                                        <tr style="cursor: pointer;" onclick="window.location='{% url 'formulare:zeitgutschrift_detail' antrag.pk %}'">
+                                            <td>Zeitgutschrift ({{ antrag.get_art_display }})</td>
+                                            <td>{{ antrag.antragsteller.vollname }}</td>
+                                            <td>{{ antrag.claimed_am|date:"d.m.Y H:i" }}</td>
+                                            <td>
+                                                <a href="{% url 'formulare:zeitgutschrift_detail' antrag.pk %}"
+                                                   class="btn btn-sm btn-primary me-1">
+                                                    <i class="bi bi-eye"></i> Details
+                                                </a>
+                                                <a href="{% url 'formulare:zeitgutschrift_pdf' antrag.pk %}"
+                                                   class="btn btn-sm btn-outline-danger" target="_blank">
+                                                    <i class="bi bi-file-pdf"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
                                     {% endif %}
                                 {% endfor %}
                             </tbody>
@@ -122,7 +228,7 @@
                 {% endif %}
             </div>
 
-            <!-- Tab 3: In Bearbeitung (Team) -->
+            <!-- Tab 4: In Bearbeitung (Team) -->
             <div class="tab-pane fade" id="bearbeitung" role="tabpanel">
                 {% if in_bearbeitung %}
                     <div class="table-responsive">

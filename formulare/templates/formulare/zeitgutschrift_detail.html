@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Zeitgutschrift - Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 900px;">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'formulare:dashboard' %}">Formulare</a>
+            </li>
+            {% if ist_genehmiger %}
+            <li class="breadcrumb-item">
+                <a href="{% url 'formulare:genehmigung_uebersicht' %}">Genehmigungen</a>
+            </li>
+            {% endif %}
+            <li class="breadcrumb-item active">Zeitgutschrift Details</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h2 class="mb-1">Zeitgutschrift</h2>
+            <p class="text-muted mb-0">{{ antrag.get_art_display }}</p>
+        </div>
+        <span class="badge {% if antrag.status == 'beantragt' %}bg-warning text-dark{% elif antrag.status == 'genehmigt' %}bg-success{% elif antrag.status == 'abgelehnt' %}bg-danger{% endif %} fs-6">
+            {{ antrag.get_status_display }}
+        </span>
+    </div>
+
+    <!-- Antragsteller-Info -->
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Antragsteller</div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-4 text-muted">Name:</div>
+                <div class="col-8 fw-semibold">{{ antrag.antragsteller }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-4 text-muted">Personalnummer:</div>
+                <div class="col-8">{{ antrag.antragsteller.personalnummer }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-4 text-muted">Eingereicht am:</div>
+                <div class="col-8">{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</div>
+            </div>
+            <div class="row mb-0">
+                <div class="col-4 text-muted">Aktenzeichen:</div>
+                <div class="col-8">
+                    <code class="small">{{ antrag.get_betreff }}</code>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zeilen (Haertefall/Ehrenamt) -->
+    {% if antrag.art == "haertefall" or antrag.art == "ehrenamt" %}
+    {% if antrag.zeilen_daten %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Zeitraum(e)</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nr.</th>
+                            <th>Datum</th>
+                            <th>Von (Zeit)</th>
+                            <th>Bis (Zeit)</th>
+                            <th class="text-end">Dauer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for zeile in antrag.zeilen_daten %}
+                        <tr>
+                            <td class="text-muted">{{ forloop.counter }}.</td>
+                            <td>{{ zeile.datum }}</td>
+                            <td>{{ zeile.von_zeit }}</td>
+                            <td>{{ zeile.bis_zeit }}</td>
+                            <td class="text-end text-muted small">
+                                {# Dauer berechnen (optional) #}
+                                -
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Fortbildungs-Details -->
+    {% if antrag.art == "fortbildung" and antrag.fortbildung_aktiv %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Fortbildungsdetails</div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-4 text-muted">Typ:</div>
+                <div class="col-8">{{ antrag.get_fortbildung_typ_display }}</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-4 text-muted">Wochenstunden regulaer:</div>
+                <div class="col-8">{{ antrag.fortbildung_wochenstunden_regulaer }} h</div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-4 text-muted">Zeitraum:</div>
+                <div class="col-8">
+                    {{ antrag.fortbildung_von_datum|date:"d.m.Y" }} - {{ antrag.fortbildung_bis_datum|date:"d.m.Y" }}
+                </div>
+            </div>
+            <div class="row mb-0">
+                <div class="col-4 text-muted">Massnahmen-Nr:</div>
+                <div class="col-8">{{ antrag.fortbildung_massnahme_nr }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Berechnung -->
+    {% if antrag.fortbildung_berechnung %}
+    <div class="card mb-3 border-info">
+        <div class="card-header bg-info text-white fw-bold">Berechnungsergebnis</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Datum</th>
+                            <th>Wochentag</th>
+                            <th class="text-end">Fortbildung Soll (h)</th>
+                            <th class="text-end">Vereinbarung Soll (h)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for zeile in antrag.fortbildung_berechnung.zeilen %}
+                        <tr>
+                            <td>{{ zeile.datum }}</td>
+                            <td>{{ zeile.wochentag }}</td>
+                            <td class="text-end">{{ zeile.fortbildung_soll }}</td>
+                            <td class="text-end">{{ zeile.vereinbarung_soll }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-secondary">
+                        <tr>
+                            <td colspan="2"><strong>Summe</strong></td>
+                            <td class="text-end"><strong>{{ antrag.fortbildung_berechnung.summe_fortbildung }} h</strong></td>
+                            <td class="text-end"><strong>{{ antrag.fortbildung_berechnung.summe_vereinbarung }} h</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="alert alert-warning mb-0 rounded-0 border-0">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <strong class="fs-5">Differenz:</strong>
+                    </div>
+                    <div class="col">
+                        <span class="fs-4 text-primary">
+                            <strong>{{ antrag.fortbildung_berechnung.differenz }} h</strong>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Hochgeladene Belege -->
+    {% if antrag.belege.count > 0 %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+            Hochgeladene Belege
+            <span class="badge bg-secondary">{{ antrag.belege.count }}</span>
+        </div>
+        <div class="card-body">
+            <div class="list-group list-group-flush">
+                {% for beleg in antrag.belege.all %}
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        {% if beleg.dateityp == "pdf" %}
+                        <i class="bi bi-file-earmark-pdf text-danger fs-4 me-2"></i>
+                        {% elif beleg.dateityp == "jpg" %}
+                        <i class="bi bi-file-earmark-image text-primary fs-4 me-2"></i>
+                        {% elif beleg.dateityp == "png" %}
+                        <i class="bi bi-file-earmark-image text-info fs-4 me-2"></i>
+                        {% endif %}
+                        <span class="fw-semibold">{{ beleg.dateiname_original }}</span>
+                        <small class="text-muted ms-2">({{ beleg.dateigroesse_formatiert }})</small>
+                    </div>
+                    <a href="{{ beleg.datei.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        Ansehen
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card mb-3">
+        <div class="card-body text-center text-muted py-4">
+            Keine Belege hochgeladen
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Aktionen -->
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'formulare:zeitgutschrift_pdf' antrag.pk %}"
+           class="btn btn-outline-primary" target="_blank">
+            <i class="bi bi-file-pdf"></i> PDF herunterladen
+        </a>
+
+        {% if ist_genehmiger and antrag.status == "beantragt" %}
+        <a href="{% url 'formulare:genehmigung_uebersicht' %}"
+           class="btn btn-outline-secondary">
+            Zurück zur Übersicht
+        </a>
+        {% elif ist_antragsteller %}
+        <a href="{% url 'formulare:meine_antraege' %}"
+           class="btn btn-outline-secondary">
+            Zu meinen Anträgen
+        </a>
+        {% endif %}
+
+        <a href="{% url 'formulare:dashboard' %}"
+           class="btn btn-outline-secondary">
+            Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

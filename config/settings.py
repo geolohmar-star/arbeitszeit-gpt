@@ -185,6 +185,10 @@ if sys.version_info[0] >= 3:
 # Email-Domain fuer stellenbasierte Adressen
 STELLEN_EMAIL_DOMAIN = os.environ.get('STELLEN_EMAIL_DOMAIN', 'firma.de')
 
+# Workflow-Einstellungen
+# Schwellwert fuer GF-Freigabe bei Dienstreisen (in EUR)
+DIENSTREISE_GF_FREIGABE_SCHWELLE = 1000
+
 # HTTPS-Sicherheitseinstellungen (nur in Produktion aktiv, d.h. wenn DEBUG=False)
 if not DEBUG:
     # Railway/Render terminiert SSL am Load Balancer – kein SSL-Redirect noetig.

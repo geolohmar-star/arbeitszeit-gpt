@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from formulare.models import AenderungZeiterfassung, TeamQueue, ZAGAntrag, ZAGStorno, Dienstreiseantrag
+from formulare.models import (
+    AenderungZeiterfassung,
+    Dienstreiseantrag,
+    TeamQueue,
+    ZAGAntrag,
+    ZAGStorno,
+    Zeitgutschrift,
+    ZeitgutschriftBeleg,
+)
 
 
 @admin.register(AenderungZeiterfassung)
@@ -132,3 +140,34 @@ class DienstreiseantragAdmin(admin.ModelAdmin):
             return f"{obj.workflow_instance.get_status_display()} ({obj.workflow_instance.fortschritt}%)"
         return "-"
     get_workflow_status.short_description = "Workflow-Status"
+
+
+@admin.register(Zeitgutschrift)
+class ZeitgutschriftAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "art",
+        "antragsteller",
+        "status",
+        "erstellt_am",
+        "bearbeitet_von",
+    ]
+    list_filter = ["art", "status", "erstellt_am"]
+    search_fields = [
+        "antragsteller__vorname",
+        "antragsteller__nachname",
+        "antragsteller__personalnummer",
+    ]
+    readonly_fields = ["erstellt_am", "aktualisiert_am", "bearbeitet_am"]
+
+
+@admin.register(ZeitgutschriftBeleg)
+class ZeitgutschriftBelegAdmin(admin.ModelAdmin):
+    list_display = [
+        "id",
+        "zeitgutschrift",
+        "dateiname_original",
+        "dateityp",
+        "hochgeladen_am",
+    ]
+    readonly_fields = ["hochgeladen_am"]

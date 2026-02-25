@@ -52,6 +52,11 @@
                                 Z-AG Antrag
                             {% elif antrag.antrag_typ == "zag_storno" %}
                                 Z-AG Stornierung
+                            {% elif antrag.antrag_typ == "zeitgutschrift" %}
+                                Zeitgutschrift
+                                {% if antrag.art %}
+                                    <span class="text-muted">· {{ antrag.get_art_display }}</span>
+                                {% endif %}
                             {% else %}
                                 Änderung Zeiterfassung
                                 {% if antrag.art %}
@@ -76,6 +81,11 @@
                                 </a>
                             {% elif antrag.antrag_typ == "zag_storno" %}
                                 <a href="{% url 'formulare:zag_storno_erfolg' antrag.pk %}"
+                                   class="btn btn-outline-secondary btn-sm">
+                                    Ansehen
+                                </a>
+                            {% elif antrag.antrag_typ == "zeitgutschrift" %}
+                                <a href="{% url 'formulare:zeitgutschrift_erfolg' antrag.pk %}"
                                    class="btn btn-outline-secondary btn-sm">
                                     Ansehen
                                 </a>

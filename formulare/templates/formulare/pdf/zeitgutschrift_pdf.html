@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Zeitgutschrift - {{ antrag.get_betreff }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11pt;
+            margin: 2cm;
+        }
+        h1 {
+            font-size: 18pt;
+            margin-bottom: 0.5cm;
+        }
+        h2 {
+            font-size: 14pt;
+            margin-top: 1cm;
+            margin-bottom: 0.3cm;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1cm;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 0.3cm;
+            text-align: left;
+        }
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+        .info-table td:first-child {
+            width: 35%;
+            font-weight: bold;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .footer {
+            margin-top: 2cm;
+            font-size: 9pt;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Zeitgutschrift</h1>
+
+    <p><strong>Betreff:</strong> {{ antrag.get_betreff }}</p>
+
+    <h2>Antragsteller</h2>
+    <table class="info-table">
+        <tr>
+            <td>Name:</td>
+            <td>{{ antrag.antragsteller.vorname }} {{ antrag.antragsteller.nachname }}</td>
+        </tr>
+        <tr>
+            <td>Personalnummer:</td>
+            <td>{{ antrag.antragsteller.personalnummer }}</td>
+        </tr>
+        <tr>
+            <td>Erstellt am:</td>
+            <td>{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</td>
+        </tr>
+        <tr>
+            <td>Status:</td>
+            <td>{{ antrag.get_status_display }}</td>
+        </tr>
+    </table>
+
+    <h2>Art der Zeitgutschrift</h2>
+    <p>{{ antrag.get_art_display }}</p>
+
+    {% if antrag.art == "haertefall" or antrag.art == "ehrenamt" %}
+    {% if antrag.zeilen_daten %}
+    <h2>Zeitraum(e)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Von (Zeit)</th>
+                <th>Bis (Zeit)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for zeile in antrag.zeilen_daten %}
+            <tr>
+                <td>{{ zeile.datum }}</td>
+                <td>{{ zeile.von_zeit }}</td>
+                <td>{{ zeile.bis_zeit }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+    {% endif %}
+
+    {% if antrag.art == "fortbildung" and antrag.fortbildung_berechnung %}
+    <h2>Fortbildungsdetails</h2>
+    <table class="info-table">
+        <tr>
+            <td>Typ:</td>
+            <td>{{ antrag.get_fortbildung_typ_display }}</td>
+        </tr>
+        <tr>
+            <td>Wochenstunden regulaer:</td>
+            <td>{{ antrag.fortbildung_wochenstunden_regulaer }} h</td>
+        </tr>
+        <tr>
+            <td>Zeitraum:</td>
+            <td>{{ antrag.fortbildung_von_datum|date:"d.m.Y" }} - {{ antrag.fortbildung_bis_datum|date:"d.m.Y" }}</td>
+        </tr>
+        <tr>
+            <td>Massnahmen-Nr:</td>
+            <td>{{ antrag.fortbildung_massnahme_nr }}</td>
+        </tr>
+    </table>
+
+    <h2>Berechnungsergebnis</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Wochentag</th>
+                <th class="text-right">Fortbildung Soll (h)</th>
+                <th class="text-right">Vereinbarung Soll (h)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for zeile in antrag.fortbildung_berechnung.zeilen %}
+            <tr>
+                <td>{{ zeile.datum }}</td>
+                <td>{{ zeile.wochentag }}</td>
+                <td class="text-right">{{ zeile.fortbildung_soll }}</td>
+                <td class="text-right">{{ zeile.vereinbarung_soll }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr style="background-color: #f0f0f0;">
+                <td colspan="2"><strong>Summe</strong></td>
+                <td class="text-right"><strong>{{ antrag.fortbildung_berechnung.summe_fortbildung }} h</strong></td>
+                <td class="text-right"><strong>{{ antrag.fortbildung_berechnung.summe_vereinbarung }} h</strong></td>
+            </tr>
+            <tr style="background-color: #fff3cd;">
+                <td colspan="2"><strong>Differenz</strong></td>
+                <td colspan="2" class="text-right">
+                    <strong>{{ antrag.fortbildung_berechnung.differenz }} h</strong>
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+    {% endif %}
+
+    {% if antrag.belege.count > 0 %}
+    <h2>Hochgeladene Belege</h2>
+    <ul>
+        {% for beleg in antrag.belege.all %}
+        <li>{{ beleg.dateiname_original }} ({{ beleg.dateigroesse_formatiert }})</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <div class="footer">
+        <p>Dieses Dokument wurde automatisch generiert am {{ now|date:"d.m.Y H:i" }} Uhr.</p>
+    </div>
+</body>
+</html>

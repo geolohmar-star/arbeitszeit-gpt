@@ -107,6 +107,42 @@ urlpatterns = [
         views.zag_storno_tage_zaehlen,
         name="zag_storno_tage_zaehlen",
     ),
+    # Zeitgutschrift
+    path(
+        "zeitgutschrift/",
+        views.zeitgutschrift_antrag,
+        name="zeitgutschrift_antrag",
+    ),
+    path(
+        "zeitgutschrift/<int:pk>/",
+        views.zeitgutschrift_detail,
+        name="zeitgutschrift_detail",
+    ),
+    path(
+        "zeitgutschrift/<int:pk>/erfolg/",
+        views.zeitgutschrift_erfolg,
+        name="zeitgutschrift_erfolg",
+    ),
+    path(
+        "zeitgutschrift/<int:pk>/pdf/",
+        views.zeitgutschrift_pdf,
+        name="zeitgutschrift_pdf",
+    ),
+    path(
+        "zeitgutschrift/felder/",
+        views.zeitgutschrift_felder,
+        name="zeitgutschrift_felder",
+    ),
+    path(
+        "zeitgutschrift/neue-zeile/",
+        views.neue_zeitgutschrift_zeile,
+        name="neue_zeitgutschrift_zeile",
+    ),
+    path(
+        "zeitgutschrift/fortbildung-berechnen/",
+        views.zeitgutschrift_fortbildung_berechnen,
+        name="zeitgutschrift_fortbildung_berechnen",
+    ),
     # Genehmigungsworkflow
     path(
         "genehmigung/",
@@ -123,6 +159,11 @@ urlpatterns = [
         "dienstreise/erstellen/",
         views.dienstreise_erstellen,
         name="dienstreise_erstellen",
+    ),
+    path(
+        "dienstreise/<int:pk>/bearbeiten/",
+        views.dienstreise_bearbeiten,
+        name="dienstreise_bearbeiten",
     ),
     path(
         "dienstreise/uebersicht/",
