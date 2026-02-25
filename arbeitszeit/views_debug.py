@@ -87,3 +87,62 @@ def debug_berechtigungen(request):
     # Als Plain Text zurückgeben
     html = "<html><body><pre>" + "\n".join(output) + "</pre></body></html>"
     return HttpResponse(html, content_type="text/html; charset=utf-8")
+
+
+@staff_member_required
+def fix_schichtplan_permission(request):
+    """Vergibt fehlende schichtplan_zugang Permission."""
+    from django.contrib.contenttypes.models import ContentType
+    from django.contrib.auth.models import Permission
+    from schichtplan.models import Schichtplan
+
+    output = []
+    output.append("=" * 70)
+    output.append("FIX: Schichtplan-Zugang Permission")
+    output.append("=" * 70)
+
+    # Permission holen/erstellen
+    content_type = ContentType.objects.get_for_model(Schichtplan)
+    permission, created = Permission.objects.get_or_create(
+        codename='schichtplan_zugang',
+        name='Kann Schichtplan-Bereich nutzen',
+        content_type=content_type,
+    )
+
+    if created:
+        output.append("\nPermission erstellt!")
+    else:
+        output.append("\nPermission existiert bereits.")
+
+    # User finden
+    users_to_grant = []
+
+    # Gruppe "Schichtplaner"
+    users_in_gruppe = User.objects.filter(groups__name='Schichtplaner')
+    for user in users_in_gruppe:
+        users_to_grant.append(user)
+        output.append(f"  - {user.username} (Gruppe)")
+
+    # Rolle "schichtplaner"
+    mitarbeiter_sp = Mitarbeiter.objects.filter(rolle__iexact='schichtplaner')
+    for ma in mitarbeiter_sp:
+        if ma.user and ma.user not in users_to_grant:
+            users_to_grant.append(ma.user)
+            output.append(f"  - {ma.user.username} (Rolle)")
+
+    output.append(f"\nGefunden: {len(users_to_grant)} User")
+
+    # Permission vergeben
+    for user in users_to_grant:
+        if not user.has_perm('schichtplan.schichtplan_zugang'):
+            user.user_permissions.add(permission)
+            output.append(f"OK: Permission vergeben an {user.username}")
+        else:
+            output.append(f"  {user.username} hat Permission bereits")
+
+    output.append("\n" + "=" * 70)
+    output.append("FERTIG! Testen Sie jetzt den Schichtplan-Zugang.")
+    output.append("=" * 70)
+
+    html = "<html><body><pre>" + "\n".join(output) + "</pre></body></html>"
+    return HttpResponse(html, content_type="text/html; charset=utf-8")
