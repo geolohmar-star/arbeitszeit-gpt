@@ -102,19 +102,24 @@ def fix_schichtplan_permission(request):
         from django.contrib.auth.models import Permission
         from schichtplan.models import Schichtplan
 
-        # Permission holen/erstellen
-        output.append("\n1. Permission erstellen/pruefen...")
+        # Permission holen (existiert bereits durch Migration)
+        output.append("\n1. Permission laden...")
         content_type = ContentType.objects.get_for_model(Schichtplan)
-        permission, created = Permission.objects.get_or_create(
-            codename='schichtplan_zugang',
-            name='Kann Schichtplan-Bereich nutzen',
-            content_type=content_type,
-        )
 
-        if created:
-            output.append("   -> Permission erstellt!")
-        else:
-            output.append(f"   -> Permission existiert bereits (ID: {permission.id})")
+        try:
+            permission = Permission.objects.get(
+                codename='schichtplan_zugang',
+                content_type=content_type,
+            )
+            output.append(f"   -> Permission gefunden (ID: {permission.id}, Name: '{permission.name}')")
+        except Permission.DoesNotExist:
+            output.append("   -> Permission existiert noch nicht, erstelle sie...")
+            permission = Permission.objects.create(
+                codename='schichtplan_zugang',
+                name='Kann Schichtplan-Bereich nutzen',
+                content_type=content_type,
+            )
+            output.append(f"   -> Permission erstellt (ID: {permission.id})")
 
         # User finden
         output.append("\n2. User mit Schichtplaner-Berechtigung suchen...")
