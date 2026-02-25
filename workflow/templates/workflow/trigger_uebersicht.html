@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Workflow-Trigger Uebersicht{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Workflow-Trigger Uebersicht</h2>
+            <p class="text-muted mb-0">Automatische Workflow-Ausloesungen</p>
+        </div>
+        <a href="{% url 'workflow:workflow_editor' %}" class="btn btn-outline-primary">
+            Workflow-Editor
+        </a>
+    </div>
+
+    <!-- Registrierte Events -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold">
+            Registrierte Trigger-Events
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Trigger-Event</th>
+                            <th>Model</th>
+                            <th>Beschreibung</th>
+                            <th>Status</th>
+                            <th>Verknuepfte Workflows</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in registrierte_events %}
+                        <tr>
+                            <td>
+                                <code class="small">{{ event.name }}</code>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ event.model }}</span>
+                            </td>
+                            <td class="text-muted small">{{ event.beschreibung }}</td>
+                            <td>
+                                {% if event.aktiv %}
+                                <span class="badge bg-success">
+                                    Aktiv
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">
+                                    Kein Workflow
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if event.workflows %}
+                                <div class="d-flex flex-column gap-1">
+                                    {% for workflow in event.workflows %}
+                                    <div class="d-flex align-items-center gap-2">
+                                        <a href="{% url 'workflow:workflow_editor_load' workflow.id %}"
+                                           class="text-decoration-none small">
+                                            {{ workflow.name }}
+                                        </a>
+                                        {% if workflow.ist_aktiv %}
+                                        <span class="badge bg-success badge-sm">Aktiv</span>
+                                        {% else %}
+                                        <span class="badge bg-warning badge-sm">Inaktiv</span>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legende -->
+    <div class="card">
+        <div class="card-header fw-bold">Legende</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Status</h6>
+                    <ul class="list-unstyled small">
+                        <li><span class="badge bg-success">Aktiv</span> = Event ist im Code registriert und hat aktive Workflows</li>
+                        <li><span class="badge bg-secondary">Kein Workflow</span> = Event ist registriert, aber kein Workflow verknuepft</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Workflow-Status</h6>
+                    <ul class="list-unstyled small">
+                        <li><span class="badge bg-success badge-sm">Aktiv</span> = Workflow wird automatisch ausgeloest</li>
+                        <li><span class="badge bg-warning badge-sm">Inaktiv</span> = Workflow existiert, aber ist deaktiviert</li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <p class="mb-0 small text-muted">
+                <strong>Hinweis:</strong> Trigger-Events werden in <code>formulare/signals.py</code> registriert.
+                Um einen neuen Trigger hinzuzufuegen, muss ein Signal-Handler im Code erstellt werden.
+            </p>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="mt-3">
+        <a href="{% url 'workflow:arbeitsstapel' %}" class="btn btn-outline-secondary">
+            Zurueck zum Arbeitsstapel
+        </a>
+    </div>
+</div>
+{% endblock %}

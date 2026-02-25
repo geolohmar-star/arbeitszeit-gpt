@@ -165,6 +165,9 @@
                 </form>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-danger me-auto" id="schritt-loeschen-btn" onclick="deleteCurrentSchritt()" style="display: none;">
+                    🗑️ Schritt loeschen
+                </button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
                 <button type="button" class="btn btn-primary" onclick="saveSchritt()">Speichern</button>
             </div>
@@ -249,9 +252,20 @@
 
                     <div class="mb-3">
                         <label for="template-trigger" class="form-label">Trigger-Event (optional)</label>
-                        <input type="text" class="form-control" id="template-trigger"
-                               placeholder="z.B. zag_antrag_erstellt">
+                        <select class="form-select" id="template-trigger">
+                            <option value="">-- Kein automatischer Trigger --</option>
+                            <option value="dienstreise_erstellt">Dienstreise erstellt</option>
+                            <option value="zag_antrag_erstellt">Z-AG Antrag erstellt</option>
+                            <option value="zag_storno_erstellt">Z-AG Stornierung erstellt</option>
+                            <option value="aenderung_zeiterfassung_erstellt">Aenderung Zeiterfassung erstellt</option>
+                            <option value="zeitgutschrift_erstellt">Zeitgutschrift erstellt</option>
+                            <option value="custom">Benutzerdefiniert...</option>
+                        </select>
                         <small class="text-muted">Event das diesen Workflow automatisch startet</small>
+
+                        <!-- Custom-Input (erscheint bei "Benutzerdefiniert") -->
+                        <input type="text" class="form-control mt-2" id="template-trigger-custom"
+                               placeholder="Eigenes Event eingeben..." style="display: none;">
                     </div>
 
                     <div class="mb-3 form-check">
@@ -275,8 +289,109 @@
     </div>
 </div>
 
-<!-- vis.js Library -->
-<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<!-- Modal: Edge-Konfiguration -->
+<div class="modal fade" id="edgeConfigModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Verbindung konfigurieren</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edge-id">
+
+                <div class="mb-3">
+                    <label class="form-label">Von Schritt</label>
+                    <input type="text" id="edge-von" class="form-control" readonly>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Zu Schritt</label>
+                    <input type="text" id="edge-zu" class="form-control" readonly>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Bedingung</label>
+                    <select id="edge-bedingung-typ" class="form-select" onchange="updateEdgeBedingungFelder()">
+                        <option value="immer">Immer (keine Bedingung)</option>
+                        <option value="entscheidung">Basierend auf Task-Entscheidung</option>
+                        <option value="feld_wert">Basierend auf Feld-Wert</option>
+                        <option value="python">Custom Python-Code</option>
+                    </select>
+                </div>
+
+                <!-- Felder fuer bedingung_typ == "entscheidung" -->
+                <div id="edge-bedingung-entscheidung-container" style="display:none;" class="mb-3">
+                    <label class="form-label">Erwartete Entscheidung</label>
+                    <select id="edge-bedingung-entscheidung" class="form-select">
+                        <option value="genehmigt">Genehmigt</option>
+                        <option value="abgelehnt">Abgelehnt</option>
+                        <option value="weitergeleitet">Weitergeleitet</option>
+                        <option value="rueckfrage">Rueckfrage</option>
+                        <option value="zurueck_genehmiger">Zurueck zum Genehmiger</option>
+                        <option value="zurueck_antragsteller">Zurueck zum Antragsteller</option>
+                    </select>
+                </div>
+
+                <!-- Felder fuer bedingung_typ == "feld_wert" -->
+                <div id="edge-bedingung-feld-container" style="display:none;">
+                    <div class="mb-3">
+                        <label class="form-label">Feld-Name</label>
+                        <input type="text" id="edge-bedingung-feld" class="form-control" placeholder="z.B. geschaetzte_kosten">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Operator</label>
+                        <select id="edge-bedingung-operator" class="form-select">
+                            <option value="==">Gleich (==)</option>
+                            <option value="!=">Ungleich (!=)</option>
+                            <option value=">">Groesser als (>)</option>
+                            <option value="<">Kleiner als (<)</option>
+                            <option value=">=">Groesser oder gleich (>=)</option>
+                            <option value="<=">Kleiner oder gleich (<=)</option>
+                            <option value="in">Enthalten in (in)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Wert</label>
+                        <input type="text" id="edge-bedingung-wert" class="form-control" placeholder="z.B. 1000">
+                    </div>
+                </div>
+
+                <!-- Felder fuer bedingung_typ == "python" -->
+                <div id="edge-bedingung-python-container" style="display:none;" class="mb-3">
+                    <label class="form-label">Python-Code</label>
+                    <textarea id="edge-bedingung-python-code" class="form-control" rows="4"
+                              placeholder="z.B. content_object.betrag > 1000"></textarea>
+                    <small class="text-muted">Verfuegbare Variablen: task, instance, content_object</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Label (optional)</label>
+                    <input type="text" id="edge-label" class="form-control" placeholder="z.B. genehmigt, abgelehnt">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Prioritaet</label>
+                    <input type="number" id="edge-prioritaet" class="form-control" value="1" min="1">
+                    <small class="text-muted">Bei mehreren zutreffenden Bedingungen wird die hoehere Prioritaet gewaehlt</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger me-auto" onclick="deleteEdgeFromModal()">
+                    Verbindung loeschen
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" onclick="saveEdgeConfig()">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- vis.js Library (lokal fuer Offline-Betrieb) -->
+<!-- TODO: vis.js von https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js herunterladen -->
+<!-- und nach static/js/vis-network.min.js kopieren -->
+{% load static %}
+<script src="{% static 'js/vis-network.min.js' %}"></script>
 
 <script>
 // Globale Variablen
@@ -292,6 +407,9 @@ let currentTemplateAktiv = false;
 
 // Schritt-Daten (wird beim Speichern ans Backend geschickt)
 let schritte = [];
+
+// NEU: Edge-Konfigurationen (fuer Graph-Workflows)
+let edgeConfigs = [];
 
 // Aktionstyp zu Farbe (hellere Farben fuer bessere Lesbarkeit)
 const aktionColors = {
@@ -330,26 +448,11 @@ function init() {
                 forceDirection: 'horizontal'
             }
         },
+        layout: {
+            hierarchical: false  // Wird nur beim Laden aktiviert
+        },
         physics: {
-            enabled: true,
-            hierarchicalRepulsion: {
-                nodeDistance: 200,
-                centralGravity: 0.1,
-                springLength: 150,
-                springConstant: 0.01,
-                damping: 0.5,
-                avoidOverlap: 0.5
-            },
-            stabilization: {
-                enabled: true,
-                iterations: 300,
-                updateInterval: 25
-            },
-            solver: 'hierarchicalRepulsion',
-            timestep: 0.3,
-            adaptiveTimestep: true,
-            minVelocity: 0.75,
-            maxVelocity: 20
+            enabled: false  // Physics deaktiviert fuer manuelles Positionieren
         },
         interaction: {
             dragNodes: true,
@@ -362,6 +465,7 @@ function init() {
 
     // Event-Handler
     network.on('click', handleClick);
+    network.on('doubleClick', handleDoubleClick);
 
     // Antrag-Startknoten hinzufuegen
     createAntragNode();
@@ -412,7 +516,7 @@ function handleClick(params) {
             const clickedNode = params.nodes[0];
             if (verbindungStart === null) {
                 verbindungStart = clickedNode;
-                alert(`Start-Schritt ausgewaehlt: ${nodes.get(clickedNode).label}`);
+                // Kein Alert mehr - visuelle Rückmeldung durch Modus-Anzeige
             } else {
                 createEdge(verbindungStart, clickedNode);
                 verbindungStart = null;
@@ -448,6 +552,9 @@ function createNewSchritt(position) {
 
     // Team-Dropdown ausblenden (default Rolle ist nicht team_queue)
     toggleTeamDropdown();
+
+    // Loeschen-Button verstecken (nur beim Bearbeiten)
+    document.getElementById('schritt-loeschen-btn').style.display = 'none';
 
     document.getElementById('schrittModalTitle').textContent = 'Neuen Schritt erstellen';
 
@@ -553,6 +660,9 @@ function editSchritt(nodeId) {
     // Team-Dropdown ein/ausblenden
     toggleTeamDropdown();
 
+    // Loeschen-Button anzeigen (beim Bearbeiten)
+    document.getElementById('schritt-loeschen-btn').style.display = 'block';
+
     document.getElementById('schrittModalTitle').textContent = 'Schritt bearbeiten';
 
     const modal = new bootstrap.Modal(document.getElementById('schrittModal'));
@@ -582,7 +692,7 @@ function createEdge(fromId, toId) {
         to: toId
     });
 
-    alert('Verbindung erstellt!');
+    // Kein Alert mehr - Verbindung ist visuell sichtbar
 }
 
 // Node loeschen
@@ -605,6 +715,39 @@ function deleteNode(nodeId) {
 
         // Entferne Node
         nodes.remove(nodeId);
+    }
+}
+
+// Aktuell bearbeiteten Schritt loeschen (aus Modal)
+function deleteCurrentSchritt() {
+    const nodeId = document.getElementById('schritt-id').value;
+
+    if (!nodeId) {
+        alert('Kein Schritt zum Loeschen ausgewaehlt.');
+        return;
+    }
+
+    // Verhindere Loeschen des Antrag-Knotens
+    if (nodeId === 'antrag_start') {
+        alert('Der Antrag-Startknoten kann nicht geloescht werden.');
+        return;
+    }
+
+    if (confirm(`Schritt "${nodes.get(nodeId).label}" wirklich loeschen?`)) {
+        // Entferne aus schritte-Array
+        schritte = schritte.filter(s => s.id !== nodeId);
+
+        // Entferne alle verbundenen Edges
+        const connectedEdges = edges.get({
+            filter: edge => edge.from === nodeId || edge.to === nodeId
+        });
+        connectedEdges.forEach(edge => edges.remove(edge.id));
+
+        // Entferne Node
+        nodes.remove(nodeId);
+
+        // Schliesse Modal
+        bootstrap.Modal.getInstance(document.getElementById('schrittModal')).hide();
     }
 }
 
@@ -674,8 +817,23 @@ async function saveWorkflow() {
     const name = document.getElementById('template-name-input').value;
     const beschreibung = document.getElementById('template-beschreibung').value;
     const kategorie = document.getElementById('template-kategorie').value;
-    const trigger = document.getElementById('template-trigger').value;
+    let trigger = document.getElementById('template-trigger').value;
     const aktiv = document.getElementById('template-aktiv').checked;
+
+    // Custom-Trigger verarbeiten
+    if (trigger === 'custom') {
+        const customTrigger = document.getElementById('template-trigger-custom').value.trim();
+        if (!customTrigger) {
+            alert('Bitte ein benutzerdefiniertes Event eingeben!');
+            return;
+        }
+        trigger = customTrigger;
+    }
+
+    // Leeren Trigger auf null setzen
+    if (!trigger) {
+        trigger = null;
+    }
 
     if (!name) {
         alert('Bitte einen Template-Namen eingeben!');
@@ -698,6 +856,16 @@ async function saveWorkflow() {
     // Reihenfolge berechnen (topologische Sortierung basierend auf Edges)
     const schritteMitReihenfolge = calculateReihenfolge();
 
+    // Edges sammeln (alle Verbindungen, auch vom Antrag-Knoten)
+    const allEdges = edges.get().map(edge => {
+        const config = edgeConfigs.find(c => c.edgeId === edge.id);
+        return {
+            from: edge.from,
+            to: edge.to,
+            config: config || {bedingung_typ: 'immer'}
+        };
+    });
+
     const data = {
         template: {
             name,
@@ -707,7 +875,9 @@ async function saveWorkflow() {
             aktiv: aktiv,
             template_id: templateIdToUpdate  // null wenn neu, sonst ID zum Update
         },
-        schritte: schritteMitReihenfolge
+        schritte: schritteMitReihenfolge,
+        edges: allEdges,  // Edges mit Konfigurationen
+        ist_graph_workflow: edgeConfigs.length > 0  // NEU: Flag setzen wenn Edge-Configs existieren
     };
 
     try {
@@ -722,13 +892,13 @@ async function saveWorkflow() {
 
         if (response.ok) {
             const result = await response.json();
-            alert(`Workflow "${name}" erfolgreich gespeichert!`);
+            // Erfolgsmeldung in der Modus-Anzeige
+            document.getElementById('modus-text').innerHTML = `<span class="text-success">✓ Workflow "${name}" erfolgreich gespeichert!</span>`;
             bootstrap.Modal.getInstance(document.getElementById('saveModal')).hide();
 
-            // Optional: Seite neu laden oder zum Admin weiterleiten
-            if (confirm('Zum Admin-Bereich wechseln?')) {
-                window.location.href = `/admin/workflow/workflowtemplate/${result.template_id}/change/`;
-            }
+            // Template-Info aktualisieren
+            currentTemplateId = result.template_id;
+            document.getElementById('template-name').textContent = name;
         } else {
             const error = await response.json();
             alert(`Fehler beim Speichern: ${error.error || 'Unbekannter Fehler'}`);
@@ -843,6 +1013,7 @@ async function loadTemplate(templateId) {
         nodes.clear();
         edges.clear();
         schritte = [];
+        edgeConfigs = [];
 
         // Nodes hinzufuegen (gleiche Farben wie oben)
         const aktionColors = {
@@ -853,14 +1024,19 @@ async function loadTemplate(templateId) {
             'freigeben': '#b3b3b3'
         };
 
-        const nodePositions = {};
-        let xPos = 100;
-        const yPos = 300;
-        const xSpacing = 250;
+        // Berechne feste Positionen basierend auf Reihenfolge
+        const startX = 200;
+        const startY = 300;
+        const spacingX = 350;  // Horizontaler Abstand
+        const spacingY = 150;  // Vertikaler Abstand fuer mehrere Ebenen
 
         data.nodes.forEach((nodeData, index) => {
             const nodeId = nodeData.id;
             const color = aktionColors[nodeData.aktion] || '#6c757d';
+
+            // Position basierend auf Reihenfolge
+            const xPos = startX + (nodeData.reihenfolge - 1) * spacingX;
+            const yPos = startY + (index % 3) * spacingY;  // 3 Ebenen vertikal
 
             nodes.add({
                 id: nodeId,
@@ -873,6 +1049,8 @@ async function loadTemplate(templateId) {
                 },
                 x: xPos,
                 y: yPos,
+                fixed: { x: false, y: false },  // Nodes sind verschiebbar
+                physics: false,  // Keine Physics-Simulation fuer diesen Node
                 data: nodeData
             });
 
@@ -887,18 +1065,50 @@ async function loadTemplate(templateId) {
                 eskalation: nodeData.eskalation,
                 reihenfolge: nodeData.reihenfolge
             });
-
-            xPos += xSpacing;
         });
 
-        // Edges hinzufuegen
-        data.edges.forEach(edgeData => {
-            edges.add({
-                id: `edge_${edgeData.from}_${edgeData.to}`,
-                from: edgeData.from,
-                to: edgeData.to
+        // Edges hinzufuegen (falls vorhanden im Template)
+        if (data.edges && data.edges.length > 0) {
+            data.edges.forEach(edgeData => {
+                const edgeId = `edge_${edgeData.from}_${edgeData.to}`;
+                edges.add({
+                    id: edgeId,
+                    from: edgeData.from,
+                    to: edgeData.to,
+                    label: edgeData.config?.label || ''
+                });
+
+                // Edge-Konfiguration wiederherstellen
+                if (edgeData.config) {
+                    edgeConfigs.push({
+                        edgeId: edgeId,
+                        ...edgeData.config
+                    });
+                }
             });
-        });
+        } else {
+            // Automatische Edges erstellen basierend auf Reihenfolge
+            // Sortiere Nodes nach Reihenfolge
+            const sortedNodes = [...data.nodes].sort((a, b) => a.reihenfolge - b.reihenfolge);
+
+            // Verbinde aufeinanderfolgende Schritte
+            for (let i = 0; i < sortedNodes.length - 1; i++) {
+                edges.add({
+                    id: `edge_${sortedNodes[i].id}_${sortedNodes[i + 1].id}`,
+                    from: sortedNodes[i].id,
+                    to: sortedNodes[i + 1].id
+                });
+            }
+
+            // Verbinde Antrag-Knoten mit erstem Schritt
+            if (sortedNodes.length > 0) {
+                edges.add({
+                    id: `edge_antrag_start_${sortedNodes[0].id}`,
+                    from: 'antrag_start',
+                    to: sortedNodes[0].id
+                });
+            }
+        }
 
         // nextNodeId auf naechste freie ID setzen
         const maxId = Math.max(...data.nodes.map(n => {
@@ -911,7 +1121,9 @@ async function loadTemplate(templateId) {
         createAntragNode();
 
         // Zentrieren
-        network.fit();
+        setTimeout(() => {
+            network.fit();
+        }, 100);
 
         alert(`Template "${data.template.name}" erfolgreich geladen!`);
     } catch (error) {
@@ -925,11 +1137,108 @@ function clearCanvas() {
         nodes.clear();
         edges.clear();
         schritte = [];
+        edgeConfigs = [];
         nextNodeId = 1;
         document.getElementById('template-name').textContent = 'Neues Workflow-Template';
 
         // Antrag-Startknoten wieder hinzufuegen
         createAntragNode();
+    }
+}
+
+// === NEU: Edge-Konfigurations-Funktionen (Graph-Workflows) ===
+
+// Doppelklick-Handler fuer Edge-Konfiguration
+function handleDoubleClick(params) {
+    if (params.edges.length === 1) {
+        const edgeId = params.edges[0];
+        const edge = edges.get(edgeId);
+        if (edge) {
+            openEdgeConfigModal(edge);
+        }
+    }
+}
+
+// Edge-Konfigurations-Modal oeffnen
+function openEdgeConfigModal(edge) {
+    const fromNode = nodes.get(edge.from);
+    const toNode = nodes.get(edge.to);
+
+    document.getElementById('edge-id').value = edge.id;
+    document.getElementById('edge-von').value = fromNode ? fromNode.label : 'Unbekannt';
+    document.getElementById('edge-zu').value = toNode ? toNode.label : 'Unbekannt';
+
+    // Lade bestehende Konfiguration
+    const config = edgeConfigs.find(c => c.edgeId === edge.id) || {};
+    document.getElementById('edge-bedingung-typ').value = config.bedingung_typ || 'immer';
+    document.getElementById('edge-bedingung-entscheidung').value = config.bedingung_entscheidung || 'genehmigt';
+    document.getElementById('edge-bedingung-feld').value = config.bedingung_feld || '';
+    document.getElementById('edge-bedingung-operator').value = config.bedingung_operator || '==';
+    document.getElementById('edge-bedingung-wert').value = config.bedingung_wert || '';
+    document.getElementById('edge-bedingung-python-code').value = config.bedingung_python_code || '';
+    document.getElementById('edge-label').value = config.label || '';
+    document.getElementById('edge-prioritaet').value = config.prioritaet || 1;
+
+    updateEdgeBedingungFelder();
+
+    const modal = new bootstrap.Modal(document.getElementById('edgeConfigModal'));
+    modal.show();
+}
+
+// Edge-Bedingungsfelder ein/ausblenden
+function updateEdgeBedingungFelder() {
+    const typ = document.getElementById('edge-bedingung-typ').value;
+
+    document.getElementById('edge-bedingung-entscheidung-container').style.display =
+        typ === 'entscheidung' ? 'block' : 'none';
+    document.getElementById('edge-bedingung-feld-container').style.display =
+        typ === 'feld_wert' ? 'block' : 'none';
+    document.getElementById('edge-bedingung-python-container').style.display =
+        typ === 'python' ? 'block' : 'none';
+}
+
+// Edge-Konfiguration speichern
+function saveEdgeConfig() {
+    const edgeId = document.getElementById('edge-id').value;
+    const bedingung_typ = document.getElementById('edge-bedingung-typ').value;
+
+    const config = {
+        edgeId: edgeId,
+        bedingung_typ: bedingung_typ,
+        bedingung_entscheidung: document.getElementById('edge-bedingung-entscheidung').value,
+        bedingung_feld: document.getElementById('edge-bedingung-feld').value,
+        bedingung_operator: document.getElementById('edge-bedingung-operator').value,
+        bedingung_wert: document.getElementById('edge-bedingung-wert').value,
+        bedingung_python_code: document.getElementById('edge-bedingung-python-code').value,
+        label: document.getElementById('edge-label').value,
+        prioritaet: parseInt(document.getElementById('edge-prioritaet').value) || 1
+    };
+
+    // Aktualisiere oder fuege hinzu
+    const index = edgeConfigs.findIndex(c => c.edgeId === edgeId);
+    if (index >= 0) {
+        edgeConfigs[index] = config;
+    } else {
+        edgeConfigs.push(config);
+    }
+
+    // Aktualisiere Edge-Label im Graph
+    if (config.label) {
+        edges.update({id: edgeId, label: config.label});
+    } else {
+        edges.update({id: edgeId, label: ''});
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById('edgeConfigModal')).hide();
+}
+
+// Edge aus Modal loeschen
+function deleteEdgeFromModal() {
+    const edgeId = document.getElementById('edge-id').value;
+    if (confirm('Verbindung wirklich loeschen?')) {
+        edges.remove(edgeId);
+        edgeConfigs = edgeConfigs.filter(c => c.edgeId !== edgeId);
+        bootstrap.Modal.getInstance(document.getElementById('edgeConfigModal')).hide();
     }
 }
 
@@ -968,6 +1277,21 @@ async function loadTeamQueues() {
     }
 }
 
+// Trigger-Event Custom-Feld ein/ausblenden
+function toggleTriggerCustom() {
+    const triggerSelect = document.getElementById('template-trigger');
+    const customInput = document.getElementById('template-trigger-custom');
+
+    if (triggerSelect.value === 'custom') {
+        customInput.style.display = 'block';
+        customInput.required = true;
+    } else {
+        customInput.style.display = 'none';
+        customInput.required = false;
+        customInput.value = '';
+    }
+}
+
 // Init beim Laden
 document.addEventListener('DOMContentLoaded', () => {
     init();
@@ -985,6 +1309,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('template-name-input').value = currentTemplateName + ' (Kopie)';
         }
     });
+
+    // Event Listener fuer Trigger-Dropdown
+    document.getElementById('template-trigger').addEventListener('change', toggleTriggerCustom);
 });
 </script>
 {% endblock %}

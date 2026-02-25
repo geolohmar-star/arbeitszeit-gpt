@@ -21,6 +21,12 @@
         background-color: #e8f5e9;
     }
 
+    .workflow-step.cancelled {
+        border-left-color: #dc3545;
+        background-color: #fff5f5;
+        opacity: 0.6;
+    }
+
     .task-info-box {
         background-color: #f8f9fa;
         padding: 20px;
@@ -77,13 +83,141 @@
             <!-- Verknüpftes Objekt -->
             {% if task.instance.content_object %}
             <div class="content-object-box mb-4">
-                <h5 class="mb-3">Verknüpftes Objekt</h5>
-                <p class="mb-2">
-                    <strong>Typ:</strong> {{ task.instance.content_type }}
-                </p>
-                <p class="mb-0">
-                    <strong>Objekt:</strong> {{ task.instance.content_object }}
-                </p>
+                <h5 class="mb-3">
+                    <i class="bi bi-link-45deg"></i>
+                    {% if task.instance.content_type.model == 'dienstreiseantrag' %}
+                    Dienstreiseantrag
+                    {% elif task.instance.content_type.model == 'zeitgutschrift' %}
+                    Zeitgutschrift
+                    {% else %}
+                    {{ task.instance.content_type }}
+                    {% endif %}
+                </h5>
+
+                <!-- Dienstreiseantrag Details -->
+                {% if task.instance.content_type.model == 'dienstreiseantrag' %}
+                    {% with antrag=task.instance.content_object %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Antragsteller:</strong></p>
+                            <p class="mb-0">{{ antrag.antragsteller }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Beantragt am:</strong></p>
+                            <p class="mb-0">{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Reiseziel:</strong></p>
+                            <p class="mb-0"><i class="bi bi-geo-alt"></i> {{ antrag.ziel }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Reisezeitraum:</strong></p>
+                            <p class="mb-0">
+                                <i class="bi bi-calendar-range"></i>
+                                {{ antrag.von_datum|date:"d.m.Y" }} - {{ antrag.bis_datum|date:"d.m.Y" }}
+                                <span class="badge bg-secondary ms-1">{{ antrag.dauer_tage }} Tag{% if antrag.dauer_tage != 1 %}e{% endif %}</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Geschätzte Kosten:</strong></p>
+                            <p class="mb-0">
+                                <i class="bi bi-cash-coin"></i>
+                                <strong>{{ antrag.geschaetzte_kosten|floatformat:2 }} EUR</strong>
+                                {% if antrag.geschaetzte_kosten >= 1000 %}
+                                <span class="badge bg-warning text-dark ms-1">
+                                    <i class="bi bi-exclamation-triangle"></i> GF-Freigabe erforderlich
+                                </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Status:</strong></p>
+                            <p class="mb-0">
+                                <span class="badge bg-{{ antrag.status|slice:':1' }}">{{ antrag.get_status_display }}</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <p class="text-muted small mb-1"><strong>Zweck der Reise:</strong></p>
+                        <p class="mb-0">{{ antrag.zweck }}</p>
+                    </div>
+                    {% endwith %}
+
+                <!-- Zeitgutschrift Details -->
+                {% elif task.instance.content_type.model == 'zeitgutschrift' %}
+                    {% with antrag=task.instance.content_object %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Antragsteller:</strong></p>
+                            <p class="mb-0">{{ antrag.antragsteller }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Beantragt am:</strong></p>
+                            <p class="mb-0">{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Art:</strong></p>
+                            <p class="mb-0">{{ antrag.get_art_display }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Status:</strong></p>
+                            <p class="mb-0">
+                                <span class="badge bg-{{ antrag.status|slice:':1' }}">{{ antrag.get_status_display }}</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {% if antrag.art == "fortbildung" and antrag.fortbildung_aktiv %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <p class="text-muted small mb-1"><strong>Fortbildungszeitraum:</strong></p>
+                            <p class="mb-0">
+                                <i class="bi bi-calendar-range"></i>
+                                {{ antrag.fortbildung_von_datum|date:"d.m.Y" }} - {{ antrag.fortbildung_bis_datum|date:"d.m.Y" }}
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-12">
+                            <p class="text-muted small mb-1"><strong>Aktenzeichen:</strong></p>
+                            <p class="mb-0"><code class="small">{{ antrag.get_betreff }}</code></p>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="mt-3 d-flex gap-2">
+                        <a href="{% url 'formulare:zeitgutschrift_detail' antrag.pk %}"
+                           class="btn btn-sm btn-primary" target="_blank">
+                            <i class="bi bi-eye"></i> Details anzeigen
+                        </a>
+                        <a href="{% url 'formulare:zeitgutschrift_pdf' antrag.pk %}"
+                           class="btn btn-sm btn-outline-danger" target="_blank">
+                            <i class="bi bi-file-pdf"></i> PDF herunterladen
+                        </a>
+                    </div>
+                    {% endwith %}
+
+                {% else %}
+                    <!-- Fallback fuer andere Objekttypen -->
+                    <p class="mb-2">
+                        <strong>Typ:</strong> {{ task.instance.content_type }}
+                    </p>
+                    <p class="mb-0">
+                        <strong>Objekt:</strong> {{ task.instance.content_object }}
+                    </p>
+                {% endif %}
             </div>
             {% endif %}
 
@@ -106,6 +240,52 @@
 
             <!-- Entscheidung treffen -->
             {% if task.status != 'erledigt' %}
+
+            {% comment %}Pruefe ob User der Antragsteller ist und Task zurueckgesendet wurde{% endcomment %}
+            {% if request.user == task.instance.gestartet_von and task.zugewiesen_an_user == request.user %}
+            <!-- Antragsteller-Ansicht: Antrag bearbeiten -->
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Antrag ueberarbeiten</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Ihr Antrag wurde zur Ueberarbeitung zurueckgesendet.</strong>
+                        <p class="mb-0 mt-2">Bitte nehmen Sie die erforderlichen Aenderungen vor und reichen Sie den Antrag erneut ein.</p>
+                    </div>
+
+                    <!-- Link zum Bearbeiten des Antrags -->
+                    {% if task.instance.content_object %}
+                        {% if task.instance.content_type.model == 'dienstreiseantrag' %}
+                        <div class="d-grid gap-2 mb-3">
+                            <a href="{% url 'formulare:dienstreise_bearbeiten' task.instance.content_object.pk %}?task_id={{ task.pk }}"
+                               class="btn btn-primary btn-lg">
+                                <i class="bi bi-pencil-square"></i> Dienstreiseantrag bearbeiten
+                            </a>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+
+                    <!-- Nach Bearbeitung: Aenderungen einreichen -->
+                    <form method="post" action="{% url 'workflow:task_bearbeiten' task.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="kommentar" class="form-label fw-bold">Kommentar zu den Aenderungen (optional):</label>
+                            <textarea class="form-control" id="kommentar" name="kommentar"
+                                      rows="3" placeholder="Beschreiben Sie Ihre Aenderungen..."></textarea>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" name="entscheidung" value="genehmigt"
+                                    class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle"></i> Aenderungen abgeschlossen - Weiter zur Pruefung
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <!-- Standard-Ansicht: Normale Entscheidungen -->
             <div class="card border-success">
                 <div class="card-header bg-success text-white">
                     <h5 class="mb-0">Entscheidung treffen</h5>
@@ -114,7 +294,7 @@
                     <form method="post" action="{% url 'workflow:task_bearbeiten' task.pk %}">
                         {% csrf_token %}
 
-                        <!-- Entscheidungs-Buttons -->
+                        <!-- Hauptentscheidungen -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">Ihre Entscheidung:</label>
                             <div class="d-flex flex-wrap justify-content-center">
@@ -128,11 +308,39 @@
                                 </button>
                                 <button type="submit" name="entscheidung" value="zurueckgestellt"
                                         class="btn btn-warning decision-btn">
-                                    ⏸ Zurückstellen
+                                    ⏸ Zurueckstellen
                                 </button>
-                                <button type="submit" name="entscheidung" value="weitergeleitet"
-                                        class="btn btn-info decision-btn">
-                                    → Weiterleiten
+                            </div>
+                        </div>
+
+                        <!-- Weitere Aktionen -->
+                        <div class="mb-4 border-top pt-4">
+                            <label class="form-label fw-bold">Weitere Aktionen:</label>
+
+                            <!-- Weiterleiten mit Kuerzel-Auswahl -->
+                            <div class="mb-3">
+                                <label for="kuerzel_weiterleiten" class="form-label small">An Person weiterleiten (Kuerzel eingeben):</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="kuerzel_weiterleiten" name="kuerzel_weiterleiten"
+                                           placeholder="z.B. ma1, fm1, al_da" pattern="[a-zA-Z0-9_]+"
+                                           title="Kuerzel der Person (z.B. ma1, fm1, al_da)">
+                                    <button type="submit" name="entscheidung" value="weitergeleitet"
+                                            class="btn btn-info">
+                                        → Weiterleiten
+                                    </button>
+                                </div>
+                                <small class="text-muted">Geben Sie das Kuerzel der Person ein, an die weitergeleitet werden soll.</small>
+                            </div>
+
+                            <!-- Zurueck-Buttons -->
+                            <div class="d-flex flex-wrap justify-content-center gap-2">
+                                <button type="submit" name="entscheidung" value="zurueck_genehmiger"
+                                        class="btn btn-outline-secondary decision-btn">
+                                    ← Zurueck an Genehmiger
+                                </button>
+                                <button type="submit" name="entscheidung" value="zurueck_antragsteller"
+                                        class="btn btn-outline-secondary decision-btn">
+                                    ← Zurueck an Antragsteller
                                 </button>
                             </div>
                         </div>
@@ -146,23 +354,55 @@
                     </form>
                 </div>
             </div>
+            {% endif %}
             {% else %}
             <!-- Task bereits erledigt -->
-            <div class="alert alert-success">
-                <h5 class="alert-heading">Task bereits erledigt</h5>
+            <div class="alert {% if task.entscheidung == 'abgelehnt' %}alert-danger border-danger{% elif task.entscheidung == 'zurueckgestellt' %}alert-warning border-warning{% else %}alert-success border-success{% endif %}">
+                <h5 class="alert-heading">
+                    {% if task.entscheidung == 'abgelehnt' %}
+                    <i class="bi bi-x-circle-fill"></i> Task erledigt (Ablehnung)
+                    {% else %}
+                    <i class="bi bi-check-circle-fill"></i> Task erfolgreich erledigt!
+                    {% endif %}
+                </h5>
                 <p class="mb-2">
-                    <strong>Entscheidung:</strong> {{ task.get_entscheidung_display }}
+                    <strong>Entscheidung:</strong>
+                    {% if task.entscheidung == 'genehmigt' %}
+                    <span class="badge bg-success">{{ task.get_entscheidung_display|upper }}</span>
+                    {% elif task.entscheidung == 'abgelehnt' %}
+                    <span class="badge bg-danger">{{ task.get_entscheidung_display|upper }}</span>
+                    {% elif task.entscheidung == 'zurueckgestellt' %}
+                    <span class="badge bg-warning text-dark">{{ task.get_entscheidung_display|upper }}</span>
+                    {% elif task.entscheidung == 'weitergeleitet' %}
+                    <span class="badge bg-info">{{ task.get_entscheidung_display|upper }}</span>
+                    {% elif task.entscheidung == 'zurueck_genehmiger' %}
+                    <span class="badge bg-secondary">{{ task.get_entscheidung_display|upper }}</span>
+                    {% elif task.entscheidung == 'zurueck_antragsteller' %}
+                    <span class="badge bg-secondary">{{ task.get_entscheidung_display|upper }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ task.get_entscheidung_display|upper }}</span>
+                    {% endif %}
                 </p>
                 <p class="mb-2">
-                    <strong>Erledigt am:</strong> {{ task.erledigt_am|date:"d.m.Y H:i" }}
+                    <strong>Erledigt am:</strong> {{ task.erledigt_am|date:"d.m.Y H:i" }} Uhr
                 </p>
                 <p class="mb-2">
-                    <strong>Erledigt von:</strong> {{ task.erledigt_von }}
+                    <strong>Erledigt von:</strong> {{ task.erledigt_von.get_full_name|default:task.erledigt_von.username }}
                 </p>
                 {% if task.kommentar %}
                 <hr>
-                <p class="mb-0"><strong>Kommentar:</strong><br>{{ task.kommentar|linebreaks }}</p>
+                <p class="mb-3"><strong>Kommentar:</strong><br>{{ task.kommentar|linebreaks }}</p>
                 {% endif %}
+
+                <hr>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'workflow:arbeitsstapel' %}" class="btn btn-success btn-lg">
+                        <i class="bi bi-arrow-left"></i> Zurück zum Arbeitsstapel
+                    </a>
+                    <a href="{% url 'workflow:workflow_status' task.instance.pk %}" class="btn btn-outline-primary">
+                        <i class="bi bi-diagram-3"></i> Workflow-Fortschritt anzeigen
+                    </a>
+                </div>
             </div>
             {% endif %}
 
@@ -173,11 +413,13 @@
                 </div>
                 <div class="card-body">
                     {% for wf_task in workflow_tasks %}
-                    <div class="workflow-step {% if wf_task.pk == task.pk %}current{% elif wf_task.status == 'erledigt' %}completed{% endif %}">
+                    <div class="workflow-step {% if task.instance.status == 'abgebrochen' and wf_task.status != 'erledigt' %}cancelled{% elif wf_task.pk == task.pk %}current{% elif wf_task.status == 'erledigt' %}completed{% endif %}">
                         <div class="row">
                             <div class="col-md-8">
                                 <h6>
-                                    {% if wf_task.status == 'erledigt' %}
+                                    {% if task.instance.status == 'abgebrochen' and wf_task.status != 'erledigt' %}
+                                    <i class="bi bi-x-circle-fill text-danger"></i>
+                                    {% elif wf_task.status == 'erledigt' %}
                                     <i class="bi bi-check-circle-fill text-success"></i>
                                     {% elif wf_task.pk == task.pk %}
                                     <i class="bi bi-arrow-right-circle-fill text-primary"></i>
@@ -201,7 +443,12 @@
                                 </p>
                             </div>
                             <div class="col-md-4 text-end">
-                                {% if wf_task.status == 'erledigt' %}
+                                {% if task.instance.status == 'abgebrochen' and wf_task.status != 'erledigt' %}
+                                <span class="badge bg-danger">✗ Nicht ausgefuehrt</span>
+                                <p class="small text-danger mb-0">
+                                    Workflow abgebrochen
+                                </p>
+                                {% elif wf_task.status == 'erledigt' %}
                                 <span class="badge bg-success">✓ Erledigt</span>
                                 <p class="small text-muted mb-0">
                                     {{ wf_task.erledigt_am|date:"d.m.Y H:i" }}
@@ -221,7 +468,22 @@
                         </div>
                         {% if wf_task.status == 'erledigt' %}
                         <div class="mt-2 small ms-4">
-                            <strong>Entscheidung:</strong> {{ wf_task.get_entscheidung_display }}
+                            <strong>Entscheidung:</strong>
+                            {% if wf_task.entscheidung == 'genehmigt' %}
+                            <span class="badge bg-success">{{ wf_task.get_entscheidung_display }}</span>
+                            {% elif wf_task.entscheidung == 'abgelehnt' %}
+                            <span class="badge bg-danger">{{ wf_task.get_entscheidung_display }}</span>
+                            {% elif wf_task.entscheidung == 'zurueckgestellt' %}
+                            <span class="badge bg-warning text-dark">{{ wf_task.get_entscheidung_display }}</span>
+                            {% elif wf_task.entscheidung == 'weitergeleitet' %}
+                            <span class="badge bg-info">{{ wf_task.get_entscheidung_display }}</span>
+                            {% elif wf_task.entscheidung == 'zurueck_genehmiger' %}
+                            <span class="badge bg-secondary">{{ wf_task.get_entscheidung_display }}</span>
+                            {% elif wf_task.entscheidung == 'zurueck_antragsteller' %}
+                            <span class="badge bg-secondary">{{ wf_task.get_entscheidung_display }}</span>
+                            {% else %}
+                            {{ wf_task.get_entscheidung_display }}
+                            {% endif %}
                             {% if wf_task.kommentar %}
                             <br><strong>Kommentar:</strong> {{ wf_task.kommentar }}
                             {% endif %}

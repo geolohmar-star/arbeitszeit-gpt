@@ -5,15 +5,23 @@ Phase 1 (MVP):
 - resolve_rolle(): Zustaendigkeiten aufloesen
 - create_tasks(): Tasks erstellen
 - complete_task(): Naechsten Schritt aktivieren
+
+Phase 2 (Graph-Workflows):
+- get_next_steps_via_transitions(): Graph-basierte Navigation
+- execute_auto_action(): Automatische Aktionen
+- Erweiterte complete_task(): Graph vs. Linear
 """
 from datetime import timedelta
+import logging
 
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.utils import timezone
 
-from .models import WorkflowInstance, WorkflowStep, WorkflowTask
+from .models import WorkflowInstance, WorkflowStep, WorkflowTask, WorkflowTransition
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -120,6 +128,28 @@ class WorkflowEngine:
         Beispiel:
             tasks = engine.create_tasks_for_step(instance, step, zag_antrag)
         """
+        # Pruefe bedingte Aktivierung (z.B. GF-Freigabe nur bei hohen Kosten)
+        if not self._should_activate_step(step, content_object):
+            return []  # Schritt ueberspringen
+
+        # NEU: Auto-Aktionen sofort ausfuehren, keinen Task erstellen
+        if step.schritt_typ == "auto":
+            self.execute_auto_action(step, instance, content_object)
+
+            # Sofort weiter zu naechsten Schritten
+            if instance.template.ist_graph_workflow:
+                # Fake-Task fuer Transition-Evaluierung
+                fake_task_class = type('FakeTask', (object,), {
+                    'step': step,
+                    'instance': instance,
+                    'entscheidung': 'auto_completed'
+                })
+                fake_task = fake_task_class()
+                naechste_schritte = self.get_next_steps_via_transitions(fake_task, content_object)
+                for next_step in naechste_schritte:
+                    self.create_tasks_for_step(instance, next_step, content_object)
+            return []
+
         # Frist berechnen
         frist = timezone.now() + timedelta(days=step.frist_tage)
 
@@ -180,7 +210,161 @@ class WorkflowEngine:
 
         return [task]
 
-    def complete_task(self, task, entscheidung, kommentar, user):
+    def get_next_steps_via_transitions(self, task, content_object):
+        """Findet naechste Schritte basierend auf Transitions (Graph-Logik).
+
+        Args:
+            task: WorkflowTask Instanz (abgeschlossener Task)
+            content_object: Verknuepftes Objekt (z.B. ZAGAntrag)
+
+        Returns:
+            List[WorkflowStep]: Liste der naechsten Schritte (kann leer, 1 oder mehrere sein)
+
+        Beispiel:
+            naechste = engine.get_next_steps_via_transitions(task, zag_antrag)
+        """
+        instance = task.instance
+        template = instance.template
+
+        # Hole alle Transitions die vom aktuellen Schritt ausgehen
+        transitions = WorkflowTransition.objects.filter(
+            template=template,
+            von_schritt=task.step
+        ).order_by("prioritaet")
+
+        # Evaluiere Bedingungen
+        naechste_schritte = []
+        for transition in transitions:
+            if transition.evaluate(task, content_object):
+                if transition.zu_schritt:
+                    naechste_schritte.append(transition.zu_schritt)
+                else:
+                    # NULL = Ende des Workflows
+                    return []
+
+        return naechste_schritte
+
+    def execute_auto_action(self, step, instance, content_object):
+        """Fuehrt automatische Aktionen aus (ohne User-Interaktion).
+
+        Wird aufgerufen wenn schritt_typ == "auto".
+
+        Args:
+            step: WorkflowStep Instanz
+            instance: WorkflowInstance
+            content_object: Verknuepftes Objekt
+
+        Beispiel:
+            engine.execute_auto_action(step, instance, zag_antrag)
+        """
+        if step.aktion_typ == "benachrichtigen":
+            self._send_notification(step, instance, content_object)
+
+        elif step.aktion_typ == "email":
+            self._send_email(step, instance, content_object)
+
+        elif step.aktion_typ == "webhook":
+            self._call_webhook(step, instance, content_object)
+
+        elif step.aktion_typ == "python_code":
+            self._execute_python_code(step, instance, content_object)
+
+    def _send_notification(self, step, instance, content_object):
+        """Sendet Benachrichtigung an User/Team.
+
+        Args:
+            step: WorkflowStep mit auto_config
+            instance: WorkflowInstance
+            content_object: Verknuepftes Objekt
+        """
+        config = step.auto_config or {}
+        nachricht = config.get("nachricht", "Workflow-Benachrichtigung")
+        user_ids = config.get("user_ids", [])
+
+        logger.info(
+            f"Benachrichtigung gesendet: {nachricht} an User-IDs: {user_ids}"
+        )
+
+        # TODO: Integration mit Notification-System
+        # from django.contrib.auth import get_user_model
+        # User = get_user_model()
+        # for user_id in user_ids:
+        #     user = User.objects.get(id=user_id)
+        #     # Notification erstellen...
+
+    def _send_email(self, step, instance, content_object):
+        """Sendet Email.
+
+        Args:
+            step: WorkflowStep mit auto_config
+            instance: WorkflowInstance
+            content_object: Verknuepftes Objekt
+        """
+        config = step.auto_config or {}
+        betreff = config.get("betreff", "Workflow-Benachrichtigung")
+        text = config.get("text", "")
+        empfaenger = config.get("empfaenger", "")
+
+        from django.core.mail import send_mail
+        try:
+            send_mail(
+                subject=betreff,
+                message=text,
+                from_email="noreply@firma.de",
+                recipient_list=[empfaenger],
+                fail_silently=False,
+            )
+            logger.info(f"Email gesendet an {empfaenger}: {betreff}")
+        except Exception as e:
+            logger.error(f"Email-Versand fehlgeschlagen: {e}")
+
+    def _call_webhook(self, step, instance, content_object):
+        """Ruft Webhook auf.
+
+        Args:
+            step: WorkflowStep mit auto_config
+            instance: WorkflowInstance
+            content_object: Verknuepftes Objekt
+        """
+        import requests
+        config = step.auto_config or {}
+        url = config.get("url", "")
+        method = config.get("method", "POST")
+        data = config.get("data", {})
+
+        try:
+            if method == "POST":
+                response = requests.post(url, json=data, timeout=10)
+                logger.info(f"Webhook POST erfolgreich: {url} - Status: {response.status_code}")
+            elif method == "GET":
+                response = requests.get(url, params=data, timeout=10)
+                logger.info(f"Webhook GET erfolgreich: {url} - Status: {response.status_code}")
+        except Exception as e:
+            logger.error(f"Webhook-Aufruf fehlgeschlagen: {e}")
+
+    def _execute_python_code(self, step, instance, content_object):
+        """Fuehrt Python-Code aus (VORSICHT: Sicherheitsrisiko!).
+
+        Args:
+            step: WorkflowStep mit auto_config
+            instance: WorkflowInstance
+            content_object: Verknuepftes Objekt
+        """
+        config = step.auto_config or {}
+        code = config.get("code", "")
+
+        try:
+            local_vars = {
+                "instance": instance,
+                "content_object": content_object,
+                "step": step,
+            }
+            exec(code, {}, local_vars)
+            logger.info(f"Python-Code erfolgreich ausgefuehrt fuer Schritt: {step.titel}")
+        except Exception as e:
+            logger.error(f"Python-Code-Ausfuehrung fehlgeschlagen: {e}")
+
+    def complete_task(self, task, entscheidung, kommentar, user, ziel_user=None):
         """Erledigt einen Task und aktiviert naechste Schritte.
 
         Args:
@@ -188,6 +372,7 @@ class WorkflowEngine:
             entscheidung: "genehmigt", "abgelehnt", etc.
             kommentar: Kommentar-Text
             user: User der die Entscheidung trifft
+            ziel_user: Optional - Ziel-User bei Weiterleitung
 
         Returns:
             Liste der neu erstellten Tasks
@@ -209,6 +394,52 @@ class WorkflowEngine:
 
             neue_tasks = []
 
+            # Sonderfaelle: Weiterleitung und Ruecksendung
+            if entscheidung == "weitergeleitet" and ziel_user:
+                # Task an andere Person weiterleiten (gleicher Schritt, neue Zuweisung)
+                neuer_task = WorkflowTask.objects.create(
+                    instance=task.instance,
+                    step=task.step,
+                    zugewiesen_an_user=ziel_user,
+                    frist=timezone.now() + timedelta(days=task.step.frist_tage),
+                    status="offen",
+                )
+                return [neuer_task]
+
+            if entscheidung == "zurueck_genehmiger":
+                # Finde vorherigen Genehmiger (letzter Task mit entscheidung='genehmigt')
+                vorheriger_task = (
+                    task.instance.tasks.filter(
+                        entscheidung="genehmigt",
+                        status="erledigt"
+                    )
+                    .order_by("-erledigt_am")
+                    .first()
+                )
+                if vorheriger_task and vorheriger_task.erledigt_von:
+                    neuer_task = WorkflowTask.objects.create(
+                        instance=task.instance,
+                        step=task.step,
+                        zugewiesen_an_user=vorheriger_task.erledigt_von,
+                        frist=timezone.now() + timedelta(days=task.step.frist_tage),
+                        status="offen",
+                    )
+                    return [neuer_task]
+                # Falls kein Genehmiger gefunden → normaler Workflow
+
+            if entscheidung == "zurueck_antragsteller":
+                # Zurueck an Person die Workflow gestartet hat
+                if task.instance.gestartet_von:
+                    neuer_task = WorkflowTask.objects.create(
+                        instance=task.instance,
+                        step=task.step,
+                        zugewiesen_an_user=task.instance.gestartet_von,
+                        frist=timezone.now() + timedelta(days=task.step.frist_tage),
+                        status="offen",
+                    )
+                    return [neuer_task]
+                # Falls kein Starter gefunden → normaler Workflow
+
             # Workflow-Logik basierend auf Entscheidung
             if entscheidung == "abgelehnt":
                 # Bei Ablehnung: Workflow abbrechen
@@ -217,16 +448,27 @@ class WorkflowEngine:
                 task.instance.save()
                 return []
 
-            # Naechsten Schritt(e) finden
-            aktuelle_reihenfolge = task.step.reihenfolge
-            naechste_reihenfolge = aktuelle_reihenfolge + 1
+            # === NEUE LOGIK: Graph vs. Linear ===
+            instance = task.instance
+            content_object = instance.content_object
 
-            naechste_schritte = task.instance.template.schritte.filter(
-                reihenfolge=naechste_reihenfolge
-            )
+            if instance.template.ist_graph_workflow:
+                # Graph-basiert: Transitions evaluieren
+                naechste_schritte = self.get_next_steps_via_transitions(task, content_object)
+            else:
+                # Legacy: Linear mit reihenfolge
+                aktuelle_reihenfolge = task.step.reihenfolge
+                naechste_reihenfolge = aktuelle_reihenfolge + 1
+                naechste_schritte = instance.template.schritte.filter(
+                    reihenfolge=naechste_reihenfolge
+                )
 
-            if naechste_schritte.exists():
-                # Naechste Schritte erstellen
+            # Versuche naechste Schritte zu aktivieren (mit Skip-Logik)
+            max_versuche = 10  # Verhindere Endlosschleife
+            versuche = 0
+
+            while naechste_schritte.exists() and not neue_tasks and versuche < max_versuche:
+                # Versuche Tasks fuer naechste Schritte zu erstellen
                 for schritt in naechste_schritte:
                     neue_tasks.extend(
                         self.create_tasks_for_step(
@@ -234,11 +476,21 @@ class WorkflowEngine:
                         )
                     )
 
-                # Aktuellen Schritt aktualisieren
-                task.instance.aktueller_schritt = naechste_schritte.first()
-                task.instance.save()
-            else:
-                # Keine weiteren Schritte → Workflow abschliessen
+                if neue_tasks:
+                    # Tasks erfolgreich erstellt → aktuellen Schritt aktualisieren
+                    task.instance.aktueller_schritt = naechste_schritte.first()
+                    task.instance.save()
+                else:
+                    # Keine Tasks erstellt (Schritt uebersprungen) → naechsten Schritt versuchen
+                    naechste_reihenfolge += 1
+                    naechste_schritte = task.instance.template.schritte.filter(
+                        reihenfolge=naechste_reihenfolge
+                    )
+
+                versuche += 1
+
+            # Falls keine Tasks erstellt wurden und auch keine weiteren Schritte → Workflow abschliessen
+            if not neue_tasks and not naechste_schritte.exists():
                 offene_tasks = task.instance.tasks.filter(
                     status__in=["offen", "in_bearbeitung"]
                 ).count()
@@ -359,3 +611,29 @@ class WorkflowEngine:
             ebenen += 1
 
         return None
+
+    def _should_activate_step(self, step, content_object):
+        """Prueft ob ein Workflow-Schritt aktiviert werden soll.
+
+        Verwendet Settings-basierte Regeln fuer bedingte Schritte.
+
+        Args:
+            step: WorkflowStep Instanz
+            content_object: Verknuepftes Objekt (z.B. Dienstreiseantrag)
+
+        Returns:
+            bool: True wenn Schritt aktiviert werden soll, False zum Ueberspringen
+        """
+        from django.conf import settings
+
+        # Regel: GF-Freigabe bei Dienstreisen nur bei hohen Kosten
+        if step.zustaendig_rolle == "gf" and content_object:
+            # Pruefe ob es ein Dienstreiseantrag ist
+            if hasattr(content_object, 'geschaetzte_kosten'):
+                schwelle = getattr(settings, 'DIENSTREISE_GF_FREIGABE_SCHWELLE', 1000)
+                if content_object.geschaetzte_kosten < schwelle:
+                    # Kosten unter Schwelle → Schritt ueberspringen
+                    return False
+
+        # Standardmaessig: Schritt aktivieren
+        return True

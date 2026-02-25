@@ -63,8 +63,20 @@
 <div class="container-fluid mt-4">
     <div class="row mb-4">
         <div class="col">
-            <h1 class="mb-3">Arbeitsstapel</h1>
-            <p class="text-muted">Ihre offenen Workflow-Aufgaben</p>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-3">Arbeitsstapel</h1>
+                    <p class="text-muted">Ihre offenen Workflow-Aufgaben</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'workflow:trigger_uebersicht' %}" class="btn btn-outline-secondary">
+                        Trigger-Uebersicht
+                    </a>
+                    <a href="{% url 'workflow:workflow_editor' %}" class="btn btn-outline-primary">
+                        Workflow-Editor
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -242,6 +254,62 @@
             </div>
         </div>
         {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Von mir genehmigte Antraege -->
+    {% if erledigte_tasks %}
+    <div class="mb-4">
+        <h3 class="text-success mb-3">
+            <i class="bi bi-check-circle-fill"></i> Von mir genehmigt (letzte 30 Tage)
+        </h3>
+        {% for task in erledigte_tasks %}
+        <div class="card task-card mb-3" style="border-left-color: #28a745; opacity: 0.85;">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h5 class="card-title">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            {{ task.step.titel }}
+                            <span class="badge bg-success ms-2">{{ task.get_entscheidung_display|upper }}</span>
+                        </h5>
+                        <p class="card-text text-muted mb-2">
+                            <strong>Workflow:</strong> {{ task.instance.template.name }}
+                        </p>
+                        <p class="card-text text-muted mb-2">
+                            <strong>Aktion:</strong> {{ task.step.get_aktion_typ_display }}
+                        </p>
+                        {% if task.kommentar %}
+                        <p class="card-text small">
+                            <strong>Mein Kommentar:</strong> {{ task.kommentar|truncatewords:15 }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <p class="text-success mb-2">
+                            <strong>Erledigt am:</strong><br>
+                            {{ task.erledigt_am|date:"d.m.Y H:i" }} Uhr
+                        </p>
+                        <p class="text-muted small mb-3">
+                            Workflow-Status:
+                            <span class="badge bg-{{ task.instance.status|slice:':1' }}">
+                                {{ task.instance.get_status_display }}
+                            </span>
+                        </p>
+                        <a href="{% url 'workflow:workflow_status' task.instance.pk %}" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-diagram-3"></i> Workflow anzeigen
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if anzahl_erledigt >= 20 %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Es werden maximal die 20 neuesten erledigten Tasks angezeigt.
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 

@@ -94,6 +94,18 @@
         opacity: 0.7;
     }
 
+    .timeline-content.cancelled {
+        border-left: 4px solid #dc3545;
+        background-color: #fff5f5;
+        opacity: 0.5;
+    }
+
+    .timeline-marker.cancelled {
+        background: #fff;
+        border-color: #dc3545;
+        color: #dc3545;
+    }
+
     .status-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -164,14 +176,61 @@
             <!-- Verknuepftes Objekt -->
             <div class="content-object-card mb-4">
                 <h5 class="mb-3">
-                    <i class="bi bi-link-45deg"></i> Verknüpftes Objekt
+                    <i class="bi bi-link-45deg"></i>
+                    {% if instance.content_type.model == 'dienstreiseantrag' %}
+                    Dienstreiseantrag
+                    {% else %}
+                    Verknüpftes Objekt
+                    {% endif %}
                 </h5>
-                <p class="mb-2">
-                    <strong>Typ:</strong> {{ instance.content_type }}
-                </p>
-                <p class="mb-0">
-                    <strong>Details:</strong> {{ instance.content_object }}
-                </p>
+
+                <!-- Dienstreiseantrag Details -->
+                {% if instance.content_type.model == 'dienstreiseantrag' %}
+                    {% with antrag=instance.content_object %}
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p class="small text-muted mb-1"><strong>Antragsteller:</strong></p>
+                            <p class="mb-0">{{ antrag.antragsteller }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="small text-muted mb-1"><strong>Reiseziel:</strong></p>
+                            <p class="mb-0"><i class="bi bi-geo-alt"></i> {{ antrag.ziel }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="small text-muted mb-1"><strong>Zeitraum:</strong></p>
+                            <p class="mb-0">
+                                {{ antrag.von_datum|date:"d.m." }} - {{ antrag.bis_datum|date:"d.m.Y" }}
+                                <span class="badge bg-secondary">{{ antrag.dauer_tage }}T</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-md-4">
+                            <p class="small text-muted mb-1"><strong>Kosten:</strong></p>
+                            <p class="mb-0">
+                                <strong>{{ antrag.geschaetzte_kosten|floatformat:2 }} EUR</strong>
+                                {% if antrag.geschaetzte_kosten >= 1000 %}
+                                <span class="badge bg-warning text-dark ms-1" title="GF-Freigabe erforderlich">
+                                    <i class="bi bi-star-fill"></i>
+                                </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-8">
+                            <p class="small text-muted mb-1"><strong>Zweck:</strong></p>
+                            <p class="mb-0">{{ antrag.zweck|truncatewords:15 }}</p>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% else %}
+                    <!-- Fallback fuer andere Objekttypen -->
+                    <p class="mb-2">
+                        <strong>Typ:</strong> {{ instance.content_type }}
+                    </p>
+                    <p class="mb-0">
+                        <strong>Details:</strong> {{ instance.content_object }}
+                    </p>
+                {% endif %}
             </div>
             {% endif %}
 
@@ -185,17 +244,24 @@
                     <div class="timeline">
                         {% for wf_task in workflow_tasks %}
                         <div class="timeline-item">
-                            <div class="timeline-marker {% if wf_task.status == 'erledigt' %}completed{% elif wf_task.status == 'offen' or wf_task.status == 'in_bearbeitung' %}current{% else %}pending{% endif %}">
-                                {% if wf_task.status == 'erledigt' %}
-                                <i class="bi bi-check-lg"></i>
-                                {% elif wf_task.status == 'offen' or wf_task.status == 'in_bearbeitung' %}
-                                <i class="bi bi-hourglass-split"></i>
-                                {% else %}
-                                <i class="bi bi-circle"></i>
-                                {% endif %}
-                            </div>
+                            {% comment %}Pruefe ob Workflow abgebrochen und dieser Task nicht erledigt{% endcomment %}
+                            {% if instance.status == 'abgebrochen' and wf_task.status != 'erledigt' %}
+                                <div class="timeline-marker cancelled">
+                                    <i class="bi bi-x-lg"></i>
+                                </div>
+                            {% else %}
+                                <div class="timeline-marker {% if wf_task.status == 'erledigt' %}completed{% elif wf_task.status == 'offen' or wf_task.status == 'in_bearbeitung' %}current{% else %}pending{% endif %}">
+                                    {% if wf_task.status == 'erledigt' %}
+                                    <i class="bi bi-check-lg"></i>
+                                    {% elif wf_task.status == 'offen' or wf_task.status == 'in_bearbeitung' %}
+                                    <i class="bi bi-hourglass-split"></i>
+                                    {% else %}
+                                    <i class="bi bi-circle"></i>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
 
-                            <div class="timeline-content {% if wf_task.status == 'erledigt' %}completed{% elif wf_task.status == 'offen' or wf_task.status == 'in_bearbeitung' %}current{% else %}pending{% endif %}">
+                            <div class="timeline-content {% if instance.status == 'abgebrochen' and wf_task.status != 'erledigt' %}cancelled{% elif wf_task.status == 'erledigt' %}completed{% elif wf_task.status == 'offen' or wf_task.status == 'in_bearbeitung' %}current{% else %}pending{% endif %}">
                                 <div class="row">
                                     <div class="col-md-8">
                                         <h6 class="mb-1">
@@ -235,7 +301,12 @@
                                     </div>
 
                                     <div class="col-md-4 text-end">
-                                        {% if wf_task.status == 'erledigt' %}
+                                        {% if instance.status == 'abgebrochen' and wf_task.status != 'erledigt' %}
+                                        <span class="badge bg-danger mb-1">✗ Nicht ausgefuehrt</span>
+                                        <p class="small text-danger mb-0">
+                                            Workflow abgebrochen
+                                        </p>
+                                        {% elif wf_task.status == 'erledigt' %}
                                         <span class="badge bg-success mb-1">✓ Erledigt</span>
                                         <p class="small text-muted mb-0">
                                             {{ wf_task.erledigt_am|date:"d.m.Y H:i" }}
@@ -265,7 +336,21 @@
                                     <div class="row">
                                         <div class="col-md-6">
                                             <strong class="small">Entscheidung:</strong>
+                                            {% if wf_task.entscheidung == 'genehmigt' %}
                                             <span class="badge bg-success ms-1">{{ wf_task.get_entscheidung_display }}</span>
+                                            {% elif wf_task.entscheidung == 'abgelehnt' %}
+                                            <span class="badge bg-danger ms-1">{{ wf_task.get_entscheidung_display }}</span>
+                                            {% elif wf_task.entscheidung == 'zurueckgestellt' %}
+                                            <span class="badge bg-warning text-dark ms-1">{{ wf_task.get_entscheidung_display }}</span>
+                                            {% elif wf_task.entscheidung == 'weitergeleitet' %}
+                                            <span class="badge bg-info ms-1">{{ wf_task.get_entscheidung_display }}</span>
+                                            {% elif wf_task.entscheidung == 'zurueck_genehmiger' %}
+                                            <span class="badge bg-secondary ms-1">{{ wf_task.get_entscheidung_display }}</span>
+                                            {% elif wf_task.entscheidung == 'zurueck_antragsteller' %}
+                                            <span class="badge bg-secondary ms-1">{{ wf_task.get_entscheidung_display }}</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary ms-1">{{ wf_task.get_entscheidung_display }}</span>
+                                            {% endif %}
                                         </div>
                                         {% if wf_task.kommentar %}
                                         <div class="col-md-12 mt-2">

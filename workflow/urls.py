@@ -20,4 +20,7 @@ urlpatterns = [
 
     # Workflow manuell starten (nur fuer Tests)
     path("start/<int:template_id>/", views.workflow_start_manual, name="workflow_start_manual"),
+
+    # Trigger-Uebersicht
+    path("trigger/", views.trigger_uebersicht, name="trigger_uebersicht"),
 ]

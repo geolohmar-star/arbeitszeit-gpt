@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .models import WorkflowInstance, WorkflowTask, WorkflowTemplate, WorkflowStep
+from .models import WorkflowInstance, WorkflowTask, WorkflowTemplate, WorkflowStep, WorkflowTransition
 from .services import WorkflowEngine
 
 
@@ -271,16 +271,56 @@ def workflow_editor_load(request, template_id):
             "reihenfolge": step.reihenfolge,
         })
 
-    # Verbindungen basierend auf Reihenfolge
+    # Verbindungen
     edges = []
     schritte_sorted = list(template.schritte.all().order_by("reihenfolge"))
-    for i in range(len(schritte_sorted) - 1):
-        current = schritte_sorted[i]
-        next_step = schritte_sorted[i + 1]
-        edges.append({
-            "from": f"node_{current.id}",
-            "to": f"node_{next_step.id}",
-        })
+
+    if template.ist_graph_workflow:
+        # Graph-Workflow: Lade Transitions
+        for transition in template.transitions.all():
+            von_id = f"node_{transition.von_schritt.id}"
+            zu_id = f"node_{transition.zu_schritt.id}" if transition.zu_schritt else "ende"
+
+            edges.append({
+                "from": von_id,
+                "to": zu_id,
+                "config": {
+                    "bedingung_typ": transition.bedingung_typ,
+                    "bedingung_entscheidung": transition.bedingung_entscheidung,
+                    "bedingung_feld": transition.bedingung_feld,
+                    "bedingung_operator": transition.bedingung_operator,
+                    "bedingung_wert": transition.bedingung_wert,
+                    "bedingung_python_code": transition.bedingung_python_code,
+                    "label": transition.label,
+                    "prioritaet": transition.prioritaet,
+                }
+            })
+
+        # Fuege Edge von Antrag-Start zum ersten Schritt hinzu
+        if schritte_sorted:
+            edges.append({
+                "from": "antrag_start",
+                "to": f"node_{schritte_sorted[0].id}",
+                "config": {"bedingung_typ": "immer"}
+            })
+    else:
+        # Legacy: Verbindungen basierend auf Reihenfolge
+        # Edge von Antrag-Start zum ersten Schritt (falls Schritte vorhanden)
+        if schritte_sorted:
+            first_step = schritte_sorted[0]
+            edges.append({
+                "from": "antrag_start",
+                "to": f"node_{first_step.id}",
+            })
+
+        # Edges zwischen den Schritten
+        for i in range(len(schritte_sorted) - 1):
+            current = schritte_sorted[i]
+            next_step = schritte_sorted[i + 1]
+            edges.append({
+                "from": f"node_{current.id}",
+                "to": f"node_{next_step.id}",
+            })
 
     return JsonResponse({
         "template": {
@@ -289,6 +329,8 @@ def workflow_editor_load(request, template_id):
             "beschreibung": template.beschreibung,
             "kategorie": template.kategorie,
             "trigger_event": template.trigger_event,
+            "ist_aktiv": template.ist_aktiv,
+            "ist_graph_workflow": template.ist_graph_workflow,
         },
         "nodes": nodes,
         "edges": edges,
@@ -308,6 +350,8 @@ def workflow_editor_save(request):
         data = json.loads(request.body)
         template_data = data.get("template", {})
         schritte_data = data.get("schritte", [])
+        edges_data = data.get("edges", [])  # Edges aus Request holen
+        ist_graph = data.get("ist_graph_workflow", False)  # NEU: Graph-Flag
 
         # Validierung
         if not template_data.get("name"):
@@ -328,10 +372,13 @@ def workflow_editor_save(request):
                 template.kategorie = template_data.get("kategorie", "genehmigung")
                 template.trigger_event = template_data.get("trigger_event", "")
                 template.ist_aktiv = template_data.get("aktiv", True)
+                template.edges_data = edges_data  # Legacy: Edges speichern
+                template.ist_graph_workflow = ist_graph  # NEU: Graph-Flag
                 template.save()
 
-                # Loesche alte Schritte
+                # Loesche alte Schritte und Transitions
                 template.schritte.all().delete()
+                template.transitions.all().delete()
 
                 is_update = True
             except WorkflowTemplate.DoesNotExist:
@@ -345,10 +392,13 @@ def workflow_editor_save(request):
                 trigger_event=template_data.get("trigger_event", ""),
                 ist_aktiv=template_data.get("aktiv", True),
                 erstellt_von=request.user,
+                edges_data=edges_data,  # Legacy: Edges speichern
+                ist_graph_workflow=ist_graph,  # NEU: Graph-Flag
             )
             is_update = False
 
-        # Schritte erstellen
+        # Schritte erstellen (mit Mapping node_id -> WorkflowStep)
+        schritt_mapping = {}  # node_id -> WorkflowStep
         for schritt_data in schritte_data:
             # Team-Queue-Referenz aufloesen
             team_id = schritt_data.get("teamId")
@@ -363,7 +413,7 @@ def workflow_editor_save(request):
                         status=400
                     )
 
-            WorkflowStep.objects.create(
+            step = WorkflowStep.objects.create(
                 template=template,
                 reihenfolge=schritt_data.get("reihenfolge", 1),
                 titel=schritt_data.get("titel", "Unbenannt"),
@@ -375,6 +425,36 @@ def workflow_editor_save(request):
                 ist_parallel=schritt_data.get("parallel", False),
                 eskalation_nach_tagen=schritt_data.get("eskalation", 0),
             )
+            schritt_mapping[schritt_data["id"]] = step
+
+        # NEU: Transitions erstellen (falls Graph-Workflow)
+        if ist_graph and edges_data:
+            for edge_data in edges_data:
+                von_node_id = edge_data["from"]
+                zu_node_id = edge_data["to"]
+                config = edge_data.get("config", {})
+
+                # Ueberspringe Antrag-Start Node (kein WorkflowStep)
+                if von_node_id == "antrag_start":
+                    continue
+
+                von_schritt = schritt_mapping.get(von_node_id)
+                zu_schritt = schritt_mapping.get(zu_node_id) if zu_node_id != "antrag_start" else None
+
+                if von_schritt:
+                    WorkflowTransition.objects.create(
+                        template=template,
+                        von_schritt=von_schritt,
+                        zu_schritt=zu_schritt,
+                        bedingung_typ=config.get("bedingung_typ", "immer"),
+                        bedingung_entscheidung=config.get("bedingung_entscheidung", ""),
+                        bedingung_feld=config.get("bedingung_feld", ""),
+                        bedingung_operator=config.get("bedingung_operator", ""),
+                        bedingung_wert=config.get("bedingung_wert", ""),
+                        bedingung_python_code=config.get("bedingung_python_code", ""),
+                        label=config.get("label", ""),
+                        prioritaet=config.get("prioritaet", 1),
+                    )
 
         action = "aktualisiert" if is_update else "erstellt"
         return JsonResponse({
@@ -475,3 +555,68 @@ def workflow_start_manual(request, template_id):
         messages.error(request, f"Fehler beim Starten: {e}")
 
     return redirect("workflow:arbeitsstapel")
+
+
+@login_required
+def trigger_uebersicht(request):
+    """Zeigt Uebersicht ueber alle Workflow-Trigger.
+
+    Zeigt welche Trigger-Events registriert sind und welche
+    Workflows automatisch ausgeloest werden.
+    """
+    # Alle Templates mit Trigger-Event
+    templates_mit_trigger = (
+        WorkflowTemplate.objects
+        .exclude(trigger_event="")
+        .order_by("trigger_event", "name")
+    )
+
+    # Gruppiere nach Trigger-Event
+    trigger_map = {}
+    for template in templates_mit_trigger:
+        if template.trigger_event not in trigger_map:
+            trigger_map[template.trigger_event] = []
+        trigger_map[template.trigger_event].append(template)
+
+    # Definierte Events (im Code registriert)
+    registrierte_events = [
+        {
+            "name": "dienstreise_erstellt",
+            "beschreibung": "Wird ausgeloest wenn ein Dienstreiseantrag erstellt wird",
+            "model": "Dienstreiseantrag",
+        },
+        {
+            "name": "zeitgutschrift_erstellt",
+            "beschreibung": "Wird ausgeloest wenn eine Zeitgutschrift erstellt wird",
+            "model": "Zeitgutschrift",
+        },
+        {
+            "name": "zag_antrag_erstellt",
+            "beschreibung": "Noch nicht implementiert",
+            "model": "ZAGAntrag",
+        },
+        {
+            "name": "zag_storno_erstellt",
+            "beschreibung": "Noch nicht implementiert",
+            "model": "ZAGStorno",
+        },
+        {
+            "name": "aenderung_zeiterfassung_erstellt",
+            "beschreibung": "Wird ausgeloest wenn eine Aenderung Zeiterfassung erstellt wird",
+            "model": "AenderungZeiterfassung",
+        },
+    ]
+
+    # Markiere welche Events aktive Workflows haben
+    for event in registrierte_events:
+        event["workflows"] = trigger_map.get(event["name"], [])
+        event["aktiv"] = any(
+            w.ist_aktiv for w in event["workflows"]
+        )
+
+    context = {
+        "registrierte_events": registrierte_events,
+        "alle_templates": templates_mit_trigger,
+    }
+
+    return render(request, "workflow/trigger_uebersicht.html", context)

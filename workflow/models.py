@@ -80,6 +80,21 @@ class WorkflowTemplate(models.Model):
         help_text="Version fuer Aenderungsverfolgung",
     )
 
+    # Visuelle Verbindungen (Edges) fuer Editor
+    edges_data = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name="Verbindungen (Edges) - Legacy",
+        help_text="DEPRECATED: Wird durch WorkflowTransition ersetzt. Nur fuer Abwaertskompatibilitaet.",
+    )
+
+    # NEU: Flag fuer Graph-basierte Workflows
+    ist_graph_workflow = models.BooleanField(
+        default=False,
+        verbose_name="Graph-basierter Workflow",
+        help_text="Wenn True, werden Transitions verwendet statt reihenfolge"
+    )
+
     class Meta:
         ordering = ["name"]
         verbose_name = "Workflow-Template"
@@ -121,6 +136,10 @@ class WorkflowStep(models.Model):
     AKTION_INFORMIEREN = "informieren"
     AKTION_BEARBEITEN = "bearbeiten"
     AKTION_ENTSCHEIDEN = "entscheiden"
+    AKTION_BENACHRICHTIGEN = "benachrichtigen"
+    AKTION_EMAIL = "email"
+    AKTION_WEBHOOK = "webhook"
+    AKTION_PYTHON_CODE = "python_code"
 
     AKTION_CHOICES = [
         (AKTION_GENEHMIGEN, "Genehmigen"),
@@ -128,6 +147,10 @@ class WorkflowStep(models.Model):
         (AKTION_INFORMIEREN, "Informieren"),
         (AKTION_BEARBEITEN, "Bearbeiten"),
         (AKTION_ENTSCHEIDEN, "Entscheiden"),
+        (AKTION_BENACHRICHTIGEN, "Benachrichtigung senden"),
+        (AKTION_EMAIL, "Email senden"),
+        (AKTION_WEBHOOK, "Webhook aufrufen"),
+        (AKTION_PYTHON_CODE, "Python-Code ausfuehren"),
     ]
 
     ROLLE_DIREKTER_VORGESETZTER = "direkter_vorgesetzter"
@@ -157,7 +180,20 @@ class WorkflowStep(models.Model):
         verbose_name="Template",
     )
     reihenfolge = models.IntegerField(
-        verbose_name="Reihenfolge", help_text="Position im Workflow (1, 2, 3...)"
+        verbose_name="Reihenfolge (Legacy)", help_text="Position im Workflow (1, 2, 3...) - DEPRECATED: Wird durch Transitions ersetzt"
+    )
+
+    # NEU: Schritt-Typ fuer Graph-Workflows
+    schritt_typ = models.CharField(
+        max_length=20,
+        choices=[
+            ("task", "Benutzer-Task (Standard)"),
+            ("auto", "Automatische Aktion"),
+            ("decision", "Entscheidungs-Node (mehrere Ausgaenge)"),
+            ("sync", "Synchronisations-Point (warten auf alle Eingaenge)"),
+        ],
+        default="task",
+        verbose_name="Schritt-Typ"
     )
 
     # Was soll passieren?
@@ -267,6 +303,18 @@ class WorkflowStep(models.Model):
         verbose_name="Eskalation an Stelle",
     )
 
+    # NEU: Konfiguration fuer automatische Aktionen
+    auto_config = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name="Automatische Aktions-Konfiguration",
+        help_text="""Format je nach aktion_typ:
+- benachrichtigen: {"nachricht": "Text", "user_ids": [1,2,3]}
+- email: {"betreff": "...", "text": "...", "empfaenger": "payroll@firma.de"}
+- webhook: {"url": "https://...", "method": "POST", "data": {...}}
+- python_code: {"code": "print('hello')"}"""
+    )
+
     class Meta:
         ordering = ["template", "reihenfolge"]
         verbose_name = "Workflow-Schritt"
@@ -301,6 +349,196 @@ class WorkflowStep(models.Model):
             return True
 
         return True
+
+
+class WorkflowTransition(models.Model):
+    """Definiert Uebergaenge zwischen Workflow-Schritten (Graph-basiert).
+
+    Ersetzt die implizite lineare Reihenfolge durch explizite Uebergaenge
+    mit optionalen Bedingungen.
+    """
+
+    template = models.ForeignKey(
+        WorkflowTemplate,
+        on_delete=models.CASCADE,
+        related_name="transitions",
+        verbose_name="Template"
+    )
+
+    von_schritt = models.ForeignKey(
+        WorkflowStep,
+        on_delete=models.CASCADE,
+        related_name="ausgaenge",
+        verbose_name="Von Schritt"
+    )
+
+    zu_schritt = models.ForeignKey(
+        WorkflowStep,
+        on_delete=models.CASCADE,
+        related_name="eingaenge",
+        verbose_name="Zu Schritt",
+        null=True,
+        blank=True,
+        help_text="NULL = Ende-Node"
+    )
+
+    # Bedingung fuer diesen Uebergang
+    bedingung_typ = models.CharField(
+        max_length=20,
+        choices=[
+            ("immer", "Immer (keine Bedingung)"),
+            ("entscheidung", "Basierend auf Task-Entscheidung"),
+            ("feld_wert", "Basierend auf Feld-Wert"),
+            ("python", "Custom Python-Code"),
+        ],
+        default="immer",
+        verbose_name="Bedingungstyp"
+    )
+
+    # Bei bedingung_typ == "entscheidung"
+    bedingung_entscheidung = models.CharField(
+        max_length=30,
+        choices=[
+            ("genehmigt", "Genehmigt"),
+            ("abgelehnt", "Abgelehnt"),
+            ("weitergeleitet", "Weitergeleitet"),
+            ("rueckfrage", "Rueckfrage"),
+            ("zurueck_genehmiger", "Zurueck an Genehmiger"),
+            ("zurueck_antragsteller", "Zurueck an Antragsteller"),
+        ],
+        null=True,
+        blank=True,
+        verbose_name="Erwartete Entscheidung"
+    )
+
+    # Bei bedingung_typ == "feld_wert"
+    bedingung_feld = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Bedingungsfeld"
+    )
+    bedingung_operator = models.CharField(
+        max_length=10,
+        choices=[
+            ("==", "Gleich"),
+            ("!=", "Ungleich"),
+            (">", "Groesser als"),
+            ("<", "Kleiner als"),
+            (">=", "Groesser oder gleich"),
+            ("<=", "Kleiner oder gleich"),
+            ("in", "Enthalten in"),
+        ],
+        blank=True,
+        verbose_name="Operator"
+    )
+    bedingung_wert = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Bedingungswert"
+    )
+
+    # Bei bedingung_typ == "python"
+    bedingung_python_code = models.TextField(
+        blank=True,
+        verbose_name="Python-Code",
+        help_text="Python-Code der True/False zurueckgibt. Verfuegbare Variablen: task, instance, content_object"
+    )
+
+    # Label fuer Editor
+    label = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="Beschriftung fuer Editor",
+        help_text="z.B. 'genehmigt', 'abgelehnt'"
+    )
+
+    prioritaet = models.IntegerField(
+        default=1,
+        verbose_name="Prioritaet",
+        help_text="Bei mehreren zutreffenden Transitions"
+    )
+
+    class Meta:
+        ordering = ["prioritaet"]
+        verbose_name = "Workflow-Uebergang"
+        verbose_name_plural = "Workflow-Uebergaenge"
+
+    def __str__(self):
+        zu = self.zu_schritt.titel if self.zu_schritt else "Ende"
+        return f"{self.von_schritt.titel} -> {zu} ({self.get_bedingung_typ_display()})"
+
+    def evaluate(self, task, content_object):
+        """Evaluiert ob diese Transition greifen soll.
+
+        Args:
+            task: WorkflowTask Instanz
+            content_object: Verknuepftes Objekt (z.B. ZAGAntrag)
+
+        Returns:
+            bool: True wenn Transition greifen soll
+        """
+        if self.bedingung_typ == "immer":
+            return True
+
+        elif self.bedingung_typ == "entscheidung":
+            return task.entscheidung == self.bedingung_entscheidung
+
+        elif self.bedingung_typ == "feld_wert":
+            # Hole Feld-Wert vom content_object
+            try:
+                wert = getattr(content_object, self.bedingung_feld)
+                return self._compare(wert, self.bedingung_operator, self.bedingung_wert)
+            except AttributeError:
+                return False
+
+        elif self.bedingung_typ == "python":
+            # Evaluiere Python-Code (VORSICHT: Sicherheitsrisiko!)
+            try:
+                local_vars = {
+                    "task": task,
+                    "instance": task.instance,
+                    "content_object": content_object
+                }
+                return eval(self.bedingung_python_code, {}, local_vars)
+            except Exception:
+                return False
+
+        return False
+
+    def _compare(self, wert, operator, ziel_wert):
+        """Vergleicht Werte basierend auf Operator.
+
+        Args:
+            wert: Aktueller Wert vom Objekt
+            operator: Vergleichsoperator
+            ziel_wert: Zielwert zum Vergleichen
+
+        Returns:
+            bool: Ergebnis des Vergleichs
+        """
+        # Typ-Konvertierung versuchen
+        try:
+            if isinstance(wert, (int, float)):
+                ziel_wert = float(ziel_wert)
+        except (ValueError, TypeError):
+            pass
+
+        if operator == "==":
+            return wert == ziel_wert
+        elif operator == "!=":
+            return wert != ziel_wert
+        elif operator == ">":
+            return wert > ziel_wert
+        elif operator == "<":
+            return wert < ziel_wert
+        elif operator == ">=":
+            return wert >= ziel_wert
+        elif operator == "<=":
+            return wert <= ziel_wert
+        elif operator == "in":
+            return ziel_wert in str(wert)
+
+        return False
 
 
 class WorkflowInstance(models.Model):
@@ -436,12 +674,16 @@ class WorkflowTask(models.Model):
     ENTSCHEIDUNG_ABGELEHNT = "abgelehnt"
     ENTSCHEIDUNG_WEITERGELEITET = "weitergeleitet"
     ENTSCHEIDUNG_RUECKFRAGE = "rueckfrage"
+    ENTSCHEIDUNG_ZURUECK_GENEHMIGER = "zurueck_genehmiger"
+    ENTSCHEIDUNG_ZURUECK_ANTRAGSTELLER = "zurueck_antragsteller"
 
     ENTSCHEIDUNG_CHOICES = [
         (ENTSCHEIDUNG_GENEHMIGT, "Genehmigt"),
         (ENTSCHEIDUNG_ABGELEHNT, "Abgelehnt"),
         (ENTSCHEIDUNG_WEITERGELEITET, "Weitergeleitet"),
         (ENTSCHEIDUNG_RUECKFRAGE, "Rueckfrage"),
+        (ENTSCHEIDUNG_ZURUECK_GENEHMIGER, "Zurueck an Genehmiger"),
+        (ENTSCHEIDUNG_ZURUECK_ANTRAGSTELLER, "Zurueck an Antragsteller"),
     ]
 
     instance = models.ForeignKey(
@@ -562,8 +804,15 @@ class WorkflowTask(models.Model):
         if self.zugewiesen_an_user:
             return user == self.zugewiesen_an_user
 
+        # Team zugewiesen - pruefe ob User Mitglied des Teams ist
+        if self.zugewiesen_an_team:
+            return self.zugewiesen_an_team.mitglieder.filter(id=user.id).exists()
+
         # Stelle zugewiesen - pruefe ob User diese Stelle hat
-        try:
-            return user.hr_mitarbeiter.stelle == self.zugewiesen_an_stelle
-        except AttributeError:
-            return False
+        if self.zugewiesen_an_stelle:
+            try:
+                return user.hr_mitarbeiter.stelle == self.zugewiesen_an_stelle
+            except AttributeError:
+                return False
+
+        return False

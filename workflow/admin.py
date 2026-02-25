@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import WorkflowTemplate, WorkflowStep, WorkflowInstance, WorkflowTask
+from .models import WorkflowTemplate, WorkflowStep, WorkflowInstance, WorkflowTask, WorkflowTransition
 
 
 class WorkflowStepInline(admin.TabularInline):
@@ -28,6 +28,7 @@ class WorkflowTemplateAdmin(admin.ModelAdmin):
         "name",
         "kategorie",
         "ist_aktiv",
+        "ist_graph_workflow",
         "get_anzahl_schritte",
         "get_anzahl_instanzen",
         "version",
@@ -49,6 +50,7 @@ class WorkflowTemplateAdmin(admin.ModelAdmin):
                     "kategorie",
                     "trigger_event",
                     "ist_aktiv",
+                    "ist_graph_workflow",
                 ]
             },
         ),
@@ -92,6 +94,7 @@ class WorkflowStepAdmin(admin.ModelAdmin):
         "titel",
         "template",
         "reihenfolge",
+        "schritt_typ",
         "aktion_typ",
         "zustaendig_rolle",
         "zustaendig_stelle",
@@ -115,6 +118,7 @@ class WorkflowStepAdmin(admin.ModelAdmin):
                 "fields": [
                     "template",
                     "reihenfolge",
+                    "schritt_typ",
                     "titel",
                     "beschreibung",
                     "aktion_typ",
@@ -160,6 +164,61 @@ class WorkflowStepAdmin(admin.ModelAdmin):
                     "eskalation_an_stelle",
                 ],
                 "classes": ["collapse"],
+            },
+        ),
+        (
+            "Automatische Aktion (nur fuer schritt_typ='auto')",
+            {
+                "fields": [
+                    "auto_config",
+                ],
+                "classes": ["collapse"],
+            },
+        ),
+    ]
+
+
+@admin.register(WorkflowTransition)
+class WorkflowTransitionAdmin(admin.ModelAdmin):
+    """Admin fuer Workflow-Uebergaenge (Transitions)"""
+
+    list_display = [
+        "id",
+        "template",
+        "von_schritt",
+        "zu_schritt",
+        "bedingung_typ",
+        "label",
+        "prioritaet",
+    ]
+    list_filter = ["template", "bedingung_typ"]
+    search_fields = ["von_schritt__titel", "zu_schritt__titel", "label"]
+    autocomplete_fields = ["von_schritt", "zu_schritt"]
+
+    fieldsets = [
+        (
+            "Basis",
+            {
+                "fields": [
+                    "template",
+                    "von_schritt",
+                    "zu_schritt",
+                    "label",
+                    "prioritaet",
+                ]
+            },
+        ),
+        (
+            "Bedingung",
+            {
+                "fields": [
+                    "bedingung_typ",
+                    "bedingung_entscheidung",
+                    "bedingung_feld",
+                    "bedingung_operator",
+                    "bedingung_wert",
+                    "bedingung_python_code",
+                ],
             },
         ),
     ]
