@@ -125,21 +125,30 @@ def ist_schichtplaner(user):
     # DEBUG: Zeigt im Terminal an, wer gerade prüft
     if user.is_anonymous:
         return False
-    
+
     # 1. Admin/Superuser (funktioniert immer)
     if user.is_superuser or user.is_staff:
         return True
-    
+
     # 2. Gruppen-Prüfung (WICHTIG: Name muss exakt stimmen)
     # Wir prüfen, ob der User in der Gruppe "Schichtplaner" ist
-    ergebnis = user.groups.filter(name='Schichtplaner').exists()
-    
+    in_gruppe = user.groups.filter(name='Schichtplaner').exists()
+
+    # 3. Rolle-Prüfung im Mitarbeiter-Objekt (arbeitszeit.Mitarbeiter)
+    hat_rolle = False
+    if hasattr(user, 'mitarbeiter'):
+        try:
+            hat_rolle = (user.mitarbeiter.rolle or '').lower() == 'schichtplaner'
+        except Exception:
+            pass
+
     # DEBUG-Ausgabe für dich im Terminal:
-    print(f"--- Berechtigungs-Check für {user.username} ---")
+    print(f"--- Berechtigungs-Check fuer {user.username} ---")
     print(f"Ist Staff: {user.is_staff}")
-    print(f"In Gruppe Schichtplaner: {ergebnis}")
-    
-    return ergebnis
+    print(f"In Gruppe Schichtplaner: {in_gruppe}")
+    print(f"Hat Rolle Schichtplaner: {hat_rolle}")
+
+    return in_gruppe or hat_rolle
 
 
 def hat_schichtplan_zugang(user):
@@ -164,14 +173,24 @@ schichtplan_zugang_erforderlich = user_passes_test(
 
 
 def ist_kongos_mitarbeiter(user):
-    """True wenn User ein Mitarbeiter der Abteilung Kongos ist (Zugriff auf veröffentlichte Pläne)."""
+    """True wenn User ein Mitarbeiter der Abteilung Kongos ist (Zugriff auf veroeffentlichte Plaene)."""
     if user.is_anonymous:
         return False
     if not hasattr(user, 'mitarbeiter'):
         return False
     try:
-        return (user.mitarbeiter.abteilung or '').strip().lower() == 'kongos'
-    except Exception:
+        abteilung = (user.mitarbeiter.abteilung or '').strip().lower()
+        ist_kongos = abteilung == 'kongos'
+
+        # DEBUG
+        print(f"--- Kongos-Check fuer {user.username} ---")
+        print(f"Abteilung: '{user.mitarbeiter.abteilung}'")
+        print(f"Normalisiert: '{abteilung}'")
+        print(f"Ist Kongos: {ist_kongos}")
+
+        return ist_kongos
+    except Exception as e:
+        print(f"Fehler bei Kongos-Check: {e}")
         return False
 
 
