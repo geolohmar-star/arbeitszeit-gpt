@@ -63,5 +63,5 @@ urlpatterns = [
 
     # Debug (nur fuer Staff/Admin)
     path('debug/berechtigungen/', views_debug.debug_berechtigungen, name='debug_berechtigungen'),
-    path('debug/fix-schichtplan/', views_debug.fix_schichtplan_permission, name='fix_schichtplan'),
+    path('debug/fix-schichtplan-komplett/', views_debug.fix_schichtplan_permission_komplett, name='fix_schichtplan_komplett'),
 ]

@@ -90,11 +90,11 @@ def debug_berechtigungen(request):
 
 
 @staff_member_required
-def fix_schichtplan_permission(request):
-    """Vergibt fehlende schichtplan_zugang Permission."""
+def fix_schichtplan_permission_komplett(request):
+    """Vergibt schichtplan_zugang Permission an Schichtplaner UND Kongos-Mitarbeiter."""
     output = []
     output.append("=" * 70)
-    output.append("FIX: Schichtplan-Zugang Permission")
+    output.append("FIX: Schichtplan-Zugang fuer Schichtplaner + Kongos")
     output.append("=" * 70)
 
     try:
@@ -102,39 +102,30 @@ def fix_schichtplan_permission(request):
         from django.contrib.auth.models import Permission
         from schichtplan.models import Schichtplan
 
-        # Permission holen (existiert bereits durch Migration)
+        # Permission holen
         output.append("\n1. Permission laden...")
         content_type = ContentType.objects.get_for_model(Schichtplan)
+        permission = Permission.objects.get(
+            codename='schichtplan_zugang',
+            content_type=content_type,
+        )
+        output.append(f"   -> Permission gefunden (ID: {permission.id}, Name: '{permission.name}')")
 
-        try:
-            permission = Permission.objects.get(
-                codename='schichtplan_zugang',
-                content_type=content_type,
-            )
-            output.append(f"   -> Permission gefunden (ID: {permission.id}, Name: '{permission.name}')")
-        except Permission.DoesNotExist:
-            output.append("   -> Permission existiert noch nicht, erstelle sie...")
-            permission = Permission.objects.create(
-                codename='schichtplan_zugang',
-                name='Kann Schichtplan-Bereich nutzen',
-                content_type=content_type,
-            )
-            output.append(f"   -> Permission erstellt (ID: {permission.id})")
-
-        # User finden
-        output.append("\n2. User mit Schichtplaner-Berechtigung suchen...")
+        # User sammeln
+        output.append("\n2. User mit Schichtplan-Berechtigung suchen...")
         users_to_grant = []
 
-        # Gruppe "Schichtplaner"
+        # A) Gruppe "Schichtplaner"
         users_in_gruppe = User.objects.filter(groups__name='Schichtplaner')
-        output.append(f"   -> {users_in_gruppe.count()} User in Gruppe 'Schichtplaner'")
+        output.append(f"\n   A) {users_in_gruppe.count()} User in Gruppe 'Schichtplaner'")
         for user in users_in_gruppe:
-            users_to_grant.append(user)
-            output.append(f"      - {user.username} (Gruppe)")
+            if user not in users_to_grant:
+                users_to_grant.append(user)
+                output.append(f"      - {user.username} (Gruppe)")
 
-        # Rolle "schichtplaner"
+        # B) Rolle "schichtplaner"
         mitarbeiter_sp = Mitarbeiter.objects.filter(rolle__iexact='schichtplaner')
-        output.append(f"   -> {mitarbeiter_sp.count()} Mitarbeiter mit Rolle 'schichtplaner'")
+        output.append(f"\n   B) {mitarbeiter_sp.count()} Mitarbeiter mit Rolle 'schichtplaner'")
         for ma in mitarbeiter_sp:
             try:
                 if ma.user:
@@ -142,26 +133,48 @@ def fix_schichtplan_permission(request):
                         users_to_grant.append(ma.user)
                         output.append(f"      - {ma.user.username} (Rolle)")
                 else:
-                    output.append(f"      - {ma.vorname} {ma.nachname} (kein User verknuepft)")
+                    output.append(f"      - {ma.vorname} {ma.nachname} (kein User)")
             except Exception as e:
                 output.append(f"      - FEHLER bei MA {ma.id}: {e}")
 
-        output.append(f"\n3. Gefunden: {len(users_to_grant)} User")
+        # C) Abteilung "Kongos" (case-insensitive)
+        mitarbeiter_kongos = Mitarbeiter.objects.filter(abteilung__iexact='kongos', aktiv=True)
+        output.append(f"\n   C) {mitarbeiter_kongos.count()} aktive Mitarbeiter in Abteilung 'Kongos'")
+        for ma in mitarbeiter_kongos:
+            try:
+                if ma.user:
+                    if ma.user not in users_to_grant:
+                        users_to_grant.append(ma.user)
+                        output.append(f"      - {ma.user.username} (Kongos: {ma.vorname} {ma.nachname})")
+                else:
+                    output.append(f"      - {ma.vorname} {ma.nachname} (kein User)")
+            except Exception as e:
+                output.append(f"      - FEHLER bei MA {ma.id}: {e}")
+
+        output.append(f"\n3. Gefunden: {len(users_to_grant)} User insgesamt")
 
         # Permission vergeben
         output.append("\n4. Permission vergeben...")
+        granted_count = 0
+        already_had_count = 0
         for user in users_to_grant:
             try:
                 if not user.has_perm('schichtplan.schichtplan_zugang'):
                     user.user_permissions.add(permission)
                     output.append(f"   OK: Permission vergeben an {user.username}")
+                    granted_count += 1
                 else:
                     output.append(f"   --: {user.username} hat Permission bereits")
+                    already_had_count += 1
             except Exception as e:
                 output.append(f"   FEHLER bei {user.username}: {e}")
 
+        output.append(f"\n   -> Neu vergeben: {granted_count}")
+        output.append(f"   -> Hatten bereits: {already_had_count}")
+
         output.append("\n" + "=" * 70)
-        output.append("FERTIG! Testen Sie jetzt den Schichtplan-Zugang.")
+        output.append("FERTIG!")
+        output.append("Schichtplaner + Kongos-Mitarbeiter koennen jetzt zugreifen:")
         output.append("https://arbeitszeit-gpt.up.railway.app/schichtplan/")
         output.append("=" * 70)
 
