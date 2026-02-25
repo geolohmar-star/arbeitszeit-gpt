@@ -138,15 +138,21 @@ def ist_schichtplaner(user):
     hat_rolle = False
     if hasattr(user, 'mitarbeiter'):
         try:
-            hat_rolle = (user.mitarbeiter.rolle or '').lower() == 'schichtplaner'
-        except Exception:
-            pass
+            rolle_original = user.mitarbeiter.rolle or ''
+            rolle = rolle_original.strip().lower()
+            hat_rolle = rolle == 'schichtplaner'
+            print(f"Rolle-Check: '{rolle_original}' -> normalisiert: '{rolle}' -> Match: {hat_rolle}")
+        except Exception as e:
+            print(f"FEHLER bei Rolle-Pruefung: {e}")
+            import traceback
+            traceback.print_exc()
 
     # DEBUG-Ausgabe für dich im Terminal:
     print(f"--- Berechtigungs-Check fuer {user.username} ---")
     print(f"Ist Staff: {user.is_staff}")
     print(f"In Gruppe Schichtplaner: {in_gruppe}")
     print(f"Hat Rolle Schichtplaner: {hat_rolle}")
+    print(f"ERGEBNIS: {in_gruppe or hat_rolle}")
 
     return in_gruppe or hat_rolle
 
