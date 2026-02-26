@@ -29,16 +29,101 @@ FEIERTAG_DEUTSCH = {
     "International Women's Day": "Internationaler Frauentag",
 }
 
+# Mapping Bundesland-Kuerzel -> workalendar-Klasse
+BUNDESLAND_WORKALENDAR = {
+    "BW": "BadenWurttemberg",
+    "BY": "Bavaria",
+    "BE": "Berlin",
+    "BB": "Brandenburg",
+    "HB": "Bremen",
+    "HH": "Hamburg",
+    "HE": "Hesse",
+    "MV": "MecklenburgVorpommern",
+    "NI": "LowerSaxony",
+    "NW": "NorthRhineWestphalia",
+    "RP": "RhinelandPalatinate",
+    "SL": "Saarland",
+    "SN": "Saxony",
+    "ST": "SaxonyAnhalt",
+    "SH": "SchleswigHolstein",
+    "TH": "Thuringia",
+}
+
+BUNDESLAND_CHOICES = [
+    ("BW", "Baden-Wuerttemberg"),
+    ("BY", "Bayern"),
+    ("BE", "Berlin"),
+    ("BB", "Brandenburg"),
+    ("HB", "Bremen"),
+    ("HH", "Hamburg"),
+    ("HE", "Hessen"),
+    ("MV", "Mecklenburg-Vorpommern"),
+    ("NI", "Niedersachsen"),
+    ("NW", "Nordrhein-Westfalen"),
+    ("RP", "Rheinland-Pfalz"),
+    ("SL", "Saarland"),
+    ("SN", "Sachsen"),
+    ("ST", "Sachsen-Anhalt"),
+    ("SH", "Schleswig-Holstein"),
+    ("TH", "Thueringen"),
+]
+
 
 def get_feiertagskalender(standort):
     """Gibt den workalendar-Kalender fuer den Standort zurueck.
 
-    Standort 'bonn' (B) -> Berlin, alles andere -> NRW.
+    Akzeptiert ein Standort-Objekt (bevorzugt) oder den alten kuerzel-String.
     """
-    from workalendar.europe import NorthRhineWestphalia, Berlin
-    if standort == "bonn":
-        return Berlin()
+    from workalendar.europe.germany import NorthRhineWestphalia
+
+    # Neues System: Standort-Objekt mit bundesland-Feld
+    if hasattr(standort, "get_feiertagskalender"):
+        return standort.get_feiertagskalender()
+
+    # Fallback fuer alten String-Aufruf
     return NorthRhineWestphalia()
+
+
+class Standort(models.Model):
+    """Betriebsstandort mit PLZ und Bundesland fuer korrekte Feiertagsberechnung."""
+
+    kuerzel = models.CharField(
+        max_length=20,
+        unique=True,
+        verbose_name="Kuerzel",
+        help_text="Internes Kuerzel, z.B. 'siegburg' oder 'berlin'",
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name="Name",
+        help_text="Anzeigename, z.B. 'Siegburg'",
+    )
+    plz = models.CharField(
+        max_length=5,
+        verbose_name="PLZ",
+        help_text="Postleitzahl des Standorts (5-stellig)",
+    )
+    bundesland = models.CharField(
+        max_length=2,
+        choices=BUNDESLAND_CHOICES,
+        verbose_name="Bundesland",
+        help_text="Bestimmt den Feiertagskalender",
+    )
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Standort"
+        verbose_name_plural = "Standorte"
+
+    def __str__(self):
+        return f"{self.name} ({self.plz})"
+
+    def get_feiertagskalender(self):
+        """Gibt den workalendar-Kalender fuer dieses Bundesland zurueck."""
+        from workalendar.europe import germany as ger
+        klassen_name = BUNDESLAND_WORKALENDAR.get(self.bundesland, "NorthRhineWestphalia")
+        klasse = getattr(ger, klassen_name)
+        return klasse()
 
 
 def feiertag_name_deutsch(cal, datum):
@@ -255,11 +340,6 @@ class Mitarbeiter(models.Model):
     
 
     # === CHOICES ZUERST ===
-    STANDORT_CHOICES = [
-        ('siegburg', 'A'),
-        ('bonn', 'B'),
-    ]
-
     ROLLE_CHOICES = [
     ('mitarbeiter', 'Mitarbeiter'),
     ('sachbearbeiter', 'Sachbearbeiter'),
@@ -403,9 +483,12 @@ class Mitarbeiter(models.Model):
     nachname = models.CharField(max_length=100)
     abteilung = models.CharField(max_length=100)
 
-    standort = models.CharField(
-        max_length=20,
-        choices=STANDORT_CHOICES
+    standort = models.ForeignKey(
+        "Standort",
+        on_delete=models.PROTECT,
+        verbose_name="Standort",
+        null=True,
+        blank=True,
     )
     telefon = models.CharField(max_length=30, blank=True, default='')
 

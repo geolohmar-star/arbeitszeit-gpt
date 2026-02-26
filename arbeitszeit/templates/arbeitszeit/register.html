@@ -478,11 +478,7 @@
 
                 <div class="form-group">
                     <label for="id_standort">Standort *</label>
-                    <select name="standort" id="id_standort" required>
-                        <option value="">Bitte wählen...</option>
-                        <option value="siegburg" {% if form.standort.value == 'siegburg' %}selected{% endif %}>Siegburg</option>
-                        <option value="bonn" {% if form.standort.value == 'bonn' %}selected{% endif %}>Bonn</option>
-                    </select>
+                    {{ form.standort }}
                 </div>
 
                 <div class="form-group">

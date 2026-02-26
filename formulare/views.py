@@ -1747,6 +1747,16 @@ def meine_dienstreisen(request):
     return render(request, "formulare/meine_dienstreisen.html", context)
 
 
+def _dezimal_zu_hmin(stunden):
+    """Konvertiert Dezimalstunden in 'Xh YYmin' Format. Z.B. 7.8 -> '7h 48min'."""
+    h = int(stunden)
+    m = round((stunden - h) * 60)
+    if m == 60:
+        h += 1
+        m = 0
+    return f"{h}h {m:02d}min"
+
+
 def _berechne_fortbildung(mitarbeiter, von_datum, bis_datum, wochenstunden_regulaer):
     """Berechnet Zeitgutschrift fuer ganztaegige Fortbildung.
 
@@ -1770,17 +1780,12 @@ def _berechne_fortbildung(mitarbeiter, von_datum, bis_datum, wochenstunden_regul
         # Iteriere ueber Datumsbereich
         aktuell = von_datum
         while aktuell <= bis_datum:
-            # Nur Werktage (Mo-Fr) ohne Feiertage
-            if aktuell.weekday() < 5 and aktuell not in feiertage:
-                # Vereinbarungs-Soll holen
+            # Nur Arbeitstage (Mo-Fr ohne Feiertage) - workalendar-API verwenden
+            if feiertage.is_working_day(aktuell):
+                # Vereinbarungs-Soll holen (taegliche Sollzeit aus Wochenstunden)
                 vereinbarung = mitarbeiter.get_aktuelle_vereinbarung(aktuell)
-                if vereinbarung:
-                    wochentag_name = WOCHENTAG_MAP.get(aktuell.weekday(), "")
-                    vereinbarung_soll = getattr(
-                        vereinbarung,
-                        f"stunden_{wochentag_name}",
-                        0,
-                    ) or 0
+                if vereinbarung and vereinbarung.wochenstunden:
+                    vereinbarung_soll = float(vereinbarung.wochenstunden) / 5
                 else:
                     vereinbarung_soll = 0
 
@@ -1793,8 +1798,8 @@ def _berechne_fortbildung(mitarbeiter, von_datum, bis_datum, wochenstunden_regul
                 zeilen.append({
                     "datum": aktuell.strftime("%d.%m.%Y"),
                     "wochentag": wochentag_text,
-                    "fortbildung_soll": f"{float(taegliche_sollzeit):.2f}",
-                    "vereinbarung_soll": f"{float(vereinbarung_soll):.2f}",
+                    "fortbildung_soll": _dezimal_zu_hmin(float(taegliche_sollzeit)),
+                    "vereinbarung_soll": _dezimal_zu_hmin(float(vereinbarung_soll)),
                 })
 
                 summe_fortbildung += float(taegliche_sollzeit)
@@ -1811,12 +1816,14 @@ def _berechne_fortbildung(mitarbeiter, von_datum, bis_datum, wochenstunden_regul
 
         return {
             "zeilen": zeilen,
-            "summe_fortbildung": f"{summe_fortbildung:.2f}",
-            "summe_vereinbarung": f"{summe_vereinbarung:.2f}",
-            "differenz": f"{differenz:.2f}",
+            "summe_fortbildung": _dezimal_zu_hmin(summe_fortbildung),
+            "summe_vereinbarung": _dezimal_zu_hmin(summe_vereinbarung),
+            "differenz": _dezimal_zu_hmin(differenz),
             "differenz_hoeherer": differenz_hoeherer,
         }
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error("Fehler in _berechne_fortbildung: %s", e)
         return None
 
 
@@ -1907,17 +1914,21 @@ def zeitgutschrift_antrag(request):
 def zeitgutschrift_felder(request):
     """HTMX-View: Gibt Art-abhaengige Felder zurueck."""
     art = request.GET.get("art", "")
+    individ = request.GET.get("individ_bestaetigung", "")
     form = ZeitgutschriftForm(initial={"art": art})
 
     context = {
         "form": form,
         "art": art,
+        "individ": individ,
     }
-    return render(
+    response = render(
         request,
         "formulare/partials/_zeitgutschrift_felder.html",
         context,
     )
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 @login_required

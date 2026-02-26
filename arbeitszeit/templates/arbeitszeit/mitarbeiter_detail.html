@@ -33,7 +33,7 @@
                 </div>
                 <div class="col-md-6">
                     <p><strong>Abteilung:</strong> {{ mitarbeiter.abteilung }}</p>
-                    <p><strong>Standort:</strong> {{ mitarbeiter.standort }}</p>
+                    <p><strong>Standort:</strong> {{ mitarbeiter.standort.name }} ({{ mitarbeiter.standort.plz }})</p>
                     <p><strong>Rolle:</strong> 
                         <span class="badge bg-primary">{{ mitarbeiter.get_rolle_display }}</span>
                     </p>

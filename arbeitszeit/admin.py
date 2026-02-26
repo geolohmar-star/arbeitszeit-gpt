@@ -7,7 +7,19 @@ from .models import (
     Urlaubsanspruch,
     Zeiterfassung,
     SaldoKorrektur,
+    Standort,
 )
+
+
+@admin.register(Standort)
+class StandortAdmin(admin.ModelAdmin):
+    list_display = ["name", "plz", "get_bundesland_display", "kuerzel"]
+    search_fields = ["name", "plz", "kuerzel"]
+    list_filter = ["bundesland"]
+
+    def get_bundesland_display(self, obj):
+        return obj.get_bundesland_display()
+    get_bundesland_display.short_description = "Bundesland"
 
 #Workcalendar
 from .models import MonatlicheArbeitszeitSoll

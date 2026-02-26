@@ -29,7 +29,7 @@
                 </div>
                 <div class="col-md-6">
                     <p><strong>Abteilung:</strong> {{ mitarbeiter.abteilung }}</p>
-                    <p><strong>Standort:</strong> {{ mitarbeiter.standort }}</p>
+                    <p><strong>Standort:</strong> {{ mitarbeiter.standort.name }}</p>
                     <p><strong>Rolle:</strong> {{ mitarbeiter.get_rolle_display }}</p>
                     <p><strong>Status:</strong> 
                         {% if mitarbeiter.aktiv %}

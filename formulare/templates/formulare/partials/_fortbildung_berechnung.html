@@ -10,8 +10,8 @@
                     <tr>
                         <th>Datum</th>
                         <th>Wochentag</th>
-                        <th class="text-end">Fortbildung Soll (h)</th>
-                        <th class="text-end">Vereinbarung Soll (h)</th>
+                        <th class="text-end">Fortbildung Soll</th>
+                        <th class="text-end">Vereinbarung Soll</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -27,8 +27,8 @@
                 <tfoot class="table-secondary">
                     <tr>
                         <td colspan="2"><strong>Summe</strong></td>
-                        <td class="text-end"><strong>{{ berechnung.summe_fortbildung }} h</strong></td>
-                        <td class="text-end"><strong>{{ berechnung.summe_vereinbarung }} h</strong></td>
+                        <td class="text-end"><strong>{{ berechnung.summe_fortbildung }}</strong></td>
+                        <td class="text-end"><strong>{{ berechnung.summe_vereinbarung }}</strong></td>
                     </tr>
                 </tfoot>
             </table>
@@ -41,7 +41,7 @@
                 </div>
                 <div class="col">
                     <span class="fs-4 text-primary">
-                        <strong>{{ berechnung.differenz }} h</strong>
+                        <strong>{{ berechnung.differenz }}</strong>
                     </span>
                     {% if berechnung.differenz_hoeherer == "fortbildung" %}
                     <small class="text-muted">(Fortbildung hoeher)</small>

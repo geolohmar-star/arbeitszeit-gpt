@@ -383,8 +383,8 @@
                                     <td>{{ mitarbeiter.personalnummer }}</td>
                                     <td>{{ mitarbeiter.abteilung }}</td>
                                     <td>
-                                        <span class="badge badge-{{ mitarbeiter.standort }}">
-                                            {{ mitarbeiter.get_standort_display }}
+                                        <span class="badge badge-{{ mitarbeiter.standort.kuerzel }}">
+                                            {{ mitarbeiter.standort.name }}
                                         </span>
                                     </td>
                                     <td>{{ mitarbeiter.eintrittsdatum|date:"d.m.Y" }}</td>

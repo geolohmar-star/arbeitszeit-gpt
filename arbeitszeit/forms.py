@@ -454,12 +454,18 @@ class FilterForm(forms.Form):
         label='Abteilung'
     )
     
-    standort = forms.ChoiceField(
-        choices=[('', 'Alle')] + list(Mitarbeiter.STANDORT_CHOICES),
+    standort = forms.ModelChoiceField(
+        queryset=None,
         required=False,
+        empty_label="Alle",
         widget=forms.Select(attrs={'class': 'form-control'}),
         label='Standort'
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from arbeitszeit.models import Standort
+        self.fields['standort'].queryset = Standort.objects.all()
     
     jahr = forms.IntegerField(
         required=False,
@@ -496,7 +502,16 @@ class RegisterForm(forms.Form):
 
     personalnummer = forms.CharField(label="Personalnummer", max_length=20)
     abteilung = forms.CharField(label="Abteilung", max_length=100)
-    standort = forms.ChoiceField(choices=Mitarbeiter.STANDORT_CHOICES)
+    standort = forms.ModelChoiceField(
+        queryset=None,
+        label="Standort",
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from arbeitszeit.models import Standort
+        self.fields['standort'].queryset = Standort.objects.all()
     eintrittsdatum = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
 
     password1 = forms.CharField(widget=forms.PasswordInput, label="Passwort")

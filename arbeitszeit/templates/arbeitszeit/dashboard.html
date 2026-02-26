@@ -367,7 +367,7 @@
                 </a>
             </div>
             {% endif %}
-            <p class="page-subtitle">{{ mitarbeiter.abteilung }} • {{ mitarbeiter.get_standort_display }}</p>
+            <p class="page-subtitle">{{ mitarbeiter.abteilung }} • {{ mitarbeiter.standort.name }}</p>
         </div>
         <!-- Wunschplan für MA1-MA15 -->
         {% if mitarbeiter.schichtplan_kennung %}
