@@ -30,16 +30,34 @@
 </div>
 
 {% elif art == "fortbildung" %}
-<!-- Fortbildung: Checkbox-gesteuerte Felder -->
+<!-- Fortbildung: Schritt 1 – Bestaetigung individuelle Vereinbarung -->
 <div class="mt-3">
-    <div class="form-check mb-3">
-        {{ form.fortbildung_aktiv }}
-        <label class="form-check-label" for="{{ form.fortbildung_aktiv.id_for_label }}">
-            Fortbildung aktivieren
-        </label>
+    <p class="fw-semibold mb-2">Haben Sie eine individuelle Arbeitszeitvereinbarung?</p>
+
+    <div class="d-flex gap-2">
+        <button type="button"
+                class="btn {% if individ == 'ja' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                hx-get="{% url 'formulare:zeitgutschrift_felder' %}?art=fortbildung&individ_bestaetigung=ja"
+                hx-target="#felder-container"
+                hx-swap="innerHTML">
+            Ja
+        </button>
+        <button type="button"
+                class="btn {% if individ == 'nein' %}btn-secondary{% else %}btn-outline-secondary{% endif %}"
+                hx-get="{% url 'formulare:zeitgutschrift_felder' %}?art=fortbildung&individ_bestaetigung=nein"
+                hx-target="#felder-container"
+                hx-swap="innerHTML">
+            Nein
+        </button>
     </div>
 
-    <div id="fortbildung-felder" style="display: none;">
+    {% if individ == "ja" %}
+    <!-- Hidden Field: fortbildung_aktiv = True fuer Formular-Submit -->
+    <input type="hidden" name="fortbildung_aktiv" value="on">
+
+    <!-- Schritt 2 – Felder fuer Fortbildung -->
+    <div class="mt-4" id="fortbildung-felder">
+
         <!-- Typ -->
         <div class="mb-3">
             <label class="form-label fw-semibold">Typ</label>
@@ -100,14 +118,21 @@
             {% endif %}
         </div>
 
-        <!-- Live-Berechnung -->
-        <div id="berechnung-container"
-             hx-post="{% url 'formulare:zeitgutschrift_fortbildung_berechnen' %}"
-             hx-trigger="change from:[name='fortbildung_von_datum'], change from:[name='fortbildung_bis_datum'], change from:[name='fortbildung_wochenstunden_regulaer']"
-             hx-include="[name='fortbildung_von_datum'], [name='fortbildung_bis_datum'], [name='fortbildung_wochenstunden_regulaer']"
-             hx-swap="innerHTML">
-            <!-- Wird per HTMX geladen -->
+        <!-- Berechnung ausloesen -->
+        <div class="mb-3">
+            <button type="button"
+                    class="btn btn-outline-info"
+                    hx-post="{% url 'formulare:zeitgutschrift_fortbildung_berechnen' %}"
+                    hx-include="[name='fortbildung_von_datum'], [name='fortbildung_bis_datum'], [name='fortbildung_wochenstunden_regulaer']"
+                    hx-target="#berechnung-container"
+                    hx-swap="innerHTML">
+                Stunden berechnen
+            </button>
+            <small class="text-muted ms-2">Von-Datum, Bis-Datum und Wochenstunden ausfullen, dann berechnen</small>
         </div>
+
+        <!-- Ergebnis der Berechnung -->
+        <div id="berechnung-container"></div>
 
         <!-- Belege-Upload (optional) -->
         <div class="mt-4">
@@ -121,39 +146,13 @@
             {% endif %}
         </div>
     </div>
+
+    {% elif individ == "nein" %}
+    <div class="alert alert-info mt-3">
+        Diese Zeitgutschrift gilt nur fuer Mitarbeiter mit individueller Arbeitszeitvereinbarung.
+    </div>
+    {% endif %}
+
 </div>
-
-<script>
-// Fortbildungs-Felder anzeigen/verbergen bei Checkbox
-document.addEventListener("DOMContentLoaded", function() {
-    const checkbox = document.querySelector("[name='fortbildung_aktiv']");
-    const felder = document.getElementById("fortbildung-felder");
-
-    if (checkbox && felder) {
-        checkbox.addEventListener("change", function() {
-            felder.style.display = this.checked ? "block" : "none";
-        });
-
-        // Initial-Status
-        if (checkbox.checked) {
-            felder.style.display = "block";
-        }
-    }
-});
-
-// HTMX Event: Nach Art-Wechsel Checkbox neu binden
-document.body.addEventListener("htmx:afterSwap", function(event) {
-    if (event.detail.target.id === "felder-container") {
-        const checkbox = document.querySelector("[name='fortbildung_aktiv']");
-        const felder = document.getElementById("fortbildung-felder");
-
-        if (checkbox && felder) {
-            checkbox.addEventListener("change", function() {
-                felder.style.display = this.checked ? "block" : "none";
-            });
-        }
-    }
-});
-</script>
 
 {% endif %}

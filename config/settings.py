@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'berechtigungen.apps.BerechtigungenConfig',
     'hr.apps.HrConfig',
     'workflow.apps.WorkflowConfig',
+    'veranstaltungen.apps.VeranstaltungenConfig',
 ]
 
 AUTHENTICATION_BACKENDS = [

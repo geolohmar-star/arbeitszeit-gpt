@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Neue Veranstaltung anlegen{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width: 800px;">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{% url 'veranstaltungen:uebersicht' %}" class="btn btn-outline-secondary btn-sm">&larr; Zurück</a>
+        <h2 class="mb-0">Neue Veranstaltung</h2>
+    </div>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="post" class="card">
+        {% csrf_token %}
+        <div class="card-body">
+
+            <h5 class="card-title mb-3">Grunddaten</h5>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">Titel *</label>
+                    <input type="text" name="titel" class="form-control" required
+                           placeholder="z.B. Sommerfest 2026">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Art</label>
+                    <select name="art" class="form-select">
+                        {% for code, label in art_choices %}
+                        <option value="{{ code }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Datum *</label>
+                    <input type="date" name="datum" class="form-control" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Uhrzeit von</label>
+                    <input type="time" name="uhrzeit_von" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Uhrzeit bis</label>
+                    <input type="time" name="uhrzeit_bis" class="form-control">
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Ort</label>
+                    <input type="text" name="ort" class="form-control"
+                           placeholder="z.B. Gemeinschaftsraum, Hinterhof">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Anmeldeschluss</label>
+                    <input type="date" name="anmeldeschluss" class="form-control">
+                </div>
+            </div>
+
+            <hr>
+            <h5 class="mb-3">Zuordnung</h5>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Reichweite</label>
+                    <select name="reichweite" class="form-select">
+                        {% for code, label in reichweite_choices %}
+                        <option value="{{ code }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Abteilung</label>
+                    <select name="abteilung" class="form-select">
+                        <option value="">– Keine –</option>
+                        {% for abt in abteilungen %}
+                        <option value="{{ abt.pk }}">{{ abt }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Bereich</label>
+                    <select name="bereich" class="form-select">
+                        <option value="">– Keiner –</option>
+                        {% for b in bereiche %}
+                        <option value="{{ b.pk }}">{{ b.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Verantwortlicher</label>
+                    <select name="verantwortlicher" class="form-select">
+                        <option value="">– Niemanden –</option>
+                        {% for ma in mitarbeiter_liste %}
+                        <option value="{{ ma.pk }}">
+                            {{ ma.nachname }}, {{ ma.vorname }}
+                            {% if ma.stelle %} ({{ ma.stelle.kuerzel }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <hr>
+            <h5 class="mb-3">Zeitgutschrift</h5>
+            <p class="text-muted small mb-3">
+                Gutschrift Teilnehmer und Vorbereitungsteam werden separat berechnet:
+                <strong>Stunden &times; Faktor = Gutschrift</strong>
+            </p>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <div class="card border-primary">
+                        <div class="card-header text-primary fw-semibold small py-2">Teilnehmer</div>
+                        <div class="card-body py-2">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label small">Stunden</label>
+                                    <input type="number" name="gutschrift_stunden"
+                                           class="form-control form-control-sm"
+                                           step="0.25" min="0" value="0">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Faktor</label>
+                                    <input type="number" name="gutschrift_faktor"
+                                           class="form-control form-control-sm"
+                                           step="0.1" min="0" value="1.0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-warning">
+                        <div class="card-header text-warning fw-semibold small py-2">Vorbereitungsteam</div>
+                        <div class="card-body py-2">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label small">Stunden</label>
+                                    <input type="number" name="vorbereitung_stunden"
+                                           class="form-control form-control-sm"
+                                           step="0.25" min="0" value="0">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Faktor</label>
+                                    <input type="number" name="vorbereitung_faktor"
+                                           class="form-control form-control-sm"
+                                           step="0.1" min="0" value="1.0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="card-footer d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Veranstaltung anlegen</button>
+            <a href="{% url 'veranstaltungen:uebersicht' %}" class="btn btn-outline-secondary">Abbrechen</a>
+        </div>
+    </form>
+
+</div>
+{% endblock %}

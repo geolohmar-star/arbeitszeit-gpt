@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}{{ feier.titel }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <a href="{% url 'veranstaltungen:uebersicht' %}" class="btn btn-outline-secondary btn-sm mb-2">&larr; Übersicht</a>
+            <h2 class="mb-0">{{ feier.titel }}</h2>
+            <p class="text-muted small mb-0">
+                {{ feier.get_art_display }} &middot;
+                {{ feier.datum }}
+                {% if feier.uhrzeit_von %} &middot; {{ feier.uhrzeit_von }}{% endif %}
+                {% if feier.uhrzeit_bis %} &ndash; {{ feier.uhrzeit_bis }}{% endif %}
+                {% if feier.ort %} &middot; {{ feier.ort }}{% endif %}
+            </p>
+        </div>
+        <div class="d-flex gap-2 align-items-center" id="status-bereich">
+            {% include "veranstaltungen/partials/_status_badge.html" %}
+            {% if user.is_staff %}
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
+                        data-bs-toggle="dropdown">Status ändern</button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    {% for code, label in feier.STATUS_CHOICES %}
+                    <li>
+                        <form method="post"
+                              action="{% url 'veranstaltungen:status_aendern' feier.pk %}"
+                              hx-post="{% url 'veranstaltungen:status_aendern' feier.pk %}"
+                              hx-target="#status-bereich"
+                              hx-swap="innerHTML">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="{{ code }}">
+                            <button type="submit" class="dropdown-item
+                                {% if feier.status == code %}fw-bold{% endif %}">
+                                {{ label }}
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-3">
+
+        <!-- Linke Spalte: Infos + Anmeldung -->
+        <div class="col-md-4">
+
+            <!-- Steckbrief -->
+            <div class="card mb-3">
+                <div class="card-header fw-semibold small">Details</div>
+                <div class="card-body small">
+                    <dl class="row mb-0">
+                        <dt class="col-5">Reichweite</dt>
+                        <dd class="col-7">{{ feier.get_reichweite_display }}</dd>
+                        {% if feier.abteilung %}
+                        <dt class="col-5">Abteilung</dt>
+                        <dd class="col-7">{{ feier.abteilung }}</dd>
+                        {% endif %}
+                        {% if feier.bereich %}
+                        <dt class="col-5">Bereich</dt>
+                        <dd class="col-7">{{ feier.bereich }}</dd>
+                        {% endif %}
+                        {% if feier.verantwortlicher %}
+                        <dt class="col-5">Verantwortlich</dt>
+                        <dd class="col-7">{{ feier.verantwortlicher.vollname }}</dd>
+                        {% endif %}
+                        {% if feier.anmeldeschluss %}
+                        <dt class="col-5">Anmeldeschluss</dt>
+                        <dd class="col-7">{{ feier.anmeldeschluss }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Zeitgutschrift-Info -->
+            <div class="card mb-3">
+                <div class="card-header fw-semibold small">Zeitgutschrift</div>
+                <div class="card-body small">
+                    <div class="mb-2">
+                        <strong class="text-primary">Teilnehmer:</strong><br>
+                        {{ feier.gutschrift_stunden }} h &times; {{ feier.gutschrift_faktor }}
+                        = <strong>{{ feier.gutschrift_teilnehmer_gesamt }} h</strong>
+                    </div>
+                    <div>
+                        <strong class="text-warning">Vorbereitungsteam:</strong><br>
+                        {{ feier.vorbereitung_stunden }} h &times; {{ feier.vorbereitung_faktor }}
+                        = <strong>{{ feier.gutschrift_vorbereitung_gesamt }} h</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Anmelde-Button -->
+            <div id="anmelde-bereich">
+                {% include "veranstaltungen/partials/_anmelde_bereich.html" %}
+            </div>
+
+            <!-- Verwaltungs-Links -->
+            {% if user.is_staff %}
+            <div class="card mt-3">
+                <div class="card-header fw-semibold small">Verwaltung</div>
+                <div class="card-body d-flex flex-column gap-2">
+                    <a href="{% url 'veranstaltungen:bestaetigung_liste' feier.pk %}"
+                       class="btn btn-outline-primary btn-sm">
+                        Anwesenheit bestaetigen
+                    </a>
+                    <a href="{% url 'veranstaltungen:gutschrift_erstellen' feier.pk %}"
+                       class="btn btn-outline-success btn-sm">
+                        Gutschrift erstellen
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- Rechte Spalte: Anmeldeliste -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold small">Anmeldeliste</span>
+                    <span class="badge bg-secondary">{{ anmeldungen.count }}</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3">Name</th>
+                                <th>Stelle</th>
+                                <th>Rolle</th>
+                                <th class="text-center">Bestaetigt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for anm in anmeldungen %}
+                            <tr>
+                                <td class="ps-3 align-middle">{{ anm.mitarbeiter.vollname }}</td>
+                                <td class="align-middle small">
+                                    {% if anm.mitarbeiter.stelle %}
+                                    <span class="badge bg-light text-dark border">
+                                        {{ anm.mitarbeiter.stelle.kuerzel }}
+                                    </span>
+                                    {% else %}–{% endif %}
+                                </td>
+                                <td class="align-middle small">
+                                    {% if anm.ist_vorbereitungsteam %}
+                                    <span class="badge bg-warning text-dark">Vorbereitung</span>
+                                    {% elif anm.ist_gast %}
+                                    <span class="badge bg-secondary">Gast</span>
+                                    {% else %}
+                                    <span class="text-muted">Teilnehmer</span>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle text-center">
+                                    {% if anm.teilnahme_bestaetigt %}
+                                    <span class="text-success">&#10003;</span>
+                                    {% else %}
+                                    <span class="text-muted">–</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-3">
+                                    Noch keine Anmeldungen.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Gutschrift – {{ feier.titel }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <a href="{% url 'veranstaltungen:bestaetigung_liste' feier.pk %}"
+           class="btn btn-outline-secondary btn-sm">&larr; Zurück zur Anwesenheit</a>
+        <h2 class="mb-0">Zeitgutschrift-Sammelliste</h2>
+    </div>
+
+    <div class="alert alert-info small mb-3">
+        <strong>{{ feier.titel }}</strong> &middot; {{ feier.datum }}
+        &middot; Status: <strong>{{ gutschrift.get_status_display }}</strong>
+    </div>
+
+    <!-- Vorschau Teilnehmer -->
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between fw-semibold small">
+            <span>Teilnehmer ({{ teilnehmer.count }})</span>
+            <span class="text-primary">je {{ feier.gutschrift_teilnehmer_gesamt }} h</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Name</th>
+                        <th>Stelle</th>
+                        <th>Abteilung</th>
+                        <th class="text-end pe-3">Gutschrift</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for anm in teilnehmer %}
+                    <tr>
+                        <td class="ps-3 align-middle">{{ anm.mitarbeiter.vollname }}</td>
+                        <td class="align-middle small">
+                            {% if anm.mitarbeiter.stelle %}
+                            <span class="badge bg-light text-dark border">
+                                {{ anm.mitarbeiter.stelle.kuerzel }}
+                            </span>
+                            {% else %}–{% endif %}
+                        </td>
+                        <td class="align-middle small text-muted">
+                            {{ anm.mitarbeiter.abteilung.name|default:"–" }}
+                        </td>
+                        <td class="align-middle text-end pe-3 small">
+                            {{ feier.gutschrift_teilnehmer_gesamt }} h
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-2">
+                            Keine bestaetigten Teilnehmer.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Vorschau Vorbereitungsteam -->
+    {% if vorbereitungsteam %}
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between fw-semibold small">
+            <span>Vorbereitungsteam ({{ vorbereitungsteam.count }})</span>
+            <span class="text-warning">je {{ feier.gutschrift_vorbereitung_gesamt }} h</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Name</th>
+                        <th>Stelle</th>
+                        <th>Abteilung</th>
+                        <th class="text-end pe-3">Gutschrift</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for anm in vorbereitungsteam %}
+                    <tr>
+                        <td class="ps-3 align-middle">{{ anm.mitarbeiter.vollname }}</td>
+                        <td class="align-middle small">
+                            {% if anm.mitarbeiter.stelle %}
+                            <span class="badge bg-light text-dark border">
+                                {{ anm.mitarbeiter.stelle.kuerzel }}
+                            </span>
+                            {% else %}–{% endif %}
+                        </td>
+                        <td class="align-middle small text-muted">
+                            {{ anm.mitarbeiter.abteilung.name|default:"–" }}
+                        </td>
+                        <td class="align-middle text-end pe-3 small">
+                            {{ feier.gutschrift_vorbereitung_gesamt }} h
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Einreichungsformular -->
+    <form method="post" class="card">
+        {% csrf_token %}
+        <div class="card-body">
+            <label class="form-label fw-semibold">Bemerkung (optional)</label>
+            <textarea name="bemerkung" class="form-control" rows="3"
+                      placeholder="z.B. Besondere Hinweise fuer das Zeiterfassungsteam…">{{ gutschrift.bemerkung }}</textarea>
+        </div>
+        <div class="card-footer d-flex gap-2">
+            <button type="submit" class="btn btn-success">
+                Sammelliste einreichen und PDF erstellen
+            </button>
+            <a href="{% url 'veranstaltungen:detail' feier.pk %}"
+               class="btn btn-outline-secondary">Abbrechen</a>
+            {% if gutschrift.status != "entwurf" %}
+            <a href="{% url 'veranstaltungen:gutschrift_pdf' feier.pk %}"
+               class="btn btn-outline-primary ms-auto">PDF ansehen</a>
+            {% endif %}
+        </div>
+    </form>
+
+</div>
+{% endblock %}

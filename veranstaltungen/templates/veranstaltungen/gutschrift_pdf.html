@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Gutschrift PDF – {{ feier.titel }}{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    nav, .btn, .d-print-none { display: none !important; }
+    .container { max-width: 100%; }
+    body { font-size: 12pt; }
+    .table { font-size: 11pt; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-start mb-4 d-print-none">
+        <a href="{% url 'veranstaltungen:gutschrift_erstellen' feier.pk %}"
+           class="btn btn-outline-secondary btn-sm">&larr; Zurück</a>
+        <button onclick="window.print()" class="btn btn-primary btn-sm">Drucken / PDF</button>
+    </div>
+
+    <!-- Briefkopf -->
+    <div class="text-center mb-4">
+        <h3>Zeitgutschrift-Sammelliste</h3>
+        <h4>{{ feier.titel }}</h4>
+        <p class="text-muted">
+            {{ feier.get_art_display }} &middot;
+            {{ feier.datum }}
+            {% if feier.uhrzeit_von %} &middot; {{ feier.uhrzeit_von }}{% endif %}
+            {% if feier.uhrzeit_bis %} &ndash; {{ feier.uhrzeit_bis }}{% endif %}
+            {% if feier.ort %} &middot; {{ feier.ort }}{% endif %}
+        </p>
+        <p class="small text-muted">Erstellt: {{ jetzt|date:"d.m.Y H:i" }}</p>
+    </div>
+
+    <hr>
+
+    <!-- Teilnehmer -->
+    <h5 class="mb-2">Teilnehmer ({{ teilnehmer.count }})</h5>
+    <p class="small text-muted mb-2">
+        Zeitgutschrift je Person:
+        {{ feier.gutschrift_stunden }} h &times; {{ feier.gutschrift_faktor }}
+        = <strong>{{ feier.gutschrift_teilnehmer_gesamt }} h</strong>
+    </p>
+    <table class="table table-sm table-bordered mb-4">
+        <thead class="table-light">
+            <tr>
+                <th>Nr.</th>
+                <th>Name</th>
+                <th>Personal-Nr.</th>
+                <th>Stelle</th>
+                <th>Abteilung</th>
+                <th>Datum</th>
+                <th class="text-end">Gutschrift (h)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for anm in teilnehmer %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ anm.mitarbeiter.vollname }}</td>
+                <td class="small">{{ anm.mitarbeiter.personalnummer|default:"–" }}</td>
+                <td class="small">
+                    {% if anm.mitarbeiter.stelle %}
+                    {{ anm.mitarbeiter.stelle.kuerzel }}
+                    {% else %}–{% endif %}
+                </td>
+                <td class="small">{{ anm.mitarbeiter.abteilung.name|default:"–" }}</td>
+                <td class="small">{{ feier.datum }}</td>
+                <td class="text-end">{{ feier.gutschrift_teilnehmer_gesamt }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center text-muted">Keine bestaetigten Teilnehmer.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Vorbereitungsteam -->
+    {% if vorbereitungsteam %}
+    <h5 class="mb-2">Vorbereitungsteam ({{ vorbereitungsteam.count }})</h5>
+    <p class="small text-muted mb-2">
+        Zeitgutschrift je Person:
+        {{ feier.vorbereitung_stunden }} h &times; {{ feier.vorbereitung_faktor }}
+        = <strong>{{ feier.gutschrift_vorbereitung_gesamt }} h</strong>
+    </p>
+    <table class="table table-sm table-bordered mb-4">
+        <thead class="table-light">
+            <tr>
+                <th>Nr.</th>
+                <th>Name</th>
+                <th>Personal-Nr.</th>
+                <th>Stelle</th>
+                <th>Abteilung</th>
+                <th>Datum</th>
+                <th class="text-end">Gutschrift (h)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for anm in vorbereitungsteam %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ anm.mitarbeiter.vollname }}</td>
+                <td class="small">{{ anm.mitarbeiter.personalnummer|default:"–" }}</td>
+                <td class="small">
+                    {% if anm.mitarbeiter.stelle %}
+                    {{ anm.mitarbeiter.stelle.kuerzel }}
+                    {% else %}–{% endif %}
+                </td>
+                <td class="small">{{ anm.mitarbeiter.abteilung.name|default:"–" }}</td>
+                <td class="small">{{ feier.datum }}</td>
+                <td class="text-end">{{ feier.gutschrift_vorbereitung_gesamt }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if gutschrift.bemerkung %}
+    <div class="mb-4">
+        <strong>Bemerkung:</strong>
+        <p class="text-muted small">{{ gutschrift.bemerkung }}</p>
+    </div>
+    {% endif %}
+
+    <hr>
+
+    <!-- Unterschriften -->
+    <div class="row mt-4">
+        <div class="col-md-4 text-center">
+            <div style="border-top: 1px solid #333; padding-top: 5px; margin-top: 40px;">
+                Verantwortlicher
+                {% if feier.verantwortlicher %}
+                <br><small class="text-muted">{{ feier.verantwortlicher.vollname }}</small>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-4 text-center">
+            <div style="border-top: 1px solid #333; padding-top: 5px; margin-top: 40px;">
+                Abteilungsleitung
+            </div>
+        </div>
+        <div class="col-md-4 text-center">
+            <div style="border-top: 1px solid #333; padding-top: 5px; margin-top: 40px;">
+                Zeiterfassung / Datum
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

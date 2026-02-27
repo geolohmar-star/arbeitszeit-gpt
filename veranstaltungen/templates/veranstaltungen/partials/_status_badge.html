@@ -1,0 +1,13 @@
+{% if feier.status == "geplant" %}
+<span class="badge bg-secondary">Geplant</span>
+{% elif feier.status == "anmeldung_offen" %}
+<span class="badge bg-success">Anmeldung offen</span>
+{% elif feier.status == "anmeldung_geschlossen" %}
+<span class="badge bg-warning text-dark">Anmeldung geschlossen</span>
+{% elif feier.status == "abgeschlossen" %}
+<span class="badge bg-primary">Abgeschlossen</span>
+{% elif feier.status == "storniert" %}
+<span class="badge bg-danger">Storniert</span>
+{% else %}
+<span class="badge bg-secondary">{{ feier.get_status_display }}</span>
+{% endif %}

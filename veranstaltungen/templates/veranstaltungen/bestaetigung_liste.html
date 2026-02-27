@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Anwesenheit – {{ feier.titel }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <a href="{% url 'veranstaltungen:detail' feier.pk %}"
+           class="btn btn-outline-secondary btn-sm">&larr; Zurück</a>
+        <h2 class="mb-0">Anwesenheit: {{ feier.titel }}</h2>
+    </div>
+
+    <p class="text-muted small">
+        Datum: <strong>{{ feier.datum }}</strong>
+        &middot; Haken setzen = Teilnahme bestaetigt
+    </p>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3" style="width: 50px;">
+                                <input type="checkbox" id="alle-bestaetigen" class="form-check-input"
+                                       title="Alle auswählen">
+                            </th>
+                            <th>Name</th>
+                            <th>Stelle</th>
+                            <th>Rolle</th>
+                            <th>Gutschrift</th>
+                            <th>Angemeldet am</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for anm in anmeldungen %}
+                        <tr>
+                            <td class="ps-3 align-middle">
+                                <input type="checkbox"
+                                       name="bestaetigt"
+                                       value="{{ anm.pk }}"
+                                       class="form-check-input teilnehmer-check"
+                                       {% if anm.teilnahme_bestaetigt %}checked{% endif %}>
+                            </td>
+                            <td class="align-middle fw-semibold">
+                                {{ anm.mitarbeiter.vollname }}
+                            </td>
+                            <td class="align-middle small">
+                                {% if anm.mitarbeiter.stelle %}
+                                <span class="badge bg-light text-dark border">
+                                    {{ anm.mitarbeiter.stelle.kuerzel }}
+                                </span>
+                                {% else %}–{% endif %}
+                            </td>
+                            <td class="align-middle small">
+                                {% if anm.ist_vorbereitungsteam %}
+                                <span class="badge bg-warning text-dark">Vorbereitung</span>
+                                {% elif anm.ist_gast %}
+                                <span class="badge bg-secondary">Gast</span>
+                                {% else %}
+                                <span class="text-muted">Teilnehmer</span>
+                                {% endif %}
+                            </td>
+                            <td class="align-middle small">
+                                {% if anm.ist_vorbereitungsteam %}
+                                {{ feier.gutschrift_vorbereitung_gesamt }} h
+                                {% else %}
+                                {{ feier.gutschrift_teilnehmer_gesamt }} h
+                                {% endif %}
+                            </td>
+                            <td class="align-middle small text-muted">
+                                {{ anm.angemeldet_am|date:"d.m.Y H:i" }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-3">
+                                Keine Anmeldungen vorhanden.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Anwesenheit speichern</button>
+            <a href="{% url 'veranstaltungen:detail' feier.pk %}"
+               class="btn btn-outline-secondary">Abbrechen</a>
+            {% if anmeldungen %}
+            <a href="{% url 'veranstaltungen:gutschrift_erstellen' feier.pk %}"
+               class="btn btn-outline-success ms-auto">Weiter zur Gutschrift</a>
+            {% endif %}
+        </div>
+    </form>
+
+</div>
+
+<script>
+document.getElementById("alle-bestaetigen").addEventListener("change", function() {
+    document.querySelectorAll(".teilnehmer-check").forEach(function(cb) {
+        cb.checked = this.checked;
+    }, this);
+});
+</script>
+{% endblock %}

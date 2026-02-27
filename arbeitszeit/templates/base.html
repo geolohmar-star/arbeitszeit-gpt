@@ -1,4 +1,5 @@
 {% load schichtplan_tags %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -7,8 +8,8 @@
     <title>{% block title %}Arbeitszeit-Verwaltung{% endblock %}</title>
     <meta name="csrf-token" content="{{ csrf_token }}">
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap CSS (lokal) -->
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
     
     <style>
         .navbar-custom {
@@ -158,6 +159,13 @@
                     </li>
                     {% endif %}
 
+                    <!-- Veranstaltungen -->
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'veranstaltungen:uebersicht' %}">Veranstaltungen</a>
+                    </li>
+                    {% endif %}
+
                     <!-- Rechtevergabe (nur Staff/Admin) -->
                     {% if user.is_staff %}
                     <li class="nav-item">
@@ -243,11 +251,11 @@
         </div>
     </footer>
     
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS (lokal) -->
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 
-    <!-- HTMX -->
-    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <!-- HTMX (lokal) -->
+    <script src="{% static 'js/htmx.min.js' %}"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function() {
         document.body.addEventListener("htmx:configRequest", function(event) {

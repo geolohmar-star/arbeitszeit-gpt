@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Schichtwünsche{% endblock %}
 
@@ -241,6 +242,6 @@
     }
 </style>
 
-<!-- FontAwesome für die Icons (falls noch nicht in base.html) -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- FontAwesome für die Icons (lokal) -->
+<link rel="stylesheet" href="{% static 'css/fontawesome.min.css' %}">
 {% endblock %}

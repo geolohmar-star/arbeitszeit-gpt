@@ -19,6 +19,7 @@ urlpatterns = [
     path('berechtigungen/', include('berechtigungen.urls')),
     path('hr/', include('hr.urls')),
     path('workflow/', include('workflow.urls')),
+    path('veranstaltungen/', include('veranstaltungen.urls')),
 ]
 
 # Media-Files (nur in Development)

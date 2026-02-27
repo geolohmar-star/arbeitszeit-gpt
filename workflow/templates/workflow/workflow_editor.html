@@ -42,6 +42,9 @@
                     <a href="{% url 'workflow:arbeitsstapel' %}" class="btn btn-info">
                         📋 Arbeitsstapel
                     </a>
+                    <button class="btn btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#hilfe-modal">
+                        ? Hilfe
+                    </button>
                 </div>
             </div>
             <div class="row mt-2">
@@ -1314,4 +1317,266 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('template-trigger').addEventListener('change', toggleTriggerCustom);
 });
 </script>
+
+<!-- Hilfe-Modal -->
+<div class="modal fade" id="hilfe-modal" tabindex="-1" aria-labelledby="hilfe-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="hilfe-modal-label">Workflow-Editor – Bedienungsanleitung</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Toolbar -->
+                <h5 class="border-bottom pb-2 mb-3">Toolbar – Uebersicht der Modi</h5>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-primary">Schritt-Modus</h6>
+                                <p class="card-text small">Klick auf die freie Flaeche erstellt einen neuen Knoten. Im Konfigurationspanel rechts dann Titel, Typ und Zustaendigkeit festlegen.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-warning">Verbinden-Modus</h6>
+                                <p class="card-text small">Ersten Knoten anklicken (Startpunkt), dann zweiten Knoten anklicken (Zielpunkt). Es wird eine Verbindung (Transition) erstellt. Danach die Transition anklicken um Bedingungen zu setzen.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-danger">Schere-Modus</h6>
+                                <p class="card-text small">Knoten oder Verbindung anklicken um sie zu loeschen.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-secondary">Bearbeiten-Modus</h6>
+                                <p class="card-text small">Knoten oder Verbindung anklicken um Konfiguration zu oeffnen und zu aendern.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Knotentypen -->
+                <h5 class="border-bottom pb-2 mb-3">Knotentypen</h5>
+                <table class="table table-sm table-bordered mb-4">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Typ</th>
+                            <th>Einsatz</th>
+                            <th>Zustaendigkeit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>task</strong></td>
+                            <td>Manueller Schritt – jemand muss etwas tun (pruefen, genehmigen, bearbeiten)</td>
+                            <td>Direkte Fuehrungskraft, Abteilungsleitung, Team-Queue, Antragsteller, ...</td>
+                        </tr>
+                        <tr>
+                            <td><strong>auto</strong></td>
+                            <td>Automatischer Schritt – wird sofort ohne Benutzeraktion ausgefuehrt</td>
+                            <td>Keine</td>
+                        </tr>
+                        <tr>
+                            <td><strong>decision</strong></td>
+                            <td>Verzweigungspunkt – wertet Bedingungen aus und leitet in verschiedene Aeste</td>
+                            <td>Keine (automatisch)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>sync</strong></td>
+                            <td>Zusammenfuehrung – wartet bis mehrere parallele Aeste abgeschlossen sind</td>
+                            <td>Keine (automatisch)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Verzweigung / Wenn-Dann -->
+                <h5 class="border-bottom pb-2 mb-3">Verzweigung (Wenn–Dann–Sonst)</h5>
+                <p>Eine Verzweigung besteht aus:</p>
+                <ol class="mb-3">
+                    <li>Einem <strong>Knoten vom Typ decision</strong> der ausgewertet wird</li>
+                    <li><strong>Mehreren ausgehenden Transitionen</strong> mit verschiedenen Bedingungen</li>
+                    <li>Je einer <strong>Zielknoten pro Ast</strong></li>
+                </ol>
+
+                <div class="bg-light p-3 rounded mb-3 font-monospace small">
+                    Start<br>
+                    &nbsp;&nbsp;↓<br>
+                    [TL prueft] – task<br>
+                    &nbsp;&nbsp;↓ (genehmigt)<br>
+                    [Abzweig] – decision<br>
+                    &nbsp;&nbsp;├─→ Transition A: art == "fortbildung"&nbsp;&nbsp;→ [GF genehmigt] – task<br>
+                    &nbsp;&nbsp;└─→ Transition B: art != "fortbildung"&nbsp;&nbsp;→ [Team ZG] – task<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ende
+                </div>
+
+                <!-- Bedingungstypen -->
+                <h5 class="border-bottom pb-2 mb-3">Bedingungstypen fuer Transitionen</h5>
+                <div class="accordion mb-4" id="bedingungen-accordion">
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bed-immer">
+                                Immer (keine Bedingung)
+                            </button>
+                        </h2>
+                        <div id="bed-immer" class="accordion-collapse collapse">
+                            <div class="accordion-body small">
+                                Transition greift immer. Einsatz bei linearen Pfaden ohne Verzweigung.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bed-entscheidung">
+                                Basierend auf Task-Entscheidung
+                            </button>
+                        </h2>
+                        <div id="bed-entscheidung" class="accordion-collapse collapse">
+                            <div class="accordion-body small">
+                                <p>Greift wenn der vorherige Task eine bestimmte Entscheidung hatte.</p>
+                                <table class="table table-sm">
+                                    <tr><td><code>genehmigt</code></td><td>Benutzer hat genehmigt</td></tr>
+                                    <tr><td><code>abgelehnt</code></td><td>Benutzer hat abgelehnt</td></tr>
+                                    <tr><td><code>weitergeleitet</code></td><td>Weiterleitung an andere Person</td></tr>
+                                    <tr><td><code>rueckfrage</code></td><td>Rueckfrage gestellt</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#bed-feld">
+                                Basierend auf Feld-Wert (wichtig fuer Fortbildung!)
+                            </button>
+                        </h2>
+                        <div id="bed-feld" class="accordion-collapse collapse show">
+                            <div class="accordion-body small">
+                                <p>Prueft ein Feld des Antrags-Objekts gegen einen Wert. Drei Felder muessen ausgefuellt sein:</p>
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr><th>Feld</th><th>Beschreibung</th><th>Beispiel</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Bedingungsfeld</strong></td>
+                                            <td>Feldname des Modells (Python-Attribut)</td>
+                                            <td><code>art</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Operator</strong></td>
+                                            <td>Vergleich: ==, !=, &gt;, &lt;, &gt;=, &lt;=, in</td>
+                                            <td><code>==</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Bedingungswert</strong></td>
+                                            <td>Vergleichswert (interner DB-Wert, nicht Anzeigename!)</td>
+                                            <td><code>fortbildung</code></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <div class="alert alert-warning mt-2 mb-2">
+                                    <strong>Wichtig fuer Zeitgutschrift – Ganztaegige Fortbildung:</strong><br>
+                                    Der Anzeigename lautet "Ganztaegige Fortbildung bei individueller Arbeitszeit" –
+                                    aber der interne Feldwert im Datenbankfeld <code>art</code> ist <code>fortbildung</code>.<br>
+                                    Immer den internen Wert verwenden, nicht den Anzeigenamen!
+                                </div>
+
+                                <strong>Praxisbeispiele fuer Zeitgutschrift:</strong>
+                                <table class="table table-sm table-bordered mt-2">
+                                    <thead class="table-light">
+                                        <tr><th>Bedingungsfeld</th><th>Operator</th><th>Bedingungswert</th><th>Bedeutung</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><code>art</code></td>
+                                            <td><code>==</code></td>
+                                            <td><code>fortbildung</code></td>
+                                            <td>Nur Fortbildungs-Antraege</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>art</code></td>
+                                            <td><code>!=</code></td>
+                                            <td><code>fortbildung</code></td>
+                                            <td>Alle ausser Fortbildung</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>art</code></td>
+                                            <td><code>==</code></td>
+                                            <td><code>haertefall</code></td>
+                                            <td>Nur Haertefall-Antraege</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>art</code></td>
+                                            <td><code>==</code></td>
+                                            <td><code>ehrenamt</code></td>
+                                            <td>Nur Ehrenamt-Antraege</td>
+                                        </tr>
+                                        <tr>
+                                            <td><code>fortbildung_aktiv</code></td>
+                                            <td><code>==</code></td>
+                                            <td><code>True</code></td>
+                                            <td>Individuelle Vereinbarung bestaetigt</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#bed-python">
+                                Custom Python-Code
+                            </button>
+                        </h2>
+                        <div id="bed-python" class="accordion-collapse collapse">
+                            <div class="accordion-body small">
+                                <p>Fuer komplexe Bedingungen. Der Code muss <code>True</code> oder <code>False</code> zurueckgeben.</p>
+                                <p>Verfuegbare Variablen: <code>task</code>, <code>instance</code>, <code>content_object</code></p>
+                                <strong>Beispiel:</strong>
+                                <pre class="bg-light p-2 rounded mt-1">content_object.art == "fortbildung" and content_object.fortbildung_aktiv</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schritt-fuer-Schritt -->
+                <h5 class="border-bottom pb-2 mb-3">Schritt-fuer-Schritt: Abzweig anlegen</h5>
+                <ol class="small">
+                    <li class="mb-2">Modus <strong>Schritt</strong> waehlen → Klick auf Flaeche → Knoten erstellen mit Typ <code>decision</code>, Titel z.B. "Art pruefen"</li>
+                    <li class="mb-2">Modus <strong>Verbinden</strong> → Von "TL prueft" zu "Art pruefen" verbinden → Bedingungstyp: <em>Basierend auf Task-Entscheidung</em> → <code>genehmigt</code></li>
+                    <li class="mb-2">Modus <strong>Schritt</strong> → Zielknoten fuer Ast A anlegen (z.B. "GF genehmigt")</li>
+                    <li class="mb-2">Modus <strong>Schritt</strong> → Zielknoten fuer Ast B anlegen (z.B. "Team ZG")</li>
+                    <li class="mb-2">Modus <strong>Verbinden</strong> → Von "Art pruefen" zu "GF genehmigt" → Bedingungstyp: <em>Feld-Wert</em> → <code>art</code> / <code>==</code> / <code>fortbildung</code></li>
+                    <li class="mb-2">Modus <strong>Verbinden</strong> → Von "Art pruefen" zu "Team ZG" → Bedingungstyp: <em>Feld-Wert</em> → <code>art</code> / <code>!=</code> / <code>fortbildung</code></li>
+                    <li class="mb-2">Workflow speichern → Graph-Modus muss aktiviert sein!</li>
+                </ol>
+
+                <div class="alert alert-info small">
+                    <strong>Hinweis Graph-Modus:</strong> Verzweigungen funktionieren nur wenn das Workflow-Template auf
+                    <strong>"Graph-basiert"</strong> gestellt ist. Im Speichern-Dialog die Option aktivieren.
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schliessen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
