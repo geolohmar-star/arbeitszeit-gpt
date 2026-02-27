@@ -6,25 +6,46 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">HR Mitarbeiter</h2>
         <div class="d-flex gap-2">
-            <a href="{% url 'hr:company_builder' %}" class="btn btn-primary btn-sm">
-                Company Builder
-            </a>
+            <a href="{% url 'hr:company_builder' %}" class="btn btn-primary btn-sm">Company Builder</a>
             <a href="{% url 'hr:stellen_uebersicht' %}" class="btn btn-outline-secondary btn-sm">Stellen</a>
             <a href="{% url 'hr:organigramm' %}" class="btn btn-outline-secondary btn-sm">Organigramm</a>
-            <span class="badge bg-secondary fs-6 fw-normal">{{ mitarbeiter.count }} MA</span>
         </div>
     </div>
 
-    <!-- Filter -->
+    <!-- Such- und Filterleiste -->
     <form method="get" class="card mb-3">
         <div class="card-body py-2">
             <div class="row g-2 align-items-end">
-                <div class="col-md-3">
-                    <input type="text" name="q" class="form-control form-control-sm"
-                           placeholder="Name suchen…" value="{{ filter.q }}">
+
+                <!-- Live-Suche per HTMX -->
+                <div class="col-md-4">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.44 1.406a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
+                            </svg>
+                        </span>
+                        <input type="text"
+                               name="q"
+                               class="form-control form-control-sm"
+                               placeholder="Name, Personalnr., E-Mail, Stelle…"
+                               value="{{ filter.q }}"
+                               autocomplete="off"
+                               hx-get="{% url 'hr:liste' %}"
+                               hx-trigger="keyup changed delay:300ms, search"
+                               hx-target="#mitarbeiter-tbody"
+                               hx-swap="outerHTML"
+                               hx-include="[name='bereich'],[name='abteilung'],[name='rolle']">
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <select name="bereich" class="form-select form-select-sm">
+
+                <div class="col-md-2">
+                    <select name="bereich" class="form-select form-select-sm"
+                            hx-get="{% url 'hr:liste' %}"
+                            hx-trigger="change"
+                            hx-target="#mitarbeiter-tbody"
+                            hx-swap="outerHTML"
+                            hx-include="[name='q'],[name='abteilung'],[name='rolle']">
                         <option value="">Alle Bereiche</option>
                         {% for b in bereiche %}
                         <option value="{{ b.pk }}" {% if filter.bereich == b.pk|stringformat:"s" %}selected{% endif %}>
@@ -33,22 +54,46 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <select name="rolle" class="form-select form-select-sm">
+
+                <div class="col-md-2">
+                    <select name="abteilung" class="form-select form-select-sm"
+                            hx-get="{% url 'hr:liste' %}"
+                            hx-trigger="change"
+                            hx-target="#mitarbeiter-tbody"
+                            hx-swap="outerHTML"
+                            hx-include="[name='q'],[name='bereich'],[name='rolle']">
+                        <option value="">Alle Abteilungen</option>
+                        {% for a in abteilungen %}
+                        <option value="{{ a.pk }}" {% if filter.abteilung == a.pk|stringformat:"s" %}selected{% endif %}>
+                            {{ a.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <select name="rolle" class="form-select form-select-sm"
+                            hx-get="{% url 'hr:liste' %}"
+                            hx-trigger="change"
+                            hx-target="#mitarbeiter-tbody"
+                            hx-swap="outerHTML"
+                            hx-include="[name='q'],[name='bereich'],[name='abteilung']">
                         <option value="">Alle Rollen</option>
                         {% for code, label in rollen %}
                         <option value="{{ code }}" {% if filter.rolle == code %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary btn-sm">Filtern</button>
+
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm">Suchen</button>
                     <a href="{% url 'hr:liste' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
                 </div>
             </div>
         </div>
     </form>
 
+    <!-- Ergebnis-Tabelle -->
     <div class="card">
         <div class="table-responsive">
             <table class="table table-sm table-hover mb-0">
@@ -60,30 +105,15 @@
                         <th>Bereich</th>
                         <th>Abteilung</th>
                         <th>Team</th>
+                        <th>Stelle</th>
                         <th>Vorgesetzter</th>
                         <th></th>
                     </tr>
                 </thead>
-                <tbody>
-                    {% for ma in mitarbeiter %}
-                    <tr>
-                        <td class="ps-3 align-middle fw-semibold">{{ ma.vollname }}</td>
-                        <td class="align-middle text-muted small">{{ ma.personalnummer }}</td>
-                        <td class="align-middle small">{{ ma.get_rolle_display }}</td>
-                        <td class="align-middle small">{{ ma.bereich|default:"–" }}</td>
-                        <td class="align-middle small">{{ ma.abteilung.name|default:"–" }}</td>
-                        <td class="align-middle small">{{ ma.team.name|default:"–" }}</td>
-                        <td class="align-middle small text-muted">{{ ma.vorgesetzter.vollname|default:"–" }}</td>
-                        <td class="align-middle text-end pe-3">
-                            <a href="{% url 'hr:detail' ma.pk %}" class="btn btn-outline-secondary btn-sm">Detail</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="8" class="text-center text-muted py-4">Keine Mitarbeiter gefunden.</td></tr>
-                    {% endfor %}
-                </tbody>
+                {% include "hr/partials/_mitarbeiter_tabelle.html" %}
             </table>
         </div>
     </div>
+
 </div>
 {% endblock %}

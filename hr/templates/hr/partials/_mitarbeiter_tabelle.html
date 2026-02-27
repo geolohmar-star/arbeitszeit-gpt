@@ -1,0 +1,33 @@
+<tbody id="mitarbeiter-tbody">
+    {% for ma in mitarbeiter %}
+    <tr>
+        <td class="ps-3 align-middle fw-semibold">{{ ma.vollname }}</td>
+        <td class="align-middle text-muted small">{{ ma.personalnummer }}</td>
+        <td class="align-middle small">{{ ma.get_rolle_display }}</td>
+        <td class="align-middle small">{{ ma.bereich|default:"–" }}</td>
+        <td class="align-middle small">{{ ma.abteilung.name|default:"–" }}</td>
+        <td class="align-middle small">{{ ma.team.name|default:"–" }}</td>
+        <td class="align-middle small">
+            {% if ma.stelle %}
+                <span class="badge bg-light text-dark border">{{ ma.stelle.kuerzel }}</span>
+            {% else %}
+                <span class="text-muted">–</span>
+            {% endif %}
+        </td>
+        <td class="align-middle small text-muted">{{ ma.vorgesetzter.vollname|default:"–" }}</td>
+        <td class="align-middle text-end pe-3">
+            <a href="{% url 'hr:detail' ma.pk %}" class="btn btn-outline-secondary btn-sm">Detail</a>
+        </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="9" class="text-center text-muted py-4">Keine Mitarbeiter gefunden.</td>
+    </tr>
+    {% endfor %}
+    <tr class="table-light">
+        <td colspan="9" class="ps-3 text-muted small py-1">
+            {{ mitarbeiter.count }} Mitarbeiter
+            {% if filter.q %}&nbsp;·&nbsp;Suche: <em>„{{ filter.q }}"</em>{% endif %}
+        </td>
+    </tr>
+</tbody>

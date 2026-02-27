@@ -20,15 +20,56 @@ def _ist_staff(user):
     return user.is_authenticated and (user.is_staff or user.is_superuser)
 
 
+def _suche_mitarbeiter(qs, suche):
+    """Volltextsuche ueber HRMitarbeiter-Felder.
+
+    Auf PostgreSQL: SearchVector mit Ranking (FTS).
+    Fallback fuer SQLite: einfaches icontains.
+    """
+    from django.db import connection
+    from django.db.models import Q
+
+    if connection.vendor == "postgresql":
+        from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
+        vector = SearchVector(
+            "vorname", "nachname", "personalnummer", "email",
+            config="simple",  # simple: kein Stemming - besser fuer Eigennamen
+        )
+        query = SearchQuery(suche, config="simple", search_type="plain")
+
+        # FTS auf direkten Feldern
+        qs_fts = qs.annotate(rank=SearchRank(vector, query)).filter(rank__gt=0)
+
+        # Zusaetzlich: Stelle (kuerzel + bezeichnung) per icontains
+        qs_stelle = qs.filter(
+            Q(stelle__kuerzel__icontains=suche)
+            | Q(stelle__bezeichnung__icontains=suche)
+        )
+
+        return (qs_fts | qs_stelle).distinct().order_by("-rank", "nachname")
+
+    # Fallback fuer lokale SQLite-Entwicklung
+    return qs.filter(
+        Q(nachname__icontains=suche)
+        | Q(vorname__icontains=suche)
+        | Q(personalnummer__icontains=suche)
+        | Q(email__icontains=suche)
+        | Q(stelle__kuerzel__icontains=suche)
+        | Q(stelle__bezeichnung__icontains=suche)
+    ).distinct()
+
+
 @login_required
 @user_passes_test(_ist_staff)
 def mitarbeiter_liste(request):
-    """Listet alle HR-Mitarbeiter mit Such- und Filtermoeglichkeit."""
+    """Listet alle HR-Mitarbeiter mit Such- und Filtermoeglichkeit.
+
+    Unterstuetzt HTMX-Live-Suche: bei HX-Request wird nur die Tabelle zurueckgegeben.
+    """
     qs = HRMitarbeiter.objects.select_related(
-        "abteilung", "team", "bereich", "vorgesetzter"
+        "abteilung", "team", "bereich", "vorgesetzter", "stelle"
     )
 
-    # Einfache Filter
     bereich_id = request.GET.get("bereich")
     abteilung_id = request.GET.get("abteilung")
     rolle = request.GET.get("rolle")
@@ -41,9 +82,11 @@ def mitarbeiter_liste(request):
     if rolle:
         qs = qs.filter(rolle=rolle)
     if suche:
-        qs = qs.filter(nachname__icontains=suche) | qs.filter(vorname__icontains=suche)
+        qs = _suche_mitarbeiter(qs, suche)
+    else:
+        qs = qs.order_by("nachname", "vorname")
 
-    return render(request, "hr/liste.html", {
+    context = {
         "mitarbeiter": qs,
         "bereiche": Bereich.objects.all(),
         "abteilungen": Abteilung.objects.select_related("bereich").all(),
@@ -54,7 +97,13 @@ def mitarbeiter_liste(request):
             "rolle": rolle,
             "q": suche,
         },
-    })
+    }
+
+    # HTMX-Request: nur Tabellen-Partial zurueckgeben
+    if request.headers.get("HX-Request"):
+        return render(request, "hr/partials/_mitarbeiter_tabelle.html", context)
+
+    return render(request, "hr/liste.html", context)
 
 
 @login_required
