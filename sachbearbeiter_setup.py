@@ -16,16 +16,17 @@ def sachbearbeiter_erstellen(
     nachname,
     personalnummer,
     abteilung='HR',
-    standort='siegburg',
+    standort_kuerzel='siegburg',
     password='SachbearbeiterTest123'
 ):
     """Erstellt einen neuen Sachbearbeiter"""
-    
+    from arbeitszeit.models import Standort
+
     # 1. User erstellen
     if User.objects.filter(username=username).exists():
-        print(f"❌ User '{username}' existiert bereits!")
+        print(f"User '{username}' existiert bereits!")
         return None
-    
+
     user = User.objects.create_user(
         username=username,
         email=email,
@@ -36,8 +37,11 @@ def sachbearbeiter_erstellen(
     user.is_staff = True  # Zugriff auf /verwaltung/
     user.is_superuser = False  # KEIN Zugriff auf /admin/
     user.save()
-    print(f"✓ User '{username}' erstellt")
-    
+    print(f"User '{username}' erstellt")
+
+    # Standort-Objekt holen
+    standort = Standort.objects.filter(kuerzel=standort_kuerzel).first()
+
     # 2. Mitarbeiter erstellen
     mitarbeiter = Mitarbeiter.objects.create(
         user=user,

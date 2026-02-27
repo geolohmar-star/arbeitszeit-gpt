@@ -2089,8 +2089,8 @@ def admin_dashboard(request):
             status='genehmigt', genehmigt_am__gte=monatsanfang
         ).count(),
         'aktive_vereinbarungen': Arbeitszeitvereinbarung.objects.filter(status='aktiv').count(),
-        'mitarbeiter_siegburg': Mitarbeiter.objects.filter(aktiv=True, standort='siegburg').count(),
-        'mitarbeiter_bonn': Mitarbeiter.objects.filter(aktiv=True, standort='bonn').count(),
+        'mitarbeiter_siegburg': Mitarbeiter.objects.filter(aktiv=True, standort__kuerzel='siegburg').count(),
+        'mitarbeiter_bonn': Mitarbeiter.objects.filter(aktiv=True, standort__kuerzel='bonn').count(),
     }
     
     letzte_aktivitaeten = Arbeitszeitvereinbarung.objects.filter(
@@ -2247,14 +2247,14 @@ def mitarbeiter_uebersicht(request):
         mitarbeiter_liste = mitarbeiter_liste.filter(abteilung=abteilung_filter)
     
     if standort_filter:
-        mitarbeiter_liste = mitarbeiter_liste.filter(standort=standort_filter)
+        mitarbeiter_liste = mitarbeiter_liste.filter(standort__kuerzel=standort_filter)
 
     context = {
         'mitarbeiter_liste': mitarbeiter_liste,
         'abteilung_filter': abteilung_filter,
         'standort_filter': standort_filter,
-        'anzahl_siegburg': mitarbeiter_liste.filter(standort='siegburg').count(),
-        'anzahl_bonn': mitarbeiter_liste.filter(standort='bonn').count(),
+        'anzahl_siegburg': mitarbeiter_liste.filter(standort__kuerzel='siegburg').count(),
+        'anzahl_bonn': mitarbeiter_liste.filter(standort__kuerzel='bonn').count(),
     }
     return render(request, 'arbeitszeit/mitarbeiter_uebersicht.html', context)
 

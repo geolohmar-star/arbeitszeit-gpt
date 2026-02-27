@@ -649,8 +649,8 @@ def mitarbeiter_uebersicht(request):
         'mitarbeiter': mitarbeiter,
         'mitarbeiter_liste': mitarbeiter,
         'stats': stats,
-        'anzahl_siegburg': mitarbeiter.filter(standort='siegburg').count(),
-        'anzahl_bonn': mitarbeiter.filter(standort='bonn').count(),
+        'anzahl_siegburg': mitarbeiter.filter(standort__kuerzel='siegburg').count(),
+        'anzahl_bonn': mitarbeiter.filter(standort__kuerzel='bonn').count(),
     }
     
     return render(request, 'arbeitszeit/mitarbeiter_uebersicht.html', context)
