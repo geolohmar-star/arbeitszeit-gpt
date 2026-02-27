@@ -1,0 +1,7 @@
+<button type="button"
+        class="btn btn-outline-primary btn-sm mt-1"
+        hx-get="{% url 'hr:stelle_quick_zuweisen' stelle.id %}"
+        hx-target="#stelle-{{ stelle.id }}-zuweis-bereich"
+        hx-swap="innerHTML">
+    Mitarbeiter zuweisen
+</button>

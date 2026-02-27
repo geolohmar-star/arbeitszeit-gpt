@@ -1,22 +1,22 @@
-<div class="stelle-item border rounded p-2 mb-2 ms-{{ stelle_level|add:2 }}"
-     data-bs-toggle="collapse"
-     data-bs-target="#stelle-{{ stelle.id }}-details"
+<div class="stelle-item border rounded p-2 mb-2"
      style="margin-left: {{ stelle_level|add:1 }}rem;">
 
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-center"
+         data-bs-toggle="collapse"
+         data-bs-target="#stelle-{{ stelle.id }}-details"
+         style="cursor: pointer;">
         <div>
             <strong class="text-primary">{{ stelle.kuerzel }}</strong>
             <span class="ms-2 text-muted small">{{ stelle.bezeichnung }}</span>
         </div>
-        <div>
+        <div id="stelle-{{ stelle.id }}-badge">
             {% if stelle.ist_besetzt %}
-                <span class="badge bg-success mitarbeiter-badge" title="{{ stelle.aktueller_inhaber.vollname }}">
-                    ✓ {{ stelle.aktueller_inhaber.vollname }}
+                <span class="badge bg-success mitarbeiter-badge">
+                    {{ stelle.aktueller_inhaber.vollname }}
                 </span>
             {% else %}
                 <span class="badge bg-secondary">Unbesetzt</span>
             {% endif %}
-
             {% if stelle.untergeordnete_stellen.exists %}
                 <span class="badge bg-info ms-1">{{ stelle.untergeordnete_stellen.count }} Untergebene</span>
             {% endif %}
@@ -28,25 +28,23 @@
         <div class="card card-body bg-light small">
             <div class="row">
                 <div class="col-md-6">
-                    <strong>Stelle:</strong> {{ stelle.kuerzel }}<br>
+                    <strong>Kuerzel:</strong> {{ stelle.kuerzel }}<br>
                     <strong>Bezeichnung:</strong> {{ stelle.bezeichnung }}<br>
-                    <strong>OrgEinheit:</strong> {{ stelle.org_einheit.kuerzel }} - {{ stelle.org_einheit.bezeichnung }}<br>
+                    <strong>OrgEinheit:</strong> {{ stelle.org_einheit.kuerzel }} – {{ stelle.org_einheit.bezeichnung }}<br>
                     <strong>Email:</strong> <a href="mailto:{{ stelle.email }}">{{ stelle.email }}</a><br>
                 </div>
                 <div class="col-md-6">
                     {% if stelle.ist_besetzt %}
                         <strong>Inhaber:</strong><br>
-                        <a href="{% url 'hr:detail' stelle.aktueller_inhaber.pk %}" class="btn btn-sm btn-primary mt-1">
+                        <a href="{% url 'hr:detail' stelle.aktueller_inhaber.pk %}" class="btn btn-sm btn-outline-primary mt-1">
                             {{ stelle.aktueller_inhaber.vollname }} →
                         </a>
                     {% else %}
                         <span class="text-muted">Stelle ist unbesetzt</span>
                     {% endif %}
-
                     {% if stelle.delegiert_an %}
                         <br><br><strong>Delegiert an:</strong> {{ stelle.delegiert_an.kuerzel }}
                     {% endif %}
-
                     {% if stelle.vertreten_durch %}
                         <br><br><strong>Vertretung:</strong> {{ stelle.vertreten_durch.kuerzel }}
                         {% if stelle.vertretung_von and stelle.vertretung_bis %}
@@ -54,6 +52,11 @@
                         {% endif %}
                     {% endif %}
                 </div>
+            </div>
+
+            <!-- Schnellzuweisung -->
+            <div class="mt-2 pt-2 border-top" id="stelle-{{ stelle.id }}-zuweis-bereich">
+                {% include "hr/partials/_stelle_zuweis_trigger.html" with stelle=stelle %}
             </div>
         </div>
     </div>

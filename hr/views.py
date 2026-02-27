@@ -252,6 +252,57 @@ def mitarbeiter_stelle_zuweisen(request, pk):
 
 @login_required
 @user_passes_test(_ist_staff)
+def stelle_quick_zuweisen(request, pk):
+    """HTMX-View: Schnellzuweisung eines Mitarbeiters zu einer Stelle direkt im Organigramm.
+
+    GET  -> gibt das Zuweis-Formular als Partial zurueck
+    POST -> speichert Zuweisung und gibt aktualisiertes Badge + leeres Formular zurueck
+    """
+    stelle = get_object_or_404(Stelle, pk=pk)
+
+    if request.method == "POST":
+        hrm_id = request.POST.get("hrm_id") or None
+
+        if hrm_id:
+            hrm = get_object_or_404(HRMitarbeiter, pk=hrm_id)
+            # Alte Zuweisung loesen falls die Stelle schon besetzt ist
+            if stelle.ist_besetzt and stelle.hrmitarbeiter != hrm:
+                alter_inhaber = stelle.hrmitarbeiter
+                alter_inhaber.stelle = None
+                alter_inhaber.save(update_fields=["stelle"])
+            hrm.stelle = stelle
+            hrm.save(update_fields=["stelle"])
+        else:
+            # Mitarbeiter von Stelle entfernen
+            if stelle.ist_besetzt:
+                inhaber = stelle.hrmitarbeiter
+                inhaber.stelle = None
+                inhaber.save(update_fields=["stelle"])
+
+        # Stelle neu laden damit ist_besetzt aktuell ist
+        stelle.refresh_from_db()
+
+        return render(request, "hr/partials/_stelle_quick_zuweisen.html", {
+            "stelle": stelle,
+            "alle_hrm": HRMitarbeiter.objects.select_related("stelle").order_by("nachname", "vorname"),
+            "gespeichert": True,
+        })
+
+    # GET ?reset=1 -> nur Trigger-Button zurueckgeben (Abbrechen)
+    if request.GET.get("reset"):
+        return render(request, "hr/partials/_stelle_zuweis_trigger.html", {"stelle": stelle})
+
+    # GET: Formular anzeigen
+    alle_hrm = HRMitarbeiter.objects.select_related("stelle").order_by("nachname", "vorname")
+    return render(request, "hr/partials/_stelle_quick_zuweisen.html", {
+        "stelle": stelle,
+        "alle_hrm": alle_hrm,
+        "gespeichert": False,
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
 def stellen_organigramm(request):
     """Feature 4: Visuelle Hierarchie basierend auf OrgEinheiten."""
     import json

@@ -1,0 +1,38 @@
+{% if gespeichert %}
+<div class="alert alert-success py-1 px-2 mb-2 small">
+    Gespeichert!
+</div>
+{% endif %}
+
+<form hx-post="{% url 'hr:stelle_quick_zuweisen' stelle.id %}"
+      hx-target="#stelle-{{ stelle.id }}-zuweis-bereich"
+      hx-swap="innerHTML">
+    {% csrf_token %}
+
+    <div class="d-flex gap-2 align-items-center flex-wrap mt-2">
+
+        <select name="hrm_id" class="form-select form-select-sm" style="max-width: 300px;">
+            <option value="">-- Stelle freistellen --</option>
+            {% for hrm in alle_hrm %}
+                <option value="{{ hrm.pk }}"
+                    {% if stelle.ist_besetzt and stelle.hrmitarbeiter.pk == hrm.pk %}selected{% endif %}
+                    {% if hrm.stelle and hrm.stelle != stelle %}disabled title="{{ hrm.stelle.kuerzel }}"{% endif %}>
+                    {{ hrm.nachname }}, {{ hrm.vorname }}
+                    {% if hrm.stelle and hrm.stelle != stelle %}({{ hrm.stelle.kuerzel }}){% endif %}
+                    {% if not hrm.stelle %}(frei){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button type="submit" class="btn btn-primary btn-sm">Zuweisen</button>
+
+        <button type="button"
+                class="btn btn-outline-secondary btn-sm"
+                hx-get="{% url 'hr:stelle_quick_zuweisen' stelle.id %}?reset=1"
+                hx-target="#stelle-{{ stelle.id }}-zuweis-bereich"
+                hx-swap="innerHTML">
+            Abbrechen
+        </button>
+
+    </div>
+</form>

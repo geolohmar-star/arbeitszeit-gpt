@@ -19,6 +19,8 @@ urlpatterns = [
 
     # Mitarbeiter-Stellen-Zuweisung
     path("mitarbeiter/<int:pk>/stelle-zuweisen/", views.mitarbeiter_stelle_zuweisen, name="mitarbeiter_stelle_zuweisen"),
+    # Schnellzuweisung direkt im Organigramm (HTMX)
+    path("stellen/<int:pk>/quick-zuweisen/", views.stelle_quick_zuweisen, name="stelle_quick_zuweisen"),
 
     # Netzwerk-Editor (VISUELLER Graph-Editor mit Schere)
     path("netzwerk-editor/", views.netzwerk_editor, name="netzwerk_editor"),
