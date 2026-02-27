@@ -623,6 +623,10 @@ def dashboard(request):
     # Sachbearbeiter und Schichtplaner sehen ihr persoenliches Dashboard
     # mit Link zum Admin-Bereich
     
+    # Fallback-Standort fuer automatisch erstellte Profile
+    from .models import Standort
+    standort_default = Standort.objects.filter(kuerzel='siegburg').first()
+
     mitarbeiter, created = Mitarbeiter.objects.get_or_create(
         user=user,
         defaults={
@@ -630,7 +634,7 @@ def dashboard(request):
             'vorname': user.first_name or 'Vorname',
             'nachname': user.last_name or 'Nachname',
             'abteilung': 'Allgemein',
-            'standort': 'siegburg',
+            'standort': standort_default,
             'eintrittsdatum': date.today(),
             'aktiv': True
         }
