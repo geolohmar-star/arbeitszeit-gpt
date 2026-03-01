@@ -367,6 +367,41 @@ class Zeitgutschrift(Antrag):
             "fortbildung",
             "Ganztaegige Fortbildung bei individueller Arbeitszeit",
         ),
+        (
+            "erkrankung_angehoerige",
+            "Erkrankung eines im Haushalt lebenden Angehoerigen",
+        ),
+        (
+            "erkrankung_kind",
+            "Erkrankung eines Kindes unter 12 Jahren oder eines behinderten"
+            " und auf Hilfe angewiesenen Kindes",
+        ),
+        (
+            "erkrankung_betreuung",
+            "Erkrankung einer Betreuungsperson fuer das unter acht Jahre alte"
+            " oder dauernd pflegebeduerfte Kind",
+        ),
+        (
+            "mehrarbeit",
+            "Abbuchung von Mehrarbeit vom Zeitkonto",
+        ),
+        (
+            "mehrarbeit_buchung",
+            "Buchung von Mehrarbeitszeit auf das Zeitkonto zum Ausgleich"
+            " eines Minus / fuer stundenweise erfolgten Freizeitausgleich",
+        ),
+        (
+            "ueberstunden_buchung",
+            "Buchung von Zeitguthaben aus angeordneten Ueberstunden auf das Zeitkonto",
+        ),
+        (
+            "rufbereitschaft_buchung",
+            "Buchung von Zeitguthaben aus angeordneter Rufbereitschaft auf das Zeitkonto",
+        ),
+        (
+            "sonstige",
+            "Sonstige Anliegen",
+        ),
     ]
 
     FORTBILDUNG_TYP_CHOICES = [
@@ -375,7 +410,7 @@ class Zeitgutschrift(Antrag):
     ]
 
     # Art der Zeitgutschrift
-    art = models.CharField(max_length=20, choices=ART_CHOICES)
+    art = models.CharField(max_length=30, choices=ART_CHOICES)
 
     # Gemeinsame Felder (Haertefall + Ehrenamt)
     # Format: [{"datum": "2026-02-10", "von_zeit": "08:00", "bis_zeit": "16:00"}, ...]
@@ -401,6 +436,28 @@ class Zeitgutschrift(Antrag):
     # Berechnungsergebnis als JSON gespeichert
     # Format: {"zeilen": [...], "summe_fortbildung": "38.0", "summe_vereinbarung": "40.0", "differenz": "2.0"}
     fortbildung_berechnung = models.JSONField(null=True, blank=True)
+
+    # Felder fuer Erkrankung eines Angehoerigen
+    erkrankung_datum = models.DateField(null=True, blank=True)
+    # "regulaer" = Wochenstunden/5/2, "individuell" = Tagesstunden/2
+    erkrankung_typ = models.CharField(max_length=20, blank=True)
+    erkrankung_wochenstunden = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True
+    )
+    erkrankung_tagesstunden = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True
+    )
+    erkrankung_gutschrift_stunden = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True
+    )
+
+    # Felder fuer Mehrarbeit-Abbuchung
+    mehrarbeit_buchungsmonat = models.PositiveSmallIntegerField(null=True, blank=True)
+    mehrarbeit_buchungsjahr = models.PositiveSmallIntegerField(null=True, blank=True)
+    mehrarbeit_stunden = models.PositiveSmallIntegerField(null=True, blank=True)
+    mehrarbeit_minuten = models.PositiveSmallIntegerField(null=True, blank=True)
+    mehrarbeit_begruendung = models.TextField(blank=True)
+    sonstige_vorzeichen = models.CharField(max_length=1, blank=True)  # '+' oder '-'
 
     # Workflow-Verknuepfung
     workflow_instance = models.ForeignKey(
@@ -436,6 +493,26 @@ class Zeitgutschrift(Antrag):
             f"Zeitgutschrift ({self.get_art_display()}) "
             f"- {self.antragsteller}"
         )
+
+    @property
+    def erkrankung_gutschrift_hmin(self):
+        """Erkrankungs-Gutschrift als 'Xh Ymin' formatiert."""
+        if self.erkrankung_gutschrift_stunden is None:
+            return ""
+        wert = float(self.erkrankung_gutschrift_stunden)
+        stunden = int(wert)
+        minuten = round((wert - stunden) * 60)
+        return f"{stunden}h {minuten:02d}min"
+
+    @property
+    def buchungsmonat_name(self):
+        """Buchungsmonat als deutscher Monatsname."""
+        monate = {
+            1: "Januar", 2: "Februar", 3: "Maerz", 4: "April",
+            5: "Mai", 6: "Juni", 7: "Juli", 8: "August",
+            9: "September", 10: "Oktober", 11: "November", 12: "Dezember",
+        }
+        return monate.get(self.mehrarbeit_buchungsmonat, "")
 
 
 class ZeitgutschriftBeleg(models.Model):

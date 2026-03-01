@@ -39,6 +39,9 @@
         .text-right {
             text-align: right;
         }
+        .highlight {
+            background-color: #fff3cd;
+        }
         .footer {
             margin-top: 2cm;
             font-size: 9pt;
@@ -74,6 +77,7 @@
     <h2>Art der Zeitgutschrift</h2>
     <p>{{ antrag.get_art_display }}</p>
 
+    <!-- Haertefall / Ehrenamt: Zeitraumliste -->
     {% if antrag.art == "haertefall" or antrag.art == "ehrenamt" %}
     {% if antrag.zeilen_daten %}
     <h2>Zeitraum(e)</h2>
@@ -98,6 +102,7 @@
     {% endif %}
     {% endif %}
 
+    <!-- Fortbildung: Berechnungstabelle -->
     {% if antrag.art == "fortbildung" and antrag.fortbildung_berechnung %}
     <h2>Fortbildungsdetails</h2>
     <table class="info-table">
@@ -145,7 +150,7 @@
                 <td class="text-right"><strong>{{ antrag.fortbildung_berechnung.summe_fortbildung }} h</strong></td>
                 <td class="text-right"><strong>{{ antrag.fortbildung_berechnung.summe_vereinbarung }} h</strong></td>
             </tr>
-            <tr style="background-color: #fff3cd;">
+            <tr class="highlight">
                 <td colspan="2"><strong>Differenz</strong></td>
                 <td colspan="2" class="text-right">
                     <strong>{{ antrag.fortbildung_berechnung.differenz }} h</strong>
@@ -155,6 +160,105 @@
     </table>
     {% endif %}
 
+    <!-- Erkrankung eines Angehoerigen / Kind / Betreuungsperson -->
+    {% if antrag.art == "erkrankung_angehoerige" or antrag.art == "erkrankung_kind" or antrag.art == "erkrankung_betreuung" %}
+    <h2>Details zur Erkrankung</h2>
+    <table class="info-table">
+        <tr>
+            <td>Datum der Erkrankung:</td>
+            <td>{{ antrag.erkrankung_datum|date:"d.m.Y" }}</td>
+        </tr>
+        <tr>
+            <td>Art der Arbeitszeit:</td>
+            <td>
+                {% if antrag.erkrankung_typ == "regulaer" %}
+                    Regelmaessige Arbeitszeit
+                {% elif antrag.erkrankung_typ == "individuell" %}
+                    Individuelle Vereinbarung
+                {% else %}
+                    {{ antrag.erkrankung_typ }}
+                {% endif %}
+            </td>
+        </tr>
+        {% if antrag.erkrankung_typ == "regulaer" and antrag.erkrankung_wochenstunden %}
+        <tr>
+            <td>Wochenstunden (regelmaessig):</td>
+            <td>{{ antrag.erkrankung_wochenstunden }} h</td>
+        </tr>
+        <tr>
+            <td>Berechnungsformel:</td>
+            <td>(Wochenstunden &#247; 5) &#247; 2</td>
+        </tr>
+        {% elif antrag.erkrankung_typ == "individuell" and antrag.erkrankung_tagesstunden %}
+        <tr>
+            <td>Arbeitsstunden am betreffenden Tag:</td>
+            <td>{{ antrag.erkrankung_tagesstunden }} h</td>
+        </tr>
+        <tr>
+            <td>Berechnungsformel:</td>
+            <td>Tagesstunden &#247; 2</td>
+        </tr>
+        {% endif %}
+        {% if antrag.erkrankung_gutschrift_stunden %}
+        <tr class="highlight">
+            <td><strong>Zeitgutschrift:</strong></td>
+            <td><strong>{{ antrag.erkrankung_gutschrift_hmin }}</strong></td>
+        </tr>
+        {% endif %}
+    </table>
+    {% endif %}
+
+    <!-- Mehrarbeit Ab-/Buchung / Ueberstunden / Rufbereitschaft -->
+    {% if antrag.art == "mehrarbeit" or antrag.art == "mehrarbeit_buchung" or antrag.art == "ueberstunden_buchung" or antrag.art == "rufbereitschaft_buchung" %}
+    <h2>Buchungsdetails</h2>
+    <table class="info-table">
+        <tr>
+            <td>Buchungszeitraum:</td>
+            <td>{{ antrag.buchungsmonat_name }} {{ antrag.mehrarbeit_buchungsjahr }}</td>
+        </tr>
+        <tr class="highlight">
+            <td><strong>Stunden:</strong></td>
+            <td><strong>{{ antrag.mehrarbeit_stunden }} h {{ antrag.mehrarbeit_minuten }} min</strong></td>
+        </tr>
+        {% if antrag.mehrarbeit_begruendung %}
+        <tr>
+            <td>Erlaeuterung:</td>
+            <td>{{ antrag.mehrarbeit_begruendung }}</td>
+        </tr>
+        {% endif %}
+    </table>
+    {% endif %}
+
+    <!-- Sonstige Anliegen -->
+    {% if antrag.art == "sonstige" %}
+    <h2>Angaben</h2>
+    <table class="info-table">
+        <tr>
+            <td>Buchungszeitraum:</td>
+            <td>{{ antrag.buchungsmonat_name }} {{ antrag.mehrarbeit_buchungsjahr }}</td>
+        </tr>
+        <tr class="highlight">
+            <td><strong>Betrag:</strong></td>
+            <td>
+                <strong>
+                {% if antrag.sonstige_vorzeichen == "+" %}
+                    + {{ antrag.mehrarbeit_stunden }} h {{ antrag.mehrarbeit_minuten }} min (Zeitgutschrift)
+                {% elif antrag.sonstige_vorzeichen == "-" %}
+                    &minus; {{ antrag.mehrarbeit_stunden }} h {{ antrag.mehrarbeit_minuten }} min (Zeitabbuchung)
+                {% endif %}
+                </strong>
+            </td>
+        </tr>
+        {% if antrag.mehrarbeit_begruendung %}
+        <tr>
+            <td>Erlaeuterung:</td>
+            <td>{{ antrag.mehrarbeit_begruendung }}</td>
+        </tr>
+        {% endif %}
+    </table>
+    {% endif %}
+
+    <!-- Hochgeladene Belege -->
     {% if antrag.belege.count > 0 %}
     <h2>Hochgeladene Belege</h2>
     <ul>

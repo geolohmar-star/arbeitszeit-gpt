@@ -155,4 +155,241 @@
 
 </div>
 
+{% elif art == "sonstige" %}
+<!-- Sonstige Anliegen -->
+<div class="mt-3">
+
+    <!-- Freies Textfeld -->
+    <div class="mb-3">
+        <label class="form-label fw-semibold" for="mehrarbeit_begruendung">Erlaeuterung</label>
+        <textarea name="mehrarbeit_begruendung" id="mehrarbeit_begruendung"
+                  class="form-control" rows="4"
+                  placeholder="Bitte beschreiben Sie Ihr Anliegen..."></textarea>
+    </div>
+
+    <!-- Buchungszeitraum -->
+    <div class="row g-2 mb-3">
+        <div class="col-auto">
+            <label class="form-label fw-semibold">Buchungsmonat</label>
+            <select name="mehrarbeit_buchungsmonat" class="form-select">
+                <option value="">-- Monat --</option>
+                {% for num, name in monate %}
+                <option value="{{ num }}" {% if num == aktuelles_monat %}selected{% endif %}>
+                    {{ name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label fw-semibold">Jahr</label>
+            <select name="mehrarbeit_buchungsjahr" class="form-select">
+                {% for jahr in jahre %}
+                <option value="{{ jahr }}" {% if jahr == aktuelles_jahr %}selected{% endif %}>
+                    {{ jahr }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Plus/Minus + Stunden + Minuten -->
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Betrag <span class="text-danger">*</span></label>
+        <div class="d-flex align-items-center gap-2">
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="sonstige_vorzeichen"
+                       id="vorzeichen_plus" value="+" required>
+                <label class="btn btn-outline-success" for="vorzeichen_plus">+ Plus</label>
+
+                <input type="radio" class="btn-check" name="sonstige_vorzeichen"
+                       id="vorzeichen_minus" value="-" required>
+                <label class="btn btn-outline-danger" for="vorzeichen_minus">− Minus</label>
+            </div>
+            <input type="number" name="mehrarbeit_stunden" class="form-control"
+                   style="max-width: 100px;" min="0" max="999" placeholder="0" value="0">
+            <span class="text-muted">Std.</span>
+            <input type="number" name="mehrarbeit_minuten" class="form-control"
+                   style="max-width: 100px;" min="0" max="59" placeholder="0" value="0">
+            <span class="text-muted">Min.</span>
+        </div>
+        <div class="form-text">Plus = Zeitgutschrift, Minus = Zeitabbuchung</div>
+    </div>
+
+    <!-- Belege-Upload -->
+    <div class="mb-3">
+        <h6 class="mb-2">Belege (optional)</h6>
+        <p class="text-muted small mb-2">PDF, JPG oder PNG, max. 10 MB pro Datei</p>
+        <input type="file" name="belege" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png">
+    </div>
+</div>
+
+{% elif art == "mehrarbeit" or art == "mehrarbeit_buchung" or art == "ueberstunden_buchung" or art == "rufbereitschaft_buchung" %}
+<!-- Mehrarbeit Ab-/Buchung Zeitkonto -->
+<div class="mt-3">
+    {% if art == "mehrarbeit" %}
+    <p class="mb-3 text-muted">
+        Ich bitte um Abbuchung von Mehrarbeit von meinem Zeitkonto.
+        Als Begruendung ist der entsprechende Nachweis der Mehrarbeit beigefuegt.
+    </p>
+    {% elif art == "mehrarbeit_buchung" %}
+    <p class="mb-3 text-muted">
+        Ich bitte um Buchung von Mehrarbeitszeit auf das Zeitkonto zum Ausgleich
+        eines Minus / fuer stundenweise erfolgten Freizeitausgleich.
+        Die Mehrarbeit habe ich vom Mehrarbeitskonto abgezogen.
+    </p>
+    {% elif art == "ueberstunden_buchung" %}
+    <p class="mb-3 text-muted">
+        Ich bitte um die Buchung von Zeitguthaben aus angeordneten Ueberstunden
+        auf das Zeitkonto.
+    </p>
+    {% elif art == "rufbereitschaft_buchung" %}
+    <p class="mb-3 text-muted">
+        Ich bitte um Buchung von Zeitguthaben aus angeordneter Rufbereitschaft
+        auf das Zeitkonto.
+    </p>
+    {% endif %}
+
+    <!-- Buchungsmonat + Jahr -->
+    <div class="row g-2 mb-3">
+        <div class="col-auto">
+            <label class="form-label fw-semibold">Buchungsmonat</label>
+            <select name="mehrarbeit_buchungsmonat" class="form-select">
+                <option value="">-- Monat --</option>
+                {% for num, name in monate %}
+                <option value="{{ num }}" {% if num == aktuelles_monat %}selected{% endif %}>
+                    {{ name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <label class="form-label fw-semibold">Jahr</label>
+            <select name="mehrarbeit_buchungsjahr" class="form-select">
+                {% for jahr in jahre %}
+                <option value="{{ jahr }}" {% if jahr == aktuelles_jahr %}selected{% endif %}>
+                    {{ jahr }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- Stunden + Minuten -->
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Abzubuchende Mehrarbeit</label>
+        <div class="d-flex align-items-center gap-2">
+            <input type="number" name="mehrarbeit_stunden" class="form-control"
+                   style="max-width: 100px;" min="0" max="999" placeholder="0"
+                   value="0">
+            <span class="text-muted">Std.</span>
+            <input type="number" name="mehrarbeit_minuten" class="form-control"
+                   style="max-width: 100px;" min="0" max="59" placeholder="0"
+                   value="0">
+            <span class="text-muted">Min.</span>
+        </div>
+    </div>
+
+    <!-- Freies Textfeld -->
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Erlaeuterung (optional)</label>
+        <textarea name="mehrarbeit_begruendung" class="form-control" rows="3"
+                  placeholder="Zusaetzliche Angaben zur Mehrarbeit..."></textarea>
+    </div>
+
+    <!-- Belege-Upload -->
+    <div class="mb-3">
+        <h6 class="mb-2">Nachweis der Mehrarbeit</h6>
+        <p class="text-muted small mb-2">PDF, JPG oder PNG, max. 10 MB pro Datei</p>
+        <input type="file" name="belege" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png">
+    </div>
+</div>
+
+{% elif art == "erkrankung_angehoerige" or art == "erkrankung_kind" or art == "erkrankung_betreuung" %}
+<!-- Erkrankung Angehoeriger / Kind -->
+<div class="mt-3">
+
+    <!-- Datum -->
+    <div class="mb-3">
+        <label class="form-label fw-semibold" for="erkrankung_datum">Datum der Erkrankung</label>
+        <input type="date" name="erkrankung_datum" id="erkrankung_datum"
+               class="form-control" style="max-width: 220px;" required
+               hx-post="{% url 'formulare:zeitgutschrift_datum_pruefen' %}"
+               hx-include="[name='erkrankung_datum']"
+               hx-trigger="change"
+               hx-target="#erkrankung-datum-pruefung"
+               hx-swap="innerHTML">
+        <div id="erkrankung-datum-pruefung"></div>
+    </div>
+
+    <!-- Art der Arbeitszeit -->
+    <div class="mb-3">
+        <p class="fw-semibold mb-2">Art der Arbeitszeit</p>
+        <div class="d-flex gap-2">
+            <button type="button"
+                    class="btn {% if erkrankung_typ == 'regulaer' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                    hx-get="{% url 'formulare:zeitgutschrift_felder' %}?art={{ art }}&erkrankung_typ=regulaer"
+                    hx-target="#felder-container"
+                    hx-swap="innerHTML">
+                Regelmaessige Arbeitszeit
+            </button>
+            <button type="button"
+                    class="btn {% if erkrankung_typ == 'individuell' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                    hx-get="{% url 'formulare:zeitgutschrift_felder' %}?art={{ art }}&erkrankung_typ=individuell"
+                    hx-target="#felder-container"
+                    hx-swap="innerHTML">
+                Individuelle Vereinbarung
+            </button>
+        </div>
+    </div>
+
+    {% if erkrankung_typ == "regulaer" %}
+    <input type="hidden" name="erkrankung_typ" value="regulaer">
+
+    <!-- Wochenstunden -->
+    <div class="mb-3">
+        <label class="form-label fw-semibold" for="erkrankung_wochenstunden">
+            Wochenstunden (regelmaessige Arbeitszeit)
+        </label>
+        <input type="number" name="erkrankung_wochenstunden" id="erkrankung_wochenstunden"
+               class="form-control" style="max-width: 160px;"
+               step="0.01" min="1" max="48" placeholder="z.B. 39"
+               hx-post="{% url 'formulare:zeitgutschrift_erkrankung_berechnen' %}"
+               hx-include="[name='erkrankung_typ'], [name='erkrankung_wochenstunden']"
+               hx-trigger="change, keyup delay:500ms"
+               hx-target="#erkrankung-berechnung"
+               hx-swap="innerHTML">
+        <small class="text-muted">Formel: (Wochenstunden &divide; 5) &divide; 2</small>
+    </div>
+    <div id="erkrankung-berechnung"></div>
+
+    {% elif erkrankung_typ == "individuell" %}
+    <input type="hidden" name="erkrankung_typ" value="individuell">
+
+    <!-- Tagesstunden -->
+    <div class="mb-3">
+        <label class="form-label fw-semibold" for="erkrankung_tagesstunden">
+            Arbeitsstunden am betreffenden Tag
+        </label>
+        <input type="number" name="erkrankung_tagesstunden" id="erkrankung_tagesstunden"
+               class="form-control" style="max-width: 160px;"
+               step="0.01" min="0.5" max="12" placeholder="z.B. 7.8"
+               hx-post="{% url 'formulare:zeitgutschrift_erkrankung_berechnen' %}"
+               hx-include="[name='erkrankung_typ'], [name='erkrankung_tagesstunden']"
+               hx-trigger="change, keyup delay:500ms"
+               hx-target="#erkrankung-berechnung"
+               hx-swap="innerHTML">
+        <small class="text-muted">Formel: Tagesstunden &divide; 2</small>
+    </div>
+    <div id="erkrankung-berechnung"></div>
+
+    {% endif %}
+
+    <!-- Belege -->
+    <div class="mt-4">
+        <h6 class="mb-2">Belege (optional)</h6>
+        <p class="text-muted small mb-2">PDF, JPG oder PNG, max. 10 MB pro Datei</p>
+        <input type="file" name="belege" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png">
+    </div>
+</div>
+
 {% endif %}

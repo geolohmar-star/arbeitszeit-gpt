@@ -143,6 +143,16 @@ urlpatterns = [
         views.zeitgutschrift_fortbildung_berechnen,
         name="zeitgutschrift_fortbildung_berechnen",
     ),
+    path(
+        "zeitgutschrift/erkrankung-berechnen/",
+        views.zeitgutschrift_erkrankung_berechnen,
+        name="zeitgutschrift_erkrankung_berechnen",
+    ),
+    path(
+        "zeitgutschrift/datum-pruefen/",
+        views.zeitgutschrift_datum_pruefen,
+        name="zeitgutschrift_datum_pruefen",
+    ),
     # Genehmigungsworkflow
     path(
         "genehmigung/",

@@ -367,7 +367,13 @@
                 </a>
             </div>
             {% endif %}
-            <p class="page-subtitle">{{ mitarbeiter.abteilung }} • {{ mitarbeiter.standort.name }}</p>
+            <p class="page-subtitle">
+                {% with hr=request.user.hr_mitarbeiter %}
+                    {% if hr.abteilung %}{{ hr.abteilung }}{% else %}{{ mitarbeiter.abteilung }}{% endif %}
+                    {% if hr.stelle %} • {{ hr.stelle.kuerzel }}{% endif %}
+                {% endwith %}
+                • {{ mitarbeiter.standort.name }}
+            </p>
         </div>
         <!-- Wunschplan für MA1-MA15 -->
         {% if mitarbeiter.schichtplan_kennung %}

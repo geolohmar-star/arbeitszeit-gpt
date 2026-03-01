@@ -1,0 +1,7 @@
+{% if fehler %}
+<div class="alert alert-warning mt-2">{{ fehler }}</div>
+{% elif gutschrift_hmin %}
+<div class="alert alert-success mt-2">
+    <strong>Zeitgutschrift:</strong> {{ gutschrift_hmin }}
+</div>
+{% endif %}

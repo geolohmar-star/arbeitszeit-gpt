@@ -36,7 +36,10 @@ db.sqlite3-shm
 
 # Environments
 .env
+.env.*
 .venv
+db_sync.sh
+db_dump_*.json
 env/
 venv/
 ENV/

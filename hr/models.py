@@ -250,7 +250,7 @@ class HRMitarbeiter(models.Model):
     )
     vorname = models.CharField(max_length=100)
     nachname = models.CharField(max_length=100)
-    personalnummer = models.CharField(max_length=20, unique=True)
+    personalnummer = models.CharField(max_length=20, unique=True, blank=True)
     rolle = models.CharField(max_length=20, choices=ROLLE_CHOICES, default="mitarbeiter")
     bereich = models.ForeignKey(
         Bereich,
@@ -310,6 +310,28 @@ class HRMitarbeiter(models.Model):
             ("view_zeiterfassung", "Kann Zeiterfassung einsehen"),
             ("view_stammdaten", "Kann Stammdaten einsehen"),
         ]
+
+    @classmethod
+    def _naechste_personalnummer(cls):
+        """Generiert die naechste freie 5-stellige Personalnummer (ab 10001)."""
+        from django.db.models import Max
+
+        hoechste = (
+            cls.objects.filter(personalnummer__regex=r"^\d{5}$")
+            .aggregate(Max("personalnummer"))["personalnummer__max"]
+        )
+        naechste = int(hoechste) + 1 if hoechste else 10001
+
+        # Luecken ueberspringen falls Nummer bereits vergeben
+        while cls.objects.filter(personalnummer=str(naechste)).exists():
+            naechste += 1
+
+        return str(naechste)
+
+    def save(self, *args, **kwargs):
+        if not self.personalnummer:
+            self.personalnummer = self._naechste_personalnummer()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.nachname}, {self.vorname} ({self.personalnummer})"

@@ -1873,6 +1873,100 @@ def zeitgutschrift_antrag(request):
 
                 antrag.zeilen_daten = zeilen_daten
 
+            elif art in ("erkrankung_angehoerige", "erkrankung_kind", "erkrankung_betreuung"):
+                from decimal import Decimal, InvalidOperation
+                erkrankung_typ = request.POST.get("erkrankung_typ", "")
+                datum_str = request.POST.get("erkrankung_datum", "")
+                antrag.erkrankung_typ = erkrankung_typ
+
+                if datum_str:
+                    from datetime import datetime as dt
+                    try:
+                        erkrankung_datum = dt.strptime(datum_str, "%Y-%m-%d").date()
+                        # Wochenende pruefen
+                        if erkrankung_datum.weekday() >= 5:
+                            wochentag = ["Montag", "Dienstag", "Mittwoch", "Donnerstag",
+                                         "Freitag", "Samstag", "Sonntag"][erkrankung_datum.weekday()]
+                            form.add_error(None, f"Das Datum ist ein {wochentag} – kein Arbeitstag.")
+                            return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+                        # Feiertag pruefen
+                        cal = get_feiertagskalender(request.user.mitarbeiter.standort)
+                        if cal.is_holiday(erkrankung_datum):
+                            from arbeitszeit.models import feiertag_name_deutsch
+                            name = feiertag_name_deutsch(cal, erkrankung_datum)
+                            form.add_error(None, f"Das Datum ist ein Feiertag ({name}).")
+                            return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+                        antrag.erkrankung_datum = erkrankung_datum
+                    except ValueError:
+                        form.add_error(None, "Ungaeltiges Datum.")
+                        return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+
+                if erkrankung_typ == "regulaer":
+                    try:
+                        wochenstunden = Decimal(request.POST.get("erkrankung_wochenstunden", ""))
+                        antrag.erkrankung_wochenstunden = wochenstunden
+                        antrag.erkrankung_gutschrift_stunden = (wochenstunden / 5) / 2
+                    except InvalidOperation:
+                        form.add_error(None, "Bitte gueltige Wochenstunden eingeben.")
+                        return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+
+                elif erkrankung_typ == "individuell":
+                    try:
+                        tagesstunden = Decimal(request.POST.get("erkrankung_tagesstunden", ""))
+                        antrag.erkrankung_tagesstunden = tagesstunden
+                        antrag.erkrankung_gutschrift_stunden = tagesstunden / 2
+                    except InvalidOperation:
+                        form.add_error(None, "Bitte gueltige Tagesstunden eingeben.")
+                        return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+                else:
+                    form.add_error(None, "Bitte Art der Arbeitszeit auswaehlen.")
+                    return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+
+            elif art == "sonstige":
+                try:
+                    antrag.mehrarbeit_buchungsmonat = int(request.POST.get("mehrarbeit_buchungsmonat", 0))
+                    antrag.mehrarbeit_buchungsjahr = int(request.POST.get("mehrarbeit_buchungsjahr", 0))
+                    antrag.mehrarbeit_stunden = int(request.POST.get("mehrarbeit_stunden", 0))
+                    antrag.mehrarbeit_minuten = int(request.POST.get("mehrarbeit_minuten", 0))
+                    antrag.mehrarbeit_begruendung = request.POST.get("mehrarbeit_begruendung", "")
+                    vorzeichen = request.POST.get("sonstige_vorzeichen", "")
+                    if vorzeichen not in ("+", "-"):
+                        form.add_error(None, "Bitte Plus oder Minus auswaehlen.")
+                        return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+                    antrag.sonstige_vorzeichen = vorzeichen
+                    if not (1 <= antrag.mehrarbeit_buchungsmonat <= 12):
+                        form.add_error(None, "Bitte einen gueltigen Monat auswaehlen.")
+                        return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+                    if antrag.mehrarbeit_stunden == 0 and antrag.mehrarbeit_minuten == 0:
+                        form.add_error(None, "Bitte Stunden oder Minuten eingeben.")
+                        return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+                    if not (0 <= antrag.mehrarbeit_minuten <= 59):
+                        form.add_error(None, "Minuten muessen zwischen 0 und 59 liegen.")
+                        return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+                except (ValueError, TypeError):
+                    form.add_error(None, "Ungueltige Eingabe.")
+                    return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+
+            elif art in ("mehrarbeit", "mehrarbeit_buchung", "ueberstunden_buchung", "rufbereitschaft_buchung"):
+                try:
+                    antrag.mehrarbeit_buchungsmonat = int(request.POST.get("mehrarbeit_buchungsmonat", 0))
+                    antrag.mehrarbeit_buchungsjahr = int(request.POST.get("mehrarbeit_buchungsjahr", 0))
+                    antrag.mehrarbeit_stunden = int(request.POST.get("mehrarbeit_stunden", 0))
+                    antrag.mehrarbeit_minuten = int(request.POST.get("mehrarbeit_minuten", 0))
+                    antrag.mehrarbeit_begruendung = request.POST.get("mehrarbeit_begruendung", "")
+                    if not (1 <= antrag.mehrarbeit_buchungsmonat <= 12):
+                        form.add_error(None, "Bitte einen gueltigen Monat auswaehlen.")
+                        return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+                    if antrag.mehrarbeit_stunden == 0 and antrag.mehrarbeit_minuten == 0:
+                        form.add_error(None, "Bitte Stunden oder Minuten eingeben.")
+                        return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+                    if not (0 <= antrag.mehrarbeit_minuten <= 59):
+                        form.add_error(None, "Minuten muessen zwischen 0 und 59 liegen.")
+                        return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+                except (ValueError, TypeError):
+                    form.add_error(None, "Ungueltige Eingabe.")
+                    return render(request, "formulare/zeitgutschrift_antrag.html", {"form": form})
+
             elif art == "fortbildung" and antrag.fortbildung_aktiv:
                 # Berechnung durchfuehren
                 berechnung = _berechne_fortbildung(
@@ -1913,14 +2007,30 @@ def zeitgutschrift_antrag(request):
 @login_required
 def zeitgutschrift_felder(request):
     """HTMX-View: Gibt Art-abhaengige Felder zurueck."""
+    from django.utils import timezone
+
     art = request.GET.get("art", "")
     individ = request.GET.get("individ_bestaetigung", "")
+    erkrankung_typ = request.GET.get("erkrankung_typ", "")
     form = ZeitgutschriftForm(initial={"art": art})
+
+    heute = timezone.localdate()
+    monate = [
+        (1, "Januar"), (2, "Februar"), (3, "Maerz"), (4, "April"),
+        (5, "Mai"), (6, "Juni"), (7, "Juli"), (8, "August"),
+        (9, "September"), (10, "Oktober"), (11, "November"), (12, "Dezember"),
+    ]
+    jahre = list(range(heute.year - 1, heute.year + 2))
 
     context = {
         "form": form,
         "art": art,
         "individ": individ,
+        "erkrankung_typ": erkrankung_typ,
+        "monate": monate,
+        "jahre": jahre,
+        "aktuelles_monat": heute.month,
+        "aktuelles_jahr": heute.year,
     }
     response = render(
         request,
@@ -1967,6 +2077,69 @@ def zeitgutschrift_fortbildung_berechnen(request):
     return render(
         request,
         "formulare/partials/_fortbildung_berechnung.html",
+        context,
+    )
+
+
+@login_required
+def zeitgutschrift_datum_pruefen(request):
+    """HTMX-View: Prueft ob ein Datum ein gueltiger Arbeitstag ist (kein Wochenende/Feiertag)."""
+    from datetime import datetime as dt
+
+    datum_str = request.POST.get("erkrankung_datum", "")
+    fehler = None
+    warnung = None
+
+    if datum_str:
+        try:
+            datum = dt.strptime(datum_str, "%Y-%m-%d").date()
+            mitarbeiter = request.user.mitarbeiter
+
+            if datum.weekday() >= 5:
+                wochentag = ["Montag", "Dienstag", "Mittwoch", "Donnerstag",
+                             "Freitag", "Samstag", "Sonntag"][datum.weekday()]
+                fehler = f"{datum.strftime('%d.%m.%Y')} ist ein {wochentag} – kein Arbeitstag."
+            else:
+                cal = get_feiertagskalender(mitarbeiter.standort)
+                if cal.is_holiday(datum):
+                    from arbeitszeit.models import feiertag_name_deutsch
+                    name = feiertag_name_deutsch(cal, datum)
+                    fehler = f"{datum.strftime('%d.%m.%Y')} ist ein Feiertag ({name})."
+        except (ValueError, AttributeError):
+            pass
+
+    return render(
+        request,
+        "formulare/partials/_erkrankung_datum_pruefung.html",
+        {"fehler": fehler},
+    )
+
+
+@login_required
+def zeitgutschrift_erkrankung_berechnen(request):
+    """HTMX-View: Live-Berechnung der Zeitgutschrift fuer Erkrankung eines Angehoerigen."""
+    from decimal import Decimal, InvalidOperation
+
+    erkrankung_typ = request.POST.get("erkrankung_typ", "")
+    gutschrift = None
+    fehler = None
+
+    try:
+        if erkrankung_typ == "regulaer":
+            wochenstunden = Decimal(request.POST.get("erkrankung_wochenstunden", ""))
+            tageszeit = wochenstunden / 5
+            gutschrift = tageszeit / 2
+        elif erkrankung_typ == "individuell":
+            tagesstunden = Decimal(request.POST.get("erkrankung_tagesstunden", ""))
+            gutschrift = tagesstunden / 2
+    except InvalidOperation:
+        fehler = "Bitte gueltige Stunden eingeben."
+
+    gutschrift_hmin = _dezimal_zu_hmin(float(gutschrift)) if gutschrift is not None else None
+    context = {"gutschrift": gutschrift, "gutschrift_hmin": gutschrift_hmin, "fehler": fehler}
+    return render(
+        request,
+        "formulare/partials/_erkrankung_berechnung.html",
         context,
     )
 

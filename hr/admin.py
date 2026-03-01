@@ -160,7 +160,7 @@ class HRMitarbeiterAdmin(admin.ModelAdmin):
     list_filter = ["rolle", "bereich", "abteilung"]
     search_fields = ["nachname", "vorname", "personalnummer"]
     raw_id_fields = ["vorgesetzter", "stellvertretung_fuer", "user", "stelle"]
-    readonly_fields = ["stellen_email_anzeige"]
+    readonly_fields = ["personalnummer", "stellen_email_anzeige"]
     fieldsets = [
         (
             "Basisdaten",

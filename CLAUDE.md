@@ -1,5 +1,23 @@
 # CLAUDE.md – Django Style Guide
 
+## Session-Start (PFLICHT)
+
+**Am Anfang jeder Arbeitssession IMMER zuerst ausfuehren:**
+
+```bash
+docker compose up -d
+```
+
+Danach kurz pruefen ob der Container laeuft:
+
+```bash
+docker compose ps
+```
+
+Der PostgreSQL-Container muss `Up` zeigen bevor `manage.py` aufgerufen wird.
+
+---
+
 ## Projektübersicht
 - **Framework:** Django (klassisch mit Templates)
 - **Sprache:** Python 3.11+

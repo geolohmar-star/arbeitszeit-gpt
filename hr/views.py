@@ -608,18 +608,16 @@ def company_builder_neuer_mitarbeiter(request):
     if request.method == 'POST':
         vorname = request.POST.get('vorname')
         nachname = request.POST.get('nachname')
-        personalnummer = request.POST.get('personalnummer')
         email = request.POST.get('email', '')
         rolle = request.POST.get('rolle', 'mitarbeiter')
         stelle_id = request.POST.get('stelle_id')
 
-        if vorname and nachname and personalnummer:
+        if vorname and nachname:
             try:
-                # Erstelle HRMitarbeiter
+                # Erstelle HRMitarbeiter (Personalnummer wird automatisch vergeben)
                 mitarbeiter_data = {
                     'vorname': vorname,
                     'nachname': nachname,
-                    'personalnummer': personalnummer,
                     'email': email,
                     'rolle': rolle,
                 }

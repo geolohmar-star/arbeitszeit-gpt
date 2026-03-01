@@ -43,6 +43,13 @@
             <div class="card-body">
                 <div class="mb-3">
                     {% for choice in form.art %}
+                    {% if choice.data.value == "mehrarbeit" %}
+                    <hr class="my-3">
+                    <p class="text-muted small mb-2 fw-semibold">Zeitkonto</p>
+                    {% elif choice.data.value == "sonstige" %}
+                    <hr class="my-3">
+                    <p class="text-muted small mb-2 fw-semibold">Sonstiges</p>
+                    {% endif %}
                     <div class="form-check">
                         {{ choice.tag }}
                         <label class="form-check-label" for="{{ choice.id_for_label }}">
