@@ -84,13 +84,27 @@
                            id="workflowDropdown" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
                             ⚙️ Workflow
+                            {% if workflow_tasks_anzahl or team_stapel_anzahl %}
+                            <span class="badge bg-danger rounded-pill ms-1">{{ workflow_tasks_anzahl|add:team_stapel_anzahl }}</span>
+                            {% endif %}
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="workflowDropdown">
                             <li>
-                                <a class="dropdown-item" href="{% url 'workflow:arbeitsstapel' %}">
+                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'workflow:arbeitsstapel' %}">
                                     📋 Arbeitsstapel
+                                    {% if workflow_tasks_anzahl %}
+                                    <span class="badge bg-danger rounded-pill">{{ workflow_tasks_anzahl }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
+                            {% if team_stapel_anzahl %}
+                            <li>
+                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'formulare:team_queue' %}">
+                                    📥 Team-Stapel
+                                    <span class="badge bg-danger rounded-pill">{{ team_stapel_anzahl }}</span>
+                                </a>
+                            </li>
+                            {% endif %}
                             {% if user.is_staff %}
                             <li><hr class="dropdown-divider"></li>
                             <li>

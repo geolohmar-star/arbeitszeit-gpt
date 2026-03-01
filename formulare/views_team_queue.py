@@ -21,6 +21,54 @@ from workflow.services import WorkflowEngine
 logger = logging.getLogger(__name__)
 
 
+def _naechsten_task_claimen_und_url(erledigter_task, user):
+    """Sucht den naechsten freien Task im selben Team, claimed ihn und gibt die Detail-URL zurueck.
+
+    Gibt None zurueck wenn kein weiterer Task vorhanden.
+    """
+    from django.urls import reverse
+
+    team = erledigter_task.zugewiesen_an_team
+    if not team:
+        return None
+
+    naechster = (
+        WorkflowTask.objects.filter(
+            zugewiesen_an_team=team,
+            status="offen",
+            claimed_von__isnull=True,
+        )
+        .order_by("erstellt_am")
+        .first()
+    )
+    if not naechster:
+        return None
+
+    # Auto-claimen
+    naechster.claimed_von = user
+    naechster.claimed_am = timezone.now()
+    naechster.status = "in_bearbeitung"
+    naechster.save(update_fields=["claimed_von", "claimed_am", "status"])
+
+    # Detail-URL je nach Content-Type
+    co = naechster.instance.content_object
+    ct = naechster.instance.content_type.model
+    if co is None:
+        return None
+
+    url_map = {
+        "zeitgutschrift": "formulare:zeitgutschrift_detail",
+        "zagantrag": "formulare:zag_erfolg",
+        "aenderungzeiterfassung": "formulare:aenderung_erfolg",
+        "zagstorno": "formulare:zag_storno_erfolg",
+    }
+    url_name = url_map.get(ct)
+    if not url_name:
+        return None
+
+    return reverse(url_name, args=[co.pk]) + f"?queue_task={naechster.pk}"
+
+
 @login_required
 def team_queue_uebersicht(request):
     """Zeigt die Team-Queue fuer den eingeloggten User.
@@ -441,4 +489,8 @@ def workflow_task_erledigen(request, pk):
         logger.error("Fehler beim Abschliessen des WorkflowTasks %s: %s", task.pk, exc)
         messages.error(request, "Workflow-Fehler beim Abschliessen des Tasks.")
 
+    # Naechsten Task im selben Team auto-claimen und dorthin weiterleiten
+    next_url = _naechsten_task_claimen_und_url(task, request.user)
+    if next_url:
+        return redirect(next_url)
     return redirect("formulare:team_queue")

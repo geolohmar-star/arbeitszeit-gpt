@@ -164,7 +164,7 @@
                                                             <a href="{% url 'formulare:zag_storno_erfolg' obj.pk %}" class="btn btn-sm btn-outline-primary me-1" target="_blank">Details</a>
                                                             <a href="{% url 'formulare:zag_storno_pdf' obj.pk %}" class="btn btn-sm btn-outline-danger" target="_blank">PDF</a>
                                                         {% elif ct == 'zeitgutschrift' %}
-                                                            <a href="{% url 'formulare:zeitgutschrift_detail' obj.pk %}" class="btn btn-sm btn-outline-primary me-1" target="_blank">Details</a>
+                                                            <a href="{% url 'formulare:zeitgutschrift_detail' obj.pk %}?queue_task={{ task.pk }}" class="btn btn-sm btn-outline-primary me-1">Details &amp; Erledigen</a>
                                                             <a href="{% url 'formulare:zeitgutschrift_pdf' obj.pk %}" class="btn btn-sm btn-outline-danger" target="_blank">PDF</a>
                                                         {% endif %}
                                                     </div>

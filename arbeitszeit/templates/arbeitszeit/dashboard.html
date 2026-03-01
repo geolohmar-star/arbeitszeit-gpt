@@ -327,8 +327,25 @@
                 {% if is_admin %}
                     <a href="{% url 'arbeitszeit:admin_dashboard' %}">Verwaltung</a>
                 {% endif %}
-                {% if hat_genehmiger_rolle %}
-                    <a href="{% url 'formulare:genehmigung_uebersicht' %}">Genehmigungen</a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'workflow:arbeitsstapel' %}" style="white-space: nowrap;">
+                    Arbeitsstapel
+                    {% if workflow_tasks_anzahl %}
+                    <span style="display: inline-flex; align-items: center; justify-content: center;
+                                 background: #dc3545; color: white; border-radius: 50%;
+                                 width: 20px; height: 20px; font-size: 11px; font-weight: 700;
+                                 margin-left: 4px; vertical-align: middle;">{{ workflow_tasks_anzahl }}</span>
+                    {% endif %}
+                </a>
+                {% endif %}
+                {% if team_stapel_anzahl %}
+                <a href="{% url 'formulare:team_queue' %}" style="white-space: nowrap;">
+                    Team-Stapel
+                    <span style="display: inline-flex; align-items: center; justify-content: center;
+                                 background: #dc3545; color: white; border-radius: 50%;
+                                 width: 20px; height: 20px; font-size: 11px; font-weight: 700;
+                                 margin-left: 4px; vertical-align: middle;">{{ team_stapel_anzahl }}</span>
+                </a>
                 {% endif %}
                 <a href="{% url 'hr:organigramm' %}">Organigramm</a>
                 {% if user.is_staff %}

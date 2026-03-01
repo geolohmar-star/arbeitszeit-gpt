@@ -72,6 +72,25 @@ def _starte_workflow_fuer_antrag(trigger_event, content_object, user):
         )
         return
 
+    # Duplikat-Schutz: Kein zweiter Workflow fuer dasselbe Objekt + Template
+    from django.contrib.contenttypes.models import ContentType
+    from workflow.models import WorkflowInstance
+    ct = ContentType.objects.get_for_model(content_object)
+    bereits_vorhanden = WorkflowInstance.objects.filter(
+        template=template,
+        content_type=ct,
+        object_id=content_object.pk,
+        status__in=["laufend", "wartend"],
+    ).exists()
+    if bereits_vorhanden:
+        logger.warning(
+            "Workflow '%s' fuer %s pk=%s bereits vorhanden – wird nicht nochmals gestartet.",
+            template.name,
+            content_object.__class__.__name__,
+            content_object.pk,
+        )
+        return
+
     try:
         WorkflowEngine().start_workflow(template, content_object, user)
         logger.info(
@@ -450,6 +469,7 @@ def aenderung_erfolg(request, pk):
             "betreff": antrag.get_betreff(),
             "tausch_mit_soll": tausch_mit_soll,
             "team_bearbeiter_task": _get_team_bearbeiter_task(antrag),
+            "queue_task": _get_queue_task_aus_request(request, antrag),
         },
     )
 
@@ -836,10 +856,12 @@ def zag_erfolg(request, pk):
     ist_team = _ist_team_mitglied_fuer_antrag(request.user, antrag)
     if not (ist_antragsteller or ist_staff or ist_genehmiger or ist_team):
         return HttpResponseForbidden("Keine Berechtigung fuer diesen Antrag.")
+    queue_task = _get_queue_task_aus_request(request, antrag)
     kontext = {
         "antrag": antrag,
         "betreff": antrag.get_betreff(),
         "team_bearbeiter_task": _get_team_bearbeiter_task(antrag),
+        "queue_task": queue_task,
     }
     kontext.update(_zag_jahres_kontext(antrag.antragsteller))
     return render(request, "formulare/zag_erfolg.html", kontext)
@@ -1172,6 +1194,7 @@ def zag_storno_erfolg(request, pk):
         "antrag": antrag,
         "betreff": antrag.get_betreff(),
         "team_bearbeiter_task": _get_team_bearbeiter_task(antrag),
+        "queue_task": _get_queue_task_aus_request(request, antrag),
     }
     kontext.update(_zag_jahres_kontext(antrag.antragsteller))
     return render(request, "formulare/zag_storno_erfolg.html", kontext)
@@ -1275,6 +1298,29 @@ def _ist_team_mitglied_fuer_antrag(user, content_object):
         instance__content_type=ct,
         instance__object_id=content_object.pk,
     ).exists()
+
+
+def _get_queue_task_aus_request(request, content_object):
+    """Liest queue_task GET-Parameter und prueft ob User diesen Task geclaimed hat.
+
+    Gibt den WorkflowTask zurueck oder None.
+    """
+    from workflow.models import WorkflowTask
+
+    queue_task_pk = request.GET.get("queue_task")
+    if not queue_task_pk:
+        return None
+    try:
+        ct = ContentType.objects.get_for_model(content_object)
+        return WorkflowTask.objects.select_related("step").get(
+            pk=queue_task_pk,
+            claimed_von=request.user,
+            status="in_bearbeitung",
+            instance__content_type=ct,
+            instance__object_id=content_object.pk,
+        )
+    except WorkflowTask.DoesNotExist:
+        return None
 
 
 def _genehmigende_stelle(antragsteller_ma, dauer_tage=0):
@@ -2494,10 +2540,25 @@ def zeitgutschrift_detail(request, pk):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden("Keine Berechtigung")
 
+    # Optional: aus Team-Queue geoeffnet → queue_task fuer Erledigen-Button
+    queue_task = None
+    queue_task_pk = request.GET.get("queue_task")
+    if queue_task_pk:
+        from workflow.models import WorkflowTask
+        try:
+            queue_task = WorkflowTask.objects.select_related("step").get(
+                pk=queue_task_pk,
+                claimed_von=request.user,
+                status="in_bearbeitung",
+            )
+        except WorkflowTask.DoesNotExist:
+            pass
+
     context = {
         "antrag": antrag,
         "ist_genehmiger": ist_genehmiger,
         "ist_antragsteller": ist_antragsteller,
+        "queue_task": queue_task,
     }
     return render(request, "formulare/zeitgutschrift_detail.html", context)
 

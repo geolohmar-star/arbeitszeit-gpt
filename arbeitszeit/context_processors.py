@@ -58,3 +58,72 @@ def genehmiger_rolle(request):
         hat_rolle = False
 
     return {"hat_genehmiger_rolle": hat_rolle}
+
+
+def workflow_tasks_anzahl(request):
+    """Zaehlt offene Workflow-Tasks fuer den eingeloggten User.
+
+    Gibt 'workflow_tasks_anzahl' ans Template weiter – wird in der Navbar
+    als Badge am Arbeitsstapel-Link angezeigt.
+    Zaehlt Tasks die direkt oder ueber die Stelle des Users zugewiesen sind.
+    """
+    if not request.user.is_authenticated:
+        return {"workflow_tasks_anzahl": 0}
+
+    try:
+        from django.db.models import Q
+        from workflow.models import WorkflowTask
+
+        user = request.user
+
+        tasks_direkt = Q(zugewiesen_an_user=user)
+
+        tasks_stelle = Q(zugewiesen_an_user__isnull=True)
+        if (
+            hasattr(user, "hr_mitarbeiter")
+            and user.hr_mitarbeiter
+            and user.hr_mitarbeiter.stelle
+        ):
+            tasks_stelle &= Q(zugewiesen_an_stelle=user.hr_mitarbeiter.stelle)
+        else:
+            tasks_stelle = Q(pk__isnull=True)
+
+        anzahl = WorkflowTask.objects.filter(
+            tasks_direkt | tasks_stelle,
+            status__in=["offen", "in_bearbeitung"],
+        ).count()
+    except Exception:
+        anzahl = 0
+
+    return {"workflow_tasks_anzahl": anzahl}
+
+
+def team_stapel_anzahl(request):
+    """Zaehlt offene, noch nicht geclaimte Team-Queue-Tasks in den Teams des Users.
+
+    Gibt 'team_stapel_anzahl' ans Template weiter – wird in der Navbar
+    als Badge am Team-Stapel-Link angezeigt.
+    """
+    if not request.user.is_authenticated:
+        return {"team_stapel_anzahl": 0}
+
+    try:
+        from formulare.models import TeamQueue
+        from workflow.models import WorkflowTask
+
+        user_teams = list(
+            TeamQueue.objects.filter(mitglieder=request.user).values_list("pk", flat=True)
+        )
+        if not user_teams:
+            return {"team_stapel_anzahl": 0}
+
+        anzahl = WorkflowTask.objects.filter(
+            zugewiesen_an_team_id__in=user_teams,
+            status="offen",
+            claimed_von__isnull=True,
+        ).count()
+    except Exception:
+        logger.exception("team_stapel_anzahl Processor Fehler fuer User %s", request.user)
+        anzahl = 0
+
+    return {"team_stapel_anzahl": anzahl}

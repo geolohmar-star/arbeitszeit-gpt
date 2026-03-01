@@ -10,7 +10,11 @@
             <li class="breadcrumb-item">
                 <a href="{% url 'formulare:dashboard' %}">Formulare</a>
             </li>
-            {% if ist_genehmiger %}
+            {% if queue_task %}
+            <li class="breadcrumb-item">
+                <a href="{% url 'formulare:team_queue' %}">Team-Stapel</a>
+            </li>
+            {% elif ist_genehmiger %}
             <li class="breadcrumb-item">
                 <a href="{% url 'formulare:genehmigung_uebersicht' %}">Genehmigungen</a>
             </li>
@@ -18,6 +22,25 @@
             <li class="breadcrumb-item active">Zeitgutschrift Details</li>
         </ol>
     </nav>
+
+    {% if queue_task %}
+    <div class="alert alert-info d-flex justify-content-between align-items-center py-2 mb-3">
+        <span><strong>Team-Stapel:</strong> {{ queue_task.step.titel }} – geclaimed von Ihnen</span>
+        <div class="d-flex gap-2">
+            <a href="{% url 'formulare:team_queue' %}" class="btn btn-sm btn-outline-secondary">
+                Zurück zum Stapel
+            </a>
+            <form method="post" action="{% url 'formulare:wf_task_erledigen' queue_task.pk %}"
+                  style="display:inline;"
+                  onsubmit="return confirm('Zeitgutschrift als erledigt markieren?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-success">
+                    Erledigen
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="d-flex justify-content-between align-items-start mb-3">
         <div>
@@ -51,6 +74,137 @@
                     <code class="small">{{ antrag.get_betreff }}</code>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Beantragte Gutschrift: Mehrarbeit / Rufbereitschaft / Ueberstunden -->
+    {% if antrag.art == "mehrarbeit" or antrag.art == "mehrarbeit_buchung" or antrag.art == "ueberstunden_buchung" or antrag.art == "rufbereitschaft_buchung" %}
+    <div class="card mb-3 border-primary">
+        <div class="card-header fw-bold bg-primary text-white">Beantragte Gutschrift</div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <tr>
+                    <td class="text-muted ps-3" style="width:220px">Zeitwert</td>
+                    <td><strong class="fs-5">{{ antrag.mehrarbeit_stunden }}h {{ antrag.mehrarbeit_minuten|stringformat:"02d" }}min</strong></td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Buchungsmonat</td>
+                    <td><strong>{{ antrag.buchungsmonat_name }} {{ antrag.mehrarbeit_buchungsjahr }}</strong></td>
+                </tr>
+                {% if antrag.mehrarbeit_begruendung %}
+                <tr>
+                    <td class="text-muted ps-3">Begründung</td>
+                    <td>{{ antrag.mehrarbeit_begruendung }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Erkrankungsdetails -->
+    {% if antrag.art == "erkrankung_angehoerige" or antrag.art == "erkrankung_kind" or antrag.art == "erkrankung_betreuung" %}
+    <div class="card mb-3 border-primary">
+        <div class="card-header fw-bold bg-primary text-white">Beantragte Gutschrift</div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                {% if antrag.erkrankung_datum %}
+                <tr>
+                    <td class="text-muted ps-3" style="width:220px">Datum</td>
+                    <td><strong>{{ antrag.erkrankung_datum|date:"d.m.Y" }}</strong></td>
+                </tr>
+                {% endif %}
+                {% if antrag.erkrankung_typ %}
+                <tr>
+                    <td class="text-muted ps-3">Erkrankungsart</td>
+                    <td>{{ antrag.erkrankung_typ }}</td>
+                </tr>
+                {% endif %}
+                {% if antrag.erkrankung_wochenstunden %}
+                <tr>
+                    <td class="text-muted ps-3">Wochenstunden (regulär)</td>
+                    <td>{{ antrag.erkrankung_wochenstunden }} h</td>
+                </tr>
+                {% endif %}
+                {% if antrag.erkrankung_tagesstunden %}
+                <tr>
+                    <td class="text-muted ps-3">Tagesstunden (regulär)</td>
+                    <td>{{ antrag.erkrankung_tagesstunden }} h</td>
+                </tr>
+                {% endif %}
+                {% if antrag.erkrankung_gutschrift_stunden %}
+                <tr>
+                    <td class="text-muted ps-3">Gutschrift</td>
+                    <td><strong class="fs-5">{{ antrag.erkrankung_gutschrift_hmin }}</strong></td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Sonstige -->
+    {% if antrag.art == "sonstige" %}
+    <div class="card mb-3 border-primary">
+        <div class="card-header fw-bold bg-primary text-white">Beantragte Gutschrift</div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                {% if antrag.sonstige_vorzeichen %}
+                <tr>
+                    <td class="text-muted ps-3" style="width:220px">Vorzeichen</td>
+                    <td><strong>{% if antrag.sonstige_vorzeichen == "+" %}Gutschrift (+){% else %}Abbuchung (-){% endif %}</strong></td>
+                </tr>
+                {% endif %}
+                {% if antrag.mehrarbeit_stunden is not None %}
+                <tr>
+                    <td class="text-muted ps-3">Zeitwert</td>
+                    <td><strong class="fs-5">{{ antrag.mehrarbeit_stunden }}h {{ antrag.mehrarbeit_minuten|stringformat:"02d" }}min</strong></td>
+                </tr>
+                {% endif %}
+                {% if antrag.mehrarbeit_begruendung %}
+                <tr>
+                    <td class="text-muted ps-3">Begründung</td>
+                    <td>{{ antrag.mehrarbeit_begruendung }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Genehmigung -->
+    <div class="card mb-3">
+        <div class="card-header fw-bold d-flex justify-content-between">
+            Genehmigung
+            {% if antrag.bearbeitet_von %}
+                <span class="badge bg-success fw-normal">Genehmigt</span>
+            {% else %}
+                <span class="badge bg-secondary fw-normal">ausstehend</span>
+            {% endif %}
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <tr>
+                    <td class="text-muted ps-3" style="width:220px">Genehmigt von</td>
+                    <td>
+                        {% if antrag.bearbeitet_von %}
+                            <strong>{{ antrag.bearbeitet_von.get_full_name|default:antrag.bearbeitet_von.username }}</strong>
+                        {% else %}
+                            <span class="text-muted fst-italic">_______________</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Datum</td>
+                    <td>
+                        {% if antrag.bearbeitet_am %}
+                            <strong>{{ antrag.bearbeitet_am|date:"d.m.Y" }}</strong>
+                        {% else %}
+                            <span class="text-muted fst-italic">_______________</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
         </div>
     </div>
 

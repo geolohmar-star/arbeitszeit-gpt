@@ -91,6 +91,8 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'arbeitszeit.context_processors.schichtplan_zugang',
                 'arbeitszeit.context_processors.genehmiger_rolle',
+                'arbeitszeit.context_processors.workflow_tasks_anzahl',
+                'arbeitszeit.context_processors.team_stapel_anzahl',
             ],
         },
     },
