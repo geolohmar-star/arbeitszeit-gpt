@@ -35,6 +35,7 @@
                         <th>Aktenzeichen</th>
                         <th>Formular</th>
                         <th style="width:130px">Status</th>
+                        <th style="width:220px">Workflow</th>
                         <th style="width:80px"></th>
                     </tr>
                 </thead>
@@ -72,6 +73,45 @@
                             {% elif antrag.status == "abgelehnt" %}
                                 <span class="badge bg-danger">Abgelehnt</span>
                             {% endif %}
+                        </td>
+                        <td class="align-middle">
+                            {% with wf=antrag.workflow_instance %}
+                            {% if wf %}
+                                {% if wf.status == "laufend" %}
+                                    <div class="small text-muted mb-1">
+                                        {% if wf.aktueller_schritt %}
+                                            {{ wf.aktueller_schritt.titel }}
+                                        {% else %}
+                                            In Bearbeitung
+                                        {% endif %}
+                                        {% if antrag.wf_naechste_stelle %}
+                                            &rarr; <code class="small">{{ antrag.wf_naechste_stelle }}</code>
+                                        {% endif %}
+                                    </div>
+                                    <div class="progress" style="height:6px;" title="{{ wf.fortschritt }}%">
+                                        <div class="progress-bar bg-primary"
+                                             style="width:{{ wf.fortschritt }}%"></div>
+                                    </div>
+                                {% elif wf.status == "abgeschlossen" %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        Abgeschlossen
+                                    </span>
+                                    <div class="progress mt-1" style="height:4px;">
+                                        <div class="progress-bar bg-success" style="width:100%"></div>
+                                    </div>
+                                {% elif wf.status == "abgebrochen" %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                        Abgelehnt
+                                    </span>
+                                {% elif wf.status == "pausiert" %}
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                        Pausiert
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted small">–</span>
+                            {% endif %}
+                            {% endwith %}
                         </td>
                         <td class="align-middle text-end">
                             {% if antrag.antrag_typ == "zag" %}

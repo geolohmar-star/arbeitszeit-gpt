@@ -1,0 +1,28 @@
+<div id="inhaber-form-{{ stelle.pk }}" class="mt-2 p-2 border rounded bg-light">
+    <form hx-post="{% url 'hr:kasten_stelle_inhaber' stelle.pk %}"
+          hx-target="#stelle-zeile-{{ stelle.pk }}"
+          hx-swap="outerHTML">
+        {% csrf_token %}
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <select name="mitarbeiter_pk" class="form-select form-select-sm" style="max-width: 280px;">
+                <option value="">-- Stelle freistellen --</option>
+                {% if aktueller_inhaber %}
+                <option value="{{ aktueller_inhaber.pk }}" selected>
+                    {{ aktueller_inhaber.nachname }}, {{ aktueller_inhaber.vorname }}
+                    ({{ aktueller_inhaber.personalnummer }}) [aktuell]
+                </option>
+                {% endif %}
+                {% for ma in verfuegbare %}
+                <option value="{{ ma.pk }}">
+                    {{ ma.nachname }}, {{ ma.vorname }} ({{ ma.personalnummer }})
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary">Speichern</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    onclick="this.closest('#inhaber-form-{{ stelle.pk }}').remove()">
+                Abbrechen
+            </button>
+        </div>
+    </form>
+</div>

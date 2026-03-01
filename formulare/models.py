@@ -351,6 +351,56 @@ class Dienstreiseantrag(Antrag):
         return 0
 
 
+class ReisezeitTagebuchEintrag(models.Model):
+    """Einzelner Tagebucheintrag fuer eine Dienstreise.
+
+    Pro Tag und Fall koennen mehrere Eintraege existieren (z.B. Hinfahrt und
+    Rueckfahrt am selben Tag). Die Gutschrift wird dynamisch berechnet.
+    """
+
+    FALL_CHOICES = [
+        (1, "Fall 1 – Normalarbeitszeit vom Standort (keine Gutschrift)"),
+        (2, "Fall 2 – Gesamtzeit waehrend Arbeitstag (Differenz zur Regelarbeitszeit)"),
+        (3, "Fall 3 – Reisezeit ausserhalb Arbeitszeit (1/3 als Gutschrift)"),
+    ]
+
+    bemerkung = models.TextField(blank=True)
+    bis_zeit = models.TimeField()
+    datum = models.DateField()
+    dienstreise = models.ForeignKey(
+        Dienstreiseantrag,
+        on_delete=models.CASCADE,
+        related_name="tagebuch_eintraege",
+    )
+    fall = models.PositiveSmallIntegerField(choices=FALL_CHOICES)
+    von_zeit = models.TimeField()
+
+    class Meta:
+        ordering = ["datum", "von_zeit"]
+        verbose_name = "Reisezeit-Tagebucheintrag"
+        verbose_name_plural = "Reisezeit-Tagebucheintraege"
+
+    def __str__(self):
+        return (
+            f"{self.datum} Fall {self.fall}: "
+            f"{self.von_zeit:%H:%M}-{self.bis_zeit:%H:%M}"
+        )
+
+    @property
+    def dauer_minuten(self):
+        """Dauer des Eintrags in Minuten."""
+        von = self.von_zeit.hour * 60 + self.von_zeit.minute
+        bis = self.bis_zeit.hour * 60 + self.bis_zeit.minute
+        return max(bis - von, 0)
+
+    @property
+    def dauer_hmin(self):
+        """Dauer als 'Xh MMmin' formatiert."""
+        h = self.dauer_minuten // 60
+        m = self.dauer_minuten % 60
+        return f"{h}h {m:02d}min"
+
+
 class Zeitgutschrift(Antrag):
     """Antrag auf Zeitgutschrift.
 
@@ -401,6 +451,10 @@ class Zeitgutschrift(Antrag):
         (
             "sonstige",
             "Sonstige Anliegen",
+        ),
+        (
+            "reisezeit_tagebuch",
+            "Reisezeit-Tagebuch (Dienstreise)",
         ),
     ]
 
@@ -458,6 +512,16 @@ class Zeitgutschrift(Antrag):
     mehrarbeit_minuten = models.PositiveSmallIntegerField(null=True, blank=True)
     mehrarbeit_begruendung = models.TextField(blank=True)
     sonstige_vorzeichen = models.CharField(max_length=1, blank=True)  # '+' oder '-'
+
+    # Verknuepfung mit Dienstreise-Tagebuch
+    reisezeit_dienstreise = models.ForeignKey(
+        "Dienstreiseantrag",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reisezeit_gutschriften",
+        verbose_name="Zugehoerige Dienstreise",
+    )
 
     # Workflow-Verknuepfung
     workflow_instance = models.ForeignKey(
@@ -565,6 +629,14 @@ class ZeitgutschriftBeleg(models.Model):
             return "Unbekannt"
 
 
+ANTRAG_TYP_CHOICES = [
+    ("aenderung", "Aenderung Zeiterfassung"),
+    ("zag", "Zeitausgleich (Z-AG)"),
+    ("zag_storno", "Z-AG Storno"),
+    ("zeitgutschrift", "Zeitgutschrift"),
+]
+
+
 class TeamQueue(models.Model):
     """Team-Bearbeitungsstapel fuer genehmigte Antraege.
 
@@ -572,6 +644,11 @@ class TeamQueue(models.Model):
     Mitglieder koennen Antraege aus der Queue claimen und bearbeiten.
     """
 
+    antragstypen = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste der Antragstypen die dieses Team bearbeitet (z.B. ['zag', 'aenderung']).",
+    )
     beschreibung = models.TextField(
         blank=True,
         help_text="Beschreibung des Teams und seiner Zustaendigkeiten.",
@@ -601,63 +678,63 @@ class TeamQueue(models.Model):
         return self.name
 
     def antraege_in_queue(self):
-        """Gibt alle genehmigten, ungeclaimten Antraege zurueck."""
+        """Gibt genehmigte, ungeclaimte Antraege gemaess den konfigurierten Antragstypen zurueck."""
         from itertools import chain
 
-        aenderungen = AenderungZeiterfassung.objects.filter(
-            status="genehmigt",
-            claimed_von__isnull=True,
-        )
-        zag_antraege = ZAGAntrag.objects.filter(
-            status="genehmigt",
-            claimed_von__isnull=True,
-        )
-        zag_stornos = ZAGStorno.objects.filter(
-            status="genehmigt",
-            claimed_von__isnull=True,
-        )
-        zeitgutschriften = Zeitgutschrift.objects.filter(
-            status="genehmigt",
-            claimed_von__isnull=True,
-        )
+        typen = self.antragstypen or []
+        querysets = []
 
-        # Alle zusammenfuehren und nach Prioritaet/Erstelldatum sortieren
-        alle_antraege = sorted(
-            chain(aenderungen, zag_antraege, zag_stornos, zeitgutschriften),
+        if "aenderung" in typen:
+            querysets.append(AenderungZeiterfassung.objects.filter(
+                status="genehmigt", claimed_von__isnull=True,
+            ))
+        if "zag" in typen:
+            querysets.append(ZAGAntrag.objects.filter(
+                status="genehmigt", claimed_von__isnull=True,
+            ))
+        if "zag_storno" in typen:
+            querysets.append(ZAGStorno.objects.filter(
+                status="genehmigt", claimed_von__isnull=True,
+            ))
+        if "zeitgutschrift" in typen:
+            querysets.append(Zeitgutschrift.objects.filter(
+                status="genehmigt", claimed_von__isnull=True,
+            ))
+
+        if not querysets:
+            return []
+
+        return sorted(
+            chain(*querysets),
             key=lambda x: (-x.prioritaet, x.erstellt_am),
         )
-        return alle_antraege
 
     def antraege_in_bearbeitung(self):
-        """Gibt alle geclaimten Antraege des Teams zurueck."""
+        """Gibt alle geclaimten Antraege des Teams zurueck (gefiltert nach Antragstypen)."""
         from itertools import chain
 
+        typen = self.antragstypen or []
         mitglieder_ids = self.mitglieder.values_list("id", flat=True)
+        querysets = []
 
-        aenderungen = AenderungZeiterfassung.objects.filter(
-            status="in_bearbeitung",
-            claimed_von__in=mitglieder_ids,
-        )
-        zag_antraege = ZAGAntrag.objects.filter(
-            status="in_bearbeitung",
-            claimed_von__in=mitglieder_ids,
-        )
-        zag_stornos = ZAGStorno.objects.filter(
-            status="in_bearbeitung",
-            claimed_von__in=mitglieder_ids,
-        )
-        zeitgutschriften = Zeitgutschrift.objects.filter(
-            status="in_bearbeitung",
-            claimed_von__in=mitglieder_ids,
-        )
+        if "aenderung" in typen:
+            querysets.append(AenderungZeiterfassung.objects.filter(
+                status="in_bearbeitung", claimed_von__in=mitglieder_ids,
+            ))
+        if "zag" in typen:
+            querysets.append(ZAGAntrag.objects.filter(
+                status="in_bearbeitung", claimed_von__in=mitglieder_ids,
+            ))
+        if "zag_storno" in typen:
+            querysets.append(ZAGStorno.objects.filter(
+                status="in_bearbeitung", claimed_von__in=mitglieder_ids,
+            ))
+        if "zeitgutschrift" in typen:
+            querysets.append(Zeitgutschrift.objects.filter(
+                status="in_bearbeitung", claimed_von__in=mitglieder_ids,
+            ))
 
-        alle_antraege = sorted(
-            chain(
-                aenderungen,
-                zag_antraege,
-                zag_stornos,
-                zeitgutschriften,
-            ),
-            key=lambda x: x.claimed_am,
-        )
-        return alle_antraege
+        if not querysets:
+            return []
+
+        return sorted(chain(*querysets), key=lambda x: x.claimed_am)

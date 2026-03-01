@@ -1,8 +1,11 @@
 import json
+import logging
 import uuid
 from datetime import date as date_type, timedelta
 from itertools import chain
 from operator import attrgetter
+
+logger = logging.getLogger(__name__)
 
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -24,6 +27,7 @@ from formulare.forms import (
 from formulare.models import (
     AenderungZeiterfassung,
     Dienstreiseantrag,
+    ReisezeitTagebuchEintrag,
     TeamQueue,
     ZAGAntrag,
     ZAGStorno,
@@ -42,13 +46,67 @@ WOCHENTAG_MAP = {
 }
 
 
+def _starte_workflow_fuer_antrag(trigger_event, content_object, user):
+    """Startet einen Workflow fuer einen neuen Antrag, falls ein aktives Template vorhanden ist.
+
+    Sucht das erste aktive WorkflowTemplate mit passendem trigger_event und
+    startet eine neue WorkflowInstance fuer das uebergebene Objekt.
+
+    Args:
+        trigger_event: String des Trigger-Events (z.B. 'zag_antrag_erstellt')
+        content_object: Django-Model-Instanz (z.B. ZAGAntrag)
+        user: Der ausloesendeUser (request.user)
+    """
+    from workflow.models import WorkflowTemplate
+    from workflow.services import WorkflowEngine
+
+    template = WorkflowTemplate.objects.filter(
+        trigger_event=trigger_event,
+        ist_aktiv=True,
+    ).first()
+
+    if not template:
+        logger.debug(
+            "Kein aktives Workflow-Template fuer trigger_event='%s' gefunden.",
+            trigger_event,
+        )
+        return
+
+    try:
+        WorkflowEngine().start_workflow(template, content_object, user)
+        logger.info(
+            "Workflow '%s' gestartet fuer %s pk=%s",
+            template.name,
+            content_object.__class__.__name__,
+            content_object.pk,
+        )
+    except Exception as exc:
+        logger.error(
+            "Fehler beim Starten des Workflows '%s': %s",
+            template.name,
+            exc,
+        )
+
+
 @login_required
 def dashboard(request):
     """Dashboard fuer die Formulare-App.
 
     Zeigt eine Uebersicht aller verfuegbaren Antragsformulare.
     """
-    context = {}
+    from workflow.models import WorkflowTask
+
+    # Anzahl offener Workflow-Tasks im Team des eingeloggten Users
+    team_stapel_anzahl = 0
+    user_teams = TeamQueue.objects.filter(mitglieder=request.user)
+    if user_teams.exists():
+        team_stapel_anzahl = WorkflowTask.objects.filter(
+            zugewiesen_an_team__in=user_teams,
+            status="offen",
+            claimed_von__isnull=True,
+        ).count()
+
+    context = {"team_stapel_anzahl": team_stapel_anzahl}
 
     # HTMX-Request: nur Partial zurueckgeben
     if request.headers.get("HX-Request"):
@@ -147,6 +205,9 @@ def meine_antraege(request):
         reverse=True,
     )
 
+    # WorkflowInstances fuer alle Antraege laden und anheften
+    _annotiere_workflow_status(alle_antraege)
+
     paginator = Paginator(alle_antraege, 10)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -159,6 +220,93 @@ def meine_antraege(request):
             "loeschgrenze": loeschgrenze,
         },
     )
+
+
+def _annotiere_workflow_status(antraege):
+    """Haengt WorkflowInstance und den naechsten Bearbeiter an jeden Antrag an.
+
+    Setzt:
+      antrag.workflow_instance  = WorkflowInstance oder None
+      antrag.wf_naechste_stelle = Stelle.kuerzel des offenen Tasks oder None
+
+    Nutzt Bulk-Abfragen um N+1 zu vermeiden.
+    """
+    from django.contrib.contenttypes.models import ContentType
+    from workflow.models import WorkflowInstance, WorkflowTask
+
+    if not antraege:
+        return
+
+    # ContentTypes fuer alle vorkommenden Klassen einmalig laden
+    ct_cache = {}
+
+    lookup_pairs = []
+    for antrag in antraege:
+        cls = type(antrag)
+        if cls not in ct_cache:
+            ct_cache[cls] = ContentType.objects.get_for_model(cls)
+        lookup_pairs.append((ct_cache[cls].id, antrag.pk))
+
+    ct_ids = list({p[0] for p in lookup_pairs})
+    obj_ids = list({p[1] for p in lookup_pairs})
+
+    # WorkflowInstanzen laden
+    instanzen = WorkflowInstance.objects.filter(
+        content_type_id__in=ct_ids,
+        object_id__in=obj_ids,
+    ).select_related("aktueller_schritt", "template").order_by("-gestartet_am")
+
+    # Mapping (ct_id, obj_id) -> neueste Instanz
+    instanz_map = {}
+    for inst in instanzen:
+        key = (inst.content_type_id, inst.object_id)
+        if key not in instanz_map:
+            instanz_map[key] = inst
+
+    # Offene Tasks fuer alle Instanzen laden (ein Query)
+    instanz_ids = [inst.pk for inst in instanz_map.values()]
+    offene_tasks = WorkflowTask.objects.filter(
+        instance_id__in=instanz_ids,
+        status__in=["offen", "in_bearbeitung"],
+    ).select_related(
+        "zugewiesen_an_stelle",
+        "zugewiesen_an_team",
+        "zugewiesen_an_user",
+        "claimed_von",
+    ).order_by("frist")
+
+    # Mapping instanz_id -> erster offener Task
+    task_map = {}
+    for task in offene_tasks:
+        if task.instance_id not in task_map:
+            task_map[task.instance_id] = task
+
+    # An jeden Antrag haengen
+    for antrag in antraege:
+        ct_id = ct_cache[type(antrag)].id
+        inst = instanz_map.get((ct_id, antrag.pk))
+        antrag.workflow_instance = inst
+
+        # Naechste Stelle / Bearbeiter ermitteln
+        antrag.wf_naechste_stelle = None
+        if inst:
+            task = task_map.get(inst.pk)
+            if task:
+                if task.claimed_von:
+                    # Task geclaimed: konkreten User anzeigen
+                    antrag.wf_naechste_stelle = (
+                        task.claimed_von.username.split(".")[0]
+                        + "."
+                        + (task.claimed_von.username.split(".")[1] if len(task.claimed_von.username.split(".")) > 1 else "")
+                    ).strip(".")
+                elif task.zugewiesen_an_stelle:
+                    antrag.wf_naechste_stelle = task.zugewiesen_an_stelle.kuerzel
+                elif task.zugewiesen_an_team:
+                    antrag.wf_naechste_stelle = task.zugewiesen_an_team.name
+                elif task.zugewiesen_an_user:
+                    u = task.zugewiesen_an_user
+                    teile = u.username.split(".")
+                    antrag.wf_naechste_stelle = ".".join(teile[:2]) if len(teile) >= 2 else u.username
 
 
 @login_required
@@ -216,6 +364,10 @@ def aenderung_zeiterfassung(request):
             antrag.tausch_daten = tausch_daten or None
 
             antrag.save()
+
+            # Workflow starten (falls aktives Template vorhanden)
+            _starte_workflow_fuer_antrag("aenderung_erstellt", antrag, request.user)
+
             return redirect("formulare:aenderung_erfolg", pk=antrag.pk)
 
         # HTMX-POST mit Fehler: Formular-Partial zurueckgeben
@@ -239,12 +391,19 @@ def aenderung_erfolg(request, pk):
     """Erfolgsseite nach dem Einreichen eines Aenderungsantrags.
 
     Zeigt Betreffzeile mit Kopierfunktion, Antragsdetails und PDF-Download.
+    Zugriff: Antragsteller, Staff, Genehmiger oder Team-Bearbeiter.
     """
-    antrag = get_object_or_404(
-        AenderungZeiterfassung,
-        pk=pk,
-        antragsteller__user=request.user,
-    )
+    from django.http import HttpResponseForbidden
+
+    antrag = get_object_or_404(AenderungZeiterfassung, pk=pk)
+    ist_antragsteller = antrag.antragsteller.user == request.user
+    ist_staff = request.user.is_staff or request.user.is_superuser
+    ist_genehmiger = _offene_antraege_fuer_user(request.user).filter(
+        pk=antrag.antragsteller.pk
+    ).exists()
+    ist_team = _ist_team_mitglied_fuer_antrag(request.user, antrag)
+    if not (ist_antragsteller or ist_staff or ist_genehmiger or ist_team):
+        return HttpResponseForbidden("Keine Berechtigung fuer diesen Antrag.")
     vereinbarung = _vereinbarung_fuer_mitarbeiter(
         antrag.antragsteller,
         antrag.erstellt_am.date(),
@@ -290,6 +449,7 @@ def aenderung_erfolg(request, pk):
             "vereinbarung": vereinbarung,
             "betreff": antrag.get_betreff(),
             "tausch_mit_soll": tausch_mit_soll,
+            "team_bearbeiter_task": _get_team_bearbeiter_task(antrag),
         },
     )
 
@@ -299,11 +459,17 @@ def aenderung_pdf(request, pk):
     """Gibt den Aenderungsantrag als PDF-Download zurueck."""
     from weasyprint import HTML
 
-    antrag = get_object_or_404(
-        AenderungZeiterfassung,
-        pk=pk,
-        antragsteller__user=request.user,
-    )
+    antrag = get_object_or_404(AenderungZeiterfassung, pk=pk)
+
+    ist_antragsteller = antrag.antragsteller.user == request.user
+    ist_staff = request.user.is_staff or request.user.is_superuser
+    ist_genehmiger = _offene_antraege_fuer_user(request.user).filter(
+        pk=antrag.antragsteller.pk
+    ).exists()
+    ist_team = _ist_team_mitglied_fuer_antrag(request.user, antrag)
+    if not (ist_antragsteller or ist_staff or ist_genehmiger or ist_team):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Keine Berechtigung fuer diesen Antrag.")
     vereinbarung = _vereinbarung_fuer_mitarbeiter(
         antrag.antragsteller,
         antrag.erstellt_am.date(),
@@ -635,6 +801,9 @@ def zag_antrag(request):
         # KEINE Zeiterfassungs-Eintraege beim Antragstellen mehr!
         # Werden erst bei Genehmigung erstellt (siehe genehmigung_entscheiden)
 
+        # Workflow starten (falls aktives Template vorhanden)
+        _starte_workflow_fuer_antrag("zag_antrag_erstellt", antrag, request.user)
+
         return redirect("formulare:zag_erfolg", pk=antrag.pk)
 
     # Optionales Vorbefuellen des Von-Datums aus Query-Parameter
@@ -654,15 +823,23 @@ def zag_erfolg(request, pk):
     """Erfolgsseite nach dem Einreichen eines Z-AG-Antrags.
 
     Zeigt Betreffzeile mit Kopierfunktion, Datumsbereich(e) und PDF-Download.
+    Zugriff: Antragsteller, Staff, Genehmiger oder Team-Bearbeiter.
     """
-    antrag = get_object_or_404(
-        ZAGAntrag,
-        pk=pk,
-        antragsteller__user=request.user,
-    )
+    from django.http import HttpResponseForbidden
+
+    antrag = get_object_or_404(ZAGAntrag, pk=pk)
+    ist_antragsteller = antrag.antragsteller.user == request.user
+    ist_staff = request.user.is_staff or request.user.is_superuser
+    ist_genehmiger = _offene_antraege_fuer_user(request.user).filter(
+        pk=antrag.antragsteller.pk
+    ).exists()
+    ist_team = _ist_team_mitglied_fuer_antrag(request.user, antrag)
+    if not (ist_antragsteller or ist_staff or ist_genehmiger or ist_team):
+        return HttpResponseForbidden("Keine Berechtigung fuer diesen Antrag.")
     kontext = {
         "antrag": antrag,
         "betreff": antrag.get_betreff(),
+        "team_bearbeiter_task": _get_team_bearbeiter_task(antrag),
     }
     kontext.update(_zag_jahres_kontext(antrag.antragsteller))
     return render(request, "formulare/zag_erfolg.html", kontext)
@@ -681,9 +858,12 @@ def zag_pdf(request, pk):
     # Berechtigungspruefung
     ist_antragsteller = antrag.antragsteller.user == request.user
     ist_staff = request.user.is_staff or request.user.is_superuser
-    ist_team_bearbeiter = antrag.claimed_von == request.user
+    ist_team = _ist_team_mitglied_fuer_antrag(request.user, antrag)
+    ist_genehmiger = _offene_antraege_fuer_user(request.user).filter(
+        pk=antrag.antragsteller.pk
+    ).exists()
 
-    if not (ist_antragsteller or ist_staff or ist_team_bearbeiter):
+    if not (ist_antragsteller or ist_staff or ist_team or ist_genehmiger):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden("Keine Berechtigung fuer diesen Antrag.")
 
@@ -947,11 +1127,8 @@ def zag_storno(request):
             storno_daten=storno_daten,
         )
 
-        # Sofort Zeiterfassungs-Eintraege loeschen
-        for zeile in storno_daten:
-            von = date_type.fromisoformat(zeile["von_datum"])
-            bis = date_type.fromisoformat(zeile["bis_datum"])
-            _storniere_zag_eintraege(mitarbeiter, von, bis)
+        # Workflow starten (falls aktives Template vorhanden)
+        _starte_workflow_fuer_antrag("zag_storno_erstellt", antrag, request.user)
 
         return redirect("formulare:zag_storno_erfolg", pk=antrag.pk)
 
@@ -976,15 +1153,25 @@ def zag_storno(request):
 
 @login_required
 def zag_storno_erfolg(request, pk):
-    """Erfolgsseite nach dem Einreichen einer Z-AG Stornierung."""
-    antrag = get_object_or_404(
-        ZAGStorno,
-        pk=pk,
-        antragsteller__user=request.user,
-    )
+    """Erfolgsseite nach dem Einreichen einer Z-AG Stornierung.
+
+    Zugriff: Antragsteller, Staff, Genehmiger oder Team-Bearbeiter.
+    """
+    from django.http import HttpResponseForbidden
+
+    antrag = get_object_or_404(ZAGStorno, pk=pk)
+    ist_antragsteller = antrag.antragsteller.user == request.user
+    ist_staff = request.user.is_staff or request.user.is_superuser
+    ist_genehmiger = _offene_antraege_fuer_user(request.user).filter(
+        pk=antrag.antragsteller.pk
+    ).exists()
+    ist_team = _ist_team_mitglied_fuer_antrag(request.user, antrag)
+    if not (ist_antragsteller or ist_staff or ist_genehmiger or ist_team):
+        return HttpResponseForbidden("Keine Berechtigung fuer diesen Antrag.")
     kontext = {
         "antrag": antrag,
         "betreff": antrag.get_betreff(),
+        "team_bearbeiter_task": _get_team_bearbeiter_task(antrag),
     }
     kontext.update(_zag_jahres_kontext(antrag.antragsteller))
     return render(request, "formulare/zag_storno_erfolg.html", kontext)
@@ -995,11 +1182,17 @@ def zag_storno_pdf(request, pk):
     """Gibt die Z-AG Stornierung als PDF-Download zurueck."""
     from weasyprint import HTML
 
-    antrag = get_object_or_404(
-        ZAGStorno,
-        pk=pk,
-        antragsteller__user=request.user,
-    )
+    antrag = get_object_or_404(ZAGStorno, pk=pk)
+
+    ist_antragsteller = antrag.antragsteller.user == request.user
+    ist_staff = request.user.is_staff or request.user.is_superuser
+    ist_genehmiger = _offene_antraege_fuer_user(request.user).filter(
+        pk=antrag.antragsteller.pk
+    ).exists()
+    ist_team = _ist_team_mitglied_fuer_antrag(request.user, antrag)
+    if not (ist_antragsteller or ist_staff or ist_genehmiger or ist_team):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Keine Berechtigung fuer diesen Antrag.")
     html_string = render_to_string(
         "formulare/pdf/zag_storno_pdf.html",
         {
@@ -1041,6 +1234,49 @@ def _genehmiger_mitarbeiter(user):
     )
 
 
+def _get_team_bearbeiter_task(content_object):
+    """Gibt den abgeschlossenen Team-Bearbeiter-Task fuer ein Antrag-Objekt zurueck.
+
+    Sucht den erledigten WorkflowTask mit aktion_typ='bearbeiten' der zum
+    Antrag gehoert – das ist der Task den Nicole Schwarz abgeschlossen hat.
+    Gibt None zurueck wenn noch kein solcher Task existiert.
+    """
+    from django.contrib.contenttypes.models import ContentType
+    from workflow.models import WorkflowTask
+
+    ct = ContentType.objects.get_for_model(content_object)
+    return (
+        WorkflowTask.objects.filter(
+            instance__content_type=ct,
+            instance__object_id=content_object.pk,
+            step__aktion_typ="bearbeiten",
+            status="erledigt",
+        )
+        .select_related("erledigt_von")
+        .order_by("-erledigt_am")
+        .first()
+    )
+
+
+def _ist_team_mitglied_fuer_antrag(user, content_object):
+    """Prueft ob der User Mitglied eines Teams ist, das einen Task fuer dieses Objekt hat.
+
+    Erlaubt Team-Bearbeitern Zugriff auf Details/PDF auch vor dem Claimen.
+    """
+    from django.contrib.contenttypes.models import ContentType
+    from workflow.models import WorkflowTask
+
+    user_teams = TeamQueue.objects.filter(mitglieder=user)
+    if not user_teams.exists():
+        return False
+    ct = ContentType.objects.get_for_model(content_object)
+    return WorkflowTask.objects.filter(
+        zugewiesen_an_team__in=user_teams,
+        instance__content_type=ct,
+        instance__object_id=content_object.pk,
+    ).exists()
+
+
 def _genehmigende_stelle(antragsteller_ma, dauer_tage=0):
     """Delegiert an formulare.utils.genehmigende_stelle.
 
@@ -1075,16 +1311,28 @@ def _offene_antraege_fuer_user(user):
         user_stelle = None
 
     if user_stelle is not None:
-        # Alle Stellen mit uebergeordneter Stelle
+        # Alle Stellen mit uebergeordneter Stelle laden
         stellen_mit_vorgesetztem = Stelle.objects.filter(
             uebergeordnete_stelle__isnull=False
         ).select_related("uebergeordnete_stelle")
 
-        # Filtere: welche Stellen haben user_stelle als verantwortliche Stelle?
+        # Berechtigte Stellen: user_stelle ist die DIREKTE uebergeordnete Stelle (Heike sieht Alex)
+        # ODER user_stelle ist die verantwortliche Stelle per Delegation (Alex sieht als Delegierter)
+        # ABER: keine Selbst-Genehmigung (eigene Stelle nie in der Liste)
         berechtigte_stellen = []
         for stelle in stellen_mit_vorgesetztem:
-            verantwortliche = stelle.uebergeordnete_stelle.verantwortliche_stelle()
-            if verantwortliche and verantwortliche.pk == user_stelle.pk:
+            # Nie eigene Stelle aufnehmen (Selbst-Genehmigung verhindern)
+            if stelle.pk == user_stelle.pk:
+                continue
+            ug = stelle.uebergeordnete_stelle
+            # Direkte Hierarchie
+            direkt_zustaendig = ug.pk == user_stelle.pk
+            # Delegation: user_stelle ist der Delegat von ug
+            verantwortliche = ug.verantwortliche_stelle()
+            als_delegat_zustaendig = (
+                verantwortliche is not None and verantwortliche.pk == user_stelle.pk
+            )
+            if direkt_zustaendig or als_delegat_zustaendig:
                 berechtigte_stellen.append(stelle.pk)
 
         if berechtigte_stellen:
@@ -1105,13 +1353,20 @@ def _offene_antraege_fuer_user(user):
 
 @login_required
 def genehmigung_uebersicht(request):
-    """Uebersicht aller offenen Antraege fuer den eingeloggten Genehmiger.
+    """Weitergeleitet an den neuen Workflow-Arbeitsstapel.
 
-    Zeigt AenderungZeiterfassung, ZAGAntrag und ZAGStorno mit Status
-    'beantragt' fuer alle Mitarbeiter, fuer die der User die
-    guardian-Permission 'genehmigen_antraege' besitzt.
+    Die alte Genehmigungsansicht ist abgeschaltet. Alle Genehmigungen
+    laufen jetzt ueber /workflow/.
     """
-    # Stellenbasierte Logik, Fallback auf guardian
+    return redirect("workflow:arbeitsstapel")
+
+
+@login_required
+def _genehmigung_uebersicht_alt(request):
+    """VERALTET – wird nicht mehr aufgerufen. Nur zur Referenz.
+
+    Ehemals: Uebersicht aller offenen Antraege fuer den eingeloggten Genehmiger.
+    """
     berechtigte_ma = _offene_antraege_fuer_user(request.user)
 
     if not berechtigte_ma.exists():
@@ -1497,26 +1752,55 @@ def team_builder(request):
 
     teams = TeamQueue.objects.all().prefetch_related("mitglieder").order_by("name")
 
+    def _mit_stelle(qs):
+        """Reichert User-Queryset mit Stellen-Info an."""
+        result = []
+        for user in qs:
+            stelle_info = ""
+            try:
+                ma = user.hr_mitarbeiter
+                if ma.stelle:
+                    stelle_info = f"{ma.stelle.kuerzel} – {ma.stelle.bezeichnung}"
+            except Exception:
+                pass
+            result.append({
+                "id": user.id,
+                "name": user.get_full_name() or user.username,
+                "username": user.username,
+                "stelle": stelle_info,
+            })
+        return result
+
     # User-Liste: Wenn OrgEinheit angegeben, zuerst deren Mitarbeiter
     org_users = None
     other_users = None
     all_users = None
 
     if org:
-        # Mitarbeiter dieser OrgEinheit (via HRMitarbeiter -> Stelle -> OrgEinheit)
-        org_users = User.objects.filter(
+        org_qs = User.objects.filter(
             is_active=True,
             hr_mitarbeiter__stelle__org_einheit=org
         ).distinct().order_by("last_name", "first_name", "username")
 
-        # Andere Mitarbeiter
-        other_users = User.objects.filter(is_active=True).exclude(
-            id__in=org_users.values_list("id", flat=True)
+        other_qs = User.objects.filter(is_active=True).exclude(
+            id__in=org_qs.values_list("id", flat=True)
         ).order_by("last_name", "first_name", "username")
+
+        org_users = _mit_stelle(org_qs)
+        other_users = _mit_stelle(other_qs)
     else:
-        all_users = User.objects.filter(is_active=True).order_by(
+        all_qs = User.objects.filter(is_active=True).order_by(
             "last_name", "first_name", "username"
         )
+        all_users = _mit_stelle(all_qs)
+
+    # Alle User als flache JSON-Liste fuer JavaScript-Suche
+    import json as _json
+    if org:
+        alle_fuer_json = (org_users or []) + (other_users or [])
+    else:
+        alle_fuer_json = all_users or []
+    users_json = _json.dumps(alle_fuer_json, ensure_ascii=False)
 
     context = {
         "teams": teams,
@@ -1525,6 +1809,7 @@ def team_builder(request):
         "other_users": other_users,
         "org": org,
         "org_kuerzel": org_kuerzel,
+        "users_json": users_json,
     }
 
     return render(request, "formulare/team_builder.html", context)
@@ -1539,6 +1824,7 @@ def team_builder_detail(request, pk):
         "id": team.id,
         "name": team.name,
         "beschreibung": team.beschreibung,
+        "antragstypen": team.antragstypen or [],
     }
 
     return JsonResponse(data)
@@ -1554,13 +1840,25 @@ def team_builder_create(request):
         data = json.loads(request.body)
         name = data.get("name", "").strip()
         beschreibung = data.get("beschreibung", "").strip()
+        antragstypen = data.get("antragstypen", [])
 
         if not name:
             return JsonResponse({"error": "Name erforderlich"}, status=400)
 
+        # Kuerzel aus Name ableiten (lowercase, nur Buchstaben/Zahlen)
+        import re
+        basis = re.sub(r"[^a-z0-9]", "", name.lower())[:18] or "team"
+        kuerzel = basis
+        zaehler = 2
+        while TeamQueue.objects.filter(kuerzel=kuerzel).exists():
+            kuerzel = f"{basis}{zaehler}"
+            zaehler += 1
+
         team = TeamQueue.objects.create(
             name=name,
-            beschreibung=beschreibung
+            beschreibung=beschreibung,
+            kuerzel=kuerzel,
+            antragstypen=antragstypen,
         )
 
         return JsonResponse({
@@ -1587,12 +1885,14 @@ def team_builder_update(request, pk):
         data = json.loads(request.body)
         name = data.get("name", "").strip()
         beschreibung = data.get("beschreibung", "").strip()
+        antragstypen = data.get("antragstypen", [])
 
         if not name:
             return JsonResponse({"error": "Name erforderlich"}, status=400)
 
         team.name = name
         team.beschreibung = beschreibung
+        team.antragstypen = antragstypen
         team.save()
 
         return JsonResponse({
@@ -1989,6 +2289,9 @@ def zeitgutschrift_antrag(request):
                     dateiname_original=beleg.name,
                 )
 
+            # Workflow starten (falls aktives Template vorhanden)
+            _starte_workflow_fuer_antrag("zeitgutschrift_erstellt", antrag, request.user)
+
             # Erfolgs-Seite
             return redirect("formulare:zeitgutschrift_erfolg", pk=antrag.pk)
 
@@ -2286,3 +2589,398 @@ def zeitgutschrift_pdf(request, pk):
             "WeasyPrint nicht installiert. Bitte 'weasyprint' installieren.",
             status=500,
         )
+
+
+# ---------------------------------------------------------------------------
+# Dienstreise-Tagebuch
+# ---------------------------------------------------------------------------
+
+def _regelarbeitszeit_fuer_tag(mitarbeiter, datum):
+    """Regelarbeitszeit in Minuten fuer einen bestimmten Tag.
+
+    Beruecksichtigt Arbeitszeitvereinbarung und Mehrwochenmodelle.
+    Gibt 0 zurueck fuer Wochenenden oder wenn keine Vereinbarung vorhanden.
+    """
+    import datetime as _dt
+
+    if datum.weekday() >= 5:
+        return 0
+
+    vereinbarung = mitarbeiter.get_aktuelle_vereinbarung(stichtag=datum)
+    if not vereinbarung:
+        return 0
+
+    if vereinbarung.arbeitszeit_typ == "regelmaessig" and vereinbarung.wochenstunden:
+        return round(float(vereinbarung.wochenstunden) * 60 / 5)
+
+    if vereinbarung.arbeitszeit_typ == "individuell":
+        wt_map = {
+            0: "montag", 1: "dienstag", 2: "mittwoch",
+            3: "donnerstag", 4: "freitag",
+        }
+        wochentag = wt_map.get(datum.weekday())
+        woche = vereinbarung.zyklus_woche_fuer_datum(datum) or 1
+        ta = vereinbarung.tagesarbeitszeiten.filter(
+            wochentag=wochentag, woche=woche
+        ).first()
+        if ta and ta.zeitwert:
+            return (ta.zeitwert // 100) * 60 + (ta.zeitwert % 100)
+
+    return 0
+
+
+def _gutschrift_minuten_fuer_eintrag(eintrag, regel_minuten):
+    """Gutschrift in Minuten fuer einen einzelnen Tagebucheintrag.
+
+    Fall 1: 0 (Terminalerfassung genuegt)
+    Fall 2: tatsaechliche Zeit - Regelarbeitszeit (kann negativ sein)
+    Fall 3: tatsaechliche Zeit / 3
+    """
+    if eintrag.fall == 1:
+        return 0
+    if eintrag.fall == 2:
+        return eintrag.dauer_minuten - regel_minuten
+    if eintrag.fall == 3:
+        return round(eintrag.dauer_minuten / 3)
+    return 0
+
+
+def _berechne_tagebuch_gesamt(antrag, mitarbeiter):
+    """Gesamtgutschrift aller Tagebucheintraege in Minuten (kann negativ sein)."""
+    total = 0
+    for eintrag in antrag.tagebuch_eintraege.all():
+        regel = _regelarbeitszeit_fuer_tag(mitarbeiter, eintrag.datum)
+        total += _gutschrift_minuten_fuer_eintrag(eintrag, regel)
+    return total
+
+
+def _minuten_zu_hmin(minuten):
+    """Formatiert Minuten (auch negativ) als '+Xh MMmin' oder '-Xh MMmin'."""
+    vorzeichen = "-" if minuten < 0 else "+"
+    abs_min = abs(minuten)
+    h = abs_min // 60
+    m = abs_min % 60
+    return f"{vorzeichen}{h}h {m:02d}min"
+
+
+@login_required
+def dienstreise_tagebuch_auswahl(request):
+    """Auswahl eines genehmigten Dienstreiseantrags fuer das Tagebuch.
+
+    Zeigt Pulldown der genehmigten Dienstreisen des Users.
+    Nach Auswahl Weiterleitung zum Tagebuch.
+    """
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except AttributeError:
+        return redirect("arbeitszeit:dashboard")
+
+    antraege = Dienstreiseantrag.objects.filter(
+        antragsteller=mitarbeiter,
+        status__in=["genehmigt", "erledigt"],
+    ).order_by("-von_datum")
+
+    if request.method == "POST":
+        antrag_pk = request.POST.get("dienstreise_pk")
+        if antrag_pk:
+            return redirect("formulare:dienstreise_tagebuch", pk=antrag_pk)
+
+    return render(
+        request,
+        "formulare/dienstreise_tagebuch_auswahl.html",
+        {"antraege": antraege},
+    )
+
+
+@login_required
+def dienstreise_tagebuch(request, pk):
+    """Tagebuch-Hauptseite fuer eine Dienstreise.
+
+    Zeigt alle Tage des Reisezeitraums mit ihren Eintraegen und
+    der berechneten Gutschrift pro Tag und gesamt.
+    """
+    import datetime as _dt
+
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except AttributeError:
+        return redirect("arbeitszeit:dashboard")
+
+    antrag = get_object_or_404(
+        Dienstreiseantrag, pk=pk, antragsteller=mitarbeiter
+    )
+
+    WOCHENTAGE = [
+        "Montag", "Dienstag", "Mittwoch", "Donnerstag",
+        "Freitag", "Samstag", "Sonntag",
+    ]
+
+    tage = []
+    aktuell = antrag.von_datum
+    while aktuell <= antrag.bis_datum:
+        eintraege = antrag.tagebuch_eintraege.filter(datum=aktuell)
+        regel_minuten = _regelarbeitszeit_fuer_tag(mitarbeiter, aktuell)
+        eintraege_info = []
+        for e in eintraege:
+            gutschrift_min = _gutschrift_minuten_fuer_eintrag(e, regel_minuten)
+            eintraege_info.append({
+                "eintrag": e,
+                "gutschrift_min": gutschrift_min,
+                "gutschrift_hmin": (
+                    _minuten_zu_hmin(gutschrift_min) if e.fall != 1 else "-"
+                ),
+            })
+        tage.append({
+            "datum": aktuell,
+            "wochentag": WOCHENTAGE[aktuell.weekday()],
+            "ist_wochenende": aktuell.weekday() >= 5,
+            "regel_minuten": regel_minuten,
+            "eintraege": eintraege_info,
+        })
+        aktuell += _dt.timedelta(days=1)
+
+    gesamt_min = _berechne_tagebuch_gesamt(antrag, mitarbeiter)
+    gesamt_hmin = _minuten_zu_hmin(gesamt_min)
+
+    bestehende_gutschrift = antrag.reisezeit_gutschriften.filter(
+        status__in=["beantragt", "genehmigt", "in_bearbeitung", "erledigt"]
+    ).first()
+
+    return render(
+        request,
+        "formulare/dienstreise_tagebuch.html",
+        {
+            "antrag": antrag,
+            "tage": tage,
+            "gesamt_min": gesamt_min,
+            "gesamt_hmin": gesamt_hmin,
+            "bestehende_gutschrift": bestehende_gutschrift,
+        },
+    )
+
+
+@login_required
+def dienstreise_tagebuch_eintrag_neu(request, pk):
+    """Neuen Tagebucheintrag hinzufuegen (HTMX-View).
+
+    GET:  Leeres Formular als Partial zurueckgeben.
+    POST: Eintrag speichern, aktualisierte Tag-Zeile zurueckgeben.
+    """
+    import datetime as _dt
+
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except AttributeError:
+        return HttpResponse(status=403)
+
+    antrag = get_object_or_404(
+        Dienstreiseantrag, pk=pk, antragsteller=mitarbeiter
+    )
+
+    datum_str = request.GET.get("datum") or request.POST.get("datum", "")
+    try:
+        datum = _dt.date.fromisoformat(datum_str)
+    except ValueError:
+        return HttpResponse("Ungueltiged Datum", status=400)
+
+    if request.method == "POST":
+        fall_str = request.POST.get("fall", "")
+        von_zeit_str = request.POST.get("von_zeit", "")
+        bis_zeit_str = request.POST.get("bis_zeit", "")
+        bemerkung = request.POST.get("bemerkung", "")
+        fehler = []
+
+        if not fall_str or fall_str not in ("1", "2", "3"):
+            fehler.append("Bitte einen Fall auswaehlen.")
+        if not von_zeit_str:
+            fehler.append("Bitte Von-Zeit angeben.")
+        if not bis_zeit_str:
+            fehler.append("Bitte Bis-Zeit angeben.")
+
+        if not fehler:
+            try:
+                von_h, von_m = map(int, von_zeit_str.split(":"))
+                bis_h, bis_m = map(int, bis_zeit_str.split(":"))
+                von_zeit = _dt.time(von_h, von_m)
+                bis_zeit = _dt.time(bis_h, bis_m)
+                if bis_zeit <= von_zeit:
+                    fehler.append("Bis-Zeit muss nach Von-Zeit liegen.")
+            except (ValueError, AttributeError):
+                fehler.append("Ungueltige Zeitangabe (Format HH:MM).")
+
+        if fehler:
+            return render(
+                request,
+                "formulare/partials/_tagebuch_eintrag_form.html",
+                {
+                    "antrag": antrag,
+                    "datum": datum,
+                    "fehler": fehler,
+                    "post": request.POST,
+                },
+            )
+
+        ReisezeitTagebuchEintrag.objects.create(
+            dienstreise=antrag,
+            datum=datum,
+            fall=int(fall_str),
+            von_zeit=von_zeit,
+            bis_zeit=bis_zeit,
+            bemerkung=bemerkung,
+        )
+
+    # Tag-Partial nach Speichern oder bei GET-Refresh zurueckgeben
+    WOCHENTAGE = [
+        "Montag", "Dienstag", "Mittwoch", "Donnerstag",
+        "Freitag", "Samstag", "Sonntag",
+    ]
+    eintraege = antrag.tagebuch_eintraege.filter(datum=datum)
+    regel_minuten = _regelarbeitszeit_fuer_tag(mitarbeiter, datum)
+    eintraege_info = []
+    for e in eintraege:
+        gutschrift_min = _gutschrift_minuten_fuer_eintrag(e, regel_minuten)
+        eintraege_info.append({
+            "eintrag": e,
+            "gutschrift_min": gutschrift_min,
+            "gutschrift_hmin": (
+                _minuten_zu_hmin(gutschrift_min) if e.fall != 1 else "-"
+            ),
+        })
+
+    return render(
+        request,
+        "formulare/partials/_tagebuch_tag.html",
+        {
+            "tag": {
+                "datum": datum,
+                "wochentag": WOCHENTAGE[datum.weekday()],
+                "ist_wochenende": datum.weekday() >= 5,
+                "regel_minuten": regel_minuten,
+                "eintraege": eintraege_info,
+            },
+            "antrag": antrag,
+        },
+    )
+
+
+@login_required
+def dienstreise_tagebuch_eintrag_loeschen(request, eintrag_pk):
+    """Tagebucheintrag loeschen (HTMX-POST).
+
+    Gibt die aktualisierte Tag-Zeile als Partial zurueck.
+    """
+    import datetime as _dt
+
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except AttributeError:
+        return HttpResponse(status=403)
+
+    eintrag = get_object_or_404(
+        ReisezeitTagebuchEintrag,
+        pk=eintrag_pk,
+        dienstreise__antragsteller=mitarbeiter,
+    )
+    antrag = eintrag.dienstreise
+    datum = eintrag.datum
+    eintrag.delete()
+
+    WOCHENTAGE = [
+        "Montag", "Dienstag", "Mittwoch", "Donnerstag",
+        "Freitag", "Samstag", "Sonntag",
+    ]
+    eintraege = antrag.tagebuch_eintraege.filter(datum=datum)
+    regel_minuten = _regelarbeitszeit_fuer_tag(mitarbeiter, datum)
+    eintraege_info = []
+    for e in eintraege:
+        gutschrift_min = _gutschrift_minuten_fuer_eintrag(e, regel_minuten)
+        eintraege_info.append({
+            "eintrag": e,
+            "gutschrift_min": gutschrift_min,
+            "gutschrift_hmin": (
+                _minuten_zu_hmin(gutschrift_min) if e.fall != 1 else "-"
+            ),
+        })
+
+    return render(
+        request,
+        "formulare/partials/_tagebuch_tag.html",
+        {
+            "tag": {
+                "datum": datum,
+                "wochentag": WOCHENTAGE[datum.weekday()],
+                "ist_wochenende": datum.weekday() >= 5,
+                "regel_minuten": regel_minuten,
+                "eintraege": eintraege_info,
+            },
+            "antrag": antrag,
+        },
+    )
+
+
+@login_required
+def dienstreise_gutschrift_beantragen(request, pk):
+    """Gutschrift aus Dienstreise-Tagebuch beantragen.
+
+    Erstellt einen Zeitgutschrift-Antrag aus allen Tagebucheintraegen
+    (Fall 2 + Fall 3). Nur per POST erlaubt.
+    """
+    try:
+        mitarbeiter = request.user.mitarbeiter
+    except AttributeError:
+        return redirect("arbeitszeit:dashboard")
+
+    antrag = get_object_or_404(
+        Dienstreiseantrag, pk=pk, antragsteller=mitarbeiter
+    )
+
+    if request.method != "POST":
+        return redirect("formulare:dienstreise_tagebuch", pk=pk)
+
+    # Keine doppelten Antraege
+    if antrag.reisezeit_gutschriften.filter(
+        status__in=["beantragt", "genehmigt", "in_bearbeitung", "erledigt"]
+    ).exists():
+        messages.warning(request, "Es wurde bereits ein Gutschrift-Antrag gestellt.")
+        return redirect("formulare:dienstreise_tagebuch", pk=pk)
+
+    gesamt_min = _berechne_tagebuch_gesamt(antrag, mitarbeiter)
+
+    if gesamt_min == 0:
+        messages.error(
+            request,
+            "Keine Gutschrift berechenbar – bitte Eintraege pruefen.",
+        )
+        return redirect("formulare:dienstreise_tagebuch", pk=pk)
+
+    stunden = abs(gesamt_min) // 60
+    minuten = abs(gesamt_min) % 60
+    vorzeichen = "+" if gesamt_min >= 0 else "-"
+
+    buchungsmonat = antrag.von_datum.month
+    buchungsjahr = antrag.von_datum.year
+
+    von_str = antrag.von_datum.strftime("%d.%m.%Y")
+    bis_str = antrag.bis_datum.strftime("%d.%m.%Y")
+
+    Zeitgutschrift.objects.create(
+        antragsteller=mitarbeiter,
+        art="reisezeit_tagebuch",
+        status="beantragt",
+        reisezeit_dienstreise=antrag,
+        mehrarbeit_buchungsmonat=buchungsmonat,
+        mehrarbeit_buchungsjahr=buchungsjahr,
+        mehrarbeit_stunden=stunden,
+        mehrarbeit_minuten=minuten,
+        sonstige_vorzeichen=vorzeichen,
+        mehrarbeit_begruendung=(
+            f"Reisezeit-Tagebuch fuer Dienstreise nach {antrag.ziel} "
+            f"({von_str} - {bis_str})"
+        ),
+    )
+
+    messages.success(
+        request,
+        f"Gutschrift-Antrag wurde gestellt ({_minuten_zu_hmin(gesamt_min)}).",
+    )
+    return redirect("formulare:dienstreise_tagebuch", pk=pk)

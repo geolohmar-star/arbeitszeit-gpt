@@ -6,10 +6,46 @@
         <div class="col">
             <h1>{% if stelle %}Stelle bearbeiten{% else %}Neue Stelle anlegen{% endif %}</h1>
         </div>
-        <div class="col-auto">
+        <div class="col-auto d-flex gap-2">
+            <a href="{% url 'hr:liste' %}" class="btn btn-outline-secondary">Mitarbeiterliste</a>
             <a href="{% url 'hr:stellen_uebersicht' %}" class="btn btn-secondary">Zurueck zur Uebersicht</a>
         </div>
     </div>
+
+    {% if stelle %}
+    <!-- Stelleninhaber -->
+    <div class="card mb-3">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Stelleninhaber</h5>
+        </div>
+        <div class="card-body p-0">
+            <div id="stelle-zeile-{{ stelle.pk }}" class="p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        {% if stelle.ist_besetzt %}
+                        <span class="badge bg-success me-2">Besetzt</span>
+                        <strong>{{ stelle.aktueller_inhaber.vollname }}</strong>
+                        <span class="text-muted small ms-2">({{ stelle.aktueller_inhaber.personalnummer }})</span>
+                        <a href="{% url 'hr:detail' stelle.aktueller_inhaber.pk %}"
+                           class="btn btn-sm btn-outline-secondary ms-3">
+                            Profil ansehen
+                        </a>
+                        {% else %}
+                        <span class="badge bg-warning text-dark me-2">Unbesetzt</span>
+                        <span class="text-muted">Noch kein Mitarbeiter zugewiesen</span>
+                        {% endif %}
+                    </div>
+                    <button class="btn btn-sm btn-outline-success"
+                            hx-get="{% url 'hr:kasten_stelle_inhaber' stelle.pk %}"
+                            hx-target="#stelle-zeile-{{ stelle.pk }}"
+                            hx-swap="beforeend">
+                        {% if stelle.ist_besetzt %}Person aendern{% else %}Person zuweisen{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="card">
         <div class="card-body">
@@ -116,14 +152,10 @@
                     </div>
                 </div>
 
-                <!-- Berechnete Felder (nur bei Bearbeitung) -->
+                <!-- Info: Email -->
                 {% if stelle %}
-                    <div class="alert alert-info">
-                        <strong>Email:</strong> {{ stelle.email }}<br>
-                        <strong>Status:</strong> {% if stelle.ist_besetzt %}Besetzt{% else %}Unbesetzt{% endif %}<br>
-                        {% if stelle.aktueller_inhaber %}
-                            <strong>Aktueller Inhaber:</strong> {{ stelle.aktueller_inhaber.vollname }}
-                        {% endif %}
+                    <div class="mb-3 text-muted small">
+                        <strong>Email:</strong> <code>{{ stelle.email }}</code>
                     </div>
                 {% endif %}
 

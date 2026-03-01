@@ -79,14 +79,65 @@
     <div class="card mb-4">
         <div class="card-header fw-bold d-flex justify-content-between">
             Genehmigung
-            <span class="badge bg-secondary fw-normal">folgt aus Workflow</span>
+            {% if antrag.bearbeitet_von %}
+                <span class="badge bg-success fw-normal">Genehmigt</span>
+            {% else %}
+                <span class="badge bg-secondary fw-normal">folgt aus Workflow</span>
+            {% endif %}
         </div>
-        <div class="card-body text-muted fst-italic">
-            Genehmigt Vorgesetzter: _______________
-            &nbsp;&nbsp;&nbsp;
-            Datum der Genehmigung: _______________
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <tr>
+                    <td class="text-muted ps-3" style="width:220px">Genehmigt Vorgesetzter</td>
+                    <td>
+                        {% if antrag.bearbeitet_von %}
+                            <strong>{{ antrag.bearbeitet_von.get_full_name|default:antrag.bearbeitet_von.username }}</strong>
+                        {% else %}
+                            <span class="text-muted fst-italic">_______________</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Datum der Genehmigung</td>
+                    <td>
+                        {% if antrag.bearbeitet_am %}
+                            <strong>{{ antrag.bearbeitet_am|date:"d.m.Y" }}</strong>
+                        {% else %}
+                            <span class="text-muted fst-italic">_______________</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
         </div>
     </div>
+
+    <!-- Bearbeitung durch Team -->
+    {% if team_bearbeiter_task %}
+    <div class="card mb-4">
+        <div class="card-header fw-bold d-flex justify-content-between">
+            Bearbeitung
+            <span class="badge bg-success fw-normal">Erledigt</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <tr>
+                    <td class="text-muted ps-3" style="width:220px">Bearbeitet von</td>
+                    <td><strong>{{ team_bearbeiter_task.erledigt_von.get_full_name|default:team_bearbeiter_task.erledigt_von.username }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Datum der Bearbeitung</td>
+                    <td><strong>{{ team_bearbeiter_task.erledigt_am|date:"d.m.Y" }}</strong></td>
+                </tr>
+                {% if team_bearbeiter_task.kommentar %}
+                <tr>
+                    <td class="text-muted ps-3">Kommentar</td>
+                    <td>{{ team_bearbeiter_task.kommentar }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Aktionen -->
     <div class="d-flex gap-2">

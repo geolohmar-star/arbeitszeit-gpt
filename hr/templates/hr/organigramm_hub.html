@@ -3,9 +3,14 @@
 {% block content %}
 <div class="container mt-4">
 
-    <div class="mb-4">
-        <h1 class="mb-2">🏢 Organisationsstruktur & Verwaltung</h1>
-        <p class="text-muted">Waehle eine Ansicht oder erstelle deine Unternehmensstruktur</p>
+    <div class="mb-4 d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="mb-2">🏢 Organisationsstruktur & Verwaltung</h1>
+            <p class="text-muted mb-0">Waehle eine Ansicht oder erstelle deine Unternehmensstruktur</p>
+        </div>
+        <a href="{% url 'hr:liste' %}" class="btn btn-outline-primary">
+            ← HR Mitarbeiterliste
+        </a>
     </div>
 
     <!-- Statistik -->

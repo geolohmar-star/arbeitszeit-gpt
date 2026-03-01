@@ -89,6 +89,12 @@
                     Dienstreiseantrag
                     {% elif task.instance.content_type.model == 'zeitgutschrift' %}
                     Zeitgutschrift
+                    {% elif task.instance.content_type.model == 'zagantrag' %}
+                    Z-AG Antrag
+                    {% elif task.instance.content_type.model == 'aenderungzeiterfassung' %}
+                    Aenderung Zeiterfassung
+                    {% elif task.instance.content_type.model == 'zagstorno' %}
+                    Z-AG Storno
                     {% else %}
                     {{ task.instance.content_type }}
                     {% endif %}
@@ -205,6 +211,160 @@
                         <a href="{% url 'formulare:zeitgutschrift_pdf' antrag.pk %}"
                            class="btn btn-sm btn-outline-danger" target="_blank">
                             <i class="bi bi-file-pdf"></i> PDF herunterladen
+                        </a>
+                    </div>
+                    {% endwith %}
+
+                <!-- Z-AG Antrag Details -->
+                {% elif task.instance.content_type.model == 'zagantrag' %}
+                    {% with antrag=task.instance.content_object %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Antragsteller:</strong></p>
+                            <p class="mb-0">{{ antrag.antragsteller }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Beantragt am:</strong></p>
+                            <p class="mb-0">{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</p>
+                        </div>
+                    </div>
+
+                    {% if antrag.zag_daten %}
+                    <div class="mb-3">
+                        <p class="text-muted small mb-1"><strong>Z-AG Zeitraum / -zeitraeume:</strong></p>
+                        <ul class="list-unstyled mb-0">
+                            {% for zeile in antrag.zag_daten %}
+                            <li>
+                                {{ zeile.von_datum }} &ndash; {{ zeile.bis_datum }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if antrag.vertretung_name %}
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <p class="text-muted small mb-1"><strong>Vertretung:</strong></p>
+                            <p class="mb-0">{{ antrag.vertretung_name }}</p>
+                        </div>
+                        {% if antrag.vertretung_telefon %}
+                        <div class="col-md-6 mb-2">
+                            <p class="text-muted small mb-1"><strong>Telefon Vertretung:</strong></p>
+                            <p class="mb-0">{{ antrag.vertretung_telefon }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-3 d-flex gap-2">
+                        <a href="{% url 'formulare:zag_erfolg' antrag.pk %}"
+                           class="btn btn-sm btn-primary" target="_blank">
+                            Details anzeigen
+                        </a>
+                        <a href="{% url 'formulare:zag_pdf' antrag.pk %}"
+                           class="btn btn-sm btn-outline-danger" target="_blank">
+                            PDF herunterladen
+                        </a>
+                    </div>
+                    {% endwith %}
+
+                <!-- Aenderung Zeiterfassung Details -->
+                {% elif task.instance.content_type.model == 'aenderungzeiterfassung' %}
+                    {% with antrag=task.instance.content_object %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Antragsteller:</strong></p>
+                            <p class="mb-0">{{ antrag.antragsteller }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Beantragt am:</strong></p>
+                            <p class="mb-0">{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Art der Aenderung:</strong></p>
+                            <p class="mb-0">{{ antrag.get_art_display }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Aktenzeichen:</strong></p>
+                            <p class="mb-0"><code class="small">{{ antrag.get_betreff }}</code></p>
+                        </div>
+                    </div>
+
+                    {% if antrag.kommen_datum or antrag.gehen_datum %}
+                    <div class="row">
+                        {% if antrag.kommen_datum %}
+                        <div class="col-md-6 mb-2">
+                            <p class="text-muted small mb-1"><strong>Kommen-Datum:</strong></p>
+                            <p class="mb-0">{{ antrag.kommen_datum|date:"d.m.Y" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if antrag.gehen_datum %}
+                        <div class="col-md-6 mb-2">
+                            <p class="text-muted small mb-1"><strong>Gehen-Datum:</strong></p>
+                            <p class="mb-0">{{ antrag.gehen_datum|date:"d.m.Y" }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if antrag.ktaste_datum %}
+                    <div class="mb-2">
+                        <p class="text-muted small mb-1"><strong>K-Taste Datum:</strong></p>
+                        <p class="mb-0">{{ antrag.ktaste_datum|date:"d.m.Y" }}</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-3 d-flex gap-2">
+                        <a href="{% url 'formulare:aenderung_erfolg' antrag.pk %}"
+                           class="btn btn-sm btn-primary" target="_blank">
+                            Details anzeigen
+                        </a>
+                        <a href="{% url 'formulare:aenderung_pdf' antrag.pk %}"
+                           class="btn btn-sm btn-outline-danger" target="_blank">
+                            PDF herunterladen
+                        </a>
+                    </div>
+                    {% endwith %}
+
+                <!-- Z-AG Storno Details -->
+                {% elif task.instance.content_type.model == 'zagstorno' %}
+                    {% with antrag=task.instance.content_object %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Antragsteller:</strong></p>
+                            <p class="mb-0">{{ antrag.antragsteller }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Beantragt am:</strong></p>
+                            <p class="mb-0">{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</p>
+                        </div>
+                    </div>
+
+                    {% if antrag.storno_daten %}
+                    <div class="mb-3">
+                        <p class="text-muted small mb-1"><strong>Zu stornierende Zeitraeume:</strong></p>
+                        <ul class="list-unstyled mb-0">
+                            {% for zeile in antrag.storno_daten %}
+                            <li>
+                                {{ zeile.von_datum }} &ndash; {{ zeile.bis_datum }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-3 d-flex gap-2">
+                        <a href="{% url 'formulare:zag_storno_erfolg' antrag.pk %}"
+                           class="btn btn-sm btn-primary" target="_blank">
+                            Details anzeigen
+                        </a>
+                        <a href="{% url 'formulare:zag_storno_pdf' antrag.pk %}"
+                           class="btn btn-sm btn-outline-danger" target="_blank">
+                            PDF herunterladen
                         </a>
                     </div>
                     {% endwith %}

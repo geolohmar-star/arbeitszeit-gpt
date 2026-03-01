@@ -82,6 +82,14 @@
                                         <p class="text-muted small">{{ team.beschreibung }}</p>
                                     {% endif %}
 
+                                    <div class="mb-2">
+                                        {% for typ in team.antragstypen %}
+                                            <span class="badge bg-secondary me-1">{{ typ }}</span>
+                                        {% empty %}
+                                            <span class="badge bg-light text-muted border">keine Antragstypen</span>
+                                        {% endfor %}
+                                    </div>
+
                                     <h6 class="mt-3">Mitglieder ({{ team.mitglieder.count }})</h6>
                                     {% if team.mitglieder.exists %}
                                         <div class="list-group list-group-flush">
@@ -146,6 +154,37 @@
                         <textarea class="form-control" id="team-beschreibung" rows="3"></textarea>
                         <small class="text-muted">Wofuer ist dieses Team zustaendig?</small>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Antragstypen</label>
+                        <div class="border rounded p-3">
+                            <div class="form-check mb-1">
+                                <input class="form-check-input antragstyp-cb" type="checkbox" value="aenderung" id="typ-aenderung">
+                                <label class="form-check-label" for="typ-aenderung">
+                                    Aenderung Zeiterfassung
+                                </label>
+                            </div>
+                            <div class="form-check mb-1">
+                                <input class="form-check-input antragstyp-cb" type="checkbox" value="zag" id="typ-zag">
+                                <label class="form-check-label" for="typ-zag">
+                                    Zeitausgleich (Z-AG)
+                                </label>
+                            </div>
+                            <div class="form-check mb-1">
+                                <input class="form-check-input antragstyp-cb" type="checkbox" value="zag_storno" id="typ-zag-storno">
+                                <label class="form-check-label" for="typ-zag-storno">
+                                    Z-AG Storno
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input antragstyp-cb" type="checkbox" value="zeitgutschrift" id="typ-zeitgutschrift">
+                                <label class="form-check-label" for="typ-zeitgutschrift">
+                                    Zeitgutschrift
+                                </label>
+                            </div>
+                        </div>
+                        <small class="text-muted">Welche Antragstypen bearbeitet dieses Team?</small>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -158,7 +197,7 @@
 
 <!-- Modal: Mitglied hinzufuegen -->
 <div class="modal fade" id="memberModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="memberModalTitle">Mitglied hinzufuegen</h5>
@@ -167,38 +206,25 @@
             <div class="modal-body">
                 <input type="hidden" id="member-team-id">
 
-                <div class="mb-3">
-                    <label for="member-select" class="form-label">User auswaehlen *</label>
-                    <select class="form-select" id="member-select" required>
-                        <option value="">-- Bitte waehlen --</option>
-                        {% if org %}
-                            {% if org_users %}
-                            <optgroup label="👥 Mitarbeiter {{ org.kuerzel }}">
-                                {% for user in org_users %}
-                                <option value="{{ user.id }}">
-                                    {{ user.get_full_name|default:user.username }} ({{ user.username }})
-                                </option>
-                                {% endfor %}
-                            </optgroup>
-                            {% endif %}
-                            {% if other_users %}
-                            <optgroup label="Andere Mitarbeiter">
-                                {% for user in other_users %}
-                                <option value="{{ user.id }}">
-                                    {{ user.get_full_name|default:user.username }} ({{ user.username }})
-                                </option>
-                                {% endfor %}
-                            </optgroup>
-                            {% endif %}
-                        {% else %}
-                            {% for user in all_users %}
-                            <option value="{{ user.id }}">
-                                {{ user.get_full_name|default:user.username }} ({{ user.username }})
-                            </option>
-                            {% endfor %}
-                        {% endif %}
-                    </select>
+                <!-- Volltextsuche -->
+                <div class="mb-2">
+                    <input type="text"
+                           id="member-search"
+                           class="form-control"
+                           placeholder="Name, Stelle oder Kuerzel suchen..."
+                           oninput="filterMemberList(this.value)">
                 </div>
+
+                <!-- Scrollbare Auswahlliste (wird per JS befuellt) -->
+                <div id="member-list"
+                     style="max-height: 350px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px;">
+                </div>
+
+                <!-- Ausgewaehlt -->
+                <div id="member-selected" class="mt-2 text-muted small fst-italic">
+                    Noch niemanden ausgewaehlt.
+                </div>
+                <input type="hidden" id="member-select">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
@@ -209,8 +235,32 @@
 </div>
 
 <script>
+// Alle User als JavaScript-Array (vom Server)
+const ALL_USERS = {{ users_json|safe }};
+</script>
+
+<script>
 // CSRF Token
 const csrftoken = document.querySelector('meta[name="csrf-token"]').content;
+
+// Hilfsfunktion: Checkboxen zuruecksetzen
+function _resetTypCheckboxes() {
+    document.querySelectorAll('.antragstyp-cb').forEach(cb => cb.checked = false);
+}
+
+// Hilfsfunktion: Checkboxen nach Liste setzen
+function _setTypCheckboxes(typen) {
+    _resetTypCheckboxes();
+    (typen || []).forEach(typ => {
+        const cb = document.querySelector(`.antragstyp-cb[value="${typ}"]`);
+        if (cb) cb.checked = true;
+    });
+}
+
+// Hilfsfunktion: Aktuelle Checkbox-Auswahl als Array lesen
+function _getTypCheckboxes() {
+    return Array.from(document.querySelectorAll('.antragstyp-cb:checked')).map(cb => cb.value);
+}
 
 // Team Modal oeffnen (Neu)
 function openTeamModal() {
@@ -218,6 +268,7 @@ function openTeamModal() {
     document.getElementById('team-name').value = '';
     document.getElementById('team-beschreibung').value = '';
     document.getElementById('teamModalTitle').textContent = 'Neues Team erstellen';
+    _resetTypCheckboxes();
 
     const modal = new bootstrap.Modal(document.getElementById('teamModal'));
     modal.show();
@@ -233,6 +284,7 @@ async function editTeam(teamId) {
         document.getElementById('team-name').value = data.name;
         document.getElementById('team-beschreibung').value = data.beschreibung || '';
         document.getElementById('teamModalTitle').textContent = 'Team bearbeiten';
+        _setTypCheckboxes(data.antragstypen || []);
 
         const modal = new bootstrap.Modal(document.getElementById('teamModal'));
         modal.show();
@@ -246,6 +298,7 @@ async function saveTeam() {
     const teamId = document.getElementById('team-id').value;
     const name = document.getElementById('team-name').value;
     const beschreibung = document.getElementById('team-beschreibung').value;
+    const antragstypen = _getTypCheckboxes();
 
     if (!name) {
         alert('Bitte einen Namen eingeben!');
@@ -263,7 +316,7 @@ async function saveTeam() {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrftoken
             },
-            body: JSON.stringify({ name, beschreibung })
+            body: JSON.stringify({ name, beschreibung, antragstypen })
         });
 
         if (response.ok) {
@@ -304,13 +357,80 @@ async function deleteTeam(teamId, teamName) {
 }
 
 // Mitglied hinzufuegen Modal
+let _currentUsers = [];
+
+function renderMemberList(users) {
+    const list = document.getElementById('member-list');
+    if (!users.length) {
+        list.innerHTML = '<p class="text-muted small p-3 mb-0">Keine Ergebnisse.</p>';
+        return;
+    }
+    list.innerHTML = users.map(u => {
+        const stelle = u.stelle || '';
+        const stelleHtml = stelle
+            ? `<small class="text-muted">${stelle}</small>`
+            : `<small class="text-muted fst-italic">keine Stelle</small>`;
+        return `<div class="member-option d-flex align-items-center px-3 py-2 border-bottom"
+                     style="cursor:pointer;"
+                     data-id="${u.id}"
+                     data-name="${u.name}"
+                     data-stelle="${stelle}"
+                     onclick="selectMember(this)">
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold">${u.name}</div>
+                        ${stelleHtml}
+                    </div>
+                    <small class="text-muted ms-2">${u.username}</small>
+                </div>`;
+    }).join('');
+}
+
+function filterMemberList(query) {
+    const q = query.toLowerCase().trim();
+    if (!q) {
+        renderMemberList(_currentUsers);
+        return;
+    }
+    const gefunden = _currentUsers.filter(u => {
+        const suchtext = (u.name + ' ' + u.stelle + ' ' + u.username).toLowerCase();
+        return suchtext.includes(q);
+    });
+    renderMemberList(gefunden);
+    // Auswahl zuruecksetzen wenn gefiltert
+    document.getElementById('member-select').value = '';
+    document.getElementById('member-selected').textContent = 'Noch niemanden ausgewaehlt.';
+}
+
+function selectMember(el) {
+    document.querySelectorAll('.member-option').forEach(e => {
+        e.classList.remove('bg-primary', 'text-white');
+        e.querySelectorAll('small').forEach(s => s.classList.remove('text-white'));
+    });
+    el.classList.add('bg-primary', 'text-white');
+    el.querySelectorAll('small').forEach(s => s.classList.add('text-white'));
+
+    document.getElementById('member-select').value = el.dataset.id;
+    const stelle = el.dataset.stelle;
+    document.getElementById('member-selected').innerHTML =
+        `Ausgewaehlt: <strong>${el.dataset.name}</strong>${stelle ? ' &ndash; ' + stelle : ''}`;
+}
+
 function addMemberModal(teamId, teamName) {
     document.getElementById('member-team-id').value = teamId;
     document.getElementById('memberModalTitle').textContent = `Mitglied zu "${teamName}" hinzufuegen`;
     document.getElementById('member-select').value = '';
+    document.getElementById('member-search').value = '';
+    document.getElementById('member-selected').textContent = 'Noch niemanden ausgewaehlt.';
+
+    _currentUsers = ALL_USERS;
+    renderMemberList(_currentUsers);
 
     const modal = new bootstrap.Modal(document.getElementById('memberModal'));
     modal.show();
+
+    document.getElementById('memberModal').addEventListener('shown.bs.modal', () => {
+        document.getElementById('member-search').focus();
+    }, { once: true });
 }
 
 // Mitglied speichern

@@ -130,7 +130,12 @@
                class="text-decoration-none">
                 <div class="card h-100 card-hover border-info">
                     <div class="card-body">
-                        <h5 class="card-title">Team-Bearbeitungsstapel</h5>
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="card-title mb-1">Team-Bearbeitungsstapel</h5>
+                            {% if team_stapel_anzahl %}
+                                <span class="badge bg-danger rounded-pill">{{ team_stapel_anzahl }}</span>
+                            {% endif %}
+                        </div>
                         <p class="card-text text-muted small">
                             Genehmigte Antraege bearbeiten und umsetzen
                         </p>

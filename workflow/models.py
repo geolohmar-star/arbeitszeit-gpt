@@ -752,6 +752,21 @@ class WorkflowTask(models.Model):
         verbose_name="Erledigt von",
     )
 
+    # Claim-Felder fuer Team-Queue
+    claimed_von = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="claimed_workflow_tasks",
+        verbose_name="Geclaimed von",
+    )
+    claimed_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Geclaimed am",
+    )
+
     # Ergebnis
     entscheidung = models.CharField(
         max_length=50,

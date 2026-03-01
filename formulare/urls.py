@@ -185,6 +185,32 @@ urlpatterns = [
         views.meine_dienstreisen,
         name="meine_dienstreisen",
     ),
+    # Dienstreise-Tagebuch
+    path(
+        "dienstreise/tagebuch/",
+        views.dienstreise_tagebuch_auswahl,
+        name="dienstreise_tagebuch_auswahl",
+    ),
+    path(
+        "dienstreise/<int:pk>/tagebuch/",
+        views.dienstreise_tagebuch,
+        name="dienstreise_tagebuch",
+    ),
+    path(
+        "dienstreise/<int:pk>/tagebuch/eintrag/neu/",
+        views.dienstreise_tagebuch_eintrag_neu,
+        name="dienstreise_tagebuch_eintrag_neu",
+    ),
+    path(
+        "dienstreise/tagebuch/eintrag/<int:eintrag_pk>/loeschen/",
+        views.dienstreise_tagebuch_eintrag_loeschen,
+        name="dienstreise_tagebuch_eintrag_loeschen",
+    ),
+    path(
+        "dienstreise/<int:pk>/gutschrift/beantragen/",
+        views.dienstreise_gutschrift_beantragen,
+        name="dienstreise_gutschrift_beantragen",
+    ),
     # Team-Queue-System
     path(
         "team-queue/",
@@ -251,5 +277,21 @@ urlpatterns = [
         "team-queue/erledigen/<str:antrag_typ>/<int:pk>/",
         views_team_queue.antrag_erledigen,
         name="antrag_erledigen",
+    ),
+    # WorkflowTask Claim-Aktionen
+    path(
+        "team-queue/workflow-task/<int:pk>/claimen/",
+        views_team_queue.workflow_task_claimen,
+        name="wf_task_claimen",
+    ),
+    path(
+        "team-queue/workflow-task/<int:pk>/freigeben/",
+        views_team_queue.workflow_task_freigeben,
+        name="wf_task_freigeben",
+    ),
+    path(
+        "team-queue/workflow-task/<int:pk>/erledigen/",
+        views_team_queue.workflow_task_erledigen,
+        name="wf_task_erledigen",
     ),
 ]

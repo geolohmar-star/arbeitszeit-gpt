@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Dienstreise-Tagebuch{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 700px;">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'arbeitszeit:zeiterfassung_uebersicht' %}">Zeiterfassung</a>
+            </li>
+            <li class="breadcrumb-item active">Dienstreise-Tagebuch</li>
+        </ol>
+    </nav>
+
+    <h2 class="mb-1">Dienstreise-Tagebuch</h2>
+    <p class="text-muted mb-4">
+        Waehlen Sie eine genehmigte Dienstreise um das Reisetagebuch zu oeffnen.
+    </p>
+
+    {% if antraege %}
+    <div class="card">
+        <div class="card-header fw-bold">Genehmigte Dienstreisen</div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="dienstreise_pk" class="form-label fw-semibold">
+                        Dienstreise auswaehlen
+                    </label>
+                    <select name="dienstreise_pk" id="dienstreise_pk" class="form-select" required>
+                        <option value="">-- Bitte auswaehlen --</option>
+                        {% for antrag in antraege %}
+                        <option value="{{ antrag.pk }}">
+                            {{ antrag.ziel }} &ndash;
+                            {{ antrag.von_datum|date:"d.m.Y" }}
+                            bis {{ antrag.bis_datum|date:"d.m.Y" }}
+                            ({{ antrag.dauer_tage }} Tag{{ antrag.dauer_tage|pluralize:"e" }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    Tagebuch oeffnen
+                </button>
+                <a href="{% url 'arbeitszeit:zeiterfassung_uebersicht' %}" class="btn btn-outline-secondary ms-2">
+                    Abbrechen
+                </a>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <strong>Keine genehmigten Dienstreisen vorhanden.</strong><br>
+        Ein Dienstreise-Tagebuch kann erst nach Genehmigung des Dienstreiseantrags
+        gefuehrt werden.
+        <div class="mt-2">
+            <a href="{% url 'formulare:meine_dienstreisen' %}" class="btn btn-sm btn-outline-primary">
+                Meine Dienstreisen ansehen
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

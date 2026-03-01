@@ -810,17 +810,45 @@ class Arbeitszeitvereinbarung(models.Model):
     
     # Notizen
     bemerkungen = models.TextField(blank=True)
-    
+
+    # Startdatum fuer Mehrwochenmodelle (muss ein Montag sein)
+    # Gibt an, ab welchem Montag "Woche 1" des Musters beginnt
+    zyklus_startdatum = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Startdatum Wochenzyklus",
+        help_text="Montag der ersten Woche – nur bei Mehrwochenmodellen",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         verbose_name = "Arbeitszeitvereinbarung"
         verbose_name_plural = "Arbeitszeitvereinbarungen"
         ordering = ['mitarbeiter', 'gueltig_ab', 'versionsnummer']
-    
+
     def __str__(self):
         return f"{self.mitarbeiter.vollname} - {self.get_antragsart_display()} ({self.gueltig_ab})"
+
+    def zyklus_woche_fuer_datum(self, datum):
+        """Gibt die Musterwoche (1-basiert) fuer ein gegebenes Datum zurueck.
+
+        Benoetigt zyklus_startdatum und TagesArbeitszeit-Eintraege mit woche > 1.
+        Gibt None zurueck wenn kein Mehrwochenmodell oder kein Startdatum gesetzt.
+        """
+        if not self.zyklus_startdatum:
+            return None
+        anzahl_wochen = (
+            self.tagesarbeitszeiten.values("woche").distinct().count() or 1
+        )
+        if anzahl_wochen <= 1:
+            return 1
+        delta_tage = (datum - self.zyklus_startdatum).days
+        if delta_tage < 0:
+            delta_tage = 0
+        delta_wochen = delta_tage // 7
+        return (delta_wochen % anzahl_wochen) + 1
     
 
    

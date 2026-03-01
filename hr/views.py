@@ -2131,3 +2131,55 @@ def kasten_detail(request, kuerzel):
         'parent': parent,
         'pfad': pfad
     })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def kasten_stelle_inhaber(request, pk):
+    """HTMX-View: Stelleninhaber zuweisen oder entfernen.
+
+    GET:  Formular mit Mitarbeiter-Dropdown anzeigen
+    POST: Zuweisung speichern und aktualisierte Stellen-Zeile zurueckgeben
+    """
+    # HTMX-View
+    stelle = get_object_or_404(Stelle, pk=pk)
+
+    # Mitarbeiter die dieser Stelle zugewiesen werden koennen:
+    # - aktuell ohne Stelle ODER
+    # - bereits dieser Stelle zugewiesen (damit Dropdown ihn enthaelt)
+    verfuegbare = HRMitarbeiter.objects.filter(
+        stelle__isnull=True
+    ).order_by("nachname", "vorname")
+
+    aktueller_inhaber = stelle.aktueller_inhaber
+
+    if request.method == "POST":
+        ma_pk = request.POST.get("mitarbeiter_pk")
+
+        # Bisherigen Inhaber freistellen
+        if aktueller_inhaber:
+            aktueller_inhaber.stelle = None
+            aktueller_inhaber.save(update_fields=["stelle"])
+
+        if ma_pk:
+            neuer_inhaber = get_object_or_404(HRMitarbeiter, pk=ma_pk)
+            neuer_inhaber.stelle = stelle
+            neuer_inhaber.save(update_fields=["stelle"])
+
+        # Aktualisierte Stelle fuer Template-Rendering neu laden
+        stelle.refresh_from_db()
+        return render(
+            request,
+            "hr/partials/_stelle_inhaber_zeile.html",
+            {"stelle": stelle},
+        )
+
+    return render(
+        request,
+        "hr/partials/_stelle_inhaber_form.html",
+        {
+            "stelle": stelle,
+            "verfuegbare": verfuegbare,
+            "aktueller_inhaber": aktueller_inhaber,
+        },
+    )

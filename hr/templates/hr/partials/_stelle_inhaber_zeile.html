@@ -1,0 +1,38 @@
+<div id="stelle-zeile-{{ stelle.pk }}" class="list-group-item">
+    <div class="d-flex justify-content-between align-items-start">
+        <div class="flex-grow-1">
+            <h6 class="mb-1">
+                {% if stelle.kategorie == 'leitung' %}👔
+                {% elif stelle.kategorie == 'stab' %}📎
+                {% else %}👤{% endif %}
+                <strong>{{ stelle.kuerzel }}</strong> - {{ stelle.bezeichnung }}
+            </h6>
+            <p class="mb-1 text-muted small">
+                <span class="badge bg-secondary">{{ stelle.get_kategorie_display }}</span>
+                {% if stelle.ist_besetzt %}
+                <span class="badge bg-success">Besetzt</span>
+                <small>→ {{ stelle.aktueller_inhaber.vollname }}</small>
+                {% else %}
+                <span class="badge bg-warning text-dark">Unbesetzt</span>
+                {% endif %}
+            </p>
+            <p class="mb-0 small text-muted">
+                Email: <code>{{ stelle.email }}</code>
+            </p>
+        </div>
+        <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-success"
+                    hx-get="{% url 'hr:kasten_stelle_inhaber' stelle.pk %}"
+                    hx-target="#stelle-zeile-{{ stelle.pk }}"
+                    hx-swap="beforeend">
+                {% if stelle.ist_besetzt %}Person aendern{% else %}Person zuweisen{% endif %}
+            </button>
+            <button class="btn btn-sm btn-outline-primary"
+                    hx-get="{% url 'hr:kasten_stelle_edit' stelle.id %}"
+                    hx-target="#modal-container"
+                    hx-swap="innerHTML">
+                Bearbeiten
+            </button>
+        </div>
+    </div>
+</div>

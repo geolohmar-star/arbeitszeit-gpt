@@ -13,6 +13,7 @@ Phase 2 (Graph-Workflows):
 """
 from datetime import timedelta
 import logging
+import uuid
 
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
@@ -102,10 +103,10 @@ class WorkflowEngine:
         if not antragsteller_stelle:
             return None
 
-        if rolle == "direkte_fuehrungskraft":
+        if rolle in ("direkte_fuehrungskraft", "direkter_vorgesetzter"):
             return self._find_uebergeordnete_stelle(antragsteller_stelle)
 
-        if rolle == "abteilungsleitung":
+        if rolle in ("abteilungsleitung", "bereichsleiter"):
             return self._find_abteilungsleitung(antragsteller_stelle)
 
         if rolle == "bereichsleitung":
@@ -440,12 +441,34 @@ class WorkflowEngine:
                     return [neuer_task]
                 # Falls kein Starter gefunden → normaler Workflow
 
+            # Bei Genehmigung: bearbeitet_von / bearbeitet_am am Antrag setzen
+            # (nur beim ersten genehmigenden Schritt, falls noch leer)
+            if entscheidung == "genehmigt":
+                co = task.instance.content_object
+                if co is not None:
+                    felder_bearbeitung = []
+                    if hasattr(co, "bearbeitet_von") and co.bearbeitet_von is None:
+                        co.bearbeitet_von = user
+                        felder_bearbeitung.append("bearbeitet_von")
+                    if hasattr(co, "bearbeitet_am") and co.bearbeitet_am is None:
+                        co.bearbeitet_am = timezone.now()
+                        felder_bearbeitung.append("bearbeitet_am")
+                    if felder_bearbeitung:
+                        co.save(update_fields=felder_bearbeitung)
+
             # Workflow-Logik basierend auf Entscheidung
             if entscheidung == "abgelehnt":
-                # Bei Ablehnung: Workflow abbrechen
+                # Bei Ablehnung: Workflow abbrechen und Antrag ablehnen
                 task.instance.status = "abgebrochen"
                 task.instance.abgeschlossen_am = timezone.now()
                 task.instance.save()
+
+                # Verknuepftes Antrag-Objekt auf "abgelehnt" setzen
+                co = task.instance.content_object
+                if co is not None and hasattr(co, "status"):
+                    co.status = "abgelehnt"
+                    co.save(update_fields=["status"])
+
                 return []
 
             # === NEUE LOGIK: Graph vs. Linear ===
@@ -500,6 +523,19 @@ class WorkflowEngine:
                     task.instance.abgeschlossen_am = timezone.now()
                     task.instance.aktueller_schritt = None
                     task.instance.save()
+
+                    # Verknuepftes Antrag-Objekt auf "genehmigt" setzen
+                    co = task.instance.content_object
+                    if co is not None and hasattr(co, "status"):
+                        co.status = "genehmigt"
+                        felder = ["status"]
+
+                        # Fuer Dienstreiseantraege: Einladungscode generieren
+                        if hasattr(co, "einladungscode") and not co.einladungscode:
+                            co.einladungscode = uuid.uuid4().hex[:8].upper()
+                            felder.append("einladungscode")
+
+                        co.save(update_fields=felder)
 
             return neue_tasks
 

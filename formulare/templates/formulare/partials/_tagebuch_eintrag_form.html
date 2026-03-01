@@ -1,0 +1,58 @@
+{% load static %}
+<div class="p-3 border-bottom bg-light">
+    <form hx-post="{% url 'formulare:dienstreise_tagebuch_eintrag_neu' antrag.pk %}?datum={{ datum|date:'Y-m-d' }}"
+          hx-target="#tag-{{ datum|date:'Y-m-d' }}"
+          hx-swap="outerHTML">
+        {% csrf_token %}
+        <input type="hidden" name="datum" value="{{ datum|date:'Y-m-d' }}">
+
+        {% if fehler %}
+        <div class="alert alert-danger py-2 mb-2">
+            {% for f in fehler %}<div>{{ f }}</div>{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="row g-2 align-items-end">
+            <!-- Fall -->
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold mb-1">Fall <span class="text-danger">*</span></label>
+                <select name="fall" class="form-select form-select-sm" required>
+                    <option value="">-- Fall auswaehlen --</option>
+                    <option value="1" {% if post.fall == "1" %}selected{% endif %}>
+                        Fall 1 – Normalarbeitszeit vom Standort
+                    </option>
+                    <option value="2" {% if post.fall == "2" %}selected{% endif %}>
+                        Fall 2 – Gesamtzeit inkl. Meetings
+                    </option>
+                    <option value="3" {% if post.fall == "3" %}selected{% endif %}>
+                        Fall 3 – Reisezeit ausserhalb AZ (&#247; 3)
+                    </option>
+                </select>
+            </div>
+            <!-- Von-Zeit -->
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-semibold mb-1">Von <span class="text-danger">*</span></label>
+                <input type="time" name="von_zeit" class="form-control form-control-sm"
+                       value="{{ post.von_zeit|default:'' }}" required>
+            </div>
+            <!-- Bis-Zeit -->
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-semibold mb-1">Bis <span class="text-danger">*</span></label>
+                <input type="time" name="bis_zeit" class="form-control form-control-sm"
+                       value="{{ post.bis_zeit|default:'' }}" required>
+            </div>
+            <!-- Bemerkung -->
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold mb-1">Bemerkung</label>
+                <input type="text" name="bemerkung" class="form-control form-control-sm"
+                       placeholder="optional" value="{{ post.bemerkung|default:'' }}">
+            </div>
+            <!-- Buttons -->
+            <div class="col-12 col-md-1 d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary">OK</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                        onclick="this.closest('.p-3').remove()">X</button>
+            </div>
+        </div>
+    </form>
+</div>

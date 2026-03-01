@@ -224,6 +224,19 @@ body { font-family: 'DM Sans', sans-serif; background: #faf9f6; color: #1f2421; 
     </div>
 
     <button type="button" id="add-week" class="btn btn-secondary" style="margin-top: 1rem;">+ Woche hinzufuegen</button>
+
+    <!-- Startdatum des Zyklus – erscheint nur bei Mehrwochenmodell -->
+    <div id="zyklus-startdatum-container" style="display:none; margin-top:1.5rem; padding:1rem; background:#fff3cd; border-radius:8px; border-left:4px solid #856404;">
+        <label for="zyklus_startdatum" class="form-label">
+            Montag der ersten Woche <span class="required">*</span>
+        </label>
+        <input type="date" id="zyklus_startdatum" name="zyklus_startdatum"
+               class="input-field" style="max-width:220px;">
+        <div class="help-text">
+            Ab welchem Montag beginnt Woche 1 des Musters?
+            Das System berechnet daraus fuer jeden Arbeitstag automatisch die richtige Musterwoche.
+        </div>
+    </div>
 </div>
 </div>
 
@@ -378,11 +391,26 @@ document.addEventListener('DOMContentLoaded', function() {
   var addWeekBtn = document.getElementById('add-week');
   var weeksContainer = document.getElementById('weeks-container');
   var weekCount = document.querySelectorAll('.week').length;
+  var zyklusContainer = document.getElementById('zyklus-startdatum-container');
+  var zyklusInput = document.getElementById('zyklus_startdatum');
 
   // Erste Woche: Loeschen-Button ausblenden
   var firstRemoveBtn = document.querySelector('.week .remove-week');
   if (firstRemoveBtn) {
     firstRemoveBtn.style.display = 'none';
+  }
+
+  function aktualisiereMehrwochenHinweis() {
+    if (!zyklusContainer || !zyklusInput) return;
+    var aktuelleWochen = weeksContainer ? weeksContainer.querySelectorAll('.week').length : 1;
+    if (aktuelleWochen > 1) {
+      zyklusContainer.style.display = 'block';
+      zyklusInput.required = true;
+    } else {
+      zyklusContainer.style.display = 'none';
+      zyklusInput.required = false;
+      zyklusInput.value = '';
+    }
   }
 
   if (addWeekBtn && weeksContainer) {
@@ -410,10 +438,27 @@ document.addEventListener('DOMContentLoaded', function() {
         removeBtn.style.display = 'inline-block';
         removeBtn.onclick = function() {
           newWeek.remove();
+          aktualisiereMehrwochenHinweis();
         };
       }
 
       weeksContainer.appendChild(newWeek);
+      aktualisiereMehrwochenHinweis();
+    });
+  }
+
+  // Validierung: Startdatum muss ein Montag sein
+  if (zyklusInput) {
+    zyklusInput.addEventListener('change', function() {
+      if (!this.value) return;
+      var datum = new Date(this.value);
+      // getDay(): 0=So, 1=Mo, ..., 6=Sa
+      if (datum.getDay() !== 1) {
+        this.setCustomValidity('Das Startdatum muss ein Montag sein.');
+        this.reportValidity();
+      } else {
+        this.setCustomValidity('');
+      }
     });
   }
 });

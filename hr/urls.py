@@ -44,6 +44,7 @@ urlpatterns = [
     path("kasten-organigramm/team/form/", views.kasten_team_form, name="kasten_team_form"),
     path("kasten-organigramm/stelle/form/", views.kasten_stelle_form, name="kasten_stelle_form"),
     path("kasten-organigramm/stelle/<int:pk>/edit/", views.kasten_stelle_edit, name="kasten_stelle_edit"),
+    path("kasten-organigramm/stelle/<int:pk>/inhaber/", views.kasten_stelle_inhaber, name="kasten_stelle_inhaber"),
 
     # Struktur-Editor (Tabellen-Editor)
     path("struktur-editor/", views.struktur_editor, name="struktur_editor"),

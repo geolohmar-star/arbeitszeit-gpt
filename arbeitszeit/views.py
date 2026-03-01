@@ -789,6 +789,7 @@ def vereinbarung_erstellen(request):
                                 Tagesarbeitszeit.objects.create(
                                     vereinbarung=vereinbarung,
                                     wochentag=tag,
+                                    woche=week,
                                     zeitwert=wert_hmm,
                                 )
                                 gesamt_minuten += wert_minuten
@@ -798,11 +799,56 @@ def vereinbarung_erstellen(request):
                         break
                     week += 1
 
+                # Nach dem Loop ist week = anzahl_wochen + 1 (bricht nach leerer Woche ab)
+                anzahl_wochen = max(week - 1, 1)
+
                 if gesamt_minuten > 0:
+                    # Durchschnittliche Wochenstunden (nicht Gesamtsumme aller Wochen)
                     vereinbarung.wochenstunden = round(
-                        gesamt_minuten / 60, 2
+                        gesamt_minuten / 60 / anzahl_wochen, 2
                     )
-                    vereinbarung.save()
+
+                # Startdatum fuer Mehrwochenmodell speichern
+                if anzahl_wochen > 1:
+                    import datetime as _dt
+                    zyklus_startdatum_str = request.POST.get("zyklus_startdatum", "")
+                    fehler_kontext = {
+                        "mitarbeiter": mitarbeiter,
+                        "tage_list": tage_list,
+                        "hat_vereinbarung": hat_vereinbarung,
+                        "aktuelle_vereinbarung": aktuelle_vereinbarung,
+                        "aktuelle_tageszeiten": aktuelle_tageszeiten,
+                    }
+                    if zyklus_startdatum_str:
+                        try:
+                            startdatum = _dt.date.fromisoformat(zyklus_startdatum_str)
+                            if startdatum.weekday() != 0:
+                                messages.error(
+                                    request,
+                                    "Das Startdatum des Wochenzyklus muss ein Montag sein.",
+                                )
+                                vereinbarung.delete()
+                                return render(
+                                    request,
+                                    "arbeitszeit/vereinbarung_form.html",
+                                    fehler_kontext,
+                                )
+                            vereinbarung.zyklus_startdatum = startdatum
+                        except ValueError:
+                            pass
+                    else:
+                        messages.error(
+                            request,
+                            "Bitte geben Sie den Montag der ersten Woche an (Mehrwochenmodell).",
+                        )
+                        vereinbarung.delete()
+                        return render(
+                            request,
+                            "arbeitszeit/vereinbarung_form.html",
+                            fehler_kontext,
+                        )
+
+                vereinbarung.save()
 
             # Gueltigkeit
             if antragsart != "beendigung":
