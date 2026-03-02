@@ -1,0 +1,8 @@
+{% if bausteine %}
+<option value="">-- Textbaustein waehlen (optional) --</option>
+{% for b in bausteine %}
+<option value="{{ b.pk }}">{{ b.text }}</option>
+{% endfor %}
+{% else %}
+<option value="">-- Kein Textbaustein verfuegbar --</option>
+{% endif %}

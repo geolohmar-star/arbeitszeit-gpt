@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Stoermeldung erfassen{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h2>Stoermeldung erfassen</h2>
+            <p class="text-muted">Bitte beschreiben Sie die Stoerung moeglichst genau.</p>
+
+            {% if not melder %}
+            <div class="alert alert-danger">
+                Kein HR-Mitarbeiterprofil gefunden. Bitte den Administrator kontaktieren.
+            </div>
+            {% else %}
+
+            <form method="post" action="{% url 'facility:erstellen' %}">
+                {% csrf_token %}
+
+                <!-- Melder-Info -->
+                <div class="card mb-4">
+                    <div class="card-header"><strong>Ihre Angaben</strong></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Melder</label>
+                            <input type="text" class="form-control" value="{{ melder }}" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label for="melder_telefon" class="form-label">
+                                Telefon (Rueckfragen) <span class="text-danger">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="melder_telefon"
+                                name="melder_telefon"
+                                class="form-control {% if fehler.melder_telefon %}is-invalid{% endif %}"
+                                value="{{ formwerte.melder_telefon|default:'' }}"
+                                placeholder="z.B. 123 oder 0151 12345678"
+                            >
+                            {% if fehler.melder_telefon %}
+                            <div class="invalid-feedback">{{ fehler.melder_telefon }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ort -->
+                <div class="card mb-4">
+                    <div class="card-header"><strong>Ort der Stoerung</strong></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="raumnummer" class="form-label">
+                                Raumnummer <span class="text-danger">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                id="raumnummer"
+                                name="raumnummer"
+                                class="form-control {% if fehler.raumnummer %}is-invalid{% endif %}"
+                                value="{{ formwerte.raumnummer|default:'' }}"
+                                placeholder="z.B. 2.14 oder EG-WC-Herren"
+                            >
+                            {% if fehler.raumnummer %}
+                            <div class="invalid-feedback">{{ fehler.raumnummer }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="raum_freitext" class="form-label">
+                                Genauere Ortsangabe (optional)
+                            </label>
+                            <input
+                                type="text"
+                                id="raum_freitext"
+                                name="raum_freitext"
+                                class="form-control"
+                                value="{{ formwerte.raum_freitext|default:'' }}"
+                                placeholder="z.B. Waschbecken links"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stoerung -->
+                <div class="card mb-4">
+                    <div class="card-header"><strong>Stoerung</strong></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="kategorie" class="form-label">
+                                Kategorie <span class="text-danger">*</span>
+                            </label>
+                            <select
+                                id="kategorie"
+                                name="kategorie"
+                                class="form-select {% if fehler.kategorie %}is-invalid{% endif %}"
+                                hx-get="{% url 'facility:textbausteine_laden' %}"
+                                hx-trigger="change"
+                                hx-target="#textbaustein"
+                                hx-swap="innerHTML"
+                            >
+                                <option value="">-- Bitte waehlen --</option>
+                                {% for k in kategorien %}
+                                <option value="{{ k.wert }}"
+                                    {% if formwerte.kategorie == k.wert %}selected{% endif %}>
+                                    {{ k.label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if fehler.kategorie %}
+                            <div class="invalid-feedback">{{ fehler.kategorie }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="textbaustein" class="form-label">
+                                Textbaustein (optional)
+                            </label>
+                            <select id="textbaustein" name="textbaustein" class="form-select">
+                                <option value="">-- zuerst Kategorie waehlen --</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="beschreibung" class="form-label">
+                                Freie Beschreibung (optional)
+                            </label>
+                            <textarea
+                                id="beschreibung"
+                                name="beschreibung"
+                                class="form-control"
+                                rows="3"
+                                placeholder="Zusaetzliche Details zur Stoerung">{{ formwerte.beschreibung|default:'' }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="prioritaet" class="form-label">Prioritaet</label>
+                            <select id="prioritaet" name="prioritaet" class="form-select">
+                                {% for wert, label in prioritaeten %}
+                                <option value="{{ wert }}"
+                                    {% if formwerte.prioritaet == wert or not formwerte.prioritaet and wert == "normal" %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Stoermeldung absenden</button>
+                    <a href="{% url 'facility:meine' %}" class="btn btn-outline-secondary">
+                        Meine Stoermeldungen
+                    </a>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

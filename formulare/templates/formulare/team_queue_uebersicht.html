@@ -94,6 +94,9 @@
                                                             <a href="{% url 'formulare:zeitgutschrift_pdf' obj.pk %}" class="btn btn-xs btn-outline-danger btn-sm py-0" target="_blank">PDF</a>
                                                         {% elif ct == 'dienstreiseantrag' %}
                                                             <a href="{% url 'formulare:dienstreise_detail' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0 me-1" target="_blank">Ansehen</a>
+                                                        {% elif ct == 'stoermeldung' %}
+                                                            <a href="{% url 'facility:detail' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0 me-1" target="_blank">Ansehen</a>
+                                                            <a href="{% url 'facility:queue' %}" class="btn btn-xs btn-outline-primary btn-sm py-0" target="_blank">Facility-Queue</a>
                                                         {% endif %}
                                                     </div>
                                                 {% endwith %}
@@ -170,6 +173,9 @@
                                                             <a href="{% url 'formulare:zeitgutschrift_pdf' obj.pk %}" class="btn btn-sm btn-outline-danger" target="_blank">PDF</a>
                                                         {% elif ct == 'dienstreiseantrag' %}
                                                             <a href="{% url 'formulare:dienstreise_detail' obj.pk %}?queue_task={{ task.pk }}" class="btn btn-sm btn-outline-primary me-1">Details &amp; Erledigen</a>
+                                                        {% elif ct == 'stoermeldung' %}
+                                                            <a href="{% url 'facility:detail' obj.pk %}" class="btn btn-sm btn-outline-secondary me-1" target="_blank">Details</a>
+                                                            <a href="{% url 'facility:queue' %}" class="btn btn-sm btn-outline-primary">Facility-Queue</a>
                                                         {% endif %}
                                                     </div>
                                                 {% endwith %}

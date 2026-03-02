@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Textbausteine – Facility{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Textbausteine verwalten</h2>
+        <a href="{% url 'facility:textbaustein_erstellen' %}" class="btn btn-primary">
+            + Neu
+        </a>
+    </div>
+
+    {% if not gruppen %}
+    <div class="alert alert-info">Noch keine Textbausteine angelegt.</div>
+    {% else %}
+        {% for kategorie_label, bausteine in gruppen.items %}
+        <div class="card mb-4">
+            <div class="card-header"><strong>{{ kategorie_label }}</strong></div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:60%">Text</th>
+                            <th style="width:10%">Reihenfolge</th>
+                            <th style="width:10%">Aktiv</th>
+                            <th style="width:20%">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in bausteine %}
+                        <tr>
+                            <td>{{ b.text }}</td>
+                            <td>{{ b.reihenfolge }}</td>
+                            <td>
+                                {% if b.ist_aktiv %}
+                                <span class="badge bg-success">Ja</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Nein</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'facility:textbaustein_bearbeiten' b.pk %}"
+                                   class="btn btn-sm btn-outline-primary me-1">Bearbeiten</a>
+                                <a href="{% url 'facility:textbaustein_loeschen' b.pk %}"
+                                   class="btn btn-sm btn-outline-danger">Loeschen</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <a href="{% url 'facility:queue' %}" class="btn btn-outline-secondary">
+        Zur Facility-Queue
+    </a>
+</div>
+{% endblock %}

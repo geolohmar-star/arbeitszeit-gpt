@@ -45,6 +45,9 @@
                     <button class="btn btn-outline-info ms-2" data-bs-toggle="modal" data-bs-target="#hilfe-modal">
                         ? Hilfe
                     </button>
+                    <a href="{% url 'facility:workflow_anleitung' %}" class="btn btn-outline-warning ms-1" target="_blank" title="Schritt-fuer-Schritt: Facility-Workflows einrichten">
+                        Facility einrichten
+                    </a>
                 </div>
             </div>
             <div class="row mt-2">
@@ -262,6 +265,13 @@
                             <option value="zag_storno_erstellt">Z-AG Stornierung erstellt</option>
                             <option value="aenderung_zeiterfassung_erstellt">Aenderung Zeiterfassung erstellt</option>
                             <option value="zeitgutschrift_erstellt">Zeitgutschrift erstellt</option>
+                            <optgroup label="Facility Management">
+                                <option value="stoermeldung_elektro_erstellt">Stoermeldung – Elektro</option>
+                                <option value="stoermeldung_sanitaer_heizung_erstellt">Stoermeldung – Sanitaer / Heizung</option>
+                                <option value="stoermeldung_schlosser_erstellt">Stoermeldung – Schlosser</option>
+                                <option value="stoermeldung_schreiner_erstellt">Stoermeldung – Schreiner</option>
+                                <option value="stoermeldung_maler_erstellt">Stoermeldung – Maler</option>
+                            </optgroup>
                             <option value="custom">Benutzerdefiniert...</option>
                         </select>
                         <small class="text-muted">Event das diesen Workflow automatisch startet</small>

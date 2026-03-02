@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'hr.apps.HrConfig',
     'workflow.apps.WorkflowConfig',
     'veranstaltungen.apps.VeranstaltungenConfig',
+    'facility.apps.FacilityConfig',
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -93,6 +94,7 @@ TEMPLATES = [
                 'arbeitszeit.context_processors.genehmiger_rolle',
                 'arbeitszeit.context_processors.workflow_tasks_anzahl',
                 'arbeitszeit.context_processors.team_stapel_anzahl',
+                'facility.context_processors.facility_context',
             ],
         },
     },

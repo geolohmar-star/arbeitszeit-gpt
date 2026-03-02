@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block title %}Facility-Workflows einrichten – Anleitung{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 900px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Facility-Workflows einrichten</h2>
+            <p class="text-muted mb-0">
+                Schritt-fuer-Schritt-Anleitung: Neue Stoermeldungen automatisch
+                in die richtige Team-Queue weiterleiten.
+            </p>
+        </div>
+        <a href="{% url 'workflow:workflow_editor' %}" class="btn btn-primary">
+            Zum Workflow-Editor
+        </a>
+    </div>
+
+    <!-- Wie es funktioniert -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Wie funktioniert das?</h5>
+        </div>
+        <div class="card-body">
+            <p>
+                Wenn ein Mitarbeiter eine Stoermeldung erfasst, loest das System automatisch
+                einen <strong>Trigger-Event</strong> aus – abhängig von der gewaehlten Kategorie.
+                Existiert ein passendes <strong>WorkflowTemplate</strong> fuer diesen Trigger,
+                wird die Meldung sofort als <strong>Task im Arbeitsstapel</strong> des
+                zustaendigen Teams angelegt.
+            </p>
+            <div class="bg-light p-3 rounded font-monospace small">
+                Mitarbeiter waehlt Kategorie "Elektro" und sendet Stoermeldung ab<br>
+                &nbsp;&nbsp;&darr;<br>
+                System: trigger_event = "stoermeldung_elektro_erstellt"<br>
+                &nbsp;&nbsp;&darr;<br>
+                WorkflowTemplate "Stoermeldung Elektro" wird gefunden (aktiv)<br>
+                &nbsp;&nbsp;&darr;<br>
+                WorkflowTask wird erstellt &rarr; TeamQueue "Facility – Elektro"<br>
+                &nbsp;&nbsp;&darr;<br>
+                Elektro-Teammitglieder sehen den Task im Arbeitsstapel und koennen
+                ihn claimen und bearbeiten
+            </div>
+            <div class="alert alert-info mt-3 mb-0 small">
+                <strong>Hinweis:</strong> Existiert kein WorkflowTemplate fuer eine Kategorie,
+                passiert nichts Schlimmes – die Stoermeldung erscheint trotzdem in der
+                Facility-Queue unter <a href="{% url 'facility:queue' %}">
+                /facility/queue/</a>. Der Workflow-Trigger ist ein <em>zusaetzlicher</em>
+                Benachrichtigungskanal, kein Ersatz fuer die Facility-Queue.
+            </div>
+        </div>
+    </div>
+
+    <!-- Voraussetzungen -->
+    <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">Schritt 1 – Voraussetzung: TeamQueue-Eintraege anlegen</h5>
+        </div>
+        <div class="card-body">
+            <p>
+                Der Workflow-Editor weist Schritte einer <strong>TeamQueue</strong> zu.
+                Fuer jede Facility-Kategorie muss deshalb zuerst ein TeamQueue-Eintrag
+                im Admin angelegt werden.
+            </p>
+            <p>
+                <a href="/admin/formulare/teamqueue/add/" class="btn btn-sm btn-outline-dark" target="_blank">
+                    Admin: TeamQueue anlegen
+                </a>
+            </p>
+
+            <h6 class="mt-3">Empfohlene TeamQueue-Eintraege:</h6>
+            <table class="table table-sm table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Kuerzel</th>
+                        <th>Beschreibung</th>
+                        <th>Mitglieder</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Facility – Elektro</td>
+                        <td><code>fac-elektro</code></td>
+                        <td>Elektrische Stoerungen, Beleuchtung, Steckdosen</td>
+                        <td>Elektro-Mitarbeiter eintragen</td>
+                    </tr>
+                    <tr>
+                        <td>Facility – Sanitaer / Heizung</td>
+                        <td><code>fac-sanitaer</code></td>
+                        <td>Wasseranlagen, Heizung, WC</td>
+                        <td>Sanitaer-Mitarbeiter eintragen</td>
+                    </tr>
+                    <tr>
+                        <td>Facility – Schlosser</td>
+                        <td><code>fac-schlosser</code></td>
+                        <td>Schloesser, Tueren, Schliesssystem</td>
+                        <td>Schlosser-Mitarbeiter eintragen</td>
+                    </tr>
+                    <tr>
+                        <td>Facility – Schreiner</td>
+                        <td><code>fac-schreiner</code></td>
+                        <td>Moebel, Holzarbeiten, Einbauten</td>
+                        <td>Schreiner-Mitarbeiter eintragen</td>
+                    </tr>
+                    <tr>
+                        <td>Facility – Maler</td>
+                        <td><code>fac-maler</code></td>
+                        <td>Malerarbeiten, Anstriche, Tapeten</td>
+                        <td>Maler-Mitarbeiter eintragen</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="alert alert-warning small mb-0">
+                <strong>Wichtig:</strong> Das Feld <em>Antragstypen</em> kann leer bleiben –
+                es wird fuer Stoermeldungen nicht verwendet. Nur <em>Name</em>, <em>Kuerzel</em>
+                und <em>Mitglieder</em> sind relevant.
+            </div>
+        </div>
+    </div>
+
+    <!-- Workflow-Template anlegen -->
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Schritt 2 – WorkflowTemplate im Editor anlegen</h5>
+        </div>
+        <div class="card-body">
+            <p>
+                Diesen Schritt <strong>5x wiederholen</strong> – einmal pro Kategorie.
+                Alle 5 Templates sind identisch aufgebaut, unterscheiden sich nur in
+                Trigger-Event und TeamQueue.
+            </p>
+
+            <div class="row g-4">
+
+                <!-- Schritt 2a -->
+                <div class="col-12">
+                    <div class="d-flex align-items-start gap-3">
+                        <span class="badge bg-primary rounded-circle fs-6 px-2 py-1 flex-shrink-0">1</span>
+                        <div>
+                            <strong>Workflow-Editor oeffnen und neu starten</strong>
+                            <p class="mb-0 small text-muted mt-1">
+                                <a href="{% url 'workflow:workflow_editor' %}">Zum Workflow-Editor</a>
+                                &rarr; falls ein bestehendes Template geladen ist: "Leeren" klicken.
+                            </p>
+                        </div>
+                    </div>
+                    <hr>
+                </div>
+
+                <!-- Schritt 2b -->
+                <div class="col-12">
+                    <div class="d-flex align-items-start gap-3">
+                        <span class="badge bg-primary rounded-circle fs-6 px-2 py-1 flex-shrink-0">2</span>
+                        <div>
+                            <strong>Schritt-Modus aktivieren und Knoten anlegen</strong>
+                            <p class="small text-muted mt-1 mb-1">
+                                Oben auf <strong>Schritt</strong> klicken. Dann auf die freie
+                                Flaeche klicken – ein Konfigurationspanel erscheint rechts.
+                                Dort eintragen:
+                            </p>
+                            <table class="table table-sm table-bordered small">
+                                <tr>
+                                    <th style="width:35%">Feld</th>
+                                    <th>Wert</th>
+                                </tr>
+                                <tr>
+                                    <td>Schritt-Titel</td>
+                                    <td><code>Stoermeldung bearbeiten</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Typ</td>
+                                    <td><code>task</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Zustaendige Rolle</td>
+                                    <td><code>Team-Queue</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Team auswaehlen</td>
+                                    <td>
+                                        z.B. <code>Facility – Elektro</code>
+                                        (aus dem Dropdown)
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Frist (Tage)</td>
+                                    <td><code>3</code> (oder je nach Anforderung)</td>
+                                </tr>
+                            </table>
+                            <p class="small text-muted mb-0">
+                                "Schritt hinzufuegen" klicken. Der Knoten erscheint auf der Flaeche.
+                            </p>
+                        </div>
+                    </div>
+                    <hr>
+                </div>
+
+                <!-- Schritt 2c -->
+                <div class="col-12">
+                    <div class="d-flex align-items-start gap-3">
+                        <span class="badge bg-primary rounded-circle fs-6 px-2 py-1 flex-shrink-0">3</span>
+                        <div>
+                            <strong>Speichern-Dialog oeffnen</strong>
+                            <p class="small text-muted mt-1 mb-1">
+                                Oben auf <strong>Speichern</strong> klicken. Im Dialog folgendes
+                                eintragen:
+                            </p>
+                            <table class="table table-sm table-bordered small">
+                                <tr>
+                                    <th style="width:35%">Feld</th>
+                                    <th>Wert</th>
+                                </tr>
+                                <tr>
+                                    <td>Template-Name</td>
+                                    <td>z.B. <code>Stoermeldung – Elektro</code></td>
+                                </tr>
+                                <tr>
+                                    <td>Trigger-Event</td>
+                                    <td>
+                                        Dropdown &rarr; Gruppe <em>Facility Management</em>
+                                        &rarr; passenden Eintrag waehlen (Tabelle unten)
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Aktiv</td>
+                                    <td>Haken setzen</td>
+                                </tr>
+                            </table>
+                            <p class="small text-muted mb-0">
+                                "Speichern" klicken. Fertig fuer diese Kategorie.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Trigger-Tabelle -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Referenz: Trigger-Events und zugehoerige TeamQueues</h5>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-bordered mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Kategorie</th>
+                        <th>Trigger-Event (im Dropdown)</th>
+                        <th>TeamQueue (Kuerzel)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Elektro</td>
+                        <td><code>stoermeldung_elektro_erstellt</code></td>
+                        <td><code>fac-elektro</code></td>
+                    </tr>
+                    <tr>
+                        <td>Sanitaer / Heizung</td>
+                        <td><code>stoermeldung_sanitaer_heizung_erstellt</code></td>
+                        <td><code>fac-sanitaer</code></td>
+                    </tr>
+                    <tr>
+                        <td>Schlosser</td>
+                        <td><code>stoermeldung_schlosser_erstellt</code></td>
+                        <td><code>fac-schlosser</code></td>
+                    </tr>
+                    <tr>
+                        <td>Schreiner</td>
+                        <td><code>stoermeldung_schreiner_erstellt</code></td>
+                        <td><code>fac-schreiner</code></td>
+                    </tr>
+                    <tr>
+                        <td>Maler</td>
+                        <td><code>stoermeldung_maler_erstellt</code></td>
+                        <td><code>fac-maler</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Testen -->
+    <div class="card mb-4 border-success">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Schritt 3 – Setup testen</h5>
+        </div>
+        <div class="card-body">
+            <ol class="mb-0">
+                <li class="mb-2">
+                    Als normaler Mitarbeiter anmelden &rarr;
+                    <a href="{% url 'facility:erstellen' %}">Neue Stoermeldung</a> erfassen &rarr;
+                    Kategorie "Elektro" waehlen &rarr; Pflichtfelder ausfullen &rarr; Absenden.
+                </li>
+                <li class="mb-2">
+                    Zur Erfolgsmeldung-Seite: Betreff notieren (z.B. <code>STR-00001</code>).
+                </li>
+                <li class="mb-2">
+                    Als Elektro-Teammitglied anmelden &rarr;
+                    <a href="{% url 'workflow:arbeitsstapel' %}">Arbeitsstapel</a> aufrufen &rarr;
+                    Der Task sollte sichtbar sein mit Link zur Stoermeldung.
+                </li>
+                <li class="mb-2">
+                    Task aus dem Team-Stapel claimen &rarr;
+                    <a href="{% url 'facility:queue' %}">Facility-Queue</a> &rarr;
+                    Stoermeldung erledigen &rarr; Kommentar eingeben.
+                </li>
+                <li class="mb-0">
+                    Als Melder anmelden &rarr;
+                    <a href="{% url 'facility:meine' %}">Meine Stoermeldungen</a> &rarr;
+                    Status sollte "Erledigt" zeigen.
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Fehlerbehandlung -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Haeufige Probleme</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Problem</th>
+                        <th>Ursache</th>
+                        <th>Loesung</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Task erscheint nicht im Arbeitsstapel</td>
+                        <td>
+                            WorkflowTemplate existiert nicht oder ist inaktiv,
+                            oder Trigger-Event stimmt nicht exakt ueberein
+                        </td>
+                        <td>
+                            Im Editor: Template laden &rarr; Trigger-Event pruefen.
+                            Exakt: <code>stoermeldung_elektro_erstellt</code>
+                            (Gross-/Kleinschreibung beachten)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Task im Arbeitsstapel, aber kein TeamQueue-Eintrag sichtbar</td>
+                        <td>
+                            WorkflowStep hat keinen <em>zustaendig_team</em>-Wert
+                        </td>
+                        <td>
+                            Im Editor: Knoten im Bearbeiten-Modus oeffnen &rarr;
+                            "Team-Queue" eintragen
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Stoermeldung erledigt, aber WorkflowTask bleibt offen</td>
+                        <td>
+                            Seltener Fehler in <code>_schliesse_facility_workflow_task()</code>
+                        </td>
+                        <td>
+                            Task manuell im
+                            <a href="{% url 'workflow:arbeitsstapel' %}">Arbeitsstapel</a>
+                            als erledigt markieren. Logs pruefen.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>TeamQueue erscheint nicht im Dropdown des Editors</td>
+                        <td>TeamQueue-Eintrag fehlt im Admin</td>
+                        <td>
+                            <a href="/admin/formulare/teamqueue/" target="_blank">
+                                Admin &rarr; TeamQueue
+                            </a>
+                            &rarr; Eintrag anlegen, dann Seite im Editor neu laden
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-5">
+        <a href="{% url 'workflow:workflow_editor' %}" class="btn btn-primary">
+            Zum Workflow-Editor
+        </a>
+        <a href="{% url 'facility:queue' %}" class="btn btn-outline-secondary">
+            Zur Facility-Queue
+        </a>
+        <a href="/admin/formulare/teamqueue/" class="btn btn-outline-secondary" target="_blank">
+            Admin: TeamQueues
+        </a>
+    </div>
+
+</div>
+{% endblock %}

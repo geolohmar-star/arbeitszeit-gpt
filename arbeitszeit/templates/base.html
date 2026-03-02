@@ -180,6 +180,45 @@
                     </li>
                     {% endif %}
 
+                    <!-- Facility Management -->
+                    {% if user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#"
+                           id="facilityDropdown" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            Facility
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="facilityDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'facility:erstellen' %}">
+                                    Stoermeldung erfassen
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'facility:meine' %}">
+                                    Meine Stoermeldungen
+                                </a>
+                            </li>
+                            {% if ist_facility_mitglied %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'facility:queue' %}">
+                                    Facility-Queue
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if user.is_staff %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'facility:textbaustein_liste' %}">
+                                    Textbausteine
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    {% endif %}
+
                     <!-- Rechtevergabe (nur Staff/Admin) -->
                     {% if user.is_staff %}
                     <li class="nav-item">

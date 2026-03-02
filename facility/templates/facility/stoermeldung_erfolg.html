@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Stoermeldung eingegangen{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">Stoermeldung eingegangen</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        Ihre Stoermeldung wurde erfolgreich erfasst.
+                    </p>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>Betreff</th>
+                            <td><strong>{{ meldung.get_betreff }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Kategorie</th>
+                            <td>{{ meldung.get_kategorie_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Raum</th>
+                            <td>
+                                {{ meldung.raumnummer }}
+                                {% if meldung.raum_freitext %}
+                                – {{ meldung.raum_freitext }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Prioritaet</th>
+                            <td>{{ meldung.get_prioritaet_display }}</td>
+                        </tr>
+                        {% if meldung.textbaustein %}
+                        <tr>
+                            <th>Stoerung</th>
+                            <td>{{ meldung.textbaustein.text }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if meldung.beschreibung %}
+                        <tr>
+                            <th>Beschreibung</th>
+                            <td>{{ meldung.beschreibung }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th>Erfasst am</th>
+                            <td>{{ meldung.erstellt_am|date:"d.m.Y H:i" }} Uhr</td>
+                        </tr>
+                    </table>
+                    <p class="text-muted">
+                        Das zust&auml;ndige Team wird sich um die Stoerung k&uuml;mmern.
+                        Den aktuellen Status k&ouml;nnen Sie unter "Meine Stoermeldungen" verfolgen.
+                    </p>
+                </div>
+                <div class="card-footer d-flex gap-2">
+                    <a href="{% url 'facility:meine' %}" class="btn btn-primary">
+                        Meine Stoermeldungen
+                    </a>
+                    <a href="{% url 'facility:erstellen' %}" class="btn btn-outline-secondary">
+                        Neue Stoermeldung erfassen
+                    </a>
+                    <a href="{% url 'arbeitszeit:dashboard' %}" class="btn btn-outline-secondary">
+                        Zum Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Meine Stoermeldungen{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Meine Stoermeldungen</h2>
+        <a href="{% url 'facility:erstellen' %}" class="btn btn-primary">
+            + Neue Stoermeldung
+        </a>
+    </div>
+
+    {% if not melder %}
+    <div class="alert alert-warning">
+        Kein HR-Mitarbeiterprofil gefunden. Bitte den Administrator kontaktieren.
+    </div>
+    {% elif not meldungen %}
+    <div class="alert alert-info">
+        Sie haben noch keine Stoermeldungen erfasst.
+    </div>
+    {% else %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Betreff</th>
+                    <th>Kategorie</th>
+                    <th>Raum</th>
+                    <th>Prioritaet</th>
+                    <th>Status</th>
+                    <th>Erfasst am</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in meldungen %}
+                <tr>
+                    <td><strong>{{ m.get_betreff }}</strong></td>
+                    <td>{{ m.get_kategorie_display }}</td>
+                    <td>{{ m.raumnummer }}</td>
+                    <td>
+                        {% if m.prioritaet == "sofort" %}
+                        <span class="badge bg-danger">{{ m.get_prioritaet_display }}</span>
+                        {% elif m.prioritaet == "dringend" %}
+                        <span class="badge bg-warning text-dark">{{ m.get_prioritaet_display }}</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ m.get_prioritaet_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if m.status == "offen" %}
+                        <span class="badge bg-secondary">Offen</span>
+                        {% elif m.status == "in_bearbeitung" %}
+                        <span class="badge bg-warning text-dark">In Bearbeitung</span>
+                        {% elif m.status == "erledigt" %}
+                        <span class="badge bg-success">Erledigt</span>
+                        {% else %}
+                        <span class="badge bg-danger">Unloesbar</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ m.erstellt_am|date:"d.m.Y H:i" }}</td>
+                    <td>
+                        <a href="{% url 'facility:detail' m.pk %}" class="btn btn-sm btn-outline-primary">
+                            Detail
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

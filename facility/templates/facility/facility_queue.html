@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}Facility-Queue{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2>Facility-Queue</h2>
+
+    <!-- Tab-Navigation -->
+    <ul class="nav nav-tabs mb-3" id="queueTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="offen-tab" data-bs-toggle="tab"
+                    data-bs-target="#offen" type="button" role="tab">
+                Offen
+                {% if offene %}
+                <span class="badge bg-danger ms-1">{{ offene|length }}</span>
+                {% endif %}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="meine-tab" data-bs-toggle="tab"
+                    data-bs-target="#meine" type="button" role="tab">
+                Meine Aufgaben
+                {% if meine %}
+                <span class="badge bg-warning text-dark ms-1">{{ meine|length }}</span>
+                {% endif %}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="team-tab" data-bs-toggle="tab"
+                    data-bs-target="#team" type="button" role="tab">
+                Team in Bearbeitung
+                {% if team_in_bearbeitung %}
+                <span class="badge bg-secondary ms-1">{{ team_in_bearbeitung|length }}</span>
+                {% endif %}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="erledigt-tab" data-bs-toggle="tab"
+                    data-bs-target="#erledigt" type="button" role="tab">
+                Erledigt (30 Tage)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="queueTabContent">
+
+        <!-- Tab: Offen -->
+        <div class="tab-pane fade show active" id="offen" role="tabpanel">
+            {% if not offene %}
+            <div class="alert alert-success">Keine offenen Stoermeldungen. Alles in Ordnung!</div>
+            {% else %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Betreff</th>
+                            <th>Prioritaet</th>
+                            <th>Kategorie</th>
+                            <th>Raum</th>
+                            <th>Melder</th>
+                            <th>Tel.</th>
+                            <th>Erfasst</th>
+                            <th>Aktion</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in offene %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'facility:detail' m.pk %}">
+                                    <strong>{{ m.get_betreff }}</strong>
+                                </a>
+                                {% if m.textbaustein %}
+                                <br><small class="text-muted">{{ m.textbaustein.text|truncatechars:60 }}</small>
+                                {% elif m.beschreibung %}
+                                <br><small class="text-muted">{{ m.beschreibung|truncatechars:60 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if m.prioritaet == "sofort" %}
+                                <span class="badge bg-danger">{{ m.get_prioritaet_display }}</span>
+                                {% elif m.prioritaet == "dringend" %}
+                                <span class="badge bg-warning text-dark">{{ m.get_prioritaet_display }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ m.get_prioritaet_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ m.get_kategorie_display }}</td>
+                            <td>
+                                {{ m.raumnummer }}
+                                {% if m.raum_freitext %}
+                                <br><small class="text-muted">{{ m.raum_freitext }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ m.melder }}</td>
+                            <td>{{ m.melder_telefon }}</td>
+                            <td>{{ m.erstellt_am|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                <form method="post" action="{% url 'facility:claimen' m.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        Uebernehmen
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab: Meine Aufgaben -->
+        <div class="tab-pane fade" id="meine" role="tabpanel">
+            {% if not meine %}
+            <div class="alert alert-info">Sie haben aktuell keine Aufgaben uebernommen.</div>
+            {% else %}
+            {% for m in meine %}
+            <div class="card mb-3 border-warning">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>
+                            <a href="{% url 'facility:detail' m.pk %}">{{ m.get_betreff }}</a>
+                        </strong>
+                        – {{ m.get_kategorie_display }}
+                        {% if m.prioritaet == "sofort" %}
+                        <span class="badge bg-danger ms-1">{{ m.get_prioritaet_display }}</span>
+                        {% elif m.prioritaet == "dringend" %}
+                        <span class="badge bg-warning text-dark ms-1">{{ m.get_prioritaet_display }}</span>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">Uebernommen: {{ m.claimed_am|date:"d.m.Y H:i" }}</small>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Raum:</strong> {{ m.raumnummer }}
+                                {% if m.raum_freitext %} – {{ m.raum_freitext }}{% endif %}
+                            </p>
+                            <p class="mb-1"><strong>Melder:</strong> {{ m.melder }}
+                                | Tel: {{ m.melder_telefon }}
+                            </p>
+                            {% if m.textbaustein %}
+                            <p class="mb-1"><strong>Stoerung:</strong> {{ m.textbaustein.text }}</p>
+                            {% endif %}
+                            {% if m.beschreibung %}
+                            <p class="mb-1"><strong>Beschreibung:</strong> {{ m.beschreibung }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Erledigen-Formular -->
+                            <form method="post" action="{% url 'facility:erledigen' m.pk %}" class="mb-2">
+                                {% csrf_token %}
+                                <div class="mb-2">
+                                    <textarea name="kommentar" class="form-control form-control-sm"
+                                              rows="2" placeholder="Kommentar (optional)"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    Erledigt
+                                </button>
+                            </form>
+                            <!-- Aktionsreihe -->
+                            <div class="d-flex gap-2">
+                                <form method="post" action="{% url 'facility:unloesbar' m.pk %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="kommentar" value="">
+                                    <button type="submit" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Als unloesbar markieren?')">
+                                        Unloesbar
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'facility:freigeben' m.pk %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                            onclick="return confirm('Stoermeldung freigeben?')">
+                                        Freigeben
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Tab: Team in Bearbeitung -->
+        <div class="tab-pane fade" id="team" role="tabpanel">
+            {% if not team_in_bearbeitung %}
+            <div class="alert alert-info">Keine weiteren Stoermeldungen in Teambearbeitung.</div>
+            {% else %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>Betreff</th>
+                            <th>Kategorie</th>
+                            <th>Raum</th>
+                            <th>Prioritaet</th>
+                            <th>Bearbeiter</th>
+                            <th>Uebernommen am</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in team_in_bearbeitung %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'facility:detail' m.pk %}">{{ m.get_betreff }}</a>
+                            </td>
+                            <td>{{ m.get_kategorie_display }}</td>
+                            <td>{{ m.raumnummer }}</td>
+                            <td>
+                                {% if m.prioritaet == "sofort" %}
+                                <span class="badge bg-danger">{{ m.get_prioritaet_display }}</span>
+                                {% elif m.prioritaet == "dringend" %}
+                                <span class="badge bg-warning text-dark">{{ m.get_prioritaet_display }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ m.get_prioritaet_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ m.claimed_von.get_full_name|default:m.claimed_von }}</td>
+                            <td>{{ m.claimed_am|date:"d.m.Y H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab: Erledigt (30 Tage) -->
+        <div class="tab-pane fade" id="erledigt" role="tabpanel">
+            {% if not erledigt %}
+            <div class="alert alert-info">Keine erledigten Stoermeldungen in den letzten 30 Tagen.</div>
+            {% else %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>Betreff</th>
+                            <th>Kategorie</th>
+                            <th>Raum</th>
+                            <th>Status</th>
+                            <th>Erledigt von</th>
+                            <th>Erledigt am</th>
+                            <th>Kommentar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in erledigt %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'facility:detail' m.pk %}">{{ m.get_betreff }}</a>
+                            </td>
+                            <td>{{ m.get_kategorie_display }}</td>
+                            <td>{{ m.raumnummer }}</td>
+                            <td>
+                                {% if m.status == "erledigt" %}
+                                <span class="badge bg-success">Erledigt</span>
+                                {% else %}
+                                <span class="badge bg-danger">Unloesbar</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ m.bearbeitet_von.get_full_name|default:m.bearbeitet_von }}</td>
+                            <td>{{ m.bearbeitet_am|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                <small>{{ m.erledigungs_kommentar|truncatechars:80 }}</small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}{{ meldung.get_betreff }} – Detail{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-9">
+            <!-- Status-Badge Kopfzeile -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>{{ meldung.get_betreff }}</h2>
+                {% if meldung.status == "offen" %}
+                <span class="badge bg-secondary fs-6">Offen</span>
+                {% elif meldung.status == "in_bearbeitung" %}
+                <span class="badge bg-warning text-dark fs-6">In Bearbeitung</span>
+                {% elif meldung.status == "erledigt" %}
+                <span class="badge bg-success fs-6">Erledigt</span>
+                {% else %}
+                <span class="badge bg-danger fs-6">Unloesbar / Eskaliert</span>
+                {% endif %}
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><strong>Stoerung</strong></div>
+                <div class="card-body">
+                    <table class="table table-sm table-bordered mb-0">
+                        <tr>
+                            <th style="width:35%">Kategorie</th>
+                            <td>{{ meldung.get_kategorie_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Prioritaet</th>
+                            <td>
+                                {% if meldung.prioritaet == "sofort" %}
+                                <span class="badge bg-danger">{{ meldung.get_prioritaet_display }}</span>
+                                {% elif meldung.prioritaet == "dringend" %}
+                                <span class="badge bg-warning text-dark">{{ meldung.get_prioritaet_display }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ meldung.get_prioritaet_display }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if meldung.textbaustein %}
+                        <tr>
+                            <th>Textbaustein</th>
+                            <td>{{ meldung.textbaustein.text }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if meldung.beschreibung %}
+                        <tr>
+                            <th>Beschreibung</th>
+                            <td>{{ meldung.beschreibung|linebreaksbr }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><strong>Ort</strong></div>
+                <div class="card-body">
+                    <table class="table table-sm table-bordered mb-0">
+                        <tr>
+                            <th style="width:35%">Raumnummer</th>
+                            <td>{{ meldung.raumnummer }}</td>
+                        </tr>
+                        {% if meldung.raum_freitext %}
+                        <tr>
+                            <th>Genauere Angabe</th>
+                            <td>{{ meldung.raum_freitext }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><strong>Melder</strong></div>
+                <div class="card-body">
+                    <table class="table table-sm table-bordered mb-0">
+                        <tr>
+                            <th style="width:35%">Melder</th>
+                            <td>{{ meldung.melder }}</td>
+                        </tr>
+                        <tr>
+                            <th>Telefon</th>
+                            <td>{{ meldung.melder_telefon }}</td>
+                        </tr>
+                        <tr>
+                            <th>Erfasst am</th>
+                            <td>{{ meldung.erstellt_am|date:"d.m.Y H:i" }} Uhr</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            {% if meldung.status != "offen" %}
+            <div class="card mb-4">
+                <div class="card-header"><strong>Bearbeitung</strong></div>
+                <div class="card-body">
+                    <table class="table table-sm table-bordered mb-0">
+                        {% if meldung.claimed_von %}
+                        <tr>
+                            <th style="width:35%">Uebernommen von</th>
+                            <td>{{ meldung.claimed_von.get_full_name|default:meldung.claimed_von }}</td>
+                        </tr>
+                        <tr>
+                            <th>Uebernommen am</th>
+                            <td>{{ meldung.claimed_am|date:"d.m.Y H:i" }} Uhr</td>
+                        </tr>
+                        {% endif %}
+                        {% if meldung.bearbeitet_von %}
+                        <tr>
+                            <th>Abgeschlossen von</th>
+                            <td>{{ meldung.bearbeitet_von.get_full_name|default:meldung.bearbeitet_von }}</td>
+                        </tr>
+                        <tr>
+                            <th>Abgeschlossen am</th>
+                            <td>{{ meldung.bearbeitet_am|date:"d.m.Y H:i" }} Uhr</td>
+                        </tr>
+                        {% endif %}
+                        {% if meldung.erledigungs_kommentar %}
+                        <tr>
+                            <th>Kommentar</th>
+                            <td>{{ meldung.erledigungs_kommentar|linebreaksbr }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="d-flex gap-2">
+                <a href="{% url 'facility:meine' %}" class="btn btn-outline-secondary">
+                    Meine Stoermeldungen
+                </a>
+                {% if hat_facility_zugang %}
+                <a href="{% url 'facility:queue' %}" class="btn btn-outline-primary">
+                    Zur Facility-Queue
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Textbaustein loeschen{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Textbaustein loeschen</h5>
+                </div>
+                <div class="card-body">
+                    <p>Soll folgender Textbaustein wirklich geloescht werden?</p>
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>Kategorie</th>
+                            <td>{{ baustein.get_kategorie_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Text</th>
+                            <td>{{ baustein.text }}</td>
+                        </tr>
+                    </table>
+                    <p class="text-danger">
+                        <strong>Achtung:</strong> Diese Aktion kann nicht rueckgaengig gemacht werden.
+                        Bestehende Stoermeldungen, die diesen Textbaustein verwenden, werden nicht
+                        beeinflusst (Textbaustein-Referenz wird auf leer gesetzt).
+                    </p>
+                </div>
+                <div class="card-footer d-flex gap-2">
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">Ja, loeschen</button>
+                    </form>
+                    <a href="{% url 'facility:textbaustein_liste' %}" class="btn btn-outline-secondary">
+                        Abbrechen
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
