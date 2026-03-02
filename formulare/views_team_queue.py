@@ -61,6 +61,7 @@ def _naechsten_task_claimen_und_url(erledigter_task, user):
         "zagantrag": "formulare:zag_erfolg",
         "aenderungzeiterfassung": "formulare:aenderung_erfolg",
         "zagstorno": "formulare:zag_storno_erfolg",
+        "dienstreiseantrag": "formulare:dienstreise_detail",
     }
     url_name = url_map.get(ct)
     if not url_name:

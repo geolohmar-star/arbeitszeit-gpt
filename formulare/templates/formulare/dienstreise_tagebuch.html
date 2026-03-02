@@ -5,6 +5,7 @@
 {% block content %}
 <div class="container mt-4" style="max-width: 900px;">
 
+
     <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -18,6 +19,15 @@
     </nav>
 
     <h2 class="mb-1">Reisetagebuch</h2>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show py-2" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
 
     <!-- Dienstreise-Info -->
     <div class="card mb-4">
@@ -53,28 +63,68 @@
     <div id="tag-{{ tag.datum|date:'Y-m-d' }}" class="card mb-3 {% if tag.ist_wochenende %}border-warning{% endif %}">
         <div class="card-header d-flex justify-content-between align-items-center
                     {% if tag.ist_wochenende %}bg-warning bg-opacity-25{% endif %}">
-            <div>
-                <span class="fw-bold">{{ tag.wochentag }}, {{ tag.datum|date:"d.m.Y" }}</span>
-                {% if tag.ist_wochenende %}
-                <span class="badge bg-warning text-dark ms-2">Wochenende</span>
-                {% elif tag.regel_minuten > 0 %}
-                <span class="text-muted small ms-2">
-                    Regelarbeitszeit: {{ tag.regel_minuten|floatformat:"0" }} Min.
-                </span>
-                {% endif %}
-            </div>
-            <button type="button"
-                    class="btn btn-sm btn-outline-primary"
-                    hx-get="{% url 'formulare:dienstreise_tagebuch_eintrag_neu' antrag.pk %}?datum={{ tag.datum|date:'Y-m-d' }}"
-                    hx-target="#formular-{{ tag.datum|date:'Y-m-d' }}"
-                    hx-swap="innerHTML">
-                + Eintrag
-            </button>
+            <span class="fw-bold">{{ tag.wochentag }}, {{ tag.datum|date:"d.m.Y" }}</span>
+            {% if tag.ist_wochenende %}
+            <span class="badge bg-warning text-dark">Wochenende</span>
+            {% elif tag.regel_minuten > 0 %}
+            <span class="text-muted small">Regelarbeitszeit: {{ tag.regel_minuten|floatformat:"0" }} Min.</span>
+            {% endif %}
         </div>
         <div class="card-body p-0">
 
-            <!-- Formular-Bereich (HTMX) -->
-            <div id="formular-{{ tag.datum|date:'Y-m-d' }}"></div>
+            <!-- Eintrag-Formular (immer sichtbar, mehrere Zeilen moeglich) -->
+            <div class="p-3 border-bottom bg-light">
+                <form method="post"
+                      action="{% url 'formulare:dienstreise_tagebuch_eintrag_neu' antrag.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="datum" value="{{ tag.datum|date:'Y-m-d' }}">
+
+                    <!-- Spalten-Header -->
+                    <div class="row g-2 mb-1 d-none d-md-flex">
+                        <div class="col-md-3"><span class="form-label small fw-semibold mb-0">Fall</span></div>
+                        <div class="col-md-2"><span class="form-label small fw-semibold mb-0">Von</span></div>
+                        <div class="col-md-2"><span class="form-label small fw-semibold mb-0">Bis</span></div>
+                        <div class="col-md-4"><span class="form-label small fw-semibold mb-0">Bemerkung</span></div>
+                        <div class="col-md-1"></div>
+                    </div>
+
+                    <!-- Eingabe-Zeilen -->
+                    <div class="eintrag-zeilen">
+                        <div class="row g-2 mb-2 align-items-center eintrag-zeile">
+                            <div class="col-12 col-md-3">
+                                <select name="fall" class="form-select form-select-sm">
+                                    <option value="">-- Fall --</option>
+                                    <option value="1">Fall 1 – Normalarbeitszeit</option>
+                                    <option value="2">Fall 2 – Gesamtzeit (Differenz)</option>
+                                    <option value="3">Fall 3 – Reisezeit ÷ 3</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <input type="time" name="von_zeit" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <input type="time" name="bis_zeit" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-10 col-md-4">
+                                <input type="text" name="bemerkung" class="form-control form-control-sm" placeholder="optional">
+                            </div>
+                            <div class="col-2 col-md-1 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-secondary btn-zeile-entfernen" title="Zeile entfernen">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aktionen -->
+                    <div class="d-flex gap-2 mt-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-zeile-hinzufuegen">
+                            + Zeile
+                        </button>
+                        <button type="submit" class="btn btn-sm btn-success">
+                            Alle speichern
+                        </button>
+                    </div>
+                </form>
+            </div>
 
             <!-- Eintraege -->
             {% if tag.eintraege %}
@@ -116,14 +166,13 @@
                         </td>
                         <td class="text-muted small">{{ info.eintrag.bemerkung|default:"–" }}</td>
                         <td>
-                            <button type="button"
-                                    class="btn btn-sm btn-outline-danger"
-                                    hx-post="{% url 'formulare:dienstreise_tagebuch_eintrag_loeschen' info.eintrag.pk %}"
-                                    hx-target="#tag-{{ tag.datum|date:'Y-m-d' }}"
-                                    hx-swap="outerHTML"
-                                    hx-confirm="Eintrag loeschen?">
-                                &times;
-                            </button>
+                            <form method="post"
+                                  action="{% url 'formulare:dienstreise_tagebuch_eintrag_loeschen' info.eintrag.pk %}"
+                                  onsubmit="return confirm('Eintrag loeschen?')"
+                                  style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">&times;</button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}
@@ -169,4 +218,9 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/formulare.js' %}"></script>
 {% endblock %}

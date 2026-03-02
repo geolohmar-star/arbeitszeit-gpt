@@ -26,6 +26,32 @@ document.addEventListener("htmx:afterSwap", function () {
     vorzeichen_farbe_aktualisieren();
 });
 
+// Zeilen im Dienstreise-Tagebuch dynamisch hinzufuegen/entfernen
+document.addEventListener("click", function (e) {
+
+    // Zeile hinzufuegen
+    if (e.target.classList.contains("btn-zeile-hinzufuegen")) {
+        var container = e.target.closest("form").querySelector(".eintrag-zeilen");
+        var letzte = container.querySelector(".eintrag-zeile:last-child");
+        var neue = letzte.cloneNode(true);
+        neue.querySelectorAll("input").forEach(function (inp) { inp.value = ""; });
+        neue.querySelectorAll("select").forEach(function (sel) { sel.selectedIndex = 0; });
+        container.appendChild(neue);
+        // Ersten Input der neuen Zeile fokussieren
+        var ersterSelect = neue.querySelector("select");
+        if (ersterSelect) ersterSelect.focus();
+    }
+
+    // Zeile entfernen (mindestens eine Zeile behalten)
+    if (e.target.classList.contains("btn-zeile-entfernen")) {
+        var container = e.target.closest(".eintrag-zeilen");
+        var zeilen = container.querySelectorAll(".eintrag-zeile");
+        if (zeilen.length > 1) {
+            e.target.closest(".eintrag-zeile").remove();
+        }
+    }
+});
+
 document.addEventListener("DOMContentLoaded", function () {
 
     // Kopieren in Zwischenablage via data-clipboard-text Attribut

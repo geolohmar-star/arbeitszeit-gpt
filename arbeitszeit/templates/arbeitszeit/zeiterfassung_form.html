@@ -279,6 +279,19 @@
             </div>
         {% endif %}
 
+        {% if dienstreise_am_datum %}
+        <div class="info-box" style="background: #e8f4f8; border-color: #5dade2; color: #1a5276; margin-bottom: 1.5rem;">
+            <strong>Dienstreise:</strong>
+            {{ dienstreise_am_datum.ziel }}
+            ({{ dienstreise_am_datum.von_datum|date:"d.m.Y" }} &ndash; {{ dienstreise_am_datum.bis_datum|date:"d.m.Y" }})
+            &mdash;
+            <a href="{% url 'formulare:dienstreise_tagebuch' dienstreise_am_datum.pk %}#tag-{{ datum|date:'Y-m-d' }}"
+               style="color: #1a5276; font-weight: 600;">
+                Tagebucheintrag erfassen &rarr;
+            </a>
+        </div>
+        {% endif %}
+
         <form method="post">
             {% csrf_token %}
 

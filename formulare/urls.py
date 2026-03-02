@@ -185,6 +185,11 @@ urlpatterns = [
         views.meine_dienstreisen,
         name="meine_dienstreisen",
     ),
+    path(
+        "dienstreise/<int:pk>/",
+        views.dienstreise_detail,
+        name="dienstreise_detail",
+    ),
     # Dienstreise-Tagebuch
     path(
         "dienstreise/tagebuch/",

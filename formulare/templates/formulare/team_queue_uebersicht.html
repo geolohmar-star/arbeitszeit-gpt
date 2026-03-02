@@ -92,6 +92,8 @@
                                                         {% elif ct == 'zeitgutschrift' %}
                                                             <a href="{% url 'formulare:zeitgutschrift_detail' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0 me-1" target="_blank">Ansehen</a>
                                                             <a href="{% url 'formulare:zeitgutschrift_pdf' obj.pk %}" class="btn btn-xs btn-outline-danger btn-sm py-0" target="_blank">PDF</a>
+                                                        {% elif ct == 'dienstreiseantrag' %}
+                                                            <a href="{% url 'formulare:dienstreise_detail' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0 me-1" target="_blank">Ansehen</a>
                                                         {% endif %}
                                                     </div>
                                                 {% endwith %}
@@ -166,6 +168,8 @@
                                                         {% elif ct == 'zeitgutschrift' %}
                                                             <a href="{% url 'formulare:zeitgutschrift_detail' obj.pk %}?queue_task={{ task.pk }}" class="btn btn-sm btn-outline-primary me-1">Details &amp; Erledigen</a>
                                                             <a href="{% url 'formulare:zeitgutschrift_pdf' obj.pk %}" class="btn btn-sm btn-outline-danger" target="_blank">PDF</a>
+                                                        {% elif ct == 'dienstreiseantrag' %}
+                                                            <a href="{% url 'formulare:dienstreise_detail' obj.pk %}?queue_task={{ task.pk }}" class="btn btn-sm btn-outline-primary me-1">Details &amp; Erledigen</a>
                                                         {% endif %}
                                                     </div>
                                                 {% endwith %}

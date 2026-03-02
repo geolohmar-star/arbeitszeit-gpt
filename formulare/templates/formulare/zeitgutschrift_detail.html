@@ -143,6 +143,55 @@
     </div>
     {% endif %}
 
+    <!-- Reisezeit-Tagebuch -->
+    {% if antrag.art == "reisezeit_tagebuch" %}
+    <div class="card mb-3 border-primary">
+        <div class="card-header fw-bold bg-primary text-white">Beantragte Reisezeitgutschrift</div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <tr>
+                    <td class="text-muted ps-3" style="width:220px">Zeitwert</td>
+                    <td>
+                        <strong class="fs-5">
+                            {% if antrag.sonstige_vorzeichen == "-" %}&minus;{% else %}+{% endif %}
+                            {{ antrag.mehrarbeit_stunden }}h {{ antrag.mehrarbeit_minuten|stringformat:"02d" }}min
+                        </strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Buchungsmonat</td>
+                    <td><strong>{{ antrag.buchungsmonat_name }} {{ antrag.mehrarbeit_buchungsjahr }}</strong></td>
+                </tr>
+                {% if antrag.reisezeit_dienstreise %}
+                <tr>
+                    <td class="text-muted ps-3">Dienstreise</td>
+                    <td>
+                        {{ antrag.reisezeit_dienstreise.ziel }} &ndash;
+                        {{ antrag.reisezeit_dienstreise.von_datum|date:"d.m.Y" }}
+                        bis {{ antrag.reisezeit_dienstreise.bis_datum|date:"d.m.Y" }}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Tagebuch</td>
+                    <td>
+                        <a href="{% url 'formulare:dienstreise_tagebuch' antrag.reisezeit_dienstreise.pk %}"
+                           class="btn btn-sm btn-outline-secondary">
+                            Tagebuch anzeigen
+                        </a>
+                    </td>
+                </tr>
+                {% endif %}
+                {% if antrag.mehrarbeit_begruendung %}
+                <tr>
+                    <td class="text-muted ps-3">Begründung</td>
+                    <td>{{ antrag.mehrarbeit_begruendung }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Sonstige -->
     {% if antrag.art == "sonstige" %}
     <div class="card mb-3 border-primary">

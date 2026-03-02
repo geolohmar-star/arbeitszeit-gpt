@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dienstreiseantrag – {{ antrag.ziel }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 780px;">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            {% if queue_task %}
+            <li class="breadcrumb-item">
+                <a href="{% url 'formulare:team_queue' %}">Team-Stapel</a>
+            </li>
+            {% elif ist_antragsteller %}
+            <li class="breadcrumb-item">
+                <a href="{% url 'formulare:meine_dienstreisen' %}">Meine Dienstreisen</a>
+            </li>
+            {% endif %}
+            <li class="breadcrumb-item active">Dienstreiseantrag</li>
+        </ol>
+    </nav>
+
+    <!-- Team-Stapel Banner -->
+    {% if queue_task %}
+    <div class="alert alert-info d-flex justify-content-between align-items-center py-2 mb-3">
+        <span><strong>Team-Stapel:</strong> {{ queue_task.step.titel }} – geclaimed von Ihnen</span>
+        <div class="d-flex gap-2">
+            <a href="{% url 'formulare:team_queue' %}" class="btn btn-sm btn-outline-secondary">
+                Zurueck zum Stapel
+            </a>
+            <form method="post" action="{% url 'formulare:wf_task_erledigen' queue_task.pk %}"
+                  style="display:inline;"
+                  onsubmit="return confirm('Dienstreise als genehmigt erledigen?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-success">Erledigen</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h2 class="mb-1">Dienstreiseantrag</h2>
+            <p class="text-muted mb-0">{{ antrag.ziel }}</p>
+        </div>
+        <span class="badge fs-6
+            {% if antrag.status == 'beantragt' %}bg-warning text-dark
+            {% elif antrag.status == 'genehmigt' %}bg-success
+            {% elif antrag.status == 'abgelehnt' %}bg-danger
+            {% elif antrag.status == 'erledigt' %}bg-secondary
+            {% else %}bg-secondary{% endif %}">
+            {{ antrag.get_status_display }}
+        </span>
+    </div>
+
+    <!-- Betreff / Aktenzeichen -->
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Betreff / Aktenzeichen</div>
+        <div class="card-body">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <code class="fs-6 flex-grow-1 p-2 bg-light rounded border user-select-all">{{ antrag.get_betreff }}</code>
+                <button class="btn btn-outline-secondary btn-sm"
+                        data-clipboard-text="{{ antrag.get_betreff }}">
+                    In Zwischenablage kopieren
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Antragsteller -->
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Antragsteller</div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <tr>
+                    <td class="text-muted ps-3" style="width:220px">Name</td>
+                    <td><strong>{{ antrag.antragsteller.vorname }} {{ antrag.antragsteller.nachname }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Personalnummer</td>
+                    <td>{{ antrag.antragsteller.personalnummer }}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Abteilung</td>
+                    <td>{{ antrag.antragsteller.abteilung }}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Eingereicht am</td>
+                    <td>{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Reisedaten -->
+    <div class="card mb-3 border-primary">
+        <div class="card-header fw-bold bg-primary text-white">Reisedaten</div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <tr>
+                    <td class="text-muted ps-3" style="width:220px">Reiseziel</td>
+                    <td><strong>{{ antrag.ziel }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Zeitraum</td>
+                    <td>
+                        <strong>{{ antrag.von_datum|date:"d.m.Y" }}</strong>
+                        &ndash;
+                        <strong>{{ antrag.bis_datum|date:"d.m.Y" }}</strong>
+                        <span class="text-muted ms-2">({{ antrag.dauer_tage }} Tag{{ antrag.dauer_tage|pluralize:"e" }})</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Zweck</td>
+                    <td>{{ antrag.zweck }}</td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Geschaetzte Kosten</td>
+                    <td>{{ antrag.geschaetzte_kosten }} EUR</td>
+                </tr>
+                {% if antrag.einladungscode %}
+                <tr>
+                    <td class="text-muted ps-3">Einladungscode</td>
+                    <td><code>{{ antrag.einladungscode }}</code></td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+
+    <!-- Reisezeit-Tagebuch -->
+    {% if tagebuch_eintraege %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold">Reisezeit-Tagebuch</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Datum</th>
+                        <th>Fall</th>
+                        <th>Von</th>
+                        <th>Bis</th>
+                        <th>Dauer</th>
+                        <th>Bemerkung</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in tagebuch_eintraege %}
+                    <tr>
+                        <td class="ps-3">{{ e.datum|date:"d.m.Y" }}</td>
+                        <td>
+                            {% if e.fall == 1 %}
+                            <span class="badge bg-secondary">Fall 1</span>
+                            {% elif e.fall == 2 %}
+                            <span class="badge bg-primary">Fall 2</span>
+                            {% else %}
+                            <span class="badge bg-success">Fall 3</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ e.von_zeit|time:"H:i" }}</td>
+                        <td>{{ e.bis_zeit|time:"H:i" }}</td>
+                        <td>{{ e.dauer_hmin }}</td>
+                        <td class="text-muted small">{{ e.bemerkung|default:"–" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Reisezeitgutschrift -->
+    {% if reisezeit_gutschrift %}
+    <div class="card mb-3">
+        <div class="card-header fw-bold d-flex justify-content-between">
+            Reisezeitgutschrift
+            <span class="badge
+                {% if reisezeit_gutschrift.status == 'beantragt' %}bg-warning text-dark
+                {% elif reisezeit_gutschrift.status == 'genehmigt' %}bg-success
+                {% elif reisezeit_gutschrift.status == 'erledigt' %}bg-secondary
+                {% else %}bg-info{% endif %}">
+                {{ reisezeit_gutschrift.get_status_display }}
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <tr>
+                    <td class="text-muted ps-3" style="width:220px">Zeitwert</td>
+                    <td>
+                        <strong>
+                            {% if reisezeit_gutschrift.sonstige_vorzeichen == "-" %}&minus;{% else %}+{% endif %}
+                            {{ reisezeit_gutschrift.mehrarbeit_stunden }}h
+                            {{ reisezeit_gutschrift.mehrarbeit_minuten|stringformat:"02d" }}min
+                        </strong>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Buchungsmonat</td>
+                    <td>{{ reisezeit_gutschrift.buchungsmonat_name }} {{ reisezeit_gutschrift.mehrarbeit_buchungsjahr }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Genehmigung -->
+    <div class="card mb-4">
+        <div class="card-header fw-bold d-flex justify-content-between">
+            Genehmigung
+            {% if antrag.bearbeitet_von %}
+                <span class="badge bg-success fw-normal">Genehmigt</span>
+            {% else %}
+                <span class="badge bg-secondary fw-normal">folgt aus Workflow</span>
+            {% endif %}
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-borderless mb-0">
+                <tr>
+                    <td class="text-muted ps-3" style="width:220px">Genehmigt von</td>
+                    <td>
+                        {% if antrag.bearbeitet_von %}
+                            <strong>{{ antrag.bearbeitet_von.get_full_name|default:antrag.bearbeitet_von.username }}</strong>
+                        {% else %}
+                            <span class="text-muted fst-italic">_______________</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Datum der Genehmigung</td>
+                    <td>
+                        {% if antrag.bearbeitet_am %}
+                            <strong>{{ antrag.bearbeitet_am|date:"d.m.Y" }}</strong>
+                        {% else %}
+                            <span class="text-muted fst-italic">_______________</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Aktionen -->
+    <div class="d-flex gap-2">
+        {% if ist_antragsteller %}
+        <a href="{% url 'formulare:meine_dienstreisen' %}" class="btn btn-secondary">
+            Zurueck zu meinen Dienstreisen
+        </a>
+        {% else %}
+        <a href="{% url 'formulare:team_queue' %}" class="btn btn-secondary">
+            Zurueck zum Stapel
+        </a>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/formulare.js' %}"></script>
+{% endblock %}

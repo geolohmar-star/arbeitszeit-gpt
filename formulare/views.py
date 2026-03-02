@@ -7,10 +7,12 @@ from operator import attrgetter
 
 logger = logging.getLogger(__name__)
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.template.loader import render_to_string
 
 from arbeitszeit.models import (
@@ -2822,10 +2824,10 @@ def dienstreise_tagebuch(request, pk):
 
 @login_required
 def dienstreise_tagebuch_eintrag_neu(request, pk):
-    """Neuen Tagebucheintrag hinzufuegen (HTMX-View).
+    """Einen oder mehrere Tagebucheintraege fuer einen Tag speichern.
 
-    GET:  Leeres Formular als Partial zurueckgeben.
-    POST: Eintrag speichern, aktualisierte Tag-Zeile zurueckgeben.
+    POST: Alle ausgefuellten Zeilen des Formulars speichern.
+    GET:  Weiterleitung zur Tagebuch-Uebersicht.
     """
     import datetime as _dt
 
@@ -2838,48 +2840,58 @@ def dienstreise_tagebuch_eintrag_neu(request, pk):
         Dienstreiseantrag, pk=pk, antragsteller=mitarbeiter
     )
 
-    datum_str = request.GET.get("datum") or request.POST.get("datum", "")
+    datum_str = request.POST.get("datum", "")
     try:
         datum = _dt.date.fromisoformat(datum_str)
     except ValueError:
-        return HttpResponse("Ungueltiged Datum", status=400)
+        return redirect("formulare:dienstreise_tagebuch", pk=pk)
 
-    if request.method == "POST":
-        fall_str = request.POST.get("fall", "")
-        von_zeit_str = request.POST.get("von_zeit", "")
-        bis_zeit_str = request.POST.get("bis_zeit", "")
-        bemerkung = request.POST.get("bemerkung", "")
-        fehler = []
+    if request.method != "POST":
+        return redirect("formulare:dienstreise_tagebuch", pk=pk)
 
+    # Alle Zeilen einlesen (mehrere Eintraege pro Submit moeglich)
+    falls = request.POST.getlist("fall")
+    von_zeiten = request.POST.getlist("von_zeit")
+    bis_zeiten = request.POST.getlist("bis_zeit")
+    bemerkungen = request.POST.getlist("bemerkung")
+
+    fehler = []
+    gespeichert = 0
+
+    for i in range(len(falls)):
+        fall_str = falls[i] if i < len(falls) else ""
+        von_zeit_str = von_zeiten[i] if i < len(von_zeiten) else ""
+        bis_zeit_str = bis_zeiten[i] if i < len(bis_zeiten) else ""
+        bemerkung = bemerkungen[i] if i < len(bemerkungen) else ""
+
+        # Leere Zeilen ueberspringen
+        if not fall_str and not von_zeit_str and not bis_zeit_str:
+            continue
+
+        zeile_nr = i + 1
         if not fall_str or fall_str not in ("1", "2", "3"):
-            fehler.append("Bitte einen Fall auswaehlen.")
+            fehler.append(f"Zeile {zeile_nr}: Bitte einen Fall auswaehlen.")
+            continue
         if not von_zeit_str:
-            fehler.append("Bitte Von-Zeit angeben.")
+            fehler.append(f"Zeile {zeile_nr}: Bitte Von-Zeit angeben.")
+            continue
         if not bis_zeit_str:
-            fehler.append("Bitte Bis-Zeit angeben.")
+            fehler.append(f"Zeile {zeile_nr}: Bitte Bis-Zeit angeben.")
+            continue
 
-        if not fehler:
-            try:
-                von_h, von_m = map(int, von_zeit_str.split(":"))
-                bis_h, bis_m = map(int, bis_zeit_str.split(":"))
-                von_zeit = _dt.time(von_h, von_m)
-                bis_zeit = _dt.time(bis_h, bis_m)
-                if bis_zeit <= von_zeit:
-                    fehler.append("Bis-Zeit muss nach Von-Zeit liegen.")
-            except (ValueError, AttributeError):
-                fehler.append("Ungueltige Zeitangabe (Format HH:MM).")
-
-        if fehler:
-            return render(
-                request,
-                "formulare/partials/_tagebuch_eintrag_form.html",
-                {
-                    "antrag": antrag,
-                    "datum": datum,
-                    "fehler": fehler,
-                    "post": request.POST,
-                },
-            )
+        try:
+            von_h, von_m = map(int, von_zeit_str.split(":"))
+            bis_h, bis_m = map(int, bis_zeit_str.split(":"))
+            von_zeit = _dt.time(von_h, von_m)
+            bis_zeit = _dt.time(bis_h, bis_m)
+            if bis_zeit <= von_zeit:
+                fehler.append(
+                    f"Zeile {zeile_nr}: Bis-Zeit muss nach Von-Zeit liegen."
+                )
+                continue
+        except (ValueError, AttributeError):
+            fehler.append(f"Zeile {zeile_nr}: Ungueltige Zeitangabe (HH:MM).")
+            continue
 
         ReisezeitTagebuchEintrag.objects.create(
             dienstreise=antrag,
@@ -2889,53 +2901,30 @@ def dienstreise_tagebuch_eintrag_neu(request, pk):
             bis_zeit=bis_zeit,
             bemerkung=bemerkung,
         )
+        gespeichert += 1
 
-    # Tag-Partial nach Speichern oder bei GET-Refresh zurueckgeben
-    WOCHENTAGE = [
-        "Montag", "Dienstag", "Mittwoch", "Donnerstag",
-        "Freitag", "Samstag", "Sonntag",
-    ]
-    eintraege = antrag.tagebuch_eintraege.filter(datum=datum)
-    regel_minuten = _regelarbeitszeit_fuer_tag(mitarbeiter, datum)
-    eintraege_info = []
-    for e in eintraege:
-        gutschrift_min = _gutschrift_minuten_fuer_eintrag(e, regel_minuten)
-        eintraege_info.append({
-            "eintrag": e,
-            "gutschrift_min": gutschrift_min,
-            "gutschrift_hmin": (
-                _minuten_zu_hmin(gutschrift_min) if e.fall != 1 else "-"
-            ),
-        })
+    if fehler:
+        for f in fehler:
+            messages.error(request, f)
+    elif gespeichert > 0:
+        messages.success(
+            request,
+            f"{gespeichert} Eintrag{'e' if gespeichert > 1 else ''} gespeichert."
+        )
 
-    return render(
-        request,
-        "formulare/partials/_tagebuch_tag.html",
-        {
-            "tag": {
-                "datum": datum,
-                "wochentag": WOCHENTAGE[datum.weekday()],
-                "ist_wochenende": datum.weekday() >= 5,
-                "regel_minuten": regel_minuten,
-                "eintraege": eintraege_info,
-            },
-            "antrag": antrag,
-        },
+    return redirect(
+        reverse("formulare:dienstreise_tagebuch", args=[antrag.pk])
+        + f"#tag-{datum.isoformat()}"
     )
 
 
 @login_required
 def dienstreise_tagebuch_eintrag_loeschen(request, eintrag_pk):
-    """Tagebucheintrag loeschen (HTMX-POST).
-
-    Gibt die aktualisierte Tag-Zeile als Partial zurueck.
-    """
-    import datetime as _dt
-
+    """Tagebucheintrag loeschen."""
     try:
         mitarbeiter = request.user.mitarbeiter
     except AttributeError:
-        return HttpResponse(status=403)
+        return redirect("arbeitszeit:dashboard")
 
     eintrag = get_object_or_404(
         ReisezeitTagebuchEintrag,
@@ -2944,38 +2933,11 @@ def dienstreise_tagebuch_eintrag_loeschen(request, eintrag_pk):
     )
     antrag = eintrag.dienstreise
     datum = eintrag.datum
-    eintrag.delete()
-
-    WOCHENTAGE = [
-        "Montag", "Dienstag", "Mittwoch", "Donnerstag",
-        "Freitag", "Samstag", "Sonntag",
-    ]
-    eintraege = antrag.tagebuch_eintraege.filter(datum=datum)
-    regel_minuten = _regelarbeitszeit_fuer_tag(mitarbeiter, datum)
-    eintraege_info = []
-    for e in eintraege:
-        gutschrift_min = _gutschrift_minuten_fuer_eintrag(e, regel_minuten)
-        eintraege_info.append({
-            "eintrag": e,
-            "gutschrift_min": gutschrift_min,
-            "gutschrift_hmin": (
-                _minuten_zu_hmin(gutschrift_min) if e.fall != 1 else "-"
-            ),
-        })
-
-    return render(
-        request,
-        "formulare/partials/_tagebuch_tag.html",
-        {
-            "tag": {
-                "datum": datum,
-                "wochentag": WOCHENTAGE[datum.weekday()],
-                "ist_wochenende": datum.weekday() >= 5,
-                "regel_minuten": regel_minuten,
-                "eintraege": eintraege_info,
-            },
-            "antrag": antrag,
-        },
+    if request.method == "POST":
+        eintrag.delete()
+    return redirect(
+        reverse("formulare:dienstreise_tagebuch", args=[antrag.pk])
+        + f"#tag-{datum.isoformat()}"
     )
 
 
@@ -3024,7 +2986,7 @@ def dienstreise_gutschrift_beantragen(request, pk):
     von_str = antrag.von_datum.strftime("%d.%m.%Y")
     bis_str = antrag.bis_datum.strftime("%d.%m.%Y")
 
-    Zeitgutschrift.objects.create(
+    zg = Zeitgutschrift.objects.create(
         antragsteller=mitarbeiter,
         art="reisezeit_tagebuch",
         status="beantragt",
@@ -3040,8 +3002,93 @@ def dienstreise_gutschrift_beantragen(request, pk):
         ),
     )
 
+    # Workflow starten
+    _starte_workflow_fuer_antrag("zeitgutschrift_erstellt", zg, request.user)
+
     messages.success(
         request,
         f"Gutschrift-Antrag wurde gestellt ({_minuten_zu_hmin(gesamt_min)}).",
     )
     return redirect("formulare:dienstreise_tagebuch", pk=pk)
+
+
+@login_required
+def dienstreise_detail(request, pk):
+    """Detail-Ansicht fuer einen Dienstreiseantrag.
+
+    Zugaenglich fuer: Antragsteller, Vorgesetzte (Workflow-Task),
+    Mitglieder des Reisemanagement-Teams mit aktivem Task.
+    Zeigt alle Antragsdaten sowie Tagebuch-Eintraege falls vorhanden.
+    Ermoeglicht das Erledigen via Team-Stapel (queue_task-Parameter).
+    """
+    from formulare.models import TeamQueue
+
+    antrag = get_object_or_404(Dienstreiseantrag, pk=pk)
+
+    ist_antragsteller = antrag.antragsteller.user == request.user
+
+    # Berechtigung via Workflow-Task
+    hat_workflow_task = False
+    if antrag.workflow_instance:
+        from workflow.models import WorkflowTask as WfTask
+        hat_workflow_task = WfTask.objects.filter(
+            instance=antrag.workflow_instance,
+            status__in=["offen", "in_bearbeitung"],
+            zugewiesen_an_user=request.user,
+        ).exists()
+
+        if not hat_workflow_task and hasattr(request.user, "hr_mitarbeiter"):
+            stelle = getattr(request.user.hr_mitarbeiter, "stelle", None)
+            if stelle:
+                hat_workflow_task = WfTask.objects.filter(
+                    instance=antrag.workflow_instance,
+                    status__in=["offen", "in_bearbeitung"],
+                    zugewiesen_an_stelle=stelle,
+                ).exists()
+
+        if not hat_workflow_task:
+            user_teams = TeamQueue.objects.filter(mitglieder=request.user)
+            hat_workflow_task = WfTask.objects.filter(
+                instance=antrag.workflow_instance,
+                status__in=["offen", "in_bearbeitung"],
+                zugewiesen_an_team__in=user_teams,
+            ).exists()
+
+    # Berechtigung via Claim (alter Weg)
+    hat_geclaimed = antrag.claimed_von == request.user
+
+    if not (ist_antragsteller or hat_workflow_task or hat_geclaimed):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Keine Berechtigung")
+
+    # Optional: aus Team-Stapel geoeffnet
+    queue_task = None
+    queue_task_pk = request.GET.get("queue_task")
+    if queue_task_pk:
+        from workflow.models import WorkflowTask as WfTask
+        try:
+            queue_task = WfTask.objects.select_related("step").get(
+                pk=queue_task_pk,
+                claimed_von=request.user,
+                status="in_bearbeitung",
+            )
+        except Exception:
+            pass
+
+    # Tagebuch-Eintraege und Gutschrift
+    tagebuch_eintraege = antrag.tagebuch_eintraege.all().order_by("datum", "von_zeit")
+    reisezeit_gutschrift = antrag.reisezeit_gutschriften.filter(
+        status__in=["beantragt", "genehmigt", "in_bearbeitung", "erledigt"]
+    ).first()
+
+    return render(
+        request,
+        "formulare/dienstreise_detail.html",
+        {
+            "antrag": antrag,
+            "ist_antragsteller": ist_antragsteller,
+            "queue_task": queue_task,
+            "tagebuch_eintraege": tagebuch_eintraege,
+            "reisezeit_gutschrift": reisezeit_gutschrift,
+        },
+    )

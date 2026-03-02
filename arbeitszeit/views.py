@@ -1193,6 +1193,19 @@ def zeiterfassung_erstellen(request):
             f" ({vorzeichen}{diff} min)"
         )
 
+    # Genehmigte Dienstreise am gewaehlten Datum pruefen
+    dienstreise_am_datum = None
+    try:
+        from formulare.models import Dienstreiseantrag
+        dienstreise_am_datum = Dienstreiseantrag.objects.filter(
+            antragsteller=mitarbeiter,
+            status__in=["genehmigt", "erledigt"],
+            von_datum__lte=datum_obj,
+            bis_datum__gte=datum_obj,
+        ).first()
+    except Exception:
+        pass
+
     context = {
         "mitarbeiter": mitarbeiter,
         "datum": datum_obj,
@@ -1206,6 +1219,7 @@ def zeiterfassung_erstellen(request):
         "vereinbarung": vereinbarung,
         "brutto_formatiert": brutto_formatiert,
         "differenz_formatiert": differenz_formatiert,
+        "dienstreise_am_datum": dienstreise_am_datum,
     }
     return render(
         request, "arbeitszeit/zeiterfassung_form.html", context
