@@ -212,6 +212,11 @@ urlpatterns = [
         name="dienstreise_tagebuch_eintrag_loeschen",
     ),
     path(
+        "dienstreise/<int:pk>/pdf/",
+        views.dienstreise_pdf,
+        name="dienstreise_pdf",
+    ),
+    path(
         "dienstreise/<int:pk>/gutschrift/beantragen/",
         views.dienstreise_gutschrift_beantragen,
         name="dienstreise_gutschrift_beantragen",

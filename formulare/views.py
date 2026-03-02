@@ -2538,7 +2538,11 @@ def zeitgutschrift_detail(request, pk):
     # Team-Queue-Berechtigung: Hat User den Antrag geclaimed?
     hat_antrag_geclaimed = antrag.claimed_von == request.user
 
-    if not (ist_antragsteller or ist_genehmiger or hat_workflow_task or hat_antrag_geclaimed):
+    # Staff und Superuser haben immer Lesezugriff
+    ist_admin = request.user.is_superuser or request.user.is_staff
+
+    if not (ist_antragsteller or ist_genehmiger or hat_workflow_task
+            or hat_antrag_geclaimed or ist_admin):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden("Keine Berechtigung")
 
@@ -2626,17 +2630,78 @@ def zeitgutschrift_pdf(request, pk):
     # Team-Queue-Berechtigung: Hat User den Antrag geclaimed?
     hat_antrag_geclaimed = antrag.claimed_von == request.user
 
-    if not (ist_antragsteller or ist_genehmiger or hat_workflow_task or hat_antrag_geclaimed):
+    ist_admin = request.user.is_superuser or request.user.is_staff
+
+    if not (ist_antragsteller or ist_genehmiger or hat_workflow_task
+            or hat_antrag_geclaimed or ist_admin):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden("Keine Berechtigung")
+
+    # Bei Reisezeit-Tagebuch: Tagebuch-Daten fuer PDF aufbereiten
+    import datetime as _dt
+    tagebuch_tage = []
+    tagebuch_gesamt_min = 0
+    tagebuch_gesamt_hmin = ""
+    dienstreise = None
+
+    if antrag.art == "reisezeit_tagebuch":
+        try:
+            dienstreise = antrag.reisezeit_dienstreise
+        except Exception:
+            dienstreise = None
+
+        if dienstreise:
+            WOCHENTAGE = [
+                "Montag", "Dienstag", "Mittwoch", "Donnerstag",
+                "Freitag", "Samstag", "Sonntag",
+            ]
+            mitarbeiter = dienstreise.antragsteller
+            aktuell = dienstreise.von_datum
+            while aktuell <= dienstreise.bis_datum:
+                eintraege = dienstreise.tagebuch_eintraege.filter(datum=aktuell)
+                regel_minuten = _regelarbeitszeit_fuer_tag(mitarbeiter, aktuell)
+                eintraege_info = []
+                for e in eintraege:
+                    gutschrift_min = _gutschrift_minuten_fuer_eintrag(
+                        e, regel_minuten
+                    )
+                    eintraege_info.append({
+                        "eintrag": e,
+                        "gutschrift_min": gutschrift_min,
+                        "gutschrift_hmin": (
+                            _minuten_zu_hmin(gutschrift_min)
+                            if e.fall != 1 else "-"
+                        ),
+                    })
+                tagebuch_tage.append({
+                    "datum": aktuell,
+                    "wochentag": WOCHENTAGE[aktuell.weekday()],
+                    "ist_wochenende": aktuell.weekday() >= 5,
+                    "regel_minuten": regel_minuten,
+                    "eintraege": eintraege_info,
+                })
+                aktuell += _dt.timedelta(days=1)
+
+            tagebuch_gesamt_min = _berechne_tagebuch_gesamt(
+                dienstreise, mitarbeiter
+            )
+            tagebuch_gesamt_hmin = _minuten_zu_hmin(tagebuch_gesamt_min)
 
     # PDF mit WeasyPrint generieren
     try:
         from weasyprint import HTML
+        import datetime as dt
 
         html_string = render_to_string(
             "formulare/pdf/zeitgutschrift_pdf.html",
-            {"antrag": antrag},
+            {
+                "antrag": antrag,
+                "dienstreise": dienstreise,
+                "tagebuch_tage": tagebuch_tage,
+                "tagebuch_gesamt_min": tagebuch_gesamt_min,
+                "tagebuch_gesamt_hmin": tagebuch_gesamt_hmin,
+                "now": dt.datetime.now(),
+            },
         )
 
         html = HTML(string=html_string, base_url=request.build_absolute_uri())
@@ -2644,7 +2709,7 @@ def zeitgutschrift_pdf(request, pk):
 
         response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = (
-            f'attachment; filename="zeitgutschrift_{antrag.id}.pdf"'
+            f'inline; filename="zeitgutschrift_{antrag.id}.pdf"'
         )
         return response
     except ImportError:
@@ -2759,19 +2824,56 @@ def dienstreise_tagebuch_auswahl(request):
 def dienstreise_tagebuch(request, pk):
     """Tagebuch-Hauptseite fuer eine Dienstreise.
 
-    Zeigt alle Tage des Reisezeitraums mit ihren Eintraegen und
-    der berechneten Gutschrift pro Tag und gesamt.
+    Zugaenglich fuer Antragsteller (Lesen + Schreiben) und
+    Pruefer mit aktivem Workflow-Task (nur Lesen).
     """
     import datetime as _dt
+    from formulare.models import TeamQueue
 
-    try:
-        mitarbeiter = request.user.mitarbeiter
-    except AttributeError:
-        return redirect("arbeitszeit:dashboard")
+    antrag = get_object_or_404(Dienstreiseantrag, pk=pk)
 
-    antrag = get_object_or_404(
-        Dienstreiseantrag, pk=pk, antragsteller=mitarbeiter
+    # Berechtigungspruefung
+    ist_antragsteller = (
+        hasattr(request.user, "mitarbeiter")
+        and antrag.antragsteller == request.user.mitarbeiter
     )
+    hat_pruefer_zugang = False
+    if antrag.workflow_instance:
+        from workflow.models import WorkflowTask as WfTask
+        # Offen, in Bearbeitung UND erledigt – damit auch nach Abschluss Zugang besteht
+        alle_stati = ["offen", "in_bearbeitung", "erledigt"]
+        hat_pruefer_zugang = WfTask.objects.filter(
+            instance=antrag.workflow_instance,
+            status__in=alle_stati,
+            zugewiesen_an_user=request.user,
+        ).exists()
+        if not hat_pruefer_zugang and hasattr(request.user, "hr_mitarbeiter"):
+            stelle = getattr(request.user.hr_mitarbeiter, "stelle", None)
+            if stelle:
+                hat_pruefer_zugang = WfTask.objects.filter(
+                    instance=antrag.workflow_instance,
+                    status__in=alle_stati,
+                    zugewiesen_an_stelle=stelle,
+                ).exists()
+        if not hat_pruefer_zugang:
+            user_teams = TeamQueue.objects.filter(mitglieder=request.user)
+            hat_pruefer_zugang = WfTask.objects.filter(
+                instance=antrag.workflow_instance,
+                zugewiesen_an_team__in=user_teams,
+            ).exists()
+    # Auch Claim-Zugang beruecksichtigen
+    if not hat_pruefer_zugang:
+        hat_pruefer_zugang = antrag.claimed_von == request.user
+
+    # Superuser haben immer Zugang
+    if request.user.is_superuser or request.user.is_staff:
+        hat_pruefer_zugang = True
+
+    if not (ist_antragsteller or hat_pruefer_zugang):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Keine Berechtigung")
+
+    mitarbeiter = antrag.antragsteller
 
     WOCHENTAGE = [
         "Montag", "Dienstag", "Mittwoch", "Donnerstag",
@@ -2818,6 +2920,7 @@ def dienstreise_tagebuch(request, pk):
             "gesamt_min": gesamt_min,
             "gesamt_hmin": gesamt_hmin,
             "bestehende_gutschrift": bestehende_gutschrift,
+            "ist_antragsteller": ist_antragsteller,
         },
     )
 
@@ -3092,3 +3195,98 @@ def dienstreise_detail(request, pk):
             "reisezeit_gutschrift": reisezeit_gutschrift,
         },
     )
+
+
+@login_required
+def dienstreise_pdf(request, pk):
+    """PDF-Ausdruck eines Dienstreiseantrags inkl. Tagebuch und Gutschrift."""
+    import datetime as _dt
+    from formulare.models import TeamQueue
+
+    antrag = get_object_or_404(Dienstreiseantrag, pk=pk)
+
+    ist_antragsteller = (
+        hasattr(request.user, "mitarbeiter")
+        and antrag.antragsteller == request.user.mitarbeiter
+    )
+    hat_zugang = ist_antragsteller or antrag.claimed_von == request.user
+    if not hat_zugang and antrag.workflow_instance:
+        from workflow.models import WorkflowTask as WfTask
+        user_teams = TeamQueue.objects.filter(mitglieder=request.user)
+        hat_zugang = WfTask.objects.filter(
+            instance=antrag.workflow_instance,
+            status__in=["offen", "in_bearbeitung", "erledigt"],
+        ).filter(
+            zugewiesen_an_user=request.user,
+        ).exists() or WfTask.objects.filter(
+            instance=antrag.workflow_instance,
+            zugewiesen_an_team__in=user_teams,
+        ).exists()
+
+    if not hat_zugang:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Keine Berechtigung")
+
+    # Tagebuch mit Gutschrift-Berechnung aufbereiten
+    mitarbeiter = antrag.antragsteller
+    WOCHENTAGE = [
+        "Montag", "Dienstag", "Mittwoch", "Donnerstag",
+        "Freitag", "Samstag", "Sonntag",
+    ]
+    tage = []
+    aktuell = antrag.von_datum
+    while aktuell <= antrag.bis_datum:
+        eintraege = antrag.tagebuch_eintraege.filter(datum=aktuell)
+        regel_minuten = _regelarbeitszeit_fuer_tag(mitarbeiter, aktuell)
+        eintraege_info = []
+        for e in eintraege:
+            gutschrift_min = _gutschrift_minuten_fuer_eintrag(e, regel_minuten)
+            eintraege_info.append({
+                "eintrag": e,
+                "gutschrift_min": gutschrift_min,
+                "gutschrift_hmin": (
+                    _minuten_zu_hmin(gutschrift_min) if e.fall != 1 else "-"
+                ),
+            })
+        tage.append({
+            "datum": aktuell,
+            "wochentag": WOCHENTAGE[aktuell.weekday()],
+            "ist_wochenende": aktuell.weekday() >= 5,
+            "regel_minuten": regel_minuten,
+            "eintraege": eintraege_info,
+        })
+        aktuell += _dt.timedelta(days=1)
+
+    gesamt_min = _berechne_tagebuch_gesamt(antrag, mitarbeiter)
+    gesamt_hmin = _minuten_zu_hmin(gesamt_min)
+    reisezeit_gutschrift = antrag.reisezeit_gutschriften.filter(
+        status__in=["beantragt", "genehmigt", "in_bearbeitung", "erledigt"]
+    ).first()
+
+    try:
+        from weasyprint import HTML
+        import datetime as dt
+
+        html_string = render_to_string(
+            "formulare/pdf/dienstreise_pdf.html",
+            {
+                "antrag": antrag,
+                "tage": tage,
+                "gesamt_min": gesamt_min,
+                "gesamt_hmin": gesamt_hmin,
+                "reisezeit_gutschrift": reisezeit_gutschrift,
+                "now": dt.datetime.now(),
+            },
+        )
+        html = HTML(string=html_string, base_url=request.build_absolute_uri())
+        pdf = html.write_pdf()
+        response = HttpResponse(pdf, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'inline; filename="dienstreise_{antrag.pk}_{antrag.ziel}.pdf"'
+        )
+        return response
+    except ImportError:
+        return HttpResponse(
+            "WeasyPrint nicht installiert.",
+            status=500,
+        )

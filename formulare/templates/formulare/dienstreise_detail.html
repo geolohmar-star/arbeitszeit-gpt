@@ -240,6 +240,15 @@
         </div>
     </div>
 
+    <!-- PDF-Download -->
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{% url 'formulare:dienstreise_pdf' antrag.pk %}"
+           target="_blank"
+           class="btn btn-outline-secondary btn-sm">
+            PDF drucken / herunterladen
+        </a>
+    </div>
+
     <!-- Aktionen -->
     <div class="d-flex gap-2">
         {% if ist_antragsteller %}

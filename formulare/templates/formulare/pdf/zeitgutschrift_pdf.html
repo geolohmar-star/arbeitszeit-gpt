@@ -229,6 +229,88 @@
     </table>
     {% endif %}
 
+    <!-- Reisezeit-Tagebuch -->
+    {% if antrag.art == "reisezeit_tagebuch" %}
+    <h2>Reisezeit-Tagebuch</h2>
+    {% if dienstreise %}
+    <table class="info-table">
+        <tr><td>Reiseziel:</td><td><strong>{{ dienstreise.ziel }}</strong></td></tr>
+        <tr><td>Zeitraum:</td><td>{{ dienstreise.von_datum }} &ndash; {{ dienstreise.bis_datum }}</td></tr>
+        <tr><td>Zweck:</td><td>{{ dienstreise.zweck }}</td></tr>
+    </table>
+
+    <p style="font-size:9pt; color:#555; margin-bottom:0.3cm;">
+        Fall 1 = Normalarbeitszeit (keine Gutschrift) &nbsp;|&nbsp;
+        Fall 2 = Gesamtzeit inkl. Meetings (Differenz) &nbsp;|&nbsp;
+        Fall 3 = Reisezeit ausserhalb AZ (&divide; 3)
+    </p>
+
+    {% for tag in tagebuch_tage %}
+    <p style="background:#dce8f5; padding:3px 6px; margin:6px 0 2px 0; font-weight:bold; font-size:9.5pt;">
+        {{ tag.wochentag }}, {{ tag.datum }}
+        {% if tag.ist_wochenende %} (Wochenende){% endif %}
+        {% if not tag.ist_wochenende and tag.regel_minuten > 0 %}
+        &nbsp;&ndash;&nbsp; Regelarbeitszeit: {{ tag.regel_minuten }} Min.
+        {% endif %}
+    </p>
+    {% if tag.eintraege %}
+    <table>
+        <thead>
+            <tr>
+                <th style="width:8%">Fall</th>
+                <th style="width:10%">Von</th>
+                <th style="width:10%">Bis</th>
+                <th style="width:12%">Dauer</th>
+                <th style="width:15%">Gutschrift</th>
+                <th>Bemerkung</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for info in tag.eintraege %}
+            <tr>
+                <td>Fall {{ info.eintrag.fall }}</td>
+                <td>{{ info.eintrag.von_zeit|time:"H:i" }}</td>
+                <td>{{ info.eintrag.bis_zeit|time:"H:i" }}</td>
+                <td>{{ info.eintrag.dauer_hmin }}</td>
+                <td>
+                    {% if info.eintrag.fall == 1 %}–
+                    {% elif info.gutschrift_min >= 0 %}+{{ info.gutschrift_hmin }}
+                    {% else %}{{ info.gutschrift_hmin }}{% endif %}
+                </td>
+                <td style="font-size:9pt;">{{ info.eintrag.bemerkung|default:"–" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#888; font-style:italic; font-size:9pt; margin:2px 0 6px 6px;">Keine Eintraege.</p>
+    {% endif %}
+    {% endfor %}
+
+    <table class="info-table" style="margin-top:0.5cm;">
+        <tr class="highlight">
+            <td><strong>Gesamtgutschrift (Fall 2 + Fall 3):</strong></td>
+            <td><strong>{{ tagebuch_gesamt_hmin }}</strong></td>
+        </tr>
+    </table>
+    {% endif %}
+
+    <h2>Buchungsdetails</h2>
+    <table class="info-table">
+        <tr>
+            <td>Buchungsmonat:</td>
+            <td>{{ antrag.buchungsmonat_name }} {{ antrag.mehrarbeit_buchungsjahr }}</td>
+        </tr>
+        <tr class="highlight">
+            <td><strong>Gutschrift:</strong></td>
+            <td><strong>
+                {% if antrag.sonstige_vorzeichen == "+" %}+{% else %}&minus;{% endif %}
+                {{ antrag.mehrarbeit_stunden }}h {{ antrag.mehrarbeit_minuten|stringformat:"02d" }}min
+            </strong></td>
+        </tr>
+    </table>
+    {% endif %}
+
     <!-- Sonstige Anliegen -->
     {% if antrag.art == "sonstige" %}
     <h2>Angaben</h2>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Dienstreise – {{ antrag.ziel }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            margin: 2cm;
+            color: #222;
+        }
+        h1 { font-size: 16pt; margin-bottom: 0.3cm; }
+        h2 { font-size: 12pt; margin-top: 0.8cm; margin-bottom: 0.2cm;
+             border-bottom: 1px solid #aaa; padding-bottom: 2px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 0.5cm; }
+        th, td { border: 1px solid #ccc; padding: 0.2cm 0.3cm; text-align: left; }
+        th { background-color: #e8e8e8; font-weight: bold; font-size: 9pt; }
+        .info-table td:first-child { width: 38%; font-weight: bold; background: #f7f7f7; }
+        .tag-header {
+            background: #dce8f5;
+            font-weight: bold;
+            font-size: 9.5pt;
+            padding: 0.15cm 0.3cm;
+        }
+        .tag-header.wochenende { background: #fff3cd; }
+        .tag-leer { color: #888; font-style: italic; font-size: 9pt; padding: 0.15cm 0.5cm; }
+        .badge-1 { background: #888; color: #fff; padding: 1px 5px; border-radius: 3px; font-size: 8pt; }
+        .badge-2 { background: #0d6efd; color: #fff; padding: 1px 5px; border-radius: 3px; font-size: 8pt; }
+        .badge-3 { background: #198754; color: #fff; padding: 1px 5px; border-radius: 3px; font-size: 8pt; }
+        .gutschrift-pos { color: #198754; font-weight: bold; }
+        .gutschrift-neg { color: #dc3545; font-weight: bold; }
+        .gesamt-box {
+            border: 2px solid #0d6efd;
+            padding: 0.3cm 0.5cm;
+            margin-top: 0.5cm;
+            background: #f0f6ff;
+        }
+        .gesamt-box .label { font-size: 9pt; color: #555; }
+        .gesamt-box .wert { font-size: 16pt; font-weight: bold; }
+        .sign-table { margin-top: 1.5cm; }
+        .sign-table td { border: none; padding: 0.1cm 0.3cm; vertical-align: bottom; }
+        .sign-line { border-bottom: 1px solid #555; display: inline-block; width: 5cm; }
+        .footer { margin-top: 1.5cm; font-size: 8pt; color: #888; border-top: 1px solid #ddd; padding-top: 0.2cm; }
+        .status-beantragt { color: #856404; font-weight: bold; }
+        .status-genehmigt { color: #198754; font-weight: bold; }
+        .status-erledigt   { color: #6c757d; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Dienstreiseantrag</h1>
+    <p style="margin:0; color:#555;">Aktenzeichen: <strong>{{ antrag.get_betreff }}</strong></p>
+
+    <!-- Antragsteller -->
+    <h2>Antragsteller</h2>
+    <table class="info-table">
+        <tr>
+            <td>Name</td>
+            <td>{{ antrag.antragsteller.vorname }} {{ antrag.antragsteller.nachname }}</td>
+        </tr>
+        <tr>
+            <td>Personalnummer</td>
+            <td>{{ antrag.antragsteller.personalnummer }}</td>
+        </tr>
+        <tr>
+            <td>Abteilung</td>
+            <td>{{ antrag.antragsteller.abteilung }}</td>
+        </tr>
+        <tr>
+            <td>Status des Antrags</td>
+            <td>
+                <span class="status-{{ antrag.status }}">{{ antrag.get_status_display }}</span>
+            </td>
+        </tr>
+        <tr>
+            <td>Eingereicht am</td>
+            <td>{{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr</td>
+        </tr>
+    </table>
+
+    <!-- Reisedaten -->
+    <h2>Reisedaten</h2>
+    <table class="info-table">
+        <tr>
+            <td>Reiseziel</td>
+            <td><strong>{{ antrag.ziel }}</strong></td>
+        </tr>
+        <tr>
+            <td>Zeitraum</td>
+            <td>
+                {{ antrag.von_datum|date:"d.m.Y" }} &ndash; {{ antrag.bis_datum|date:"d.m.Y" }}
+                ({{ antrag.dauer_tage }} Tag{{ antrag.dauer_tage|pluralize:"e" }})
+            </td>
+        </tr>
+        <tr>
+            <td>Zweck der Reise</td>
+            <td>{{ antrag.zweck }}</td>
+        </tr>
+        <tr>
+            <td>Geschaetzte Kosten</td>
+            <td>{{ antrag.geschaetzte_kosten }} EUR</td>
+        </tr>
+        {% if antrag.einladungscode %}
+        <tr>
+            <td>Einladungscode</td>
+            <td>{{ antrag.einladungscode }}</td>
+        </tr>
+        {% endif %}
+        {% if antrag.bearbeitet_von %}
+        <tr>
+            <td>Genehmigt von</td>
+            <td>{{ antrag.bearbeitet_von.get_full_name|default:antrag.bearbeitet_von.username }}</td>
+        </tr>
+        <tr>
+            <td>Genehmigt am</td>
+            <td>{{ antrag.bearbeitet_am|date:"d.m.Y" }}</td>
+        </tr>
+        {% endif %}
+    </table>
+
+    <!-- Reisetagebuch -->
+    <h2>Reisetagebuch</h2>
+    <p style="font-size:8.5pt; color:#555; margin-bottom:0.3cm;">
+        Fall 1 = Normalarbeitszeit (keine Gutschrift) &nbsp;|&nbsp;
+        Fall 2 = Gesamtzeit inkl. Meetings (Differenz zur Regelarbeitszeit) &nbsp;|&nbsp;
+        Fall 3 = Reisezeit ausserhalb AZ (&divide; 3)
+    </p>
+
+    {% for tag in tage %}
+    <div class="tag-header {% if tag.ist_wochenende %}wochenende{% endif %}">
+        {{ tag.wochentag }}, {{ tag.datum|date:"d.m.Y" }}
+        {% if not tag.ist_wochenende and tag.regel_minuten > 0 %}
+            &nbsp;&ndash;&nbsp; Regelarbeitszeit: {{ tag.regel_minuten }} Min.
+        {% endif %}
+        {% if tag.ist_wochenende %} (Wochenende){% endif %}
+    </div>
+
+    {% if tag.eintraege %}
+    <table>
+        <thead>
+            <tr>
+                <th style="width:8%">Fall</th>
+                <th style="width:10%">Von</th>
+                <th style="width:10%">Bis</th>
+                <th style="width:12%">Dauer</th>
+                <th style="width:14%">Gutschrift</th>
+                <th>Bemerkung</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for info in tag.eintraege %}
+            <tr>
+                <td>
+                    {% if info.eintrag.fall == 1 %}
+                    <span class="badge-1">Fall 1</span>
+                    {% elif info.eintrag.fall == 2 %}
+                    <span class="badge-2">Fall 2</span>
+                    {% else %}
+                    <span class="badge-3">Fall 3</span>
+                    {% endif %}
+                </td>
+                <td>{{ info.eintrag.von_zeit|time:"H:i" }}</td>
+                <td>{{ info.eintrag.bis_zeit|time:"H:i" }}</td>
+                <td>{{ info.eintrag.dauer_hmin }}</td>
+                <td>
+                    {% if info.eintrag.fall == 1 %}
+                        <span style="color:#888;">–</span>
+                    {% elif info.gutschrift_min >= 0 %}
+                        <span class="gutschrift-pos">+ {{ info.gutschrift_hmin }}</span>
+                    {% else %}
+                        <span class="gutschrift-neg">{{ info.gutschrift_hmin }}</span>
+                    {% endif %}
+                </td>
+                <td style="font-size:9pt; color:#555;">{{ info.eintrag.bemerkung|default:"–" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="tag-leer">Keine Eintraege fuer diesen Tag.</p>
+    {% endif %}
+    {% endfor %}
+
+    <!-- Gesamtgutschrift -->
+    <h2>Gesamtgutschrift (Fall 2 + Fall 3)</h2>
+    <div class="gesamt-box">
+        <div class="label">Berechnete Reisezeitgutschrift</div>
+        <div class="wert {% if gesamt_min > 0 %}gutschrift-pos{% elif gesamt_min < 0 %}gutschrift-neg{% endif %}">
+            {{ gesamt_hmin }}
+        </div>
+        {% if reisezeit_gutschrift %}
+        <div style="margin-top:0.3cm; font-size:9pt;">
+            Gutschrift-Antrag gestellt &ndash;
+            Status: <strong>{{ reisezeit_gutschrift.get_status_display }}</strong>
+            &nbsp;|&nbsp;
+            Buchungsmonat: {{ reisezeit_gutschrift.buchungsmonat_name }} {{ reisezeit_gutschrift.mehrarbeit_buchungsjahr }}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Unterschriften -->
+    <table class="sign-table">
+        <tr>
+            <td style="width:45%">
+                <div class="sign-line"></div><br>
+                <span style="font-size:8.5pt;">Datum, Unterschrift Antragsteller</span>
+            </td>
+            <td style="width:10%"></td>
+            <td style="width:45%">
+                <div class="sign-line"></div><br>
+                <span style="font-size:8.5pt;">Datum, Unterschrift Genehmiger</span>
+            </td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        Automatisch erstellt am {{ now|date:"d.m.Y" }} um {{ now|date:"H:i" }} Uhr.
+        Dieses Dokument ist maschinell erstellt und benoetigt keine handschriftliche Unterschrift, sofern elektronisch genehmigt.
+    </div>
+
+</body>
+</html>
