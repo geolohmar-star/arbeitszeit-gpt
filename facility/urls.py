@@ -32,4 +32,7 @@ urlpatterns = [
         name="textbaustein_loeschen",
     ),
     path("workflow-einrichten/", views.facility_workflow_anleitung, name="workflow_anleitung"),
+    # Team-Builder Member-Management
+    path("teams/<int:pk>/mitglied/hinzufuegen/", views.facility_team_mitglied_hinzufuegen, name="team_mitglied_hinzufuegen"),
+    path("teams/<int:pk>/mitglied/entfernen/", views.facility_team_mitglied_entfernen, name="team_mitglied_entfernen"),
 ]

@@ -127,6 +127,87 @@
                     </div>
                 {% endif %}
             </div>
+
+            <!-- Facility-Teams -->
+            <div class="mt-5">
+                <h4 class="mb-3">
+                    Facility-Teams
+                    <span class="badge bg-success ms-2">{{ facility_teams.count }}</span>
+                </h4>
+                {% if facility_teams %}
+                <div class="row row-cols-1 row-cols-md-2 g-4" id="facility-teams-container">
+                    {% for fteam in facility_teams %}
+                    <div class="col">
+                        <div class="card h-100 shadow-sm border-success" id="facility-team-{{ fteam.id }}">
+                            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">{{ fteam.get_kategorie_display }}</h5>
+                                <span class="badge bg-white text-success">Facility</span>
+                            </div>
+                            <div class="card-body">
+                                {% if fteam.teamleiter %}
+                                <p class="small text-muted mb-2">
+                                    Teamleiter: <strong>{{ fteam.teamleiter.get_full_name|default:fteam.teamleiter.username }}</strong>
+                                </p>
+                                {% endif %}
+
+                                <h6>Mitglieder ({{ fteam.mitglieder.count }})</h6>
+                                {% if fteam.mitglieder.exists %}
+                                <div class="list-group list-group-flush">
+                                    {% for mitglied in fteam.mitglieder.all %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-0">
+                                        <span>
+                                            <strong>{{ mitglied.get_full_name|default:mitglied.username }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ mitglied.username }}</small>
+                                        </span>
+                                        {% if request.user.is_staff %}
+                                        <button class="btn btn-sm btn-outline-danger"
+                                                onclick="facilityRemoveMember({{ fteam.id }}, {{ mitglied.id }}, '{{ mitglied.username }}')">
+                                            &#10006;
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <p class="text-muted small">Noch keine Mitglieder</p>
+                                {% endif %}
+
+                                {% if request.user.is_staff %}
+                                <button class="btn btn-sm btn-outline-success mt-3 w-100"
+                                        onclick="facilityAddMemberModal({{ fteam.id }}, '{{ fteam.get_kategorie_display }}')">
+                                    + Mitglied hinzufuegen
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    Keine Facility-Teams vorhanden. Bitte im Django-Admin anlegen.
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Facility-Mitglied hinzufuegen -->
+<div class="modal fade" id="facilityMemberModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Mitglied hinzufuegen – <span id="facility-modal-teamname"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control mb-3" id="facility-member-search"
+                       placeholder="Name oder Username suchen...">
+                <div id="facility-member-list" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -481,6 +562,80 @@ async function removeMember(teamId, userId, username) {
             body: JSON.stringify({ user_id: userId })
         });
 
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert('Fehler beim Entfernen');
+        }
+    } catch (error) {
+        alert('Fehler: ' + error);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Facility-Team Member-Management
+// ---------------------------------------------------------------------------
+let currentFacilityTeamId = null;
+
+function facilityAddMemberModal(teamId, teamName) {
+    currentFacilityTeamId = teamId;
+    document.getElementById('facility-modal-teamname').textContent = teamName;
+    document.getElementById('facility-member-search').value = '';
+    renderFacilityUserList('');
+    new bootstrap.Modal(document.getElementById('facilityMemberModal')).show();
+}
+
+function renderFacilityUserList(query) {
+    const container = document.getElementById('facility-member-list');
+    const filtered = ALL_USERS.filter(u =>
+        u.name.toLowerCase().includes(query.toLowerCase()) ||
+        u.username.toLowerCase().includes(query.toLowerCase())
+    );
+    if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-muted p-2">Keine Treffer</p>';
+        return;
+    }
+    container.innerHTML = filtered.map(u => `
+        <div class="d-flex justify-content-between align-items-center border-bottom py-2 px-1">
+            <div>
+                <strong>${u.name}</strong><br>
+                <small class="text-muted">${u.username}${u.stelle ? ' – ' + u.stelle : ''}</small>
+            </div>
+            <button class="btn btn-sm btn-success" onclick="facilityDoAddMember(${u.id})">+</button>
+        </div>
+    `).join('');
+}
+
+document.getElementById('facility-member-search').addEventListener('input', function() {
+    renderFacilityUserList(this.value);
+});
+
+async function facilityDoAddMember(userId) {
+    try {
+        const response = await fetch(`/facility/teams/${currentFacilityTeamId}/mitglied/hinzufuegen/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+            body: JSON.stringify({ user_id: userId })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert(data.error || 'Fehler');
+        }
+    } catch (error) {
+        alert('Fehler: ' + error);
+    }
+}
+
+async function facilityRemoveMember(teamId, userId, username) {
+    if (!confirm(`"${username}" aus dem Facility-Team entfernen?`)) return;
+    try {
+        const response = await fetch(`/facility/teams/${teamId}/mitglied/entfernen/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+            body: JSON.stringify({ user_id: userId })
+        });
         if (response.ok) {
             location.reload();
         } else {

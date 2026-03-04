@@ -1,10 +1,11 @@
+import json
 import logging
 from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -575,3 +576,69 @@ def textbaustein_loeschen(request, pk):
         "facility/textbaustein_loeschen.html",
         {"baustein": baustein},
     )
+
+
+# ---------------------------------------------------------------------------
+# FacilityTeam – Member-Management (JSON-API fuer Team-Builder)
+# ---------------------------------------------------------------------------
+
+@login_required
+def facility_team_mitglied_hinzufuegen(request, pk):
+    """API: Mitglied zum FacilityTeam hinzufuegen (JSON POST)."""
+    if not request.user.is_staff:
+        return JsonResponse({"error": "Kein Zugriff"}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    team = get_object_or_404(FacilityTeam, pk=pk)
+
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+        if not user_id:
+            return JsonResponse({"error": "User-ID erforderlich"}, status=400)
+        user = get_object_or_404(User, pk=user_id)
+        if team.mitglieder.filter(id=user.id).exists():
+            return JsonResponse({"error": "User ist bereits Mitglied"}, status=400)
+        team.mitglieder.add(user)
+        return JsonResponse({
+            "success": True,
+            "message": f"{user.username} zu '{team.get_kategorie_display()}' hinzugefuegt",
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Ungueltige JSON-Daten"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def facility_team_mitglied_entfernen(request, pk):
+    """API: Mitglied aus FacilityTeam entfernen (JSON POST)."""
+    if not request.user.is_staff:
+        return JsonResponse({"error": "Kein Zugriff"}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    team = get_object_or_404(FacilityTeam, pk=pk)
+
+    try:
+        data = json.loads(request.body)
+        user_id = data.get("user_id")
+        if not user_id:
+            return JsonResponse({"error": "User-ID erforderlich"}, status=400)
+        user = get_object_or_404(User, pk=user_id)
+        team.mitglieder.remove(user)
+        return JsonResponse({
+            "success": True,
+            "message": f"{user.username} aus '{team.get_kategorie_display()}' entfernt",
+        })
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Ungueltige JSON-Daten"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

@@ -187,6 +187,9 @@
                            id="facilityDropdown" role="button"
                            data-bs-toggle="dropdown" aria-expanded="false">
                             Facility
+                            {% if facility_queue_anzahl %}
+                            <span class="badge bg-danger rounded-pill ms-1">{{ facility_queue_anzahl }}</span>
+                            {% endif %}
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="facilityDropdown">
                             <li>
@@ -202,8 +205,11 @@
                             {% if ist_facility_mitglied %}
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <a class="dropdown-item" href="{% url 'facility:queue' %}">
+                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'facility:queue' %}">
                                     Facility-Queue
+                                    {% if facility_queue_anzahl %}
+                                    <span class="badge bg-danger rounded-pill">{{ facility_queue_anzahl }}</span>
+                                    {% endif %}
                                 </a>
                             </li>
                             {% endif %}

@@ -1800,6 +1800,9 @@ def team_builder(request):
 
     teams = TeamQueue.objects.all().prefetch_related("mitglieder").order_by("name")
 
+    from facility.models import FacilityTeam
+    facility_teams = FacilityTeam.objects.all().prefetch_related("mitglieder").select_related("teamleiter")
+
     def _mit_stelle(qs):
         """Reichert User-Queryset mit Stellen-Info an."""
         result = []
@@ -1852,6 +1855,7 @@ def team_builder(request):
 
     context = {
         "teams": teams,
+        "facility_teams": facility_teams,
         "all_users": all_users,
         "org_users": org_users,
         "other_users": other_users,
