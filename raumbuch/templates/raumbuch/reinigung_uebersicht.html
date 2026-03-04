@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Reinigungsübersicht{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Reinigungsübersicht</h1>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if plaene %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Raum</th>
+                            <th>Gebäude</th>
+                            <th>Intervall</th>
+                            <th>Letzte Reinigung</th>
+                            <th>Fälligkeits-Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for plan in plaene %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'raumbuch:raum_detail' plan.raum.pk %}">
+                                    {{ plan.raum.raumnummer }}
+                                </a>
+                                {% if plan.raum.raumname %}
+                                <span class="text-muted small">– {{ plan.raum.raumname }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ plan.raum.geschoss.gebaeude|default:"–" }}</td>
+                            <td>{{ plan.get_intervall_display }}</td>
+                            <td>{{ plan.letzte_reinigung|default:"–" }}</td>
+                            <td>
+                                {% if plan.ist_ueberfaellig %}
+                                <span class="badge bg-danger">Überfällig</span>
+                                {% elif plan.ist_heute_faellig %}
+                                <span class="badge bg-warning text-dark">Heute fällig</span>
+                                {% else %}
+                                <span class="badge bg-success">In Ordnung</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    {% if user.is_staff or ist_facility_mitglied %}
+                                    <a href="{% url 'raumbuch:reinigung_bearbeiten' plan.raum.pk %}"
+                                       class="btn btn-sm btn-outline-primary">Plan bearbeiten</a>
+                                    <form method="post"
+                                          action="{% url 'raumbuch:reinigung_quittieren' plan.pk %}"
+                                          class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            Quittieren
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted">
+                Noch keine Reinigungspläne angelegt.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-3 d-flex gap-3">
+        <span class="badge bg-success">In Ordnung</span>
+        <span class="badge bg-warning text-dark">Heute fällig</span>
+        <span class="badge bg-danger">Überfällig</span>
+    </div>
+</div>
+{% endblock %}

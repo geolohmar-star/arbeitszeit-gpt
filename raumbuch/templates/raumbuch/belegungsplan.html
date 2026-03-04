@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Belegungsplan{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Belegungsplan</h1>
+        <a href="{% url 'raumbuch:belegung_erstellen' %}" class="btn btn-success">
+            Belegung anlegen
+        </a>
+    </div>
+
+    {% if geschosse %}
+    <!-- Geschoss-Tabs -->
+    <ul class="nav nav-tabs mb-3" id="belegungTabs" role="tablist">
+        {% for geschoss in geschosse %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if forloop.first %}active{% endif %}"
+                    id="tab-geschoss-{{ geschoss.pk }}"
+                    data-bs-toggle="tab"
+                    data-bs-target="#pane-geschoss-{{ geschoss.pk }}"
+                    type="button" role="tab">
+                {{ geschoss.bezeichnung }}
+            </button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <div class="tab-content" id="belegungTabContent">
+        {% for geschoss in geschosse %}
+        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}"
+             id="pane-geschoss-{{ geschoss.pk }}" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <strong>{{ geschoss.bezeichnung }}</strong>
+                    {% if geschoss.gebaeude %}– Gebäude: {{ geschoss.gebaeude }}{% endif %}
+                </div>
+                <div class="card-body p-0">
+                    {% if geschoss.raum_set.all %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Raumnummer</th>
+                                    <th>Raumname</th>
+                                    <th>Typ</th>
+                                    <th>Aktuelle Belegung</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for raum in geschoss.raum_set.all %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'raumbuch:raum_detail' raum.pk %}">
+                                            {{ raum.raumnummer }}
+                                        </a>
+                                    </td>
+                                    <td>{{ raum.raumname|default:"–" }}</td>
+                                    <td>{{ raum.get_raumtyp_display }}</td>
+                                    <td>
+                                        {% with aktuelle_belegungen=raum.belegungen.all %}
+                                        {% for b in aktuelle_belegungen %}
+                                            {% if not b.bis or b.bis >= heute %}
+                                            <span class="badge bg-primary">{{ b.mitarbeiter }}</span>
+                                            {% endif %}
+                                        {% empty %}
+                                        <span class="text-muted small">– leer –</span>
+                                        {% endfor %}
+                                        {% endwith %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'raumbuch:belegung_erstellen' %}?raum={{ raum.pk }}"
+                                           class="btn btn-sm btn-outline-secondary">
+                                            Belegung anlegen
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="p-3 text-muted">Keine Räume in diesem Geschoss.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        Noch keine Geschosse angelegt.
+    </div>
+    {% endif %}
+
+    <p class="mt-2 text-muted small">
+        Aktuelles Datum: {{ heute }}. Es werden alle Belegungen ohne Enddatum oder mit Enddatum >= heute als aktiv gewertet.
+    </p>
+</div>
+{% endblock %}

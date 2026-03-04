@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – {% if umzug %}Umzugsauftrag bearbeiten{% else %}Umzugsauftrag anlegen{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        {% if umzug %}Umzugsauftrag bearbeiten{% else %}Neuen Umzugsauftrag anlegen{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="id_datum_geplant" class="form-label">Geplantes Datum</label>
+                            <input type="date" name="datum_geplant" id="id_datum_geplant"
+                                   class="form-control"
+                                   value="{% if umzug %}{{ umzug.datum_geplant|date:'Y-m-d' }}{% endif %}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_mitarbeiter" class="form-label">Mitarbeiter <span class="text-danger">*</span></label>
+                            <select name="mitarbeiter" id="id_mitarbeiter" class="form-select" required>
+                                <option value="">-- Mitarbeiter wählen --</option>
+                                {% for ma in mitarbeiter_qs %}
+                                <option value="{{ ma.pk }}"
+                                    {% if umzug and umzug.mitarbeiter_id == ma.pk %}selected{% endif %}>
+                                    {{ ma }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_von_raum" class="form-label">Von Raum (bisheriger Arbeitsplatz)</label>
+                            <select name="von_raum" id="id_von_raum" class="form-select">
+                                <option value="">-- Keinen Von-Raum --</option>
+                                {% for raum in raeume_qs %}
+                                <option value="{{ raum.pk }}"
+                                    {% if umzug and umzug.von_raum_id == raum.pk %}selected{% endif %}>
+                                    {{ raum.raumnummer }}
+                                    {% if raum.raumname %} – {{ raum.raumname }}{% endif %}
+                                    ({{ raum.geschoss }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_nach_raum" class="form-label">Nach Raum (neuer Arbeitsplatz)</label>
+                            <select name="nach_raum" id="id_nach_raum" class="form-select">
+                                <option value="">-- Keinen Nach-Raum --</option>
+                                {% for raum in raeume_qs %}
+                                <option value="{{ raum.pk }}"
+                                    {% if umzug and umzug.nach_raum_id == raum.pk %}selected{% endif %}>
+                                    {{ raum.raumnummer }}
+                                    {% if raum.raumname %} – {{ raum.raumname }}{% endif %}
+                                    ({{ raum.geschoss }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_notiz" class="form-label">Notiz / Besonderheiten</label>
+                            <textarea name="notiz" id="id_notiz"
+                                      class="form-control" rows="3"
+                                      placeholder="z.B. Schreibtisch + 2 Aktenschränke">{% if umzug %}{{ umzug.notiz }}{% endif %}</textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                {% if umzug %}Änderungen speichern{% else %}Auftrag anlegen{% endif %}
+                            </button>
+                            <a href="{% url 'raumbuch:umzug_liste' %}" class="btn btn-outline-secondary">
+                                Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – {% if belegung %}Belegung bearbeiten{% else %}Belegung anlegen{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        {% if belegung %}Belegung bearbeiten{% else %}Neue Belegung anlegen{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="id_raum" class="form-label">Raum <span class="text-danger">*</span></label>
+                            <select name="raum" id="id_raum" class="form-select" required>
+                                <option value="">-- Raum wählen --</option>
+                                {% for raum in raeume_qs %}
+                                <option value="{{ raum.pk }}"
+                                    {% if belegung and belegung.raum_id == raum.pk %}selected{% endif %}>
+                                    {{ raum.raumnummer }}
+                                    {% if raum.raumname %} – {{ raum.raumname }}{% endif %}
+                                    ({{ raum.geschoss }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_mitarbeiter" class="form-label">Mitarbeiter <span class="text-danger">*</span></label>
+                            <select name="mitarbeiter" id="id_mitarbeiter" class="form-select" required>
+                                <option value="">-- Mitarbeiter wählen --</option>
+                                {% for ma in mitarbeiter_qs %}
+                                <option value="{{ ma.pk }}"
+                                    {% if belegung and belegung.mitarbeiter_id == ma.pk %}selected{% endif %}>
+                                    {{ ma }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_von" class="form-label">Von <span class="text-danger">*</span></label>
+                                <input type="date" name="von" id="id_von"
+                                       class="form-control" required
+                                       value="{% if belegung %}{{ belegung.von|date:'Y-m-d' }}{% endif %}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_bis" class="form-label">Bis (optional – leer = unbefristet)</label>
+                                <input type="date" name="bis" id="id_bis"
+                                       class="form-control"
+                                       value="{% if belegung %}{{ belegung.bis|date:'Y-m-d' }}{% endif %}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_notiz" class="form-label">Notiz</label>
+                            <textarea name="notiz" id="id_notiz"
+                                      class="form-control" rows="2">{% if belegung %}{{ belegung.notiz }}{% endif %}</textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                {% if belegung %}Änderungen speichern{% else %}Belegung anlegen{% endif %}
+                            </button>
+                            <a href="{% url 'raumbuch:belegungsplan' %}" class="btn btn-outline-secondary">
+                                Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

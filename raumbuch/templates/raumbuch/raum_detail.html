@@ -1,0 +1,609 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Raum {{ raum.raumnummer }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Kopfbereich -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1 class="h3">
+                Raum {{ raum.raumnummer }}
+                {% if raum.raumname %} – {{ raum.raumname }}{% endif %}
+            </h1>
+            <div class="d-flex gap-2 flex-wrap">
+                <span class="badge bg-primary">{{ raum.get_raumtyp_display }}</span>
+                <span class="badge bg-info text-dark">{{ raum.get_nutzungsmodell_display }}</span>
+                {% if raum.ist_leer %}
+                <span class="badge bg-warning text-dark">Leerstand</span>
+                {% endif %}
+                {% if not raum.ist_aktiv %}
+                <span class="badge bg-secondary">Deaktiviert</span>
+                {% endif %}
+                {% if raum.kapazitaet %}
+                <span class="badge bg-secondary">{{ raum.kapazitaet }} Personen</span>
+                {% endif %}
+                {% if raum.flaeche_m2 %}
+                <span class="badge bg-secondary">{{ raum.flaeche_m2 }} m²</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            {% if user.is_staff or ist_facility_mitglied %}
+            <a href="{% url 'raumbuch:raum_bearbeiten' raum.pk %}" class="btn btn-outline-primary">
+                Raum bearbeiten
+            </a>
+            {% endif %}
+            <a href="{% url 'raumbuch:uebersicht' %}" class="btn btn-outline-secondary">
+                Zur Uebersicht
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-3" id="raumDetailTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-stammdaten" data-bs-toggle="tab"
+                    data-bs-target="#pane-stammdaten" type="button" role="tab">Stammdaten</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-facility" data-bs-toggle="tab"
+                    data-bs-target="#pane-facility" type="button" role="tab">Facility</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-elektro" data-bs-toggle="tab"
+                    data-bs-target="#pane-elektro" type="button" role="tab">Elektro</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-netzwerk" data-bs-toggle="tab"
+                    data-bs-target="#pane-netzwerk" type="button" role="tab">Netzwerk</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-installation" data-bs-toggle="tab"
+                    data-bs-target="#pane-installation" type="button" role="tab">Installation</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-arbeitsschutz" data-bs-toggle="tab"
+                    data-bs-target="#pane-arbeitsschutz" type="button" role="tab">Arbeitsschutz</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-schluessel" data-bs-toggle="tab"
+                    data-bs-target="#pane-schluessel" type="button" role="tab">Schluessel</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-tokens" data-bs-toggle="tab"
+                    data-bs-target="#pane-tokens" type="button" role="tab">Tokens</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-belegung" data-bs-toggle="tab"
+                    data-bs-target="#pane-belegung" type="button" role="tab">Belegung</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-reinigung" data-bs-toggle="tab"
+                    data-bs-target="#pane-reinigung" type="button" role="tab">Reinigung</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-buchungen" data-bs-toggle="tab"
+                    data-bs-target="#pane-buchungen" type="button" role="tab">Buchungen</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-log" data-bs-toggle="tab"
+                    data-bs-target="#pane-log" type="button" role="tab">Log</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="raumDetailTabContent">
+
+        <!-- Tab: Stammdaten -->
+        <div class="tab-pane fade show active" id="pane-stammdaten" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Raumnummer</dt>
+                        <dd class="col-sm-9">{{ raum.raumnummer }}</dd>
+
+                        <dt class="col-sm-3">Raumname</dt>
+                        <dd class="col-sm-9">{{ raum.raumname|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Geschoss</dt>
+                        <dd class="col-sm-9">{{ raum.geschoss }}</dd>
+
+                        <dt class="col-sm-3">Bereich</dt>
+                        <dd class="col-sm-9">{{ raum.bereich|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Raumtyp</dt>
+                        <dd class="col-sm-9">{{ raum.get_raumtyp_display }}</dd>
+
+                        <dt class="col-sm-3">Nutzungsmodell</dt>
+                        <dd class="col-sm-9">{{ raum.get_nutzungsmodell_display }}</dd>
+
+                        <dt class="col-sm-3">Kapazitaet</dt>
+                        <dd class="col-sm-9">{% if raum.kapazitaet %}{{ raum.kapazitaet }} Personen{% else %}–{% endif %}</dd>
+
+                        <dt class="col-sm-3">Flaeche</dt>
+                        <dd class="col-sm-9">{% if raum.flaeche_m2 %}{{ raum.flaeche_m2 }} m²{% else %}–{% endif %}</dd>
+
+                        <dt class="col-sm-3">Leerstand</dt>
+                        <dd class="col-sm-9">{% if raum.ist_leer %}Ja{% else %}Nein{% endif %}</dd>
+
+                        <dt class="col-sm-3">Aktiv</dt>
+                        <dd class="col-sm-9">{% if raum.ist_aktiv %}Ja{% else %}Nein{% endif %}</dd>
+
+                        <dt class="col-sm-3">Beschreibung</dt>
+                        <dd class="col-sm-9">{{ raum.beschreibung|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Angelegt am</dt>
+                        <dd class="col-sm-9">{{ raum.erstellt_am|date:"d.m.Y H:i" }}</dd>
+
+                        <dt class="col-sm-3">Geaendert am</dt>
+                        <dd class="col-sm-9">{{ raum.geaendert_am|date:"d.m.Y H:i" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Facility -->
+        <div class="tab-pane fade" id="pane-facility" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    {% if facility_daten %}
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Bodenbelag</dt>
+                        <dd class="col-sm-9">{{ facility_daten.bodenbelag|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Fenster Anzahl</dt>
+                        <dd class="col-sm-9">{{ facility_daten.fenster_anzahl|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Fenster verdunkelbar</dt>
+                        <dd class="col-sm-9">{% if facility_daten.fenster_verdunkelbar %}Ja{% else %}Nein{% endif %}</dd>
+
+                        <dt class="col-sm-3">Klima-Typ</dt>
+                        <dd class="col-sm-9">{{ facility_daten.klima_typ|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Lueftungsanlage</dt>
+                        <dd class="col-sm-9">{% if facility_daten.lueftungsanlage %}Ja{% else %}Nein{% endif %}</dd>
+
+                        <dt class="col-sm-3">Flaeche m²</dt>
+                        <dd class="col-sm-9">{{ facility_daten.flaeche_m2|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Volumen m³</dt>
+                        <dd class="col-sm-9">{{ facility_daten.volumen_m3|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Baujahr</dt>
+                        <dd class="col-sm-9">{{ facility_daten.baujahr|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Letzte Renovierung</dt>
+                        <dd class="col-sm-9">{{ facility_daten.letzte_renovierung|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Moebelliste</dt>
+                        <dd class="col-sm-9">{{ facility_daten.moebelliste|default:"–"|linebreaksbr }}</dd>
+                    </dl>
+                    {% else %}
+                    <p class="text-muted">Noch keine Facility-Daten erfasst.</p>
+                    {% endif %}
+                    {% if user.is_staff or ist_facility_mitglied %}
+                    <hr>
+                    <a href="{% url 'raumbuch:raum_facility' raum.pk %}" class="btn btn-outline-primary btn-sm">
+                        Facility-Daten bearbeiten
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Elektro -->
+        <div class="tab-pane fade" id="pane-elektro" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    {% if elektro_daten %}
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Stromkreise</dt>
+                        <dd class="col-sm-9">{{ elektro_daten.stromkreise_beschreibung|default:"–"|linebreaksbr }}</dd>
+
+                        <dt class="col-sm-3">Sicherungsbezeichnungen</dt>
+                        <dd class="col-sm-9">{{ elektro_daten.sicherungsbezeichnungen|default:"–"|linebreaksbr }}</dd>
+
+                        <dt class="col-sm-3">Drehstrom</dt>
+                        <dd class="col-sm-9">{% if elektro_daten.drehstrom %}Ja{% else %}Nein{% endif %}</dd>
+
+                        <dt class="col-sm-3">Notbeleuchtung</dt>
+                        <dd class="col-sm-9">{% if elektro_daten.notbeleuchtung %}Ja{% else %}Nein{% endif %}</dd>
+
+                        <dt class="col-sm-3">USV-gesichert</dt>
+                        <dd class="col-sm-9">{% if elektro_daten.usv_gesichert %}Ja{% else %}Nein{% endif %}</dd>
+                    </dl>
+                    {% else %}
+                    <p class="text-muted">Noch keine Elektro-Daten erfasst.</p>
+                    {% endif %}
+                    {% if user.is_staff or ist_facility_mitglied %}
+                    <hr>
+                    <a href="{% url 'raumbuch:raum_elektro' raum.pk %}" class="btn btn-outline-primary btn-sm">
+                        Elektro-Daten bearbeiten
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Netzwerk -->
+        <div class="tab-pane fade" id="pane-netzwerk" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    {% if netzwerk_daten %}
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Switch</dt>
+                        <dd class="col-sm-9">{{ netzwerk_daten.switch_name|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Switch-Port</dt>
+                        <dd class="col-sm-9">{{ netzwerk_daten.switch_port|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">LAN-Ports</dt>
+                        <dd class="col-sm-9">{{ netzwerk_daten.lan_ports_anzahl|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">LAN-Port-Beschreibung</dt>
+                        <dd class="col-sm-9">{{ netzwerk_daten.lan_ports_beschreibung|default:"–"|linebreaksbr }}</dd>
+
+                        <dt class="col-sm-3">Telefondosen</dt>
+                        <dd class="col-sm-9">{{ netzwerk_daten.telefondosen|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">WLAN-Abdeckung</dt>
+                        <dd class="col-sm-9">{{ netzwerk_daten.get_wlan_abdeckung_display|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">IP-Adressen</dt>
+                        <dd class="col-sm-9">{{ netzwerk_daten.ip_adressen|default:"–"|linebreaksbr }}</dd>
+                    </dl>
+                    {% else %}
+                    <p class="text-muted">Noch keine Netzwerk-Daten erfasst.</p>
+                    {% endif %}
+                    {% if user.is_staff or ist_facility_mitglied %}
+                    <hr>
+                    <a href="{% url 'raumbuch:raum_netzwerk' raum.pk %}" class="btn btn-outline-primary btn-sm">
+                        Netzwerk-Daten bearbeiten
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Installation -->
+        <div class="tab-pane fade" id="pane-installation" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    {% if installation_daten %}
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Absperrhaehn</dt>
+                        <dd class="col-sm-9">{{ installation_daten.absperrhaehne|default:"–"|linebreaksbr }}</dd>
+
+                        <dt class="col-sm-3">Brandschutzklappen</dt>
+                        <dd class="col-sm-9">{{ installation_daten.brandschutzklappen|default:"–"|linebreaksbr }}</dd>
+
+                        <dt class="col-sm-3">GLT-Adressen</dt>
+                        <dd class="col-sm-9">{{ installation_daten.glt_adressen|default:"–"|linebreaksbr }}</dd>
+                    </dl>
+                    {% else %}
+                    <p class="text-muted">Noch keine Installations-Daten erfasst.</p>
+                    {% endif %}
+                    {% if user.is_staff or ist_facility_mitglied %}
+                    <hr>
+                    <a href="{% url 'raumbuch:raum_installation' raum.pk %}" class="btn btn-outline-primary btn-sm">
+                        Installations-Daten bearbeiten
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Arbeitsschutz -->
+        <div class="tab-pane fade" id="pane-arbeitsschutz" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    {% if arbeitsschutz_daten %}
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Rauchmelder</dt>
+                        <dd class="col-sm-9">{% if arbeitsschutz_daten.rauchmelder %}Ja{% else %}Nein{% endif %}</dd>
+
+                        <dt class="col-sm-3">Brandabschnitt</dt>
+                        <dd class="col-sm-9">{{ arbeitsschutz_daten.brandabschnitt|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Feuerloesch-Typ</dt>
+                        <dd class="col-sm-9">{{ arbeitsschutz_daten.feuerloesch_typ|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Feuerloesch-Nr.</dt>
+                        <dd class="col-sm-9">{{ arbeitsschutz_daten.feuerloesch_nummer|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Naechste Pruefung</dt>
+                        <dd class="col-sm-9">{{ arbeitsschutz_daten.feuerloesch_naechste_pruefung|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Erste-Hilfe-Kasten</dt>
+                        <dd class="col-sm-9">{% if arbeitsschutz_daten.erste_hilfe_kasten %}Ja – {{ arbeitsschutz_daten.erste_hilfe_standort }}{% else %}Nein{% endif %}</dd>
+
+                        <dt class="col-sm-3">AED-Standort</dt>
+                        <dd class="col-sm-9">{{ arbeitsschutz_daten.aed_standort|default:"–" }}</dd>
+
+                        <dt class="col-sm-3">Fluchtweg</dt>
+                        <dd class="col-sm-9">{{ arbeitsschutz_daten.fluchtweg_beschreibung|default:"–"|linebreaksbr }}</dd>
+
+                        <dt class="col-sm-3">Barrierefrei</dt>
+                        <dd class="col-sm-9">{% if arbeitsschutz_daten.barrierefrei %}Ja – {{ arbeitsschutz_daten.barrierefreiheit_details }}{% else %}Nein{% endif %}</dd>
+
+                        <dt class="col-sm-3">Gefahrstoffe</dt>
+                        <dd class="col-sm-9">{% if arbeitsschutz_daten.gefahrstoffe_vorhanden %}Ja – {{ arbeitsschutz_daten.gefahrstoffe_beschreibung }}{% else %}Nein{% endif %}</dd>
+                    </dl>
+                    {% else %}
+                    <p class="text-muted">Noch keine Arbeitsschutz-Daten erfasst.</p>
+                    {% endif %}
+                    {% if user.is_staff or ist_facility_mitglied %}
+                    <hr>
+                    <a href="{% url 'raumbuch:raum_arbeitsschutz' raum.pk %}" class="btn btn-outline-primary btn-sm">
+                        Arbeitsschutz-Daten bearbeiten
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Schluessel -->
+        <div class="tab-pane fade" id="pane-schluessel" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    {% if schluessel %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Schluesselnummer</th>
+                                    <th>Bezeichnung</th>
+                                    <th>Typ</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in schluessel %}
+                                <tr>
+                                    <td>{{ s.schluesselnummer }}</td>
+                                    <td>{{ s.bezeichnung }}</td>
+                                    <td>{{ s.get_schliessanlage_typ_display }}</td>
+                                    <td>
+                                        {% if s.ist_verfuegbar %}
+                                        <span class="badge bg-success">Verfuegbar</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Vergeben</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'raumbuch:schluessel_detail' s.pk %}"
+                                           class="btn btn-sm btn-outline-primary">Detail</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Keine Schluessel fuer diesen Raum hinterlegt.</p>
+                    {% endif %}
+                    {% if user.is_staff or ist_facility_mitglied %}
+                    <a href="{% url 'raumbuch:schluessel_erstellen' %}" class="btn btn-outline-secondary btn-sm mt-2">
+                        Neuen Schluessel anlegen
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Tokens -->
+        <div class="tab-pane fade" id="pane-tokens" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    {% if tokens %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Badge-ID</th>
+                                    <th>Mitarbeiter</th>
+                                    <th>Status</th>
+                                    <th>Gueltig bis</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for token in tokens %}
+                                <tr>
+                                    <td>{{ token.badge_id }}</td>
+                                    <td>{{ token.mitarbeiter }}</td>
+                                    <td>
+                                        {% if token.status == "aktiv" %}
+                                        <span class="badge bg-success">Aktiv</span>
+                                        {% elif token.status == "gesperrt" %}
+                                        <span class="badge bg-danger">Gesperrt</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ token.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ token.gueltig_bis|default:"Unbegrenzt" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Keine Tokens mit Zugang zu diesem Raum.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Belegung -->
+        <div class="tab-pane fade" id="pane-belegung" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    {% if belegungen %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mitarbeiter</th>
+                                    <th>Von</th>
+                                    <th>Bis</th>
+                                    <th>Notiz</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for b in belegungen %}
+                                <tr>
+                                    <td>{{ b.mitarbeiter }}</td>
+                                    <td>{{ b.von }}</td>
+                                    <td>{{ b.bis|default:"unbefristet" }}</td>
+                                    <td>{{ b.notiz|default:"–" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Keine Belegungen fuer diesen Raum.</p>
+                    {% endif %}
+                    {% if user.is_staff or ist_facility_mitglied %}
+                    <a href="{% url 'raumbuch:belegung_erstellen' %}" class="btn btn-outline-secondary btn-sm mt-2">
+                        Belegung anlegen
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Reinigung -->
+        <div class="tab-pane fade" id="pane-reinigung" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    {% if reinigungen %}
+                    <h6 class="mb-2">Letzte Reinigungen</h6>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Datum</th>
+                                    <th>Durch</th>
+                                    <th>Bemerkung</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for q in reinigungen %}
+                                <tr>
+                                    <td>{{ q.zeitstempel|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ q.quittiert_durch_name }}</td>
+                                    <td>{{ q.bemerkung|default:"–" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Noch keine Reinigungen quittiert.</p>
+                    {% endif %}
+                    {% if user.is_staff or ist_facility_mitglied %}
+                    <a href="{% url 'raumbuch:reinigungsplan' raum.pk %}" class="btn btn-outline-primary btn-sm">
+                        Reinigungsplan bearbeiten
+                    </a>
+                    <a href="{% url 'raumbuch:reinigung_quittieren' raum.pk %}" class="btn btn-outline-success btn-sm">
+                        Reinigung quittieren
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Buchungen -->
+        <div class="tab-pane fade" id="pane-buchungen" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    {% if buchungen %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Buchungs-Nr.</th>
+                                    <th>Datum</th>
+                                    <th>Von</th>
+                                    <th>Bis</th>
+                                    <th>Betreff</th>
+                                    <th>Buchender</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for b in buchungen %}
+                                <tr>
+                                    <td><a href="{% url 'raumbuch:buchung_detail' b.pk %}">{{ b.buchungs_nr }}</a></td>
+                                    <td>{{ b.datum }}</td>
+                                    <td>{{ b.von }}</td>
+                                    <td>{{ b.bis }}</td>
+                                    <td>{{ b.betreff }}</td>
+                                    <td>{{ b.buchender }}</td>
+                                    <td>
+                                        {% if b.status == "storniert" %}
+                                        <span class="badge bg-secondary">Storniert</span>
+                                        {% elif b.status == "bestaetigt" %}
+                                        <span class="badge bg-success">Bestaetigt</span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">Ausstehend</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Keine kommenden Buchungen fuer diesen Raum.</p>
+                    {% endif %}
+                    {% if raum.nutzungsmodell == "dynamisch" %}
+                    <a href="{% url 'raumbuch:buchung_fuer_raum' raum.pk %}" class="btn btn-outline-secondary btn-sm mt-2">
+                        Buchung anlegen
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Log -->
+        <div class="tab-pane fade" id="pane-log" role="tabpanel">
+            <div class="card">
+                <div class="card-body">
+                    {% if log_eintraege %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Zeitpunkt</th>
+                                    <th>Aktion</th>
+                                    <th>Beschreibung</th>
+                                    <th>Geaendert von</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for eintrag in log_eintraege %}
+                                <tr>
+                                    <td>{{ eintrag.geaendert_am|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ eintrag.aktion }}</td>
+                                    <td>{{ eintrag.beschreibung|default:"–" }}</td>
+                                    <td>{{ eintrag.geaendert_von|default:"–" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Noch keine Log-Eintraege vorhanden.</p>
+                    {% endif %}
+                    <a href="{% url 'raumbuch:raum_log' raum.pk %}" class="btn btn-outline-secondary btn-sm mt-2">
+                        Vollstaendiges Log oeffnen
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- tab-content -->
+</div>
+{% endblock %}

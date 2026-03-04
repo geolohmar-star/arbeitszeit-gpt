@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – {% if besuch %}Besuch bearbeiten{% else %}Besuch anmelden{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        {% if besuch %}Besuch bearbeiten{% else %}Besuch anmelden{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_vorname" class="form-label">Vorname <span class="text-danger">*</span></label>
+                                <input type="text" name="vorname" id="id_vorname"
+                                       class="form-control" required
+                                       value="{% if besuch %}{{ besuch.vorname }}{% endif %}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_nachname" class="form-label">Nachname <span class="text-danger">*</span></label>
+                                <input type="text" name="nachname" id="id_nachname"
+                                       class="form-control" required
+                                       value="{% if besuch %}{{ besuch.nachname }}{% endif %}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_firma" class="form-label">Firma / Organisation</label>
+                            <input type="text" name="firma" id="id_firma"
+                                   class="form-control"
+                                   value="{% if besuch %}{{ besuch.firma }}{% endif %}"
+                                   placeholder="Optional">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_gastgeber" class="form-label">Gastgeber (Mitarbeiter) <span class="text-danger">*</span></label>
+                            <select name="gastgeber" id="id_gastgeber" class="form-select" required>
+                                <option value="">-- Mitarbeiter wählen --</option>
+                                {% for ma in gastgeber_qs %}
+                                <option value="{{ ma.pk }}"
+                                    {% if besuch and besuch.gastgeber_id == ma.pk %}selected{% endif %}>
+                                    {{ ma }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="id_datum" class="form-label">Datum <span class="text-danger">*</span></label>
+                                <input type="date" name="datum" id="id_datum"
+                                       class="form-control" required
+                                       value="{% if besuch %}{{ besuch.datum|date:'Y-m-d' }}{% endif %}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="id_von" class="form-label">Von (Uhrzeit)</label>
+                                <input type="time" name="von" id="id_von"
+                                       class="form-control"
+                                       value="{% if besuch %}{{ besuch.von|time:'H:i' }}{% endif %}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="id_bis" class="form-label">Bis (Uhrzeit)</label>
+                                <input type="time" name="bis" id="id_bis"
+                                       class="form-control"
+                                       value="{% if besuch %}{{ besuch.bis|time:'H:i' }}{% endif %}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_zielraum" class="form-label">Zielraum</label>
+                            <select name="zielraum" id="id_zielraum" class="form-select">
+                                <option value="">-- Kein bestimmter Raum --</option>
+                                {% for raum in raeume_qs %}
+                                <option value="{{ raum.pk }}"
+                                    {% if besuch and besuch.zielraum_id == raum.pk %}selected{% endif %}>
+                                    {{ raum.raumnummer }}
+                                    {% if raum.raumname %} – {{ raum.raumname }}{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_zweck" class="form-label">Zweck des Besuchs</label>
+                            <textarea name="zweck" id="id_zweck"
+                                      class="form-control" rows="2"
+                                      placeholder="z.B. Besprechung, Wartung, Schulung...">{% if besuch %}{{ besuch.zweck }}{% endif %}</textarea>
+                        </div>
+
+                        {% if besuch and status_choices %}
+                        <div class="mb-3">
+                            <label for="id_status" class="form-label">Status</label>
+                            <select name="status" id="id_status" class="form-select">
+                                {% for key, label in status_choices %}
+                                <option value="{{ key }}"
+                                    {% if besuch.status == key %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                {% if besuch %}Änderungen speichern{% else %}Besuch anmelden{% endif %}
+                            </button>
+                            <a href="{% url 'raumbuch:besuch_liste' %}" class="btn btn-outline-secondary">
+                                Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

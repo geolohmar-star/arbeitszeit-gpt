@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Raum buchen{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+
+            {% if konflikt %}
+            <div class="alert alert-danger mb-3">
+                <strong>Buchungskonflikt!</strong>
+                Der gewählte Raum ist im angegebenen Zeitraum bereits gebucht.
+                Bitte wählen Sie einen anderen Zeitraum oder einen anderen Raum.
+            </div>
+            {% endif %}
+
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Raum buchen</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'raumbuch:buchung_erstellen' %}">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="id_raum" class="form-label">Raum <span class="text-danger">*</span></label>
+                            <select name="raum" id="id_raum" class="form-select" required>
+                                <option value="">-- Raum wählen --</option>
+                                {% for raum in buchbare_raeume %}
+                                <option value="{{ raum.pk }}"
+                                    {% if vorausgewaehlter_raum and vorausgewaehlter_raum == raum.pk|stringformat:"s" %}selected{% endif %}>
+                                    {{ raum.raumnummer }}
+                                    {% if raum.raumname %} – {{ raum.raumname }}{% endif %}
+                                    {% if raum.kapazitaet %}(max. {{ raum.kapazitaet }} Pers.){% endif %}
+                                    ({{ raum.geschoss }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_datum" class="form-label">Datum <span class="text-danger">*</span></label>
+                            <input type="date" name="datum" id="id_datum"
+                                   class="form-control" required
+                                   value="{{ heute|date:'Y-m-d' }}">
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_von" class="form-label">Von <span class="text-danger">*</span></label>
+                                <input type="time" name="von" id="id_von"
+                                       class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_bis" class="form-label">Bis <span class="text-danger">*</span></label>
+                                <input type="time" name="bis" id="id_bis"
+                                       class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_betreff" class="form-label">Betreff / Anlass <span class="text-danger">*</span></label>
+                            <input type="text" name="betreff" id="id_betreff"
+                                   class="form-control" required
+                                   placeholder="z.B. Teambesprechung">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_teilnehmerzahl" class="form-label">Erwartete Teilnehmerzahl</label>
+                            <input type="number" name="teilnehmerzahl" id="id_teilnehmerzahl"
+                                   class="form-control" min="1">
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">Buchung anlegen</button>
+                            <a href="{% url 'raumbuch:buchung_kalender' %}" class="btn btn-outline-secondary">
+                                Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

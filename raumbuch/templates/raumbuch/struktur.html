@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Gebäudestruktur{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Gebäudestruktur</h1>
+        <a href="{% url 'raumbuch:uebersicht' %}" class="btn btn-outline-secondary">
+            Zur Raumübersicht
+        </a>
+    </div>
+
+    {% if standorte %}
+    <div class="accordion" id="standorteAccordion">
+        {% for standort in standorte %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading-standort-{{ standort.pk }}">
+                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapse-standort-{{ standort.pk }}"
+                        aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
+                        aria-controls="collapse-standort-{{ standort.pk }}">
+                    <strong>Standort: {{ standort.bezeichnung }}</strong>
+                    {% if standort.adresse %}
+                    &nbsp;– {{ standort.adresse }}
+                    {% endif %}
+                </button>
+            </h2>
+            <div id="collapse-standort-{{ standort.pk }}"
+                 class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+                 aria-labelledby="heading-standort-{{ standort.pk }}"
+                 data-bs-parent="#standorteAccordion">
+                <div class="accordion-body">
+                    {% for gebaeude in standort.gebaeude_set.all %}
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <strong>Gebäude: {{ gebaeude.bezeichnung }}</strong>
+                            {% if gebaeude.kuerzel %}
+                            <span class="badge bg-secondary ms-2">{{ gebaeude.kuerzel }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body p-0">
+                            {% for geschoss in gebaeude.geschoss_set.all %}
+                            <div class="px-3 pt-2 pb-1">
+                                <h6 class="text-muted mb-1">{{ geschoss.bezeichnung }}</h6>
+                                {% if geschoss.raum_set.all %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered mb-2">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Raumnummer</th>
+                                                <th>Raumname</th>
+                                                <th>Typ</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for raum in geschoss.raum_set.all %}
+                                            <tr>
+                                                <td>{{ raum.raumnummer }}</td>
+                                                <td>{{ raum.raumname }}</td>
+                                                <td>{{ raum.get_raumtyp_display }}</td>
+                                                <td>
+                                                    <a href="{% url 'raumbuch:raum_detail' raum.pk %}"
+                                                       class="btn btn-sm btn-outline-primary">Detail</a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <p class="text-muted small">Keine Räume in diesem Geschoss.</p>
+                                {% endif %}
+                            </div>
+                            {% empty %}
+                            <p class="px-3 py-2 text-muted">Keine Geschosse für dieses Gebäude angelegt.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">Keine Gebäude für diesen Standort angelegt.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        Noch keine Standorte angelegt.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

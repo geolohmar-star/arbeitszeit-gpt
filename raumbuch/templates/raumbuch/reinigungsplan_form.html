@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Reinigungsplan bearbeiten{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        Reinigungsplan – Raum {{ raum.raumnummer }}
+                        {% if raum.raumname %} ({{ raum.raumname }}){% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="id_intervall" class="form-label">Intervall <span class="text-danger">*</span></label>
+                            <select name="intervall" id="id_intervall" class="form-select" required>
+                                <option value="">-- Bitte wählen --</option>
+                                {% for key, label in intervall_choices %}
+                                <option value="{{ key }}"
+                                    {% if plan and plan.intervall == key %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_zustaendig" class="form-label">Zuständig</label>
+                            <input type="text" name="zustaendig" id="id_zustaendig"
+                                   class="form-control"
+                                   value="{% if plan %}{{ plan.zustaendig }}{% endif %}"
+                                   placeholder="z.B. Reinigungsdienst Nord">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_methode" class="form-label">Methode / Mittel</label>
+                            <input type="text" name="methode" id="id_methode"
+                                   class="form-control"
+                                   value="{% if plan %}{{ plan.methode }}{% endif %}"
+                                   placeholder="z.B. Nasswischung + Desinfektion">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_letzte_reinigung" class="form-label">Letzte Reinigung</label>
+                            <input type="date" name="letzte_reinigung" id="id_letzte_reinigung"
+                                   class="form-control"
+                                   value="{% if plan %}{{ plan.letzte_reinigung|date:'Y-m-d' }}{% endif %}">
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                {% if plan %}Änderungen speichern{% else %}Plan anlegen{% endif %}
+                            </button>
+                            <a href="{% url 'raumbuch:raum_detail' raum.pk %}" class="btn btn-outline-secondary">
+                                Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

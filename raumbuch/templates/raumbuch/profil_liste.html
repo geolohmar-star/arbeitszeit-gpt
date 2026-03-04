@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Zugangsprofile{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Zugangsprofile</h1>
+        {% if user.is_staff or ist_facility_mitglied %}
+        <a href="{% url 'raumbuch:profil_erstellen' %}" class="btn btn-success">
+            Neues Profil anlegen
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if profile %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Bezeichnung</th>
+                            <th>Anzahl Räume</th>
+                            <th>Beschreibung</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for profil in profile %}
+                        <tr>
+                            <td><strong>{{ profil.bezeichnung }}</strong></td>
+                            <td>
+                                <span class="badge bg-secondary">{{ profil.raeume.count }}</span>
+                            </td>
+                            <td>{{ profil.beschreibung|default:"–"|truncatechars:80 }}</td>
+                            <td>
+                                {% if user.is_staff or ist_facility_mitglied %}
+                                <a href="{% url 'raumbuch:profil_bearbeiten' profil.pk %}"
+                                   class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted">
+                Noch keine Zugangsprofile angelegt.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

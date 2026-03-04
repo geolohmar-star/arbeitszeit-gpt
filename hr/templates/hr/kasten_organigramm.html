@@ -57,6 +57,8 @@
                         <span class="stelle-name">{{ stelle.kuerzel }} - {{ stelle.bezeichnung }}</span>
                         {% if stelle.ist_besetzt %}
                         <span class="stelle-inhaber">({{ stelle.aktueller_inhaber.vollname }})</span>
+                        {% else %}
+                        <span class="stelle-inhaber text-warning-emphasis">unbesetzt</span>
                         {% endif %}
                     </div>
                     {% empty %}
@@ -116,6 +118,11 @@
                             {% else %}👤{% endif %}
                         </span>
                         <span class="stelle-name">{{ stelle.kuerzel }} - {{ stelle.bezeichnung }}</span>
+                        {% if stelle.ist_besetzt %}
+                        <span class="stelle-inhaber">({{ stelle.aktueller_inhaber.vollname }})</span>
+                        {% else %}
+                        <span class="stelle-inhaber text-warning-emphasis">unbesetzt</span>
+                        {% endif %}
                     </div>
                     {% empty %}
                     <div class="text-muted small">Keine Stellen vorhanden</div>
@@ -157,12 +164,16 @@
                             <div class="kasten-inhalt-klein">
                                 {% for stelle in abteilung.stellen %}
                                 <div class="stelle-zeile-klein stelle-{{ stelle.kategorie }}">
-                                    {% if stelle.kategorie == 'leitung' %}👔
-                                    {% elif stelle.kategorie == 'stab' %}📎
-                                    {% else %}👤{% endif %}
-                                    {{ stelle.kuerzel }}
+                                    <span>
+                                        {% if stelle.kategorie == 'leitung' %}👔
+                                        {% elif stelle.kategorie == 'stab' %}📎
+                                        {% else %}👤{% endif %}
+                                        <strong>{{ stelle.kuerzel }}</strong> – {{ stelle.bezeichnung }}
+                                    </span>
                                     {% if stelle.ist_besetzt %}
-                                    <br><small>({{ stelle.aktueller_inhaber.vollname }})</small>
+                                    <br><small class="stelle-inhaber-klein">{{ stelle.aktueller_inhaber.vollname }}</small>
+                                    {% else %}
+                                    <br><small class="text-warning-emphasis" style="font-size:10px;">unbesetzt</small>
                                     {% endif %}
                                 </div>
                                 {% empty %}
@@ -195,7 +206,12 @@
                                                 {% if stelle.kategorie == 'leitung' %}👔
                                                 {% elif stelle.kategorie == 'stab' %}📎
                                                 {% else %}👤{% endif %}
-                                                {{ stelle.kuerzel }}
+                                                <strong>{{ stelle.kuerzel }}</strong> – {{ stelle.bezeichnung }}
+                                                {% if stelle.ist_besetzt %}
+                                                <br><span style="font-size:8px;opacity:0.9;">{{ stelle.aktueller_inhaber.vollname }}</span>
+                                                {% else %}
+                                                <br><span style="font-size:8px;opacity:0.7;">unbesetzt</span>
+                                                {% endif %}
                                             </div>
                                             {% empty %}
                                             <div class="text-muted" style="font-size: 8px;">Leer</div>
@@ -453,6 +469,12 @@
     border-radius: 2px;
     background: rgba(255,255,255,0.2);
     font-size: 9px;
+}
+
+.stelle-inhaber-klein {
+    font-size: 10px;
+    opacity: 0.85;
+    font-style: italic;
 }
 </style>
 

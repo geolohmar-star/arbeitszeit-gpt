@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Wartungsplan loeschen{% endblock %}
+{% block content %}
+<div class="container mt-4" style="max-width: 500px;">
+    <h2>Wartungsplan loeschen</h2>
+    <div class="alert alert-danger mt-3">
+        Soll der Wartungsplan <strong>{{ plan.name }}</strong> ({{ plan.raumnummer }}) wirklich geloescht werden?
+        <br><small class="text-muted">Bereits erzeugte Stoermeldungen bleiben erhalten.</small>
+    </div>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Ja, loeschen</button>
+        <a href="{% url 'facility:wartungsplan_liste' %}" class="btn btn-outline-secondary ms-2">Abbrechen</a>
+    </form>
+</div>
+{% endblock %}

@@ -2332,8 +2332,21 @@ def zeitgutschrift_antrag(request):
             # Antrag speichern
             antrag.save()
 
-            # Belege hochladen
+            # Belege hochladen (mit optionalem Virenscan)
+            from utils.virusscanner import scan_mehrere_dateien
             belege = request.FILES.getlist("belege")
+            if belege:
+                alle_sauber, ergebnisse = scan_mehrere_dateien(belege)
+                if not alle_sauber:
+                    infizierte = [
+                        e.bedrohung for e in ergebnisse if not e.sauber
+                    ]
+                    messages.error(
+                        request,
+                        f"Upload abgelehnt: Bedrohung gefunden – {', '.join(infizierte)}",
+                    )
+                    antrag.delete()
+                    return redirect("formulare:zeitgutschrift_antrag")
             for beleg in belege:
                 ZeitgutschriftBeleg.objects.create(
                     zeitgutschrift=antrag,

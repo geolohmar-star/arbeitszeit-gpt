@@ -190,6 +190,9 @@
                             {% if facility_queue_anzahl %}
                             <span class="badge bg-danger rounded-pill ms-1">{{ facility_queue_anzahl }}</span>
                             {% endif %}
+                            {% if al_queue_anzahl %}
+                            <span class="badge bg-warning text-dark rounded-pill ms-1">{{ al_queue_anzahl }}</span>
+                            {% endif %}
                         </a>
                         <ul class="dropdown-menu" aria-labelledby="facilityDropdown">
                             <li>
@@ -202,6 +205,23 @@
                                     Meine Stoermeldungen
                                 </a>
                             </li>
+                            {% if ist_vorgesetzter %}
+                            <li>
+                                <a class="dropdown-item" href="{% url 'facility:vorgesetzter' %}">
+                                    Team-Meldungen
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'facility:monatsreport' %}">
+                                    Monatsbericht
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'facility:einstellungen' %}">
+                                    Trend-Einstellungen
+                                </a>
+                            </li>
+                            {% endif %}
                             {% if ist_facility_mitglied %}
                             <li><hr class="dropdown-divider"></li>
                             <li>
@@ -213,13 +233,58 @@
                                 </a>
                             </li>
                             {% endif %}
-                            {% if user.is_staff %}
+                            {% if al_queue_anzahl %}
+                            <li>
+                                <a class="dropdown-item d-flex justify-content-between align-items-center"
+                                   href="{% url 'facility:al_queue' %}">
+                                    Eskalationen
+                                    <span class="badge bg-warning text-dark rounded-pill">{{ al_queue_anzahl }}</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if ist_facility_mitglied or user.is_staff %}
                             <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'facility:wartungsplan_liste' %}">
+                                    Wartungsplaene
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% if user.is_staff %}
                             <li>
                                 <a class="dropdown-item" href="{% url 'facility:textbaustein_liste' %}">
                                     Textbausteine
                                 </a>
                             </li>
+                            {% endif %}
+                        </ul>
+                    </li>
+                    {% endif %}
+
+                    <!-- Raumbuch -->
+                    {% if user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="raumbuchDropdown"
+                           role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Raumbuch
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="raumbuchDropdown">
+                            <li><a class="dropdown-item" href="{% url 'raumbuch:uebersicht' %}">Raumuebersicht</a></li>
+                            <li><a class="dropdown-item" href="{% url 'raumbuch:buchung_kalender' %}">Buchungen</a></li>
+                            <li><a class="dropdown-item" href="{% url 'raumbuch:belegungsplan' %}">Belegungsplan</a></li>
+                            <li><a class="dropdown-item" href="{% url 'raumbuch:besuch_liste' %}">Besuchsanmeldungen</a></li>
+                            {% if user.is_staff or ist_facility_mitglied %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'raumbuch:struktur' %}">Gebaeudestruktur</a></li>
+                            <li><a class="dropdown-item" href="{% url 'raumbuch:schluessel_liste' %}">Schluesselverwaltung</a></li>
+                            <li><a class="dropdown-item" href="{% url 'raumbuch:token_liste' %}">Zutrittsgutschriften</a></li>
+                            <li><a class="dropdown-item" href="{% url 'raumbuch:treppenhaus_liste' %}">Treppenhaeuser</a></li>
+                            <li><a class="dropdown-item" href="{% url 'raumbuch:reinigung' %}">Reinigung</a></li>
+                            <li><a class="dropdown-item" href="{% url 'raumbuch:umzug_liste' %}">Umzugsauftraege</a></li>
+                            {% endif %}
+                            {% if user.is_staff %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'raumbuch:gesamtlog' %}">Audit-Trail</a></li>
                             {% endif %}
                         </ul>
                     </li>

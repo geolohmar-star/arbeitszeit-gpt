@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Besucherverwaltung{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Besucherverwaltung</h1>
+        <a href="{% url 'raumbuch:besuch_erstellen' %}" class="btn btn-success">
+            Besuch anmelden
+        </a>
+    </div>
+
+    <!-- Heute -->
+    <h5 class="mb-2">Heute ({{ heute }})</h5>
+    <div class="card mb-4">
+        <div class="card-body p-0">
+            {% if besuche_heute %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Firma</th>
+                            <th>Gastgeber</th>
+                            <th>Von – Bis</th>
+                            <th>Zielraum</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for besuch in besuche_heute %}
+                        <tr>
+                            <td>{{ besuch.vorname }} {{ besuch.nachname }}</td>
+                            <td>{{ besuch.firma|default:"–" }}</td>
+                            <td>{{ besuch.gastgeber }}</td>
+                            <td>{{ besuch.von|time:"H:i" }} – {{ besuch.bis|time:"H:i" }}</td>
+                            <td>{{ besuch.zielraum|default:"–" }}</td>
+                            <td>
+                                {% if besuch.status == "erwartet" %}
+                                <span class="badge bg-info text-dark">Erwartet</span>
+                                {% elif besuch.status == "eingetroffen" %}
+                                <span class="badge bg-success">Eingetroffen</span>
+                                {% elif besuch.status == "abgereist" %}
+                                <span class="badge bg-secondary">Abgereist</span>
+                                {% elif besuch.status == "abgesagt" %}
+                                <span class="badge bg-danger">Abgesagt</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ besuch.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'raumbuch:besuch_bearbeiten' besuch.pk %}"
+                                   class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-3 text-center text-muted">Heute keine Besuche angemeldet.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Kommende Besuche -->
+    <h5 class="mb-2">Kommende Besuche</h5>
+    <div class="card mb-4">
+        <div class="card-body p-0">
+            {% if besuche_kommend %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Datum</th>
+                            <th>Name</th>
+                            <th>Firma</th>
+                            <th>Gastgeber</th>
+                            <th>Von – Bis</th>
+                            <th>Zielraum</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for besuch in besuche_kommend %}
+                        <tr>
+                            <td>{{ besuch.datum }}</td>
+                            <td>{{ besuch.vorname }} {{ besuch.nachname }}</td>
+                            <td>{{ besuch.firma|default:"–" }}</td>
+                            <td>{{ besuch.gastgeber }}</td>
+                            <td>{{ besuch.von|time:"H:i" }} – {{ besuch.bis|time:"H:i" }}</td>
+                            <td>{{ besuch.zielraum|default:"–" }}</td>
+                            <td>
+                                {% if besuch.status == "erwartet" %}
+                                <span class="badge bg-info text-dark">Erwartet</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ besuch.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'raumbuch:besuch_bearbeiten' besuch.pk %}"
+                                   class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-3 text-center text-muted">Keine kommenden Besuche.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Vergangene Besuche -->
+    <h5 class="mb-2">Vergangene Besuche</h5>
+    <div class="card">
+        <div class="card-body p-0">
+            {% if besuche_vergangen %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Datum</th>
+                            <th>Name</th>
+                            <th>Firma</th>
+                            <th>Gastgeber</th>
+                            <th>Zielraum</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for besuch in besuche_vergangen %}
+                        <tr>
+                            <td>{{ besuch.datum }}</td>
+                            <td>{{ besuch.vorname }} {{ besuch.nachname }}</td>
+                            <td>{{ besuch.firma|default:"–" }}</td>
+                            <td>{{ besuch.gastgeber }}</td>
+                            <td>{{ besuch.zielraum|default:"–" }}</td>
+                            <td>
+                                {% if besuch.status == "eingetroffen" %}
+                                <span class="badge bg-success">Eingetroffen</span>
+                                {% elif besuch.status == "abgereist" %}
+                                <span class="badge bg-secondary">Abgereist</span>
+                                {% elif besuch.status == "abgesagt" %}
+                                <span class="badge bg-danger">Abgesagt</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ besuch.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'raumbuch:besuch_bearbeiten' besuch.pk %}"
+                                   class="btn btn-sm btn-outline-secondary btn-sm">Bearbeiten</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-3 text-center text-muted">Keine vergangenen Besuche.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

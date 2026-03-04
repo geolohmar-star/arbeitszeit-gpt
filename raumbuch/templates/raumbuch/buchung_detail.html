@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Buchung #{{ buchung.pk }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3">Buchung #{{ buchung.pk }}</h1>
+                <a href="{% url 'raumbuch:buchung_kalender' %}" class="btn btn-outline-secondary">
+                    Zum Kalender
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Buchungsdetails</strong>
+                    {% if buchung.storniert %}
+                    <span class="badge bg-secondary">Storniert</span>
+                    {% else %}
+                    <span class="badge bg-success">Aktiv</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Raum</dt>
+                        <dd class="col-sm-8">
+                            <a href="{% url 'raumbuch:raum_detail' buchung.raum.pk %}">
+                                {{ buchung.raum.raumnummer }}
+                                {% if buchung.raum.raumname %} – {{ buchung.raum.raumname }}{% endif %}
+                            </a>
+                        </dd>
+
+                        <dt class="col-sm-4">Datum</dt>
+                        <dd class="col-sm-8">{{ buchung.datum }}</dd>
+
+                        <dt class="col-sm-4">Uhrzeit</dt>
+                        <dd class="col-sm-8">{{ buchung.von|time:"H:i" }} – {{ buchung.bis|time:"H:i" }} Uhr</dd>
+
+                        <dt class="col-sm-4">Betreff</dt>
+                        <dd class="col-sm-8">{{ buchung.betreff }}</dd>
+
+                        <dt class="col-sm-4">Teilnehmerzahl</dt>
+                        <dd class="col-sm-8">{{ buchung.teilnehmerzahl|default:"–" }}</dd>
+
+                        <dt class="col-sm-4">Gebucht von</dt>
+                        <dd class="col-sm-8">{{ buchung.gebucht_von }}</dd>
+
+                        <dt class="col-sm-4">Gebucht am</dt>
+                        <dd class="col-sm-8">{{ buchung.erstellt_am|default:"–" }}</dd>
+
+                        {% if buchung.storniert %}
+                        <dt class="col-sm-4">Storniert am</dt>
+                        <dd class="col-sm-8">{{ buchung.storniert_am|default:"–" }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+                {% if not buchung.storniert %}
+                <div class="card-footer">
+                    <a href="{% url 'raumbuch:buchung_stornieren' buchung.pk %}"
+                       class="btn btn-outline-danger">
+                        Buchung stornieren
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

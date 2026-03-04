@@ -71,6 +71,9 @@
                                 <a href="{% url 'facility:detail' m.pk %}">
                                     <strong>{{ m.get_betreff }}</strong>
                                 </a>
+                                {% if m.ist_wartung %}
+                                <span class="badge bg-info text-dark ms-1">Wartung</span>
+                                {% endif %}
                                 {% if m.textbaustein %}
                                 <br><small class="text-muted">{{ m.textbaustein.text|truncatechars:60 }}</small>
                                 {% elif m.beschreibung %}
@@ -162,7 +165,7 @@
                                 </button>
                             </form>
                             <!-- Aktionsreihe -->
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 flex-wrap">
                                 <form method="post" action="{% url 'facility:unloesbar' m.pk %}">
                                     {% csrf_token %}
                                     <input type="hidden" name="kommentar" value="">
@@ -176,6 +179,33 @@
                                     <button type="submit" class="btn btn-sm btn-outline-secondary"
                                             onclick="return confirm('Stoermeldung freigeben?')">
                                         Freigeben
+                                    </button>
+                                </form>
+                                <button class="btn btn-sm btn-warning" type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#weiterleiten-{{ m.pk }}">
+                                    Weiterleiten an AL
+                                </button>
+                            </div>
+                            <!-- Weiterleiten-Formular (ausgeklappt) -->
+                            <div class="collapse mt-2" id="weiterleiten-{{ m.pk }}">
+                                <form method="post" action="{% url 'facility:weiterleiten' m.pk %}">
+                                    {% csrf_token %}
+                                    <div class="mb-2">
+                                        <label class="form-label form-label-sm fw-bold">Grund</label>
+                                        <select name="eskalation_typ" class="form-select form-select-sm" required>
+                                            <option value="">-- bitte waehlen --</option>
+                                            <option value="bestellware">Bestellware benoetigt</option>
+                                            <option value="eskalation">Eskalation (uebersteigt Kompetenz)</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label form-label-sm fw-bold">Kommentar</label>
+                                        <textarea name="eskalation_kommentar" class="form-control form-control-sm"
+                                                  rows="2" placeholder="Kurze Begruendung..." required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-warning">
+                                        Absenden
                                     </button>
                                 </form>
                             </div>

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Treppenhäuser{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Treppenhäuser</h1>
+        {% if user.is_staff or ist_facility_mitglied %}
+        <a href="{% url 'raumbuch:treppenhaus_erstellen' %}" class="btn btn-success">
+            Neues Treppenhaus
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if treppenhaeuser %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Gebäude</th>
+                            <th>Bezeichnung</th>
+                            <th>Typ</th>
+                            <th>Zustand</th>
+                            <th>Lichte Breite (cm)</th>
+                            <th>Kapazität (Pers.)</th>
+                            <th>Letzte Begehung</th>
+                            <th>Nächste Prüfung</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for th in treppenhaeuser %}
+                        <tr>
+                            <td>{{ th.gebaeude }}</td>
+                            <td>{{ th.bezeichnung }}</td>
+                            <td>{{ th.get_typ_display }}</td>
+                            <td>
+                                {% if th.zustand == "gut" %}
+                                <span class="badge bg-success">Gut</span>
+                                {% elif th.zustand == "maengel" %}
+                                <span class="badge bg-warning text-dark">Mängel</span>
+                                {% elif th.zustand == "kritisch" %}
+                                <span class="badge bg-danger">Kritisch</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ th.get_zustand_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ th.lichte_breite|default:"–" }}</td>
+                            <td>{{ th.kapazitaet|default:"–" }}</td>
+                            <td>{{ th.letzte_begehung|default:"–" }}</td>
+                            <td>{{ th.naechste_pruefung|default:"–" }}</td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    {% if user.is_staff or ist_facility_mitglied %}
+                                    <a href="{% url 'raumbuch:treppenhaus_bearbeiten' th.pk %}"
+                                       class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                                    {% endif %}
+                                    {% if user.is_staff %}
+                                    <a href="{% url 'raumbuch:treppenhaus_loeschen' th.pk %}"
+                                       class="btn btn-sm btn-outline-danger">Löschen</a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted">
+                Noch keine Treppenhäuser angelegt.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

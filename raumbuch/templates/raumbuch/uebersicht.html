@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Raumübersicht{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Raumübersicht</h1>
+        {% if user.is_staff or ist_facility_mitglied %}
+        <a href="{% url 'raumbuch:raum_erstellen' %}" class="btn btn-success">
+            Neuen Raum anlegen
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Filterformular -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <strong>Filter</strong>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{% url 'raumbuch:uebersicht' %}">
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <label for="filter_geschoss" class="form-label">Geschoss</label>
+                        <select name="geschoss" id="filter_geschoss" class="form-select">
+                            <option value="">Alle Geschosse</option>
+                            {% for g in geschosse %}
+                            <option value="{{ g.pk }}" {% if filter_geschoss == g.pk|stringformat:"s" %}selected{% endif %}>
+                                {{ g }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filter_raumtyp" class="form-label">Raumtyp</label>
+                        <select name="raumtyp" id="filter_raumtyp" class="form-select">
+                            <option value="">Alle Typen</option>
+                            {% for key, label in raumtyp_choices %}
+                            <option value="{{ key }}" {% if filter_raumtyp == key %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filter_nutzung" class="form-label">Nutzung</label>
+                        <select name="nutzung" id="filter_nutzung" class="form-select">
+                            <option value="">Alle Nutzungen</option>
+                            <option value="statisch" {% if filter_nutzung == "statisch" %}selected{% endif %}>Statisch</option>
+                            <option value="dynamisch" {% if filter_nutzung == "dynamisch" %}selected{% endif %}>Dynamisch</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="suche" class="form-label">Suche</label>
+                        <input type="text" name="suche" id="suche" class="form-control"
+                               placeholder="Raumnummer oder Name" value="{{ suche }}">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="leerstand"
+                                   id="filter_leerstand" value="1"
+                                   {% if filter_leerstand %}checked{% endif %}>
+                            <label class="form-check-label" for="filter_leerstand">
+                                Nur Leerstand
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary">Filtern</button>
+                        <a href="{% url 'raumbuch:uebersicht' %}" class="btn btn-outline-secondary">Zurücksetzen</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ergebnistabelle -->
+    <div class="card">
+        <div class="card-header">
+            <strong>Räume ({{ raeume|length }} Treffer)</strong>
+        </div>
+        <div class="card-body p-0">
+            {% if raeume %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Raumnummer</th>
+                            <th>Raumname</th>
+                            <th>Typ</th>
+                            <th>Geschoss</th>
+                            <th>Nutzung</th>
+                            <th>Leer</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for raum in raeume %}
+                        <tr>
+                            <td><strong>{{ raum.raumnummer }}</strong></td>
+                            <td>{{ raum.raumname }}</td>
+                            <td>{{ raum.get_raumtyp_display }}</td>
+                            <td>{{ raum.geschoss }}</td>
+                            <td>{{ raum.get_nutzungsmodell_display }}</td>
+                            <td>
+                                {% if raum.leer %}
+                                <span class="badge bg-warning text-dark">Leer</span>
+                                {% else %}
+                                <span class="badge bg-success">Belegt</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if raum.aktiv %}
+                                <span class="badge bg-success">Aktiv</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inaktiv</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'raumbuch:raum_detail' raum.pk %}"
+                                   class="btn btn-sm btn-outline-primary">Detail</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted">
+                Keine Räume gefunden.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

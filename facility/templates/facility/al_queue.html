@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Eskalationen – Weitergeleitete Stoermeldungen{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Eskalationen – Weitergeleitete Stoermeldungen</h2>
+        <a href="{% url 'facility:queue' %}" class="btn btn-outline-secondary btn-sm">
+            Zurueck zur Facility-Queue
+        </a>
+    </div>
+
+    {% if not meldungen %}
+    <div class="alert alert-success">
+        Keine weitergeleiteten Stoermeldungen vorhanden.
+    </div>
+    {% else %}
+    {% for m in meldungen %}
+    <div class="card mb-3 border-warning">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <strong>
+                    <a href="{% url 'facility:detail' m.pk %}">{{ m.get_betreff }}</a>
+                </strong>
+                – {{ m.get_kategorie_display }}
+                {% if m.eskalation_typ == "bestellware" %}
+                <span class="badge bg-info text-dark ms-1">Bestellware</span>
+                {% elif m.eskalation_typ == "eskalation" %}
+                <span class="badge bg-danger ms-1">Eskalation</span>
+                {% endif %}
+                {% if m.prioritaet == "sofort" %}
+                <span class="badge bg-danger ms-1">{{ m.get_prioritaet_display }}</span>
+                {% elif m.prioritaet == "dringend" %}
+                <span class="badge bg-warning text-dark ms-1">{{ m.get_prioritaet_display }}</span>
+                {% endif %}
+            </div>
+            <small class="text-muted">
+                Weitergeleitet: {{ m.eskaliert_am|date:"d.m.Y H:i" }}
+                von {{ m.claimed_von.get_full_name|default:m.claimed_von }}
+            </small>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Raum:</strong> {{ m.raumnummer }}
+                        {% if m.raum_freitext %} – {{ m.raum_freitext }}{% endif %}
+                    </p>
+                    <p class="mb-1"><strong>Melder:</strong> {{ m.melder }}
+                        | Tel: {{ m.melder_telefon }}
+                    </p>
+                    {% if m.textbaustein %}
+                    <p class="mb-1"><strong>Stoerung:</strong> {{ m.textbaustein.text }}</p>
+                    {% endif %}
+                    {% if m.beschreibung %}
+                    <p class="mb-1"><strong>Beschreibung:</strong> {{ m.beschreibung }}</p>
+                    {% endif %}
+                    <hr>
+                    <p class="mb-1">
+                        <strong>Kommentar des Bearbeiters:</strong><br>
+                        {{ m.eskalation_kommentar }}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <form method="post" action="{% url 'facility:al_antwort' m.pk %}">
+                        {% csrf_token %}
+                        <div class="mb-2">
+                            <label class="form-label fw-bold">Antwort / Massnahme</label>
+                            <textarea name="eskalation_antwort" class="form-control form-control-sm"
+                                      rows="3" placeholder="Ihre Massnahme oder Antwort..."></textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" name="aktion" value="zurueck"
+                                    class="btn btn-sm btn-outline-primary">
+                                Zurueck ans Team
+                            </button>
+                            <button type="submit" name="aktion" value="erledigt"
+                                    class="btn btn-sm btn-success"
+                                    onclick="return confirm('Stoermeldung als erledigt markieren?')">
+                                AL hat erledigt
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}

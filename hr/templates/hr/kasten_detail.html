@@ -98,7 +98,7 @@
                         </tr>
                         <tr>
                             <th>Untereinheiten:</th>
-                            <td><strong>{{ untereinheiten.count }}</strong></td>
+                            <td><strong>{{ untereinheiten|length }}</strong></td>
                         </tr>
                     </table>
                 </div>
@@ -106,26 +106,55 @@
 
             <!-- Untereinheiten -->
             <div class="card mb-3">
-                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Untereinheiten</h5>
-                    <button class="btn btn-light btn-sm"
-                            hx-get="{% url 'hr:kasten_abteilung_form' %}?bereich_kuerzel={{ org.kuerzel }}"
-                            hx-target="#modal-container"
-                            hx-swap="innerHTML">
-                        ➕
-                    </button>
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Untereinheiten</h5>
+                        <button class="btn btn-light btn-sm"
+                                hx-get="{% url 'hr:kasten_abteilung_form' %}?bereich_kuerzel={{ org.kuerzel }}"
+                                hx-target="#modal-container"
+                                hx-swap="innerHTML">
+                            ➕
+                        </button>
+                    </div>
+                    <div class="mt-1" style="font-size: 13px; opacity: 0.9;">
+                        👔 Bereichsleiter:
+                        {% if org_leiter %}
+                            <strong>{{ org_leiter.vollname }}</strong>
+                            {% if org_leitung_stelle %}
+                                <span class="ms-1 opacity-75">({{ org_leitung_stelle.kuerzel }})</span>
+                            {% endif %}
+                        {% elif org_leitung_stelle %}
+                            <em>{{ org_leitung_stelle.kuerzel }} – unbesetzt</em>
+                        {% else %}
+                            <em>keine Leitungsstelle definiert</em>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-body">
                     {% if untereinheiten %}
                     <div class="list-group">
                         {% for unter in untereinheiten %}
                         <a href="{% url 'hr:kasten_detail' unter.kuerzel %}" class="list-group-item list-group-item-action">
-                            <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex justify-content-between align-items-start">
                                 <div>
                                     <strong>{{ unter.kuerzel }}</strong>
-                                    <br><small class="text-muted">{{ unter.bezeichnung }}</small>
+                                    <span class="text-muted ms-1 small">{{ unter.bezeichnung }}</span>
+                                    <br>
+                                    {% if unter.leiter %}
+                                    <small>
+                                        <span class="text-muted">Leitung:</span>
+                                        <strong class="text-dark">{{ unter.leiter.vollname }}</strong>
+                                    </small>
+                                    {% elif unter.leitung_stelle %}
+                                    <small class="text-warning-emphasis">
+                                        <span class="text-muted">Leitung:</span>
+                                        {{ unter.leitung_stelle.kuerzel }} – <em>unbesetzt</em>
+                                    </small>
+                                    {% else %}
+                                    <small class="text-muted fst-italic">keine Leitungsstelle definiert</small>
+                                    {% endif %}
                                 </div>
-                                <span class="badge bg-primary rounded-pill">{{ unter.stellen.count }} Stellen</span>
+                                <span class="badge bg-primary rounded-pill ms-2 flex-shrink-0">{{ unter.stellen_count }} Stellen</span>
                             </div>
                         </a>
                         {% endfor %}

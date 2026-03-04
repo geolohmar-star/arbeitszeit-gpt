@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – {% if schluessel %}Schlüssel bearbeiten{% else %}Neuen Schlüssel anlegen{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        {% if schluessel %}Schlüssel bearbeiten{% else %}Neuen Schlüssel anlegen{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_schluesselNummer" class="form-label">Schlüsselnummer <span class="text-danger">*</span></label>
+                                <input type="text" name="schluesselNummer" id="id_schluesselNummer"
+                                       class="form-control" required
+                                       value="{% if schluessel %}{{ schluessel.schluesselNummer }}{% endif %}"
+                                       placeholder="z.B. S-001">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_bezeichnung" class="form-label">Bezeichnung <span class="text-danger">*</span></label>
+                                <input type="text" name="bezeichnung" id="id_bezeichnung"
+                                       class="form-control" required
+                                       value="{% if schluessel %}{{ schluessel.bezeichnung }}{% endif %}"
+                                       placeholder="z.B. Hauptschlüssel Büro">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_schliessanlage" class="form-label">Schließanlage</label>
+                                <input type="text" name="schliessanlage" id="id_schliessanlage"
+                                       class="form-control"
+                                       value="{% if schluessel %}{{ schluessel.schliessanlage }}{% endif %}"
+                                       placeholder="z.B. Anlage A">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_typ" class="form-label">Typ</label>
+                                <select name="typ" id="id_typ" class="form-select">
+                                    <option value="">-- Kein Typ --</option>
+                                    {% for key, label in anlage_typ_choices %}
+                                    <option value="{{ key }}"
+                                        {% if schluessel and schluessel.typ == key %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_anzahl_kopien" class="form-label">Anzahl Kopien</label>
+                            <input type="number" name="anzahl_kopien" id="id_anzahl_kopien"
+                                   class="form-control" min="1"
+                                   value="{% if schluessel %}{{ schluessel.anzahl_kopien }}{% else %}1{% endif %}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_raeume" class="form-label">Zugehörige Räume</label>
+                            <select name="raeume" id="id_raeume" class="form-select" multiple size="6">
+                                {% for raum in raeume_qs %}
+                                <option value="{{ raum.pk }}"
+                                    {% if schluessel and raum in schluessel.raeume.all %}selected{% endif %}>
+                                    {{ raum.raumnummer }} – {{ raum.raumname|default:raum.get_raumtyp_display }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Strg+Klick für Mehrfachauswahl</div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                {% if schluessel %}Änderungen speichern{% else %}Schlüssel anlegen{% endif %}
+                            </button>
+                            <a href="{% url 'raumbuch:schluessel_liste' %}" class="btn btn-outline-secondary">
+                                Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

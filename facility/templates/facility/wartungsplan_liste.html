@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Wartungsplaene{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Wartungsplaene</h2>
+        <a href="{% url 'facility:wartungsplan_erstellen' %}" class="btn btn-success">
+            + Neuer Wartungsplan
+        </a>
+    </div>
+
+    {% if plaene %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Bezeichnung</th>
+                    <th>Kategorie</th>
+                    <th>Raum</th>
+                    <th>Intervall</th>
+                    <th>Naechste Faelligkeit</th>
+                    <th>Letzte Ausfuehrung</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plan in plaene %}
+                <tr class="{% if plan.ist_faellig and plan.ist_aktiv %}table-warning{% endif %}">
+                    <td>
+                        <strong>{{ plan.name }}</strong>
+                        {% if plan.beschreibung %}
+                        <br><small class="text-muted">{{ plan.beschreibung|truncatechars:60 }}</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ plan.get_kategorie_display }}</td>
+                    <td>{{ plan.raumnummer }}</td>
+                    <td>
+                        <span class="badge bg-secondary">{{ plan.intervall_anzeige }}</span>
+                    </td>
+                    <td>
+                        {{ plan.naechste_faelligkeit|date:"d.m.Y" }}
+                        {% if plan.ist_faellig and plan.ist_aktiv %}
+                            {% if plan.hat_offene_aufgabe %}
+                                <span class="badge bg-warning text-dark ms-1">In Queue</span>
+                            {% else %}
+                                <span class="badge bg-danger ms-1">Faellig</span>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if plan.letzte_ausfuehrung %}
+                            {{ plan.letzte_ausfuehrung|date:"d.m.Y" }}
+                        {% else %}
+                            <span class="text-muted">–</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if plan.ist_aktiv %}
+                            <span class="badge bg-success">Aktiv</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inaktiv</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'facility:wartungsplan_bearbeiten' plan.pk %}"
+                               class="btn btn-outline-primary">Bearbeiten</a>
+                            <a href="{% url 'facility:wartungsplan_loeschen' plan.pk %}"
+                               class="btn btn-outline-danger">Loeschen</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        Noch keine Wartungsplaene vorhanden.
+        <a href="{% url 'facility:wartungsplan_erstellen' %}">Ersten Plan anlegen</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – {% if token %}Token bearbeiten{% else %}Neuen Token anlegen{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        {% if token %}Token bearbeiten: {{ token.badge_id }}{% else %}Neuen Token anlegen{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="id_mitarbeiter" class="form-label">Mitarbeiter <span class="text-danger">*</span></label>
+                            <select name="mitarbeiter" id="id_mitarbeiter" class="form-select" required>
+                                <option value="">-- Mitarbeiter wählen --</option>
+                                {% for ma in mitarbeiter_qs %}
+                                <option value="{{ ma.pk }}"
+                                    {% if token and token.mitarbeiter_id == ma.pk %}selected{% endif %}>
+                                    {{ ma }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_badge_id" class="form-label">Badge-ID <span class="text-danger">*</span></label>
+                            <input type="text" name="badge_id" id="id_badge_id"
+                                   class="form-control" required
+                                   value="{% if token %}{{ token.badge_id }}{% endif %}"
+                                   placeholder="z.B. BA-001234">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_status" class="form-label">Status</label>
+                            <select name="status" id="id_status" class="form-select">
+                                {% for key, label in status_choices %}
+                                <option value="{{ key }}"
+                                    {% if token and token.status == key %}selected
+                                    {% elif not token and key == "aktiv" %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_ausgestellt_am" class="form-label">Ausgestellt am</label>
+                                <input type="date" name="ausgestellt_am" id="id_ausgestellt_am"
+                                       class="form-control"
+                                       value="{% if token %}{{ token.ausgestellt_am|date:'Y-m-d' }}{% endif %}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_gueltig_bis" class="form-label">Gültig bis (optional)</label>
+                                <input type="date" name="gueltig_bis" id="id_gueltig_bis"
+                                       class="form-control"
+                                       value="{% if token %}{{ token.gueltig_bis|date:'Y-m-d' }}{% endif %}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_ablauf_warnung_tage" class="form-label">Ablauf-Warnung (Tage vor Ablauf)</label>
+                            <input type="number" name="ablauf_warnung_tage" id="id_ablauf_warnung_tage"
+                                   class="form-control" min="0"
+                                   value="{% if token %}{{ token.ablauf_warnung_tage }}{% else %}14{% endif %}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_profile" class="form-label">Zugangsprofile</label>
+                            <select name="profile" id="id_profile" class="form-select" multiple size="5">
+                                {% for profil in profile_qs %}
+                                <option value="{{ profil.pk }}"
+                                    {% if token and profil in token.profile.all %}selected{% endif %}>
+                                    {{ profil.bezeichnung }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Strg+Klick für Mehrfachauswahl</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_bemerkung" class="form-label">Bemerkung</label>
+                            <textarea name="bemerkung" id="id_bemerkung"
+                                      class="form-control" rows="2">{% if token %}{{ token.bemerkung }}{% endif %}</textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                {% if token %}Änderungen speichern{% else %}Token anlegen{% endif %}
+                            </button>
+                            <a href="{% url 'raumbuch:token_liste' %}" class="btn btn-outline-secondary">
+                                Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Team-Meldungen{% endblock %}
+
+{% block extra_css %}
+<style>
+    .nav-tabs .nav-link {
+        background-color: #e9ecef;
+        border: 1px solid #dee2e6;
+        margin-right: 2px;
+        color: #495057;
+    }
+    .nav-tabs .nav-link.active {
+        background-color: #fff;
+        border-bottom-color: #fff;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Team-Meldungen</h2>
+            <p class="text-muted mb-0">Alle Stoermeldungen im Ueberblick</p>
+        </div>
+    </div>
+
+    <!-- Tab-Navigation -->
+    <ul class="nav nav-tabs mb-3" id="teamTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="offen-tab" data-bs-toggle="tab"
+                    data-bs-target="#offen" type="button" role="tab">
+                Offen
+                {% if offen %}
+                <span class="badge bg-danger ms-1">{{ offen|length }}</span>
+                {% endif %}
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="erledigt-tab" data-bs-toggle="tab"
+                    data-bs-target="#erledigt" type="button" role="tab">
+                Erledigt
+                {% if erledigt %}
+                <span class="badge bg-success ms-1">{{ erledigt|length }}</span>
+                {% endif %}
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="teamTabContent">
+
+        <!-- Tab: Offen -->
+        <div class="tab-pane fade show active" id="offen" role="tabpanel">
+            {% if not offen %}
+            <div class="alert alert-success">
+                Keine offenen Stoermeldungen aus Ihrem Team.
+            </div>
+            {% else %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nr.</th>
+                            <th>Mitarbeiter</th>
+                            <th>Kategorie</th>
+                            <th>Raum</th>
+                            <th>Prioritaet</th>
+                            <th>Status</th>
+                            <th>Erstellt</th>
+                            <th>Bearbeiter</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in offen %}
+                        <tr>
+                            <td><small class="text-muted">{{ m.get_betreff }}</small></td>
+                            <td>
+                                <strong>{{ m.melder.user.get_full_name|default:m.melder.user.username }}</strong>
+                            </td>
+                            <td>{{ m.get_kategorie_display }}</td>
+                            <td>
+                                {{ m.raumnummer }}
+                                {% if m.raum_freitext %}
+                                <br><small class="text-muted">{{ m.raum_freitext }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if m.prioritaet == "sofort" %}
+                                <span class="badge bg-danger">{{ m.get_prioritaet_display }}</span>
+                                {% elif m.prioritaet == "dringend" %}
+                                <span class="badge bg-warning text-dark">{{ m.get_prioritaet_display }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ m.get_prioritaet_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if m.status == "offen" %}
+                                <span class="badge bg-primary">{{ m.get_status_display }}</span>
+                                {% elif m.status == "in_bearbeitung" %}
+                                <span class="badge bg-warning text-dark">{{ m.get_status_display }}</span>
+                                {% elif m.status == "weitergeleitet" %}
+                                <span class="badge bg-info text-dark">{{ m.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ m.erstellt_am|date:"d.m.Y H:i" }}</small></td>
+                            <td>
+                                {% if m.claimed_von %}
+                                <small class="text-muted">
+                                    {{ m.claimed_von.get_full_name|default:m.claimed_von.username }}
+                                </small>
+                                {% else %}
+                                <small class="text-muted">–</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'facility:detail' m.pk %}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    Ansehen
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab: Erledigt -->
+        <div class="tab-pane fade" id="erledigt" role="tabpanel">
+            {% if not erledigt %}
+            <div class="alert alert-info">
+                Keine abgeschlossenen Stoermeldungen vorhanden.
+            </div>
+            {% else %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nr.</th>
+                            <th>Mitarbeiter</th>
+                            <th>Kategorie</th>
+                            <th>Raum</th>
+                            <th>Status</th>
+                            <th>Erstellt</th>
+                            <th>Erledigt am</th>
+                            <th>Erledigt von</th>
+                            <th>Kommentar</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in erledigt %}
+                        <tr>
+                            <td><small class="text-muted">{{ m.get_betreff }}</small></td>
+                            <td>
+                                {{ m.melder.user.get_full_name|default:m.melder.user.username }}
+                            </td>
+                            <td>{{ m.get_kategorie_display }}</td>
+                            <td>{{ m.raumnummer }}</td>
+                            <td>
+                                {% if m.status == "erledigt" %}
+                                <span class="badge bg-success">Erledigt</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Unloesbar</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ m.erstellt_am|date:"d.m.Y" }}</small></td>
+                            <td><small>{{ m.bearbeitet_am|date:"d.m.Y H:i"|default:"–" }}</small></td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ m.bearbeitet_von.get_full_name|default:m.bearbeitet_von.username|default:"–" }}
+                                </small>
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ m.erledigungs_kommentar|truncatechars:60 }}
+                                </small>
+                            </td>
+                            <td>
+                                <a href="{% url 'facility:detail' m.pk %}"
+                                   class="btn btn-sm btn-outline-secondary">
+                                    Ansehen
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

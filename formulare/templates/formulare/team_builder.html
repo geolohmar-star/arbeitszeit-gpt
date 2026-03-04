@@ -430,7 +430,8 @@ async function deleteTeam(teamId, teamName) {
             document.getElementById(`team-${teamId}`).remove();
             location.reload();
         } else {
-            alert('Fehler beim Loeschen');
+            const data = await response.json().catch(() => ({}));
+            alert('Loeschen nicht moeglich:\n' + (data.error || 'Unbekannter Fehler'));
         }
     } catch (error) {
         alert('Fehler: ' + error);

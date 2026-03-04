@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Raumkalender{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Raumbuchungen</h1>
+        <a href="{% url 'raumbuch:buchung_erstellen' %}" class="btn btn-success">
+            Buchung anlegen
+        </a>
+    </div>
+
+    <!-- Datumsauswahl -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="{% url 'raumbuch:buchung_kalender' %}" class="row g-3 align-items-end">
+                <div class="col-auto">
+                    <label for="id_datum" class="form-label">Datum auswählen</label>
+                    <input type="date" name="datum" id="id_datum"
+                           class="form-control"
+                           value="{{ aktuelles_datum|date:'Y-m-d' }}">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">Anzeigen</button>
+                </div>
+                <div class="col-auto">
+                    <a href="{% url 'raumbuch:buchung_kalender' %}" class="btn btn-outline-secondary">Heute</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <h5 class="mb-3">Belegung am {{ aktuelles_datum }}</h5>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if buchbare_raeume %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Raum</th>
+                            <th>Kapazität</th>
+                            <th>Buchungen am {{ aktuelles_datum }}</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for raum in buchbare_raeume %}
+                        <tr>
+                            <td>
+                                <strong>{{ raum.raumnummer }}</strong>
+                                {% if raum.raumname %}– {{ raum.raumname }}{% endif %}
+                                <span class="text-muted small">({{ raum.geschoss }})</span>
+                            </td>
+                            <td>
+                                {% if raum.kapazitaet %}
+                                {{ raum.kapazitaet }} Pers.
+                                {% else %}
+                                –
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% with raum_buchungen=buchungen|default_if_none:"" %}
+                                {% for buchung in buchungen %}
+                                {% if buchung.raum_id == raum.pk %}
+                                <div class="mb-1">
+                                    <span class="badge bg-primary">
+                                        {{ buchung.von|time:"H:i" }} – {{ buchung.bis|time:"H:i" }}
+                                    </span>
+                                    {{ buchung.betreff }}
+                                    <span class="text-muted small">({{ buchung.gebucht_von }})</span>
+                                </div>
+                                {% endif %}
+                                {% endfor %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                <a href="{% url 'raumbuch:buchung_erstellen' %}?raum={{ raum.pk }}&datum={{ aktuelles_datum|date:'Y-m-d' }}"
+                                   class="btn btn-sm btn-outline-success">Buchen</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted">
+                Keine buchbaren Räume vorhanden. Räume müssen das Nutzungsmodell "Dynamisch" haben.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

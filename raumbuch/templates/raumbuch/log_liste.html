@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – {% if raum %}Log Raum {{ raum.raumnummer }}{% else %}Audit-Trail{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            {% if raum %}
+            Änderungslog – Raum {{ raum.raumnummer }}
+            {% if raum.raumname %} ({{ raum.raumname }}){% endif %}
+            {% else %}
+            Gesamt-Audit-Trail
+            {% endif %}
+        </h1>
+        {% if raum %}
+        <a href="{% url 'raumbuch:raum_detail' raum.pk %}" class="btn btn-outline-secondary">
+            Zurück zum Raum
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if log_eintraege %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            {% if not raum %}
+                            <th>Raum</th>
+                            {% endif %}
+                            <th>Aktion</th>
+                            <th>Beschreibung</th>
+                            <th>Geändert von</th>
+                            <th>Geändert am</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for eintrag in log_eintraege %}
+                        <tr>
+                            {% if not raum %}
+                            <td>
+                                {% if eintrag.raum %}
+                                <a href="{% url 'raumbuch:raum_detail' eintrag.raum.pk %}">
+                                    {{ eintrag.raum.raumnummer }}
+                                </a>
+                                {% else %}
+                                –
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                            <td>
+                                <span class="badge bg-secondary">{{ eintrag.aktion }}</span>
+                            </td>
+                            <td>{{ eintrag.beschreibung|default:"–" }}</td>
+                            <td>{{ eintrag.geaendert_von|default:"System" }}</td>
+                            <td>{{ eintrag.geaendert_am }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted">
+                Noch keine Log-Einträge vorhanden.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

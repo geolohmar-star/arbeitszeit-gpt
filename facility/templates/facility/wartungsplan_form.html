@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titel }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 700px;">
+    <h2 class="mb-4">{{ titel }}</h2>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- Bezeichnung -->
+        <div class="mb-3">
+            <label class="form-label fw-bold">Bezeichnung *</label>
+            <input type="text" name="name" class="form-control {% if fehler.name %}is-invalid{% endif %}"
+                   value="{{ daten.name|default:'' }}" placeholder="z.B. Lueftungsanlage OG2 Filterwechsel">
+            {% if fehler.name %}<div class="invalid-feedback">{{ fehler.name }}</div>{% endif %}
+        </div>
+
+        <!-- Beschreibung -->
+        <div class="mb-3">
+            <label class="form-label">Beschreibung</label>
+            <textarea name="beschreibung" class="form-control" rows="2"
+                      placeholder="Optionale Hinweise fuer das Facility-Team">{{ daten.beschreibung|default:'' }}</textarea>
+        </div>
+
+        <div class="row">
+            <!-- Kategorie -->
+            <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Kategorie *</label>
+                <select name="kategorie" class="form-select {% if fehler.kategorie %}is-invalid{% endif %}">
+                    <option value="">– Bitte waehlen –</option>
+                    {% for wert, label in KATEGORIE_CHOICES %}
+                    <option value="{{ wert }}" {% if daten.kategorie == wert %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                {% if fehler.kategorie %}<div class="invalid-feedback">{{ fehler.kategorie }}</div>{% endif %}
+            </div>
+
+            <!-- Prioritaet -->
+            <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Prioritaet</label>
+                <select name="prioritaet" class="form-select">
+                    <option value="normal" {% if daten.prioritaet == "normal" or not daten.prioritaet %}selected{% endif %}>Normal</option>
+                    <option value="dringend" {% if daten.prioritaet == "dringend" %}selected{% endif %}>Dringend</option>
+                    <option value="sofort" {% if daten.prioritaet == "sofort" %}selected{% endif %}>Sofort / Notfall</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Raumnummer -->
+            <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">Raumnummer / Ort *</label>
+                <input type="text" name="raumnummer" class="form-control {% if fehler.raumnummer %}is-invalid{% endif %}"
+                       value="{{ daten.raumnummer|default:'' }}" placeholder="z.B. UG-01, Dach, Keller">
+                {% if fehler.raumnummer %}<div class="invalid-feedback">{{ fehler.raumnummer }}</div>{% endif %}
+            </div>
+
+            <!-- Raum-Zusatz -->
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Ort-Zusatz</label>
+                <input type="text" name="raum_freitext" class="form-control"
+                       value="{{ daten.raum_freitext|default:'' }}" placeholder="z.B. Nordseite, Schacht 3">
+            </div>
+        </div>
+
+        <!-- Intervall -->
+        <div class="mb-3">
+            <label class="form-label fw-bold">Wartungsintervall *</label>
+            <div class="input-group">
+                <input type="number" name="intervall_wert" min="1"
+                       class="form-control {% if fehler.intervall_wert %}is-invalid{% endif %}"
+                       value="{{ daten.intervall_wert|default:'30' }}" style="max-width: 120px;">
+                <select name="intervall_einheit" class="form-select {% if fehler.intervall_einheit %}is-invalid{% endif %}">
+                    <option value="tage" {% if daten.intervall_einheit == "tage" or not daten.intervall_einheit %}selected{% endif %}>Tage</option>
+                    <option value="wochen" {% if daten.intervall_einheit == "wochen" %}selected{% endif %}>Wochen</option>
+                    <option value="monate" {% if daten.intervall_einheit == "monate" %}selected{% endif %}>Monate</option>
+                </select>
+                {% if fehler.intervall_wert %}<div class="invalid-feedback">{{ fehler.intervall_wert }}</div>{% endif %}
+            </div>
+            <small class="text-muted">z.B. 30 Tage, 3 Monate, 1 Jahr (= 12 Monate)</small>
+        </div>
+
+        <!-- Erste / naechste Faelligkeit -->
+        <div class="mb-3">
+            <label class="form-label fw-bold">
+                {% if plan %}Naechste Faelligkeit{% else %}Erste Faelligkeit{% endif %} *
+            </label>
+            <input type="date" name="naechste_faelligkeit"
+                   class="form-control {% if fehler.naechste_faelligkeit %}is-invalid{% endif %}"
+                   value="{{ daten.naechste_faelligkeit|default:'' }}" style="max-width: 200px;">
+            {% if fehler.naechste_faelligkeit %}<div class="invalid-feedback">{{ fehler.naechste_faelligkeit }}</div>{% endif %}
+            <small class="text-muted">Wann soll die erste / naechste Wartungsaufgabe automatisch erzeugt werden?</small>
+        </div>
+
+        {% if plan %}
+        <!-- Aktiv/Inaktiv -->
+        <div class="mb-3">
+            <div class="form-check">
+                <input type="checkbox" name="ist_aktiv" class="form-check-input" id="ist_aktiv"
+                       {% if daten.ist_aktiv %}checked{% endif %}>
+                <label class="form-check-label" for="ist_aktiv">Wartungsplan aktiv</label>
+            </div>
+            <small class="text-muted">Inaktive Plaene erzeugen keine automatischen Aufgaben.</small>
+        </div>
+        {% endif %}
+
+        <hr>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">{{ aktion }}</button>
+            <a href="{% url 'facility:wartungsplan_liste' %}" class="btn btn-outline-secondary">Abbrechen</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

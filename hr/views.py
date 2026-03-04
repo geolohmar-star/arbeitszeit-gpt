@@ -2110,8 +2110,23 @@ def kasten_detail(request, kuerzel):
     # Root-Stellen (ohne Parent)
     root_stellen = org.stellen.filter(uebergeordnete_stelle__isnull=True).order_by('kategorie', 'kuerzel')
 
-    # Direkte Untereinheiten
-    untereinheiten = org.untereinheiten.all().order_by('kuerzel')
+    # Direkte Untereinheiten – mit Leitungsstelle anreichern
+    untereinheiten_raw = org.untereinheiten.all().order_by('kuerzel')
+    untereinheiten = []
+    for unter in untereinheiten_raw:
+        leitung_stelle = unter.stellen.filter(kategorie='leitung').select_related('hrmitarbeiter').first()
+        untereinheiten.append({
+            'obj': unter,
+            'kuerzel': unter.kuerzel,
+            'bezeichnung': unter.bezeichnung,
+            'stellen_count': unter.stellen.count(),
+            'leitung_stelle': leitung_stelle,
+            'leiter': leitung_stelle.aktueller_inhaber if leitung_stelle and leitung_stelle.ist_besetzt else None,
+        })
+
+    # Bereichsleiter dieser OrgEinheit (Leitungsstelle der aktuellen Ebene)
+    org_leitung_stelle = org.stellen.filter(kategorie='leitung').select_related('hrmitarbeiter').first()
+    org_leiter = org_leitung_stelle.aktueller_inhaber if org_leitung_stelle and org_leitung_stelle.ist_besetzt else None
 
     # Uebergeordnete OrgEinheit
     parent = org.uebergeordnet
@@ -2128,6 +2143,8 @@ def kasten_detail(request, kuerzel):
         'alle_stellen': alle_stellen,
         'root_stellen': root_stellen,
         'untereinheiten': untereinheiten,
+        'org_leiter': org_leiter,
+        'org_leitung_stelle': org_leitung_stelle,
         'parent': parent,
         'pfad': pfad
     })

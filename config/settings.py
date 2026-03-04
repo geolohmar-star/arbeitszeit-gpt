@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'workflow.apps.WorkflowConfig',
     'veranstaltungen.apps.VeranstaltungenConfig',
     'facility.apps.FacilityConfig',
+    'raumbuch.apps.RaumbuchConfig',
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -186,6 +187,17 @@ if sys.version_info[0] >= 3:
         locale.setlocale(locale.LC_ALL, 'de_DE.UTF-8')
     except:
         pass
+
+# ---------------------------------------------------------------------------
+# Virusscanner (ClamAV via Netzwerk)
+# Leer lassen solange kein Scanner-Server vorhanden ist.
+# Die App laeuft ohne Scanner – Uploads werden dann ohne Pruefung zugelassen.
+# ---------------------------------------------------------------------------
+CLAMAV_HOST = os.environ.get("CLAMAV_HOST", "")          # z.B. "192.168.1.50"
+CLAMAV_PORT = int(os.environ.get("CLAMAV_PORT", 3310))   # clamd Standard-Port
+CLAMAV_TIMEOUT = int(os.environ.get("CLAMAV_TIMEOUT", 15))
+# True = Upload ablehnen wenn Scanner nicht erreichbar (sicherer aber strenger)
+CLAMAV_BLOCKIERE_BEI_FEHLER = os.environ.get("CLAMAV_BLOCKIERE_BEI_FEHLER", "False") == "True"
 
 # Email-Domain fuer stellenbasierte Adressen
 STELLEN_EMAIL_DOMAIN = os.environ.get('STELLEN_EMAIL_DOMAIN', 'firma.de')

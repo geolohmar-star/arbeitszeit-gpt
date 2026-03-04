@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Schlüsselverwaltung{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Schlüsselverwaltung</h1>
+        {% if user.is_staff or ist_facility_mitglied %}
+        <a href="{% url 'raumbuch:schluessel_erstellen' %}" class="btn btn-success">
+            Neuen Schlüssel anlegen
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if schluessel_qs %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Schlüsselnummer</th>
+                            <th>Bezeichnung</th>
+                            <th>Schließanlage</th>
+                            <th>Typ</th>
+                            <th>Kopien</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in schluessel_qs %}
+                        <tr>
+                            <td><strong>{{ s.schluesselNummer }}</strong></td>
+                            <td>{{ s.bezeichnung }}</td>
+                            <td>{{ s.schliessanlage|default:"–" }}</td>
+                            <td>{{ s.get_typ_display }}</td>
+                            <td>{{ s.anzahl_kopien|default:"1" }}</td>
+                            <td>
+                                {% if s.ist_vergeben %}
+                                <span class="badge bg-danger">Vergeben</span>
+                                {% else %}
+                                <span class="badge bg-success">Verfügbar</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'raumbuch:schluessel_detail' s.pk %}"
+                                   class="btn btn-sm btn-outline-primary">Detail</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted">
+                Noch keine Schlüssel angelegt.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

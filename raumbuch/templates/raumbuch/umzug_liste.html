@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Umzugsaufträge{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Umzugsaufträge</h1>
+        {% if user.is_staff or ist_facility_mitglied %}
+        <a href="{% url 'raumbuch:umzug_erstellen' %}" class="btn btn-success">
+            Neuen Auftrag anlegen
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Offene Aufträge -->
+    <h5 class="mb-2">Offene Aufträge</h5>
+    <div class="card mb-4">
+        <div class="card-body p-0">
+            {% if offen %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Geplantes Datum</th>
+                            <th>Mitarbeiter</th>
+                            <th>Von Raum</th>
+                            <th>Nach Raum</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for umzug in offen %}
+                        <tr>
+                            <td>{{ umzug.datum_geplant|default:"–" }}</td>
+                            <td>{{ umzug.mitarbeiter }}</td>
+                            <td>
+                                {% if umzug.von_raum %}
+                                <a href="{% url 'raumbuch:raum_detail' umzug.von_raum.pk %}">
+                                    {{ umzug.von_raum.raumnummer }}
+                                </a>
+                                {% else %}–{% endif %}
+                            </td>
+                            <td>
+                                {% if umzug.nach_raum %}
+                                <a href="{% url 'raumbuch:raum_detail' umzug.nach_raum.pk %}">
+                                    {{ umzug.nach_raum.raumnummer }}
+                                </a>
+                                {% else %}–{% endif %}
+                            </td>
+                            <td>
+                                {% if umzug.status == "offen" %}
+                                <span class="badge bg-warning text-dark">Offen</span>
+                                {% elif umzug.status == "in_bearbeitung" %}
+                                <span class="badge bg-info text-dark">In Bearbeitung</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ umzug.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    {% if user.is_staff or ist_facility_mitglied %}
+                                    <a href="{% url 'raumbuch:umzug_bearbeiten' umzug.pk %}"
+                                       class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                                    <form method="post"
+                                          action="{% url 'raumbuch:umzug_erledigen' umzug.pk %}"
+                                          class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            Erledigt
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-3 text-center text-muted">Keine offenen Aufträge.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Erledigte Aufträge (kompakt) -->
+    <h5 class="mb-2">Erledigte Aufträge</h5>
+    <div class="card">
+        <div class="card-body p-0">
+            {% if erledigt %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Datum</th>
+                            <th>Mitarbeiter</th>
+                            <th>Von</th>
+                            <th>Nach</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for umzug in erledigt %}
+                        <tr class="text-muted">
+                            <td>{{ umzug.datum_geplant|default:"–" }}</td>
+                            <td>{{ umzug.mitarbeiter }}</td>
+                            <td>{{ umzug.von_raum.raumnummer|default:"–" }}</td>
+                            <td>{{ umzug.nach_raum.raumnummer|default:"–" }}</td>
+                            <td><span class="badge bg-success">Erledigt</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-3 text-center text-muted">Noch keine erledigten Aufträge.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

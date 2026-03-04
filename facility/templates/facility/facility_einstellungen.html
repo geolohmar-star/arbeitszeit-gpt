@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Facility – Einstellungen{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 680px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Facility – Einstellungen</h2>
+            <p class="text-muted mb-0">Konfiguration der Trend-Erkennung im Monatsbericht</p>
+        </div>
+        <a href="{% url 'facility:monatsreport' %}" class="btn btn-outline-secondary btn-sm">
+            Zum Monatsbericht
+        </a>
+    </div>
+
+    <!-- Erklärung -->
+    <div class="alert alert-info mb-4">
+        <strong>Wie funktioniert die Trend-Erkennung?</strong><br>
+        Der Monatsbericht prüft, ob dieselbe Kategorie im selben Raum innerhalb des
+        Beobachtungszeitraums mehrfach gemeldet wurde. Wird die eingestellte Schwelle
+        erreicht, erscheint eine <span class="text-danger fw-bold">rote Warnung</span>
+        im Bericht – als Hinweis auf ein mögliches Grundproblem
+        (z.&nbsp;B. defekte Strangleitung statt einmaliger WC-Verstopfung).
+    </div>
+
+    <div class="card">
+        <div class="card-header fw-bold">Trend-Einstellungen</div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- Trend-Schwelle -->
+                <div class="mb-4">
+                    <label for="id_trend_schwelle" class="form-label fw-bold">
+                        Trend-Schwelle
+                        <span class="text-muted fw-normal">(Anzahl Meldungen)</span>
+                    </label>
+                    <div class="input-group" style="max-width: 200px;">
+                        <input type="number" id="id_trend_schwelle" name="trend_schwelle"
+                               class="form-control {% if fehler.trend_schwelle %}is-invalid{% endif %}"
+                               value="{{ einstellungen.trend_schwelle }}"
+                               min="2" max="50" required>
+                        <span class="input-group-text">Meldungen</span>
+                    </div>
+                    {% if fehler.trend_schwelle %}
+                    <div class="text-danger small mt-1">{{ fehler.trend_schwelle }}</div>
+                    {% endif %}
+                    <div class="form-text">
+                        Ab dieser Anzahl von Meldungen am selben Ort und gleicher Kategorie
+                        wird eine Tendenz-Warnung ausgegeben.<br>
+                        <strong>Empfehlung: 3</strong> – weniger als 2 ist nicht sinnvoll.
+                    </div>
+                </div>
+
+                <!-- Beobachtungszeitraum -->
+                <div class="mb-4">
+                    <label for="id_trend_tage" class="form-label fw-bold">
+                        Beobachtungszeitraum
+                        <span class="text-muted fw-normal">(Tage)</span>
+                    </label>
+                    <div class="input-group" style="max-width: 200px;">
+                        <input type="number" id="id_trend_tage" name="trend_tage"
+                               class="form-control {% if fehler.trend_tage %}is-invalid{% endif %}"
+                               value="{{ einstellungen.trend_tage }}"
+                               min="7" max="730" required>
+                        <span class="input-group-text">Tage</span>
+                    </div>
+                    {% if fehler.trend_tage %}
+                    <div class="text-danger small mt-1">{{ fehler.trend_tage }}</div>
+                    {% endif %}
+                    <div class="form-text">
+                        Zeitraum rückwirkend ab heute, über den Meldungen auf Wiederholungen
+                        geprüft werden.<br>
+                        Schnellauswahl:
+                        {% for v in zeitraum_vorschlaege %}
+                        <a href="#" class="text-decoration-none"
+                           onclick="document.getElementById('id_trend_tage').value={{ v.tage }}; return false;">
+                            {{ v.label }}{% if not forloop.last %} &middot; {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Vorschau der aktuellen Einstellung -->
+                <div class="alert alert-light border mb-4 py-2">
+                    <strong>Aktuelle Einstellung:</strong>
+                    Eine Tendenz wird erkannt wenn derselbe Raum + Kategorie innerhalb von
+                    <strong>{{ einstellungen.trend_tage }} Tagen</strong> mindestens
+                    <strong>{{ einstellungen.trend_schwelle }}x</strong> gemeldet wurde.
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    Speichern
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

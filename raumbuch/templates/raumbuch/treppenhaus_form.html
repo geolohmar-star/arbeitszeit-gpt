@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – {% if treppenhaus %}Treppenhaus bearbeiten{% else %}Neues Treppenhaus{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        {% if treppenhaus %}Treppenhaus bearbeiten{% else %}Neues Treppenhaus anlegen{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="id_gebaeude" class="form-label">Gebäude <span class="text-danger">*</span></label>
+                            <select name="gebaeude" id="id_gebaeude" class="form-select" required>
+                                <option value="">-- Bitte wählen --</option>
+                                {% for g in gebaeude_qs %}
+                                <option value="{{ g.pk }}"
+                                    {% if treppenhaus and treppenhaus.gebaeude_id == g.pk %}selected{% endif %}>
+                                    {{ g }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_bezeichnung" class="form-label">Bezeichnung <span class="text-danger">*</span></label>
+                            <input type="text" name="bezeichnung" id="id_bezeichnung"
+                                   class="form-control" required
+                                   value="{% if treppenhaus %}{{ treppenhaus.bezeichnung }}{% endif %}"
+                                   placeholder="z.B. Treppenhaus Nord">
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_typ" class="form-label">Typ</label>
+                                <select name="typ" id="id_typ" class="form-select">
+                                    <option value="">-- Kein Typ --</option>
+                                    {% for key, label in typ_choices %}
+                                    <option value="{{ key }}"
+                                        {% if treppenhaus and treppenhaus.typ == key %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_zustand" class="form-label">Zustand</label>
+                                <select name="zustand" id="id_zustand" class="form-select">
+                                    {% for key, label in zustand_choices %}
+                                    <option value="{{ key }}"
+                                        {% if treppenhaus and treppenhaus.zustand == key %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_lichte_breite" class="form-label">Lichte Breite (cm)</label>
+                                <input type="number" name="lichte_breite" id="id_lichte_breite"
+                                       class="form-control" min="0"
+                                       value="{% if treppenhaus %}{{ treppenhaus.lichte_breite }}{% endif %}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_kapazitaet" class="form-label">Kapazität (Personen)</label>
+                                <input type="number" name="kapazitaet" id="id_kapazitaet"
+                                       class="form-control" min="0"
+                                       value="{% if treppenhaus %}{{ treppenhaus.kapazitaet }}{% endif %}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_verbindet_geschosse" class="form-label">Verbindet Geschosse</label>
+                            <input type="text" name="verbindet_geschosse" id="id_verbindet_geschosse"
+                                   class="form-control"
+                                   value="{% if treppenhaus %}{{ treppenhaus.verbindet_geschosse }}{% endif %}"
+                                   placeholder="z.B. EG – 3. OG">
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_letzte_begehung" class="form-label">Letzter Begehungstermin</label>
+                                <input type="date" name="letzte_begehung" id="id_letzte_begehung"
+                                       class="form-control"
+                                       value="{% if treppenhaus %}{{ treppenhaus.letzte_begehung|date:'Y-m-d' }}{% endif %}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_naechste_pruefung" class="form-label">Nächste Prüfung</label>
+                                <input type="date" name="naechste_pruefung" id="id_naechste_pruefung"
+                                       class="form-control"
+                                       value="{% if treppenhaus %}{{ treppenhaus.naechste_pruefung|date:'Y-m-d' }}{% endif %}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_maengel" class="form-label">Mängel / Bemerkungen</label>
+                            <textarea name="maengel" id="id_maengel"
+                                      class="form-control" rows="3">{% if treppenhaus %}{{ treppenhaus.maengel }}{% endif %}</textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                {% if treppenhaus %}Änderungen speichern{% else %}Anlegen{% endif %}
+                            </button>
+                            <a href="{% url 'raumbuch:treppenhaus_liste' %}" class="btn btn-outline-secondary">
+                                Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

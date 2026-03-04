@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – {% if profil %}Profil bearbeiten{% else %}Neues Profil anlegen{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        {% if profil %}Zugangsprofil bearbeiten: {{ profil.bezeichnung }}{% else %}Neues Zugangsprofil anlegen{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="id_bezeichnung" class="form-label">Bezeichnung <span class="text-danger">*</span></label>
+                            <input type="text" name="bezeichnung" id="id_bezeichnung"
+                                   class="form-control" required
+                                   value="{% if profil %}{{ profil.bezeichnung }}{% endif %}"
+                                   placeholder="z.B. Büroprofil EG">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_beschreibung" class="form-label">Beschreibung</label>
+                            <textarea name="beschreibung" id="id_beschreibung"
+                                      class="form-control" rows="3"
+                                      placeholder="Welche Bereiche werden durch dieses Profil erschlossen?">{% if profil %}{{ profil.beschreibung }}{% endif %}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_raeume" class="form-label">Räume (Zugang)</label>
+                            <select name="raeume" id="id_raeume" class="form-select" multiple size="8">
+                                {% for raum in raeume_qs %}
+                                <option value="{{ raum.pk }}"
+                                    {% if profil and raum in profil.raeume.all %}selected{% endif %}>
+                                    {{ raum.raumnummer }} – {{ raum.raumname|default:raum.get_raumtyp_display }}
+                                    ({{ raum.geschoss }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Strg+Klick für Mehrfachauswahl</div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                {% if profil %}Änderungen speichern{% else %}Profil anlegen{% endif %}
+                            </button>
+                            <a href="{% url 'raumbuch:profil_liste' %}" class="btn btn-outline-secondary">
+                                Abbrechen
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Zugangs-Tokens{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Zugangs-Tokens</h1>
+        {% if user.is_staff or ist_facility_mitglied %}
+        <a href="{% url 'raumbuch:token_erstellen' %}" class="btn btn-success">
+            Neuen Token anlegen
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            {% if tokens %}
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Badge-ID</th>
+                            <th>Mitarbeiter</th>
+                            <th>Status</th>
+                            <th>Ausgestellt</th>
+                            <th>Gültig bis</th>
+                            <th>Warnung</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for token in tokens %}
+                        <tr class="{% if token.laeuft_bald_ab %}table-danger{% endif %}">
+                            <td><strong>{{ token.badge_id }}</strong></td>
+                            <td>{{ token.mitarbeiter }}</td>
+                            <td>
+                                {% if token.status == "aktiv" %}
+                                <span class="badge bg-success">Aktiv</span>
+                                {% elif token.status == "gesperrt" %}
+                                <span class="badge bg-danger">Gesperrt</span>
+                                {% elif token.status == "abgelaufen" %}
+                                <span class="badge bg-secondary">Abgelaufen</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ token.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ token.ausgestellt_am|default:"–" }}</td>
+                            <td>{{ token.gueltig_bis|default:"Unbegrenzt" }}</td>
+                            <td>
+                                {% if token.laeuft_bald_ab %}
+                                <span class="badge bg-danger">Läuft bald ab</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    {% if user.is_staff or ist_facility_mitglied %}
+                                    <a href="{% url 'raumbuch:token_bearbeiten' token.pk %}"
+                                       class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                                    {% if token.status == "aktiv" %}
+                                    <form method="post"
+                                          action="{% url 'raumbuch:token_sperren' token.pk %}"
+                                          class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Token wirklich sperren?')">
+                                            Sperren
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-4 text-center text-muted">
+                Noch keine Tokens angelegt.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <p class="mt-2 text-muted small">
+        Rot markierte Zeilen: Token läuft innerhalb der konfigurierten Warnfrist ab.
+        Aktuelles Datum: {{ heute }}.
+    </p>
+</div>
+{% endblock %}
