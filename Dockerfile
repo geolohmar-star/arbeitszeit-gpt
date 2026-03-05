@@ -29,4 +29,4 @@ ENV PORT=8000
 EXPOSE 8000
 
 # KRITISCH: Nur 1 Worker für lange CP-SAT Berechnungen
-CMD python manage.py migrate && python manage.py collectstatic --no-input && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 1 --worker-class sync --worker-tmp-dir /dev/shm --timeout 3600 --graceful-timeout 1200 --keep-alive 120 --preload --env LANG=de_DE.UTF-8 --env LC_ALL=de_DE.UTF-8
+CMD python manage.py migrate && python manage.py collectstatic --no-input && python manage.py seed_initial_data && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 1 --worker-class sync --worker-tmp-dir /dev/shm --timeout 3600 --graceful-timeout 1200 --keep-alive 120 --preload --env LANG=de_DE.UTF-8 --env LC_ALL=de_DE.UTF-8
