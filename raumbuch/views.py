@@ -127,14 +127,32 @@ def raum_uebersicht(request):
 @login_required
 def raum_detail(request, pk):
     """Raum-Detail mit Bootstrap-Tabs fuer alle Datenschichten."""
-    raum = get_object_or_404(Raum, pk=pk)
+    # select_related holt Datenschichten und Gebaeudestruktur in einem JOIN statt 6+ Queries
+    raum = get_object_or_404(
+        Raum.objects.select_related(
+            "geschoss__gebaeude__standort",
+            "bereich",
+            "facility_daten",
+            "elektro_daten",
+            "netzwerk_daten",
+            "installation_daten",
+            "arbeitsschutz_daten",
+        ),
+        pk=pk,
+    )
 
-    # Datenschichten per get_or_create (existieren bei Bedarf)
-    facility_daten = RaumFacilityDaten.objects.filter(raum=raum).first()
-    elektro_daten = RaumElektroDaten.objects.filter(raum=raum).first()
-    netzwerk_daten = RaumNetzwerkDaten.objects.filter(raum=raum).first()
-    installation_daten = RaumInstallationDaten.objects.filter(raum=raum).first()
-    arbeitsschutz_daten = RaumArbeitsschutzDaten.objects.filter(raum=raum).first()
+    # Datenschichten aus dem bereits geladenen Objekt lesen (kein weiterer DB-Hit)
+    def _schicht(attr):
+        try:
+            return getattr(raum, attr)
+        except Exception:
+            return None
+
+    facility_daten = _schicht("facility_daten")
+    elektro_daten = _schicht("elektro_daten")
+    netzwerk_daten = _schicht("netzwerk_daten")
+    installation_daten = _schicht("installation_daten")
+    arbeitsschutz_daten = _schicht("arbeitsschutz_daten")
 
     belegungen = Belegung.objects.filter(raum=raum).select_related("mitarbeiter")
     buchungen = Raumbuchung.objects.filter(raum=raum, datum__gte=date.today()).order_by("datum", "von")
@@ -560,7 +578,7 @@ def schluessel_detail(request, pk):
     )
 
     from hr.models import HRMitarbeiter
-    mitarbeiter_qs = HRMitarbeiter.objects.filter(ist_aktiv=True)
+    mitarbeiter_qs = HRMitarbeiter.objects.filter(user__is_active=True).order_by("nachname", "vorname")
 
     return render(
         request,
@@ -641,7 +659,7 @@ def token_form(request, pk=None):
 
     token = get_object_or_404(ZutrittsToken, pk=pk) if pk else None
     from hr.models import HRMitarbeiter
-    mitarbeiter_qs = HRMitarbeiter.objects.filter(ist_aktiv=True)
+    mitarbeiter_qs = HRMitarbeiter.objects.filter(user__is_active=True).order_by("nachname", "vorname")
     profile_qs = ZutrittsProfil.objects.all()
 
     if request.method == "POST":
@@ -783,7 +801,7 @@ def belegung_form(request, pk=None):
 
     belegung = get_object_or_404(Belegung, pk=pk) if pk else None
     from hr.models import HRMitarbeiter
-    mitarbeiter_qs = HRMitarbeiter.objects.filter(ist_aktiv=True)
+    mitarbeiter_qs = HRMitarbeiter.objects.filter(user__is_active=True).order_by("nachname", "vorname")
     raeume_qs = Raum.objects.filter(ist_aktiv=True).select_related("geschoss__gebaeude")
 
     if request.method == "POST":
@@ -940,7 +958,7 @@ def besuch_liste(request):
 def besuch_anmelden(request):
     """Besuch anmelden."""
     from hr.models import HRMitarbeiter
-    gastgeber_qs = HRMitarbeiter.objects.filter(ist_aktiv=True)
+    gastgeber_qs = HRMitarbeiter.objects.filter(user__is_active=True).order_by("nachname", "vorname")
     raeume_qs = Raum.objects.filter(ist_aktiv=True).select_related("geschoss__gebaeude")
 
     if request.method == "POST":
@@ -984,7 +1002,7 @@ def besuch_bearbeiten(request, pk):
     """Besuchsanmeldung bearbeiten."""
     besuch = get_object_or_404(Besuchsanmeldung, pk=pk)
     from hr.models import HRMitarbeiter
-    gastgeber_qs = HRMitarbeiter.objects.filter(ist_aktiv=True)
+    gastgeber_qs = HRMitarbeiter.objects.filter(user__is_active=True).order_by("nachname", "vorname")
     raeume_qs = Raum.objects.filter(ist_aktiv=True).select_related("geschoss__gebaeude")
 
     if request.method == "POST":
@@ -1174,7 +1192,7 @@ def umzug_form(request, pk=None):
 
     umzug = get_object_or_404(Umzugsauftrag, pk=pk) if pk else None
     from hr.models import HRMitarbeiter
-    mitarbeiter_qs = HRMitarbeiter.objects.filter(ist_aktiv=True)
+    mitarbeiter_qs = HRMitarbeiter.objects.filter(user__is_active=True).order_by("nachname", "vorname")
     raeume_qs = Raum.objects.filter(ist_aktiv=True).select_related("geschoss__gebaeude")
 
     if request.method == "POST":

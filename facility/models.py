@@ -243,7 +243,7 @@ class Stoermeldung(models.Model):
     )
 
     # Stoerung
-    kategorie = models.CharField(max_length=30, choices=KATEGORIE_CHOICES)
+    kategorie = models.CharField(max_length=30, choices=KATEGORIE_CHOICES, db_index=True)
     textbaustein = models.ForeignKey(
         Textbaustein,
         null=True,
@@ -271,7 +271,7 @@ class Stoermeldung(models.Model):
 
     # Status & Zeitstempel
     status = models.CharField(
-        max_length=30, choices=STATUS_CHOICES, default="offen"
+        max_length=30, choices=STATUS_CHOICES, default="offen", db_index=True
     )
     erstellt_am = models.DateTimeField(auto_now_add=True)
 

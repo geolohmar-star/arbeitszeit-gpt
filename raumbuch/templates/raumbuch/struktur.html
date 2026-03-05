@@ -22,7 +22,7 @@
                         data-bs-target="#collapse-standort-{{ standort.pk }}"
                         aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
                         aria-controls="collapse-standort-{{ standort.pk }}">
-                    <strong>Standort: {{ standort.bezeichnung }}</strong>
+                    <strong>Standort: {{ standort.name }}</strong>
                     {% if standort.adresse %}
                     &nbsp;– {{ standort.adresse }}
                     {% endif %}
@@ -33,7 +33,7 @@
                  aria-labelledby="heading-standort-{{ standort.pk }}"
                  data-bs-parent="#standorteAccordion">
                 <div class="accordion-body">
-                    {% for gebaeude in standort.gebaeude_set.all %}
+                    {% for gebaeude in standort.gebaeude.all %}
                     <div class="card mb-3">
                         <div class="card-header">
                             <strong>Gebäude: {{ gebaeude.bezeichnung }}</strong>
@@ -42,10 +42,10 @@
                             {% endif %}
                         </div>
                         <div class="card-body p-0">
-                            {% for geschoss in gebaeude.geschoss_set.all %}
+                            {% for geschoss in gebaeude.geschosse.all %}
                             <div class="px-3 pt-2 pb-1">
                                 <h6 class="text-muted mb-1">{{ geschoss.bezeichnung }}</h6>
-                                {% if geschoss.raum_set.all %}
+                                {% if geschoss.raeume.all %}
                                 <div class="table-responsive">
                                     <table class="table table-sm table-bordered mb-2">
                                         <thead class="table-light">
@@ -57,7 +57,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {% for raum in geschoss.raum_set.all %}
+                                            {% for raum in geschoss.raeume.all %}
                                             <tr>
                                                 <td>{{ raum.raumnummer }}</td>
                                                 <td>{{ raum.raumname }}</td>

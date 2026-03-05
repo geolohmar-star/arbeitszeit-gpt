@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.db.models import Sum, Case, When, IntegerField
+from django.db.models import Sum, Case, When, IntegerField, Prefetch
 from django.http import HttpResponse
 import csv
 from openpyxl import Workbook
@@ -65,25 +65,28 @@ def soll_stunden_jahresuebersicht(request):
     export = request.GET.get('export')
     
     # Nur Mitarbeiter mit Schichtplan-Kennung MA1-MA15
+    # prefetch_related laedt alle Soll-Zeiten fuer das gewaehlte Jahr in einer Query
+    soll_zeiten_prefetch = Prefetch(
+        "monatliche_soll_zeiten",
+        queryset=MonatlicheArbeitszeitSoll.objects.filter(jahr=jahr).order_by("monat"),
+        to_attr="soll_zeiten_gefiltert",
+    )
     mitarbeiter_liste = Mitarbeiter.objects.filter(
         aktiv=True,
         schichtplan_kennung__regex=r'^MA([1-9]|1[0-5])$'
     ).exclude(
         schichtplan_kennung=''
-    ).order_by(
+    ).prefetch_related(soll_zeiten_prefetch).order_by(
         Length('schichtplan_kennung'),  # MA1 vor MA10
         'schichtplan_kennung'
     )
-    
-    # Daten sammeln
+
+    # Daten sammeln – keine DB-Hits in der Schleife (Prefetch genuegt)
     daten = []
-    
+
     for ma in mitarbeiter_liste:
-        soll_monate = MonatlicheArbeitszeitSoll.objects.filter(
-            mitarbeiter=ma,
-            jahr=jahr
-        ).order_by('monat')
-        
+        soll_monate = ma.soll_zeiten_gefiltert
+
         # Dict mit Monat -> Soll-Stunden
         monate_dict = {s.monat: float(s.soll_stunden) for s in soll_monate}
         jahressumme = sum(monate_dict.values())
