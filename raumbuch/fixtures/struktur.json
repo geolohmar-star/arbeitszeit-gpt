@@ -1,0 +1,6086 @@
+[
+{
+  "model": "raumbuch.standort",
+  "pk": 2,
+  "fields": {
+    "adresse": "Musterstrasse 1\n12345 Musterstadt",
+    "kuerzel": "HS",
+    "name": "Hauptstandort"
+  }
+},
+{
+  "model": "raumbuch.gebaeude",
+  "pk": 3,
+  "fields": {
+    "baujahr": 1998,
+    "bezeichnung": "Verwaltungsgebaeude A",
+    "kuerzel": "A",
+    "standort": 2
+  }
+},
+{
+  "model": "raumbuch.gebaeude",
+  "pk": 4,
+  "fields": {
+    "baujahr": 2005,
+    "bezeichnung": "Erweiterungsbau B (Reserve)",
+    "kuerzel": "B",
+    "standort": 2
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 10,
+  "fields": {
+    "bezeichnung": "Untergeschoss (Keller)",
+    "gebaeude": 3,
+    "kuerzel": "UG",
+    "reihenfolge": 0
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 11,
+  "fields": {
+    "bezeichnung": "Erdgeschoss",
+    "gebaeude": 3,
+    "kuerzel": "EG",
+    "reihenfolge": 1
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 12,
+  "fields": {
+    "bezeichnung": "1. Obergeschoss",
+    "gebaeude": 3,
+    "kuerzel": "1",
+    "reihenfolge": 2
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 13,
+  "fields": {
+    "bezeichnung": "2. Obergeschoss",
+    "gebaeude": 3,
+    "kuerzel": "2",
+    "reihenfolge": 3
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 14,
+  "fields": {
+    "bezeichnung": "3. Obergeschoss",
+    "gebaeude": 3,
+    "kuerzel": "3",
+    "reihenfolge": 4
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 15,
+  "fields": {
+    "bezeichnung": "4. Obergeschoss",
+    "gebaeude": 3,
+    "kuerzel": "4",
+    "reihenfolge": 5
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 16,
+  "fields": {
+    "bezeichnung": "5. Obergeschoss",
+    "gebaeude": 3,
+    "kuerzel": "5",
+    "reihenfolge": 6
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 17,
+  "fields": {
+    "bezeichnung": "6. Obergeschoss",
+    "gebaeude": 3,
+    "kuerzel": "6",
+    "reihenfolge": 7
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 18,
+  "fields": {
+    "bezeichnung": "7. Obergeschoss",
+    "gebaeude": 3,
+    "kuerzel": "7",
+    "reihenfolge": 8
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 19,
+  "fields": {
+    "bezeichnung": "Erdgeschoss Reserve",
+    "gebaeude": 4,
+    "kuerzel": "EG",
+    "reihenfolge": 1
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 20,
+  "fields": {
+    "bezeichnung": "1. OG Reserve",
+    "gebaeude": 4,
+    "kuerzel": "1",
+    "reihenfolge": 2
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 21,
+  "fields": {
+    "bezeichnung": "2. OG Reserve",
+    "gebaeude": 4,
+    "kuerzel": "2",
+    "reihenfolge": 3
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 22,
+  "fields": {
+    "bezeichnung": "3. OG Reserve",
+    "gebaeude": 4,
+    "kuerzel": "3",
+    "reihenfolge": 4
+  }
+},
+{
+  "model": "raumbuch.geschoss",
+  "pk": 23,
+  "fields": {
+    "bezeichnung": "4. OG Reserve",
+    "gebaeude": 4,
+    "kuerzel": "4",
+    "reihenfolge": 5
+  }
+},
+{
+  "model": "raumbuch.treppenhaus",
+  "pk": 4,
+  "fields": {
+    "bezeichnung": "Haupttreppenhaus A-Nord",
+    "gebaeude": 3,
+    "kapazitaet_personen": 30,
+    "letzter_begehungstermin": null,
+    "lichte_breite_cm": 150,
+    "maengel": "",
+    "naechste_pruefung": "2027-03-04",
+    "typ": "haupt",
+    "verbindet_geschosse": "UG-4.OG",
+    "zustand": "gut"
+  }
+},
+{
+  "model": "raumbuch.treppenhaus",
+  "pk": 5,
+  "fields": {
+    "bezeichnung": "Nebentreppenhaus A-Sued",
+    "gebaeude": 3,
+    "kapazitaet_personen": 30,
+    "letzter_begehungstermin": null,
+    "lichte_breite_cm": 150,
+    "maengel": "",
+    "naechste_pruefung": "2027-03-04",
+    "typ": "neben",
+    "verbindet_geschosse": "EG-4.OG",
+    "zustand": "gut"
+  }
+},
+{
+  "model": "raumbuch.treppenhaus",
+  "pk": 6,
+  "fields": {
+    "bezeichnung": "Haupttreppenhaus B",
+    "gebaeude": 4,
+    "kapazitaet_personen": 30,
+    "letzter_begehungstermin": null,
+    "lichte_breite_cm": 150,
+    "maengel": "",
+    "naechste_pruefung": "2027-03-04",
+    "typ": "haupt",
+    "verbindet_geschosse": "EG-4.OG",
+    "zustand": "gut"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 129,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.673Z",
+    "flaeche_m2": "40.00",
+    "geaendert_am": "2026-03-04T12:54:41.673Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Heizungsraum / Kesselraum",
+    "raumnummer": "K01",
+    "raumtyp": "heizungsraum"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 130,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.676Z",
+    "flaeche_m2": "60.00",
+    "geaendert_am": "2026-03-04T12:54:41.676Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Lueftungszentrale",
+    "raumnummer": "K02",
+    "raumtyp": "lueftungsraum"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 131,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.679Z",
+    "flaeche_m2": "25.00",
+    "geaendert_am": "2026-03-04T12:54:41.679Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Elektroverteilerraum (HV)",
+    "raumnummer": "K03",
+    "raumtyp": "elektroverteilung"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 132,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.681Z",
+    "flaeche_m2": "35.00",
+    "geaendert_am": "2026-03-04T12:54:41.681Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Serverraum / Rechenzentrum",
+    "raumnummer": "K04",
+    "raumtyp": "serverraum"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 133,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.684Z",
+    "flaeche_m2": "15.00",
+    "geaendert_am": "2026-03-04T12:54:41.684Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "IT-Verteiler Keller",
+    "raumnummer": "K05",
+    "raumtyp": "it_verteiler"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 134,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.686Z",
+    "flaeche_m2": "80.00",
+    "geaendert_am": "2026-03-04T12:54:41.686Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Lager 1 (Allgemein)",
+    "raumnummer": "K06",
+    "raumtyp": "lager"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 135,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.688Z",
+    "flaeche_m2": "80.00",
+    "geaendert_am": "2026-03-04T12:54:41.688Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Lager 2 (Archivgut)",
+    "raumnummer": "K07",
+    "raumtyp": "lager"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 136,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.691Z",
+    "flaeche_m2": "120.00",
+    "geaendert_am": "2026-03-04T12:54:41.691Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Altarchiv",
+    "raumnummer": "K08",
+    "raumtyp": "archiv"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 137,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.693Z",
+    "flaeche_m2": "8.00",
+    "geaendert_am": "2026-03-04T12:54:41.693Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Putzraum Keller",
+    "raumnummer": "K09",
+    "raumtyp": "putzraum"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 138,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.696Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.696Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Abstellraum / Hausmeister",
+    "raumnummer": "K10",
+    "raumtyp": "abstellraum"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 139,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.698Z",
+    "flaeche_m2": "12.00",
+    "geaendert_am": "2026-03-04T12:54:41.698Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Herren Keller",
+    "raumnummer": "K11",
+    "raumtyp": "wc_herren"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 140,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.701Z",
+    "flaeche_m2": "12.00",
+    "geaendert_am": "2026-03-04T12:54:41.701Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Damen Keller",
+    "raumnummer": "K12",
+    "raumtyp": "wc_damen"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 141,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.703Z",
+    "flaeche_m2": "50.00",
+    "geaendert_am": "2026-03-04T12:54:41.703Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Lager 3 (Verbrauchsmaterial)",
+    "raumnummer": "K13",
+    "raumtyp": "lager"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 142,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.706Z",
+    "flaeche_m2": "30.00",
+    "geaendert_am": "2026-03-04T12:54:41.706Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Fahrrradkeller / Abstellflaeche",
+    "raumnummer": "K14",
+    "raumtyp": "abstellraum"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 143,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.708Z",
+    "flaeche_m2": "60.00",
+    "geaendert_am": "2026-03-04T12:54:41.708Z",
+    "geschoss": 10,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Flur Keller",
+    "raumnummer": "K15",
+    "raumtyp": "flur"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 144,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.710Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.710Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Haupteingang / Windfang",
+    "raumnummer": "E01",
+    "raumtyp": "windfang"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 145,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.713Z",
+    "flaeche_m2": "45.00",
+    "geaendert_am": "2026-03-04T12:54:41.713Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Empfangsbereich / Rezeption",
+    "raumnummer": "E02",
+    "raumtyp": "eingang"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 146,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.716Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.716Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 5,
+    "nutzungsmodell": "dynamisch",
+    "raumname": "Besprechungsraum EG-Klein 1",
+    "raumnummer": "E03",
+    "raumtyp": "besprechung"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 147,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.718Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.718Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 5,
+    "nutzungsmodell": "dynamisch",
+    "raumname": "Besprechungsraum EG-Klein 2",
+    "raumnummer": "E04",
+    "raumtyp": "besprechung"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 148,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.721Z",
+    "flaeche_m2": "80.00",
+    "geaendert_am": "2026-03-04T12:54:41.721Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 20,
+    "nutzungsmodell": "dynamisch",
+    "raumname": "Konferenzraum Hauptgebaeude",
+    "raumnummer": "E05",
+    "raumtyp": "konferenz"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 149,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.723Z",
+    "flaeche_m2": "60.00",
+    "geaendert_am": "2026-03-04T12:54:41.723Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 15,
+    "nutzungsmodell": "dynamisch",
+    "raumname": "Schulungsraum",
+    "raumnummer": "E06",
+    "raumtyp": "schulung"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 150,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.725Z",
+    "flaeche_m2": "30.00",
+    "geaendert_am": "2026-03-04T12:54:41.725Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Geschaeftsfuehrung",
+    "raumnummer": "E07",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 151,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.728Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.728Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Assistent/in Geschaeftsfuehrung",
+    "raumnummer": "E08",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 152,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.730Z",
+    "flaeche_m2": "25.00",
+    "geaendert_am": "2026-03-04T12:54:41.730Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Besprechungsraum Leitungsebene",
+    "raumnummer": "E09",
+    "raumtyp": "besprechung"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 153,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.733Z",
+    "flaeche_m2": "18.00",
+    "geaendert_am": "2026-03-04T12:54:41.733Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Teekueche EG",
+    "raumnummer": "E10",
+    "raumtyp": "teekueche"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 154,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.735Z",
+    "flaeche_m2": "40.00",
+    "geaendert_am": "2026-03-04T12:54:41.735Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Pausenraum / Kantine EG",
+    "raumnummer": "E11",
+    "raumtyp": "pausenraum"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 155,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.737Z",
+    "flaeche_m2": "12.00",
+    "geaendert_am": "2026-03-04T12:54:41.737Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Herren EG",
+    "raumnummer": "E12",
+    "raumtyp": "wc_herren"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 156,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.740Z",
+    "flaeche_m2": "12.00",
+    "geaendert_am": "2026-03-04T12:54:41.740Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Damen EG",
+    "raumnummer": "E13",
+    "raumtyp": "wc_damen"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 157,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.742Z",
+    "flaeche_m2": "15.00",
+    "geaendert_am": "2026-03-04T12:54:41.742Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Barrierefrei EG",
+    "raumnummer": "E14",
+    "raumtyp": "wc_barrierefrei"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 158,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.745Z",
+    "flaeche_m2": "15.00",
+    "geaendert_am": "2026-03-04T12:54:41.745Z",
+    "geschoss": 11,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Druckerraum / Kopiercenter EG",
+    "raumnummer": "E15",
+    "raumtyp": "druckerraum"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 159,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.747Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.747Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A1 (1.OG Nord)",
+    "raumnummer": "1A01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 160,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.750Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.750Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A2 (1.OG Nord)",
+    "raumnummer": "1A02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 161,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.752Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.752Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A3 (1.OG Nord)",
+    "raumnummer": "1A03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 162,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.754Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.754Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A4 (1.OG Nord)",
+    "raumnummer": "1A04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 163,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.757Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.757Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A5 (1.OG Nord)",
+    "raumnummer": "1A05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 164,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.759Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.759Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B1 (1.OG Sued)",
+    "raumnummer": "1B01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 165,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.762Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.762Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B2 (1.OG Sued)",
+    "raumnummer": "1B02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 166,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.764Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.764Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B3 (1.OG Sued)",
+    "raumnummer": "1B03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 167,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.767Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.767Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B4 (1.OG Sued)",
+    "raumnummer": "1B04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 168,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.769Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.769Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B5 (1.OG Sued)",
+    "raumnummer": "1B05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 169,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.771Z",
+    "flaeche_m2": "30.00",
+    "geaendert_am": "2026-03-04T12:54:41.771Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 7,
+    "nutzungsmodell": "dynamisch",
+    "raumname": "Besprechungsraum 1.OG",
+    "raumnummer": "1K01",
+    "raumtyp": "konferenz"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 170,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.774Z",
+    "flaeche_m2": "14.00",
+    "geaendert_am": "2026-03-04T12:54:41.774Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Teekueche 1.OG",
+    "raumnummer": "1K02",
+    "raumtyp": "teekueche"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 171,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.776Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.776Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Herren 1.OG",
+    "raumnummer": "1K03",
+    "raumtyp": "wc_herren"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 172,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.779Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.779Z",
+    "geschoss": 12,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Damen 1.OG",
+    "raumnummer": "1K04",
+    "raumtyp": "wc_damen"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 173,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.781Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.781Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A1 (2.OG Nord)",
+    "raumnummer": "2A01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 174,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.784Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.784Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A2 (2.OG Nord)",
+    "raumnummer": "2A02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 175,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.786Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.786Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A3 (2.OG Nord)",
+    "raumnummer": "2A03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 176,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.789Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.789Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A4 (2.OG Nord)",
+    "raumnummer": "2A04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 177,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.791Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.791Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A5 (2.OG Nord)",
+    "raumnummer": "2A05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 178,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.793Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.793Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B1 (2.OG Sued)",
+    "raumnummer": "2B01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 179,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.796Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.796Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B2 (2.OG Sued)",
+    "raumnummer": "2B02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 180,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.798Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.798Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B3 (2.OG Sued)",
+    "raumnummer": "2B03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 181,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.801Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.801Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B4 (2.OG Sued)",
+    "raumnummer": "2B04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 182,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.803Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.803Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B5 (2.OG Sued)",
+    "raumnummer": "2B05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 183,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.805Z",
+    "flaeche_m2": "30.00",
+    "geaendert_am": "2026-03-04T12:54:41.805Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 7,
+    "nutzungsmodell": "dynamisch",
+    "raumname": "Besprechungsraum 2.OG",
+    "raumnummer": "2K01",
+    "raumtyp": "konferenz"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 184,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.808Z",
+    "flaeche_m2": "14.00",
+    "geaendert_am": "2026-03-04T12:54:41.808Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Teekueche 2.OG",
+    "raumnummer": "2K02",
+    "raumtyp": "teekueche"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 185,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.810Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.810Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Herren 2.OG",
+    "raumnummer": "2K03",
+    "raumtyp": "wc_herren"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 186,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.813Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.813Z",
+    "geschoss": 13,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Damen 2.OG",
+    "raumnummer": "2K04",
+    "raumtyp": "wc_damen"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 187,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.815Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.815Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A1 (3.OG Nord)",
+    "raumnummer": "3A01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 188,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.818Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.818Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A2 (3.OG Nord)",
+    "raumnummer": "3A02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 189,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.820Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.820Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A3 (3.OG Nord)",
+    "raumnummer": "3A03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 190,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.822Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.822Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A4 (3.OG Nord)",
+    "raumnummer": "3A04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 191,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.825Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.825Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A5 (3.OG Nord)",
+    "raumnummer": "3A05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 192,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.827Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.827Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B1 (3.OG Sued)",
+    "raumnummer": "3B01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 193,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.830Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.830Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B2 (3.OG Sued)",
+    "raumnummer": "3B02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 194,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.832Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.832Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B3 (3.OG Sued)",
+    "raumnummer": "3B03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 195,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.835Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.835Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B4 (3.OG Sued)",
+    "raumnummer": "3B04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 196,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.837Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.837Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B5 (3.OG Sued)",
+    "raumnummer": "3B05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 197,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.839Z",
+    "flaeche_m2": "30.00",
+    "geaendert_am": "2026-03-04T12:54:41.839Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 7,
+    "nutzungsmodell": "dynamisch",
+    "raumname": "Besprechungsraum 3.OG",
+    "raumnummer": "3K01",
+    "raumtyp": "konferenz"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 198,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.842Z",
+    "flaeche_m2": "14.00",
+    "geaendert_am": "2026-03-04T12:54:41.842Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Teekueche 3.OG",
+    "raumnummer": "3K02",
+    "raumtyp": "teekueche"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 199,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.844Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.844Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Herren 3.OG",
+    "raumnummer": "3K03",
+    "raumtyp": "wc_herren"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 200,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.847Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.847Z",
+    "geschoss": 14,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Damen 3.OG",
+    "raumnummer": "3K04",
+    "raumtyp": "wc_damen"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 201,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.849Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.849Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A1 (4.OG Nord)",
+    "raumnummer": "4A01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 202,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.851Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.851Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A2 (4.OG Nord)",
+    "raumnummer": "4A02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 203,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.854Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.854Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A3 (4.OG Nord)",
+    "raumnummer": "4A03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 204,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.856Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.856Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A4 (4.OG Nord)",
+    "raumnummer": "4A04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 205,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.859Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.859Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A5 (4.OG Nord)",
+    "raumnummer": "4A05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 206,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.861Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.861Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B1 (4.OG Sued)",
+    "raumnummer": "4B01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 207,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.864Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.864Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B2 (4.OG Sued)",
+    "raumnummer": "4B02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 208,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.866Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.866Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B3 (4.OG Sued)",
+    "raumnummer": "4B03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 209,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.869Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.869Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B4 (4.OG Sued)",
+    "raumnummer": "4B04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 210,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.871Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.871Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B5 (4.OG Sued)",
+    "raumnummer": "4B05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 211,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.874Z",
+    "flaeche_m2": "30.00",
+    "geaendert_am": "2026-03-04T12:54:41.874Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 7,
+    "nutzungsmodell": "dynamisch",
+    "raumname": "Besprechungsraum 4.OG",
+    "raumnummer": "4K01",
+    "raumtyp": "konferenz"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 212,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.876Z",
+    "flaeche_m2": "14.00",
+    "geaendert_am": "2026-03-04T12:54:41.876Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Teekueche 4.OG",
+    "raumnummer": "4K02",
+    "raumtyp": "teekueche"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 213,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.878Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.878Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Herren 4.OG",
+    "raumnummer": "4K03",
+    "raumtyp": "wc_herren"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 214,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.881Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.881Z",
+    "geschoss": 15,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Damen 4.OG",
+    "raumnummer": "4K04",
+    "raumtyp": "wc_damen"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 215,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.884Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.884Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A1 (5.OG Nord)",
+    "raumnummer": "5A01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 216,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.886Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.886Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A2 (5.OG Nord)",
+    "raumnummer": "5A02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 217,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.889Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.889Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A3 (5.OG Nord)",
+    "raumnummer": "5A03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 218,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.891Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.891Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A4 (5.OG Nord)",
+    "raumnummer": "5A04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 219,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.893Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.893Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A5 (5.OG Nord)",
+    "raumnummer": "5A05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 220,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.896Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.896Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B1 (5.OG Sued)",
+    "raumnummer": "5B01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 221,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.898Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.898Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B2 (5.OG Sued)",
+    "raumnummer": "5B02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 222,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.901Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.901Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B3 (5.OG Sued)",
+    "raumnummer": "5B03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 223,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.903Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.903Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B4 (5.OG Sued)",
+    "raumnummer": "5B04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 224,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.906Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.906Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B5 (5.OG Sued)",
+    "raumnummer": "5B05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 225,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.908Z",
+    "flaeche_m2": "30.00",
+    "geaendert_am": "2026-03-04T12:54:41.908Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 7,
+    "nutzungsmodell": "dynamisch",
+    "raumname": "Besprechungsraum 5.OG",
+    "raumnummer": "5K01",
+    "raumtyp": "konferenz"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 226,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.910Z",
+    "flaeche_m2": "14.00",
+    "geaendert_am": "2026-03-04T12:54:41.910Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Teekueche 5.OG",
+    "raumnummer": "5K02",
+    "raumtyp": "teekueche"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 227,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.913Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.913Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Herren 5.OG",
+    "raumnummer": "5K03",
+    "raumtyp": "wc_herren"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 228,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.915Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.915Z",
+    "geschoss": 16,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Damen 5.OG",
+    "raumnummer": "5K04",
+    "raumtyp": "wc_damen"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 229,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.918Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.918Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A1 (6.OG Nord)",
+    "raumnummer": "6A01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 230,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.920Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.920Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A2 (6.OG Nord)",
+    "raumnummer": "6A02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 231,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.922Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.922Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A3 (6.OG Nord)",
+    "raumnummer": "6A03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 232,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.925Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.925Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A4 (6.OG Nord)",
+    "raumnummer": "6A04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 233,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.927Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.927Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A5 (6.OG Nord)",
+    "raumnummer": "6A05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 234,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.930Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.930Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B1 (6.OG Sued)",
+    "raumnummer": "6B01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 235,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.932Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.932Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B2 (6.OG Sued)",
+    "raumnummer": "6B02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 236,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.935Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.935Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B3 (6.OG Sued)",
+    "raumnummer": "6B03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 237,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.937Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.937Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B4 (6.OG Sued)",
+    "raumnummer": "6B04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 238,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.940Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.940Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B5 (6.OG Sued)",
+    "raumnummer": "6B05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 239,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.942Z",
+    "flaeche_m2": "30.00",
+    "geaendert_am": "2026-03-04T12:54:41.942Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 7,
+    "nutzungsmodell": "dynamisch",
+    "raumname": "Besprechungsraum 6.OG",
+    "raumnummer": "6K01",
+    "raumtyp": "konferenz"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 240,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.944Z",
+    "flaeche_m2": "14.00",
+    "geaendert_am": "2026-03-04T12:54:41.944Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Teekueche 6.OG",
+    "raumnummer": "6K02",
+    "raumtyp": "teekueche"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 241,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.947Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.947Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Herren 6.OG",
+    "raumnummer": "6K03",
+    "raumtyp": "wc_herren"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 242,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.950Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.950Z",
+    "geschoss": 17,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Damen 6.OG",
+    "raumnummer": "6K04",
+    "raumtyp": "wc_damen"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 243,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.952Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.952Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A1 (7.OG Nord)",
+    "raumnummer": "7A01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 244,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.955Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.955Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A2 (7.OG Nord)",
+    "raumnummer": "7A02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 245,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.957Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.957Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A3 (7.OG Nord)",
+    "raumnummer": "7A03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 246,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.959Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.959Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A4 (7.OG Nord)",
+    "raumnummer": "7A04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 247,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.962Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.962Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero A5 (7.OG Nord)",
+    "raumnummer": "7A05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 248,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.965Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.965Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B1 (7.OG Sued)",
+    "raumnummer": "7B01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 249,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.967Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.967Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B2 (7.OG Sued)",
+    "raumnummer": "7B02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 250,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.969Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.969Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B3 (7.OG Sued)",
+    "raumnummer": "7B03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 251,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.972Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.972Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B4 (7.OG Sued)",
+    "raumnummer": "7B04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 252,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.974Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:41.974Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Buero B5 (7.OG Sued)",
+    "raumnummer": "7B05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 253,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.976Z",
+    "flaeche_m2": "30.00",
+    "geaendert_am": "2026-03-04T12:54:41.976Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": 7,
+    "nutzungsmodell": "dynamisch",
+    "raumname": "Besprechungsraum 7.OG",
+    "raumnummer": "7K01",
+    "raumtyp": "konferenz"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 254,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.979Z",
+    "flaeche_m2": "14.00",
+    "geaendert_am": "2026-03-04T12:54:41.979Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "Teekueche 7.OG",
+    "raumnummer": "7K02",
+    "raumtyp": "teekueche"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 255,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.981Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.981Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Herren 7.OG",
+    "raumnummer": "7K03",
+    "raumtyp": "wc_herren"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 256,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:41.984Z",
+    "flaeche_m2": "10.00",
+    "geaendert_am": "2026-03-04T12:54:41.984Z",
+    "geschoss": 18,
+    "ist_aktiv": true,
+    "ist_leer": false,
+    "kapazitaet": null,
+    "nutzungsmodell": "statisch",
+    "raumname": "WC Damen 7.OG",
+    "raumnummer": "7K04",
+    "raumtyp": "wc_damen"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 257,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.318Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.318Z",
+    "geschoss": 19,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A1 (EG)",
+    "raumnummer": "REGA01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 258,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.320Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.320Z",
+    "geschoss": 19,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A2 (EG)",
+    "raumnummer": "REGA02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 259,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.323Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.323Z",
+    "geschoss": 19,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A3 (EG)",
+    "raumnummer": "REGA03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 260,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.325Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.325Z",
+    "geschoss": 19,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A4 (EG)",
+    "raumnummer": "REGA04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 261,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.327Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.327Z",
+    "geschoss": 19,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A5 (EG)",
+    "raumnummer": "REGA05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 262,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.330Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.330Z",
+    "geschoss": 19,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B1 (EG)",
+    "raumnummer": "REGB01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 263,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.333Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.333Z",
+    "geschoss": 19,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B2 (EG)",
+    "raumnummer": "REGB02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 264,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.335Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.335Z",
+    "geschoss": 19,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B3 (EG)",
+    "raumnummer": "REGB03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 265,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.337Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.337Z",
+    "geschoss": 19,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B4 (EG)",
+    "raumnummer": "REGB04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 266,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.339Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.339Z",
+    "geschoss": 19,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B5 (EG)",
+    "raumnummer": "REGB05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 267,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.344Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.344Z",
+    "geschoss": 20,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A1 (1)",
+    "raumnummer": "R1A01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 268,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.347Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.347Z",
+    "geschoss": 20,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A2 (1)",
+    "raumnummer": "R1A02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 269,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.350Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.350Z",
+    "geschoss": 20,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A3 (1)",
+    "raumnummer": "R1A03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 270,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.352Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.352Z",
+    "geschoss": 20,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A4 (1)",
+    "raumnummer": "R1A04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 271,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.354Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.354Z",
+    "geschoss": 20,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A5 (1)",
+    "raumnummer": "R1A05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 272,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.357Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.357Z",
+    "geschoss": 20,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B1 (1)",
+    "raumnummer": "R1B01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 273,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.359Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.359Z",
+    "geschoss": 20,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B2 (1)",
+    "raumnummer": "R1B02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 274,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.361Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.361Z",
+    "geschoss": 20,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B3 (1)",
+    "raumnummer": "R1B03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 275,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.364Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.364Z",
+    "geschoss": 20,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B4 (1)",
+    "raumnummer": "R1B04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 276,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.366Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.366Z",
+    "geschoss": 20,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B5 (1)",
+    "raumnummer": "R1B05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 277,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.371Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.371Z",
+    "geschoss": 21,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A1 (2)",
+    "raumnummer": "R2A01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 278,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.373Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.373Z",
+    "geschoss": 21,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A2 (2)",
+    "raumnummer": "R2A02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 279,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.375Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.375Z",
+    "geschoss": 21,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A3 (2)",
+    "raumnummer": "R2A03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 280,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.378Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.378Z",
+    "geschoss": 21,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A4 (2)",
+    "raumnummer": "R2A04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 281,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.380Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.380Z",
+    "geschoss": 21,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A5 (2)",
+    "raumnummer": "R2A05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 282,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.383Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.383Z",
+    "geschoss": 21,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B1 (2)",
+    "raumnummer": "R2B01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 283,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.385Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.385Z",
+    "geschoss": 21,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B2 (2)",
+    "raumnummer": "R2B02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 284,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.387Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.387Z",
+    "geschoss": 21,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B3 (2)",
+    "raumnummer": "R2B03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 285,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.390Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.390Z",
+    "geschoss": 21,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B4 (2)",
+    "raumnummer": "R2B04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 286,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.393Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.393Z",
+    "geschoss": 21,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B5 (2)",
+    "raumnummer": "R2B05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 287,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.398Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.398Z",
+    "geschoss": 22,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A1 (3)",
+    "raumnummer": "R3A01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 288,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.400Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.400Z",
+    "geschoss": 22,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A2 (3)",
+    "raumnummer": "R3A02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 289,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.402Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.402Z",
+    "geschoss": 22,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A3 (3)",
+    "raumnummer": "R3A03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 290,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.405Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.405Z",
+    "geschoss": 22,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A4 (3)",
+    "raumnummer": "R3A04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 291,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.407Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.407Z",
+    "geschoss": 22,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A5 (3)",
+    "raumnummer": "R3A05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 292,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.410Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.410Z",
+    "geschoss": 22,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B1 (3)",
+    "raumnummer": "R3B01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 293,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.412Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.412Z",
+    "geschoss": 22,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B2 (3)",
+    "raumnummer": "R3B02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 294,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.415Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.415Z",
+    "geschoss": 22,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B3 (3)",
+    "raumnummer": "R3B03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 295,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.417Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.417Z",
+    "geschoss": 22,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B4 (3)",
+    "raumnummer": "R3B04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 296,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.420Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.420Z",
+    "geschoss": 22,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B5 (3)",
+    "raumnummer": "R3B05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 297,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.425Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.425Z",
+    "geschoss": 23,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A1 (4)",
+    "raumnummer": "R4A01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 298,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.427Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.427Z",
+    "geschoss": 23,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A2 (4)",
+    "raumnummer": "R4A02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 299,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.430Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.430Z",
+    "geschoss": 23,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A3 (4)",
+    "raumnummer": "R4A03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 300,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.432Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.432Z",
+    "geschoss": 23,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A4 (4)",
+    "raumnummer": "R4A04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 301,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.435Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.435Z",
+    "geschoss": 23,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero A5 (4)",
+    "raumnummer": "R4A05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 302,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.437Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.437Z",
+    "geschoss": 23,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B1 (4)",
+    "raumnummer": "R4B01",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 303,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.440Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.440Z",
+    "geschoss": 23,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B2 (4)",
+    "raumnummer": "R4B02",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 304,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.442Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.442Z",
+    "geschoss": 23,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B3 (4)",
+    "raumnummer": "R4B03",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 305,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.444Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.444Z",
+    "geschoss": 23,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B4 (4)",
+    "raumnummer": "R4B04",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.raum",
+  "pk": 306,
+  "fields": {
+    "bereich": null,
+    "beschreibung": "",
+    "erstellt_am": "2026-03-04T12:54:42.447Z",
+    "flaeche_m2": "20.00",
+    "geaendert_am": "2026-03-04T12:54:42.447Z",
+    "geschoss": 23,
+    "ist_aktiv": true,
+    "ist_leer": true,
+    "kapazitaet": 2,
+    "nutzungsmodell": "statisch",
+    "raumname": "Reserve-Buero B5 (4)",
+    "raumnummer": "R4B05",
+    "raumtyp": "einzelbuero"
+  }
+},
+{
+  "model": "raumbuch.zutrittsprofil",
+  "pk": 1,
+  "fields": {
+    "beschreibung": "Zugang zu Bueros, EG und Fluren",
+    "bezeichnung": "Allgemeiner Zugang",
+    "raeume": [
+      150,
+      151,
+      257,
+      258,
+      259,
+      260,
+      261,
+      262,
+      263,
+      264,
+      265,
+      266,
+      159,
+      160,
+      161,
+      162,
+      163,
+      164,
+      165,
+      166,
+      167,
+      168,
+      267,
+      268,
+      269,
+      270,
+      271,
+      272,
+      273,
+      274,
+      275,
+      276,
+      173,
+      174,
+      175,
+      176,
+      177,
+      178,
+      179,
+      180,
+      181,
+      182,
+      277,
+      278,
+      279,
+      280,
+      281,
+      282,
+      283,
+      284,
+      285,
+      286,
+      187,
+      188,
+      189,
+      190,
+      191,
+      192,
+      193,
+      194,
+      195,
+      196,
+      287,
+      288,
+      289,
+      290,
+      291,
+      292,
+      293,
+      294,
+      295,
+      296,
+      201,
+      202,
+      203,
+      204,
+      205,
+      206,
+      207,
+      208,
+      209,
+      210,
+      297,
+      298,
+      299,
+      300,
+      301,
+      302,
+      303,
+      304,
+      305,
+      306,
+      215,
+      216,
+      217,
+      218,
+      219,
+      220,
+      221,
+      222,
+      223,
+      224,
+      229,
+      230,
+      231,
+      232,
+      233,
+      234,
+      235,
+      236,
+      237,
+      238,
+      243,
+      244,
+      245,
+      246,
+      247,
+      248,
+      249,
+      250,
+      251,
+      252
+    ]
+  }
+},
+{
+  "model": "raumbuch.zutrittsprofil",
+  "pk": 2,
+  "fields": {
+    "beschreibung": "Vollzugang inklusive Serverraeume und Verteiler",
+    "bezeichnung": "IT-Administrator",
+    "raeume": [
+      131,
+      132,
+      133,
+      150,
+      151,
+      257,
+      258,
+      259,
+      260,
+      261,
+      262,
+      263,
+      264,
+      265,
+      266,
+      159,
+      160,
+      161,
+      162,
+      163,
+      164,
+      165,
+      166,
+      167,
+      168,
+      267,
+      268,
+      269,
+      270,
+      271,
+      272,
+      273,
+      274,
+      275,
+      276,
+      173,
+      174,
+      175,
+      176,
+      177,
+      178,
+      179,
+      180,
+      181,
+      182,
+      277,
+      278,
+      279,
+      280,
+      281,
+      282,
+      283,
+      284,
+      285,
+      286,
+      187,
+      188,
+      189,
+      190,
+      191,
+      192,
+      193,
+      194,
+      195,
+      196,
+      287,
+      288,
+      289,
+      290,
+      291,
+      292,
+      293,
+      294,
+      295,
+      296,
+      201,
+      202,
+      203,
+      204,
+      205,
+      206,
+      207,
+      208,
+      209,
+      210,
+      297,
+      298,
+      299,
+      300,
+      301,
+      302,
+      303,
+      304,
+      305,
+      306,
+      215,
+      216,
+      217,
+      218,
+      219,
+      220,
+      221,
+      222,
+      223,
+      224,
+      229,
+      230,
+      231,
+      232,
+      233,
+      234,
+      235,
+      236,
+      237,
+      238,
+      243,
+      244,
+      245,
+      246,
+      247,
+      248,
+      249,
+      250,
+      251,
+      252
+    ]
+  }
+},
+{
+  "model": "raumbuch.zutrittsprofil",
+  "pk": 3,
+  "fields": {
+    "beschreibung": "Zugang zu GF-Bueros und Konferenzraum EG",
+    "bezeichnung": "Leitungsebene EG",
+    "raeume": [
+      144,
+      145,
+      146,
+      147,
+      148,
+      149,
+      150,
+      151,
+      152,
+      153,
+      154,
+      155,
+      156,
+      157,
+      158,
+      257,
+      258,
+      259,
+      260,
+      261,
+      262,
+      263,
+      264,
+      265,
+      266
+    ]
+  }
+},
+{
+  "model": "raumbuch.schluessel",
+  "pk": 1,
+  "fields": {
+    "anzahl_kopien": 3,
+    "bezeichnung": "Generalschluessel Gebaeude A",
+    "schliessanlage": "TS-2000",
+    "schliessanlage_typ": "general",
+    "schluesselnummer": "GEN-001",
+    "raeume": [
+      129,
+      130,
+      131,
+      132,
+      133,
+      134,
+      135,
+      136,
+      137,
+      138,
+      139,
+      140,
+      141,
+      142,
+      143,
+      144,
+      145,
+      146,
+      147,
+      148,
+      149,
+      150,
+      151,
+      152,
+      153,
+      154,
+      155,
+      156,
+      157,
+      158,
+      159,
+      160,
+      161,
+      162,
+      163,
+      164,
+      165,
+      166,
+      167,
+      168,
+      169,
+      170,
+      171,
+      172,
+      173,
+      174,
+      175,
+      176,
+      177,
+      178,
+      179,
+      180,
+      181,
+      182,
+      183,
+      184,
+      185,
+      186,
+      187,
+      188,
+      189,
+      190,
+      191,
+      192,
+      193,
+      194,
+      195,
+      196,
+      197,
+      198,
+      199,
+      200,
+      201,
+      202,
+      203,
+      204,
+      205,
+      206,
+      207,
+      208,
+      209,
+      210,
+      211,
+      212,
+      213,
+      214,
+      215,
+      216,
+      217,
+      218,
+      219,
+      220,
+      221,
+      222,
+      223,
+      224,
+      225,
+      226,
+      227,
+      228,
+      229,
+      230,
+      231,
+      232,
+      233,
+      234,
+      235,
+      236,
+      237,
+      238,
+      239,
+      240,
+      241,
+      242,
+      243,
+      244,
+      245,
+      246,
+      247,
+      248,
+      249,
+      250,
+      251,
+      252,
+      253,
+      254,
+      255,
+      256
+    ]
+  }
+},
+{
+  "model": "raumbuch.schluessel",
+  "pk": 2,
+  "fields": {
+    "anzahl_kopien": 5,
+    "bezeichnung": "Kellerschluessel",
+    "schliessanlage": "TS-2000",
+    "schliessanlage_typ": "gruppe",
+    "schluesselnummer": "GRP-UG",
+    "raeume": [
+      129,
+      130,
+      131,
+      132,
+      133,
+      134,
+      135,
+      136,
+      137,
+      138,
+      139,
+      140,
+      141,
+      142,
+      143
+    ]
+  }
+},
+{
+  "model": "raumbuch.schluessel",
+  "pk": 3,
+  "fields": {
+    "anzahl_kopien": 8,
+    "bezeichnung": "Erdgeschoss-Schluessel",
+    "schliessanlage": "TS-2000",
+    "schliessanlage_typ": "gruppe",
+    "schluesselnummer": "GRP-EG",
+    "raeume": [
+      144,
+      145,
+      146,
+      147,
+      148,
+      149,
+      150,
+      151,
+      152,
+      153,
+      154,
+      155,
+      156,
+      157,
+      158
+    ]
+  }
+},
+{
+  "model": "raumbuch.schluessel",
+  "pk": 4,
+  "fields": {
+    "anzahl_kopien": 2,
+    "bezeichnung": "Schluessel Serverraum",
+    "schliessanlage": "TS-2000",
+    "schliessanlage_typ": "einzel",
+    "schluesselnummer": "SRV-001",
+    "raeume": [
+      132
+    ]
+  }
+},
+{
+  "model": "raumbuch.schluessel",
+  "pk": 5,
+  "fields": {
+    "anzahl_kopien": 2,
+    "bezeichnung": "Schluessel Elektroverteiler",
+    "schliessanlage": "TS-2000",
+    "schliessanlage_typ": "einzel",
+    "schluesselnummer": "ELK-001",
+    "raeume": [
+      131
+    ]
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 1,
+  "fields": {
+    "intervall": "monatlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 129,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 2,
+  "fields": {
+    "intervall": "monatlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 130,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 3,
+  "fields": {
+    "intervall": "monatlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 131,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 4,
+  "fields": {
+    "intervall": "monatlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 132,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 5,
+  "fields": {
+    "intervall": "monatlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 133,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 6,
+  "fields": {
+    "intervall": "monatlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 134,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 7,
+  "fields": {
+    "intervall": "monatlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 135,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 8,
+  "fields": {
+    "intervall": "monatlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 136,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 9,
+  "fields": {
+    "intervall": "monatlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 137,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 10,
+  "fields": {
+    "intervall": "monatlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 138,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 11,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 139,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 12,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 140,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 13,
+  "fields": {
+    "intervall": "monatlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 141,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 14,
+  "fields": {
+    "intervall": "monatlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 142,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 15,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 143,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 16,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 144,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 17,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 145,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 18,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 146,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 19,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 147,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 20,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 148,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 21,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 149,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 22,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 150,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 23,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 151,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 24,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 152,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 25,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 153,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 26,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 154,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 27,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 155,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 28,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 156,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 29,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 157,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 30,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 158,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 31,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 257,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 32,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 258,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 33,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 259,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 34,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 260,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 35,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 261,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 36,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 262,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 37,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 263,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 38,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 264,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 39,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 265,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 40,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 266,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 41,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 159,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 42,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 160,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 43,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 161,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 44,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 162,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 45,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 163,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 46,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 164,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 47,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 165,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 48,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 166,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 49,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 167,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 50,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 168,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 51,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 169,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 52,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 170,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 53,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 171,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 54,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 172,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 55,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 267,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 56,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 268,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 57,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 269,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 58,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 270,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 59,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 271,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 60,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 272,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 61,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 273,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 62,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 274,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 63,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 275,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 64,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 276,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 65,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 173,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 66,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 174,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 67,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 175,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 68,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 176,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 69,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 177,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 70,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 178,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 71,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 179,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 72,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 180,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 73,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 181,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 74,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 182,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 75,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 183,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 76,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 184,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 77,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 185,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 78,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 186,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 79,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 277,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 80,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 278,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 81,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 279,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 82,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 280,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 83,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 281,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 84,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 282,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 85,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 283,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 86,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 284,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 87,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 285,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 88,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 286,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 89,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 187,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 90,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 188,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 91,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 189,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 92,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 190,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 93,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 191,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 94,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 192,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 95,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 193,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 96,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 194,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 97,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 195,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 98,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 196,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 99,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 197,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 100,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 198,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 101,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 199,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 102,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 200,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 103,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 287,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 104,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 288,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 105,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 289,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 106,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 290,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 107,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 291,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 108,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 292,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 109,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 293,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 110,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 294,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 111,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 295,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 112,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 296,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 113,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 201,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 114,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 202,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 115,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 203,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 116,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 204,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 117,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 205,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 118,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 206,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 119,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 207,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 120,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 208,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 121,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 209,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 122,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 210,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 123,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 211,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 124,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 212,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 125,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 213,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 126,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 214,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 127,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 297,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 128,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 298,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 129,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 299,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 130,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 300,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 131,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 301,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 132,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 302,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 133,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 303,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 134,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 304,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 135,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 305,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 136,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 306,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 137,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 215,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 138,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 216,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 139,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 217,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 140,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 218,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 141,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 219,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 142,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 220,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 143,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 221,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 144,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 222,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 145,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 223,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 146,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 224,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 147,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 225,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 148,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 226,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 149,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 227,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 150,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 228,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 151,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 229,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 152,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 230,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 153,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 231,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 154,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 232,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 155,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 233,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 156,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 234,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 157,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 235,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 158,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 236,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 159,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 237,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 160,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 238,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 161,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 239,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 162,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 240,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 163,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 241,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 164,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 242,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 165,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 243,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 166,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 244,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 167,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 245,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 168,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 246,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 169,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 247,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 170,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 248,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 171,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 249,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 172,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 250,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 173,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 251,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 174,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 252,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 175,
+  "fields": {
+    "intervall": "woechentlich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 253,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 176,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 254,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 177,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 255,
+    "zustaendig": "Reinigungsdienst"
+  }
+},
+{
+  "model": "raumbuch.reinigungsplan",
+  "pk": 178,
+  "fields": {
+    "intervall": "taeglich",
+    "letzte_reinigung": "2026-03-03",
+    "methode": "",
+    "raum": 256,
+    "zustaendig": "Reinigungsdienst"
+  }
+}
+]

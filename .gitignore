@@ -64,5 +64,7 @@ Thumbs.db
 # Daten-Exports
 *.json
 !requirements.txt
+# Fixtures explizit einschliessen (trotz *.json Ausschluss)
+!*/fixtures/*.json
 Sicherungsdateien/
 "@ | Out-File -FilePath .gitignore -Encoding UTF8

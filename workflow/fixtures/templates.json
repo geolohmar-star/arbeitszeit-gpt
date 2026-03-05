@@ -1,0 +1,990 @@
+[
+  {
+    "model": "workflow.workflowtemplate",
+    "pk": 7,
+    "fields": {
+      "name": "Zeitgutschrift",
+      "beschreibung": "",
+      "kategorie": "genehmigung",
+      "trigger_event": "zeitgutschrift_erstellt",
+      "ist_aktiv": true,
+      "erstellt_am": "2026-02-27T06:03:24.930Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-03-01T23:26:34.994Z",
+      "version": 1,
+      "edges_data": [
+        {
+          "to": "node_84",
+          "from": "antrag_start",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        },
+        {
+          "to": "node_85",
+          "from": "node_84",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        },
+        {
+          "to": "node_86",
+          "from": "node_85",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        },
+        {
+          "to": "node_87",
+          "from": "node_86",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        },
+        {
+          "to": "node_88",
+          "from": "node_87",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        }
+      ],
+      "ist_graph_workflow": false
+    }
+  },
+  {
+    "model": "workflow.workflowtemplate",
+    "pk": 8,
+    "fields": {
+      "name": "Zeitgutschrift abzweigung",
+      "beschreibung": "",
+      "kategorie": "genehmigung",
+      "trigger_event": "zeitgutschrift_erstellt",
+      "ist_aktiv": false,
+      "erstellt_am": "2026-02-27T12:34:25.761Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-02-27T12:34:25.761Z",
+      "version": 1,
+      "edges_data": [
+        {
+          "to": "node_64",
+          "from": "antrag_start",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        },
+        {
+          "to": "node_65",
+          "from": "node_64",
+          "config": {
+            "label": "mehr wie 10",
+            "edgeId": "edge_node_64_node_65",
+            "prioritaet": 1,
+            "bedingung_typ": "feld_wert",
+            "bedingung_feld": "Stunden",
+            "bedingung_wert": "10",
+            "bedingung_operator": ">",
+            "bedingung_python_code": "",
+            "bedingung_entscheidung": "genehmigt"
+          }
+        },
+        {
+          "to": "node_66",
+          "from": "node_65",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        },
+        {
+          "to": "node_67",
+          "from": "node_66",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        },
+        {
+          "to": "node_68",
+          "from": "node_67",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        },
+        {
+          "to": "node_66",
+          "from": "node_64",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        }
+      ],
+      "ist_graph_workflow": true
+    }
+  },
+  {
+    "model": "workflow.workflowtemplate",
+    "pk": 9,
+    "fields": {
+      "name": "Dienstreiseantrag",
+      "beschreibung": "Dienstreiseantrag",
+      "kategorie": "genehmigung",
+      "trigger_event": "dienstreise_erstellt",
+      "ist_aktiv": true,
+      "erstellt_am": "2026-03-01T17:29:34.599Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-03-01T17:29:34.599Z",
+      "version": 1,
+      "edges_data": [
+        {
+          "to": "node_1",
+          "from": "antrag_start",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        },
+        {
+          "to": "node_2",
+          "from": "node_1",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        },
+        {
+          "to": "node_3",
+          "from": "node_2",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        },
+        {
+          "to": "node_4",
+          "from": "node_3",
+          "config": {
+            "bedingung_typ": "immer"
+          }
+        }
+      ],
+      "ist_graph_workflow": false
+    }
+  },
+  {
+    "model": "workflow.workflowtemplate",
+    "pk": 10,
+    "fields": {
+      "name": "Z-AG Standard",
+      "beschreibung": "Standard-Workflow fuer Z-AG Standard",
+      "kategorie": "genehmigung",
+      "trigger_event": "zag_antrag_erstellt",
+      "ist_aktiv": true,
+      "erstellt_am": "2026-03-01T21:41:19.344Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-03-01T21:41:19.344Z",
+      "version": 1,
+      "edges_data": null,
+      "ist_graph_workflow": false
+    }
+  },
+  {
+    "model": "workflow.workflowtemplate",
+    "pk": 11,
+    "fields": {
+      "name": "Aenderung Zeiterfassung",
+      "beschreibung": "Standard-Workflow fuer Aenderung Zeiterfassung",
+      "kategorie": "genehmigung",
+      "trigger_event": "aenderung_erstellt",
+      "ist_aktiv": true,
+      "erstellt_am": "2026-03-01T21:41:19.349Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-03-01T21:41:19.349Z",
+      "version": 1,
+      "edges_data": null,
+      "ist_graph_workflow": false
+    }
+  },
+  {
+    "model": "workflow.workflowtemplate",
+    "pk": 12,
+    "fields": {
+      "name": "Z-AG Storno",
+      "beschreibung": "Standard-Workflow fuer Z-AG Storno",
+      "kategorie": "genehmigung",
+      "trigger_event": "zag_storno_erstellt",
+      "ist_aktiv": true,
+      "erstellt_am": "2026-03-01T21:41:19.353Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-03-01T21:41:19.353Z",
+      "version": 1,
+      "edges_data": null,
+      "ist_graph_workflow": false
+    }
+  },
+  {
+    "model": "workflow.workflowtemplate",
+    "pk": 14,
+    "fields": {
+      "name": "Facility – Sanitaer / Heizung",
+      "beschreibung": "Automatischer Workflow fuer Stoermeldungen der Kategorie Sanitaer / Heizung.",
+      "kategorie": "bearbeitung",
+      "trigger_event": "stoermeldung_sanitaer_heizung_erstellt",
+      "ist_aktiv": true,
+      "erstellt_am": "2026-03-04T07:43:59.541Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-03-04T07:43:59.541Z",
+      "version": 1,
+      "edges_data": null,
+      "ist_graph_workflow": false
+    }
+  },
+  {
+    "model": "workflow.workflowtemplate",
+    "pk": 15,
+    "fields": {
+      "name": "Facility – Schlosser",
+      "beschreibung": "Automatischer Workflow fuer Stoermeldungen der Kategorie Schlosser.",
+      "kategorie": "bearbeitung",
+      "trigger_event": "stoermeldung_schlosser_erstellt",
+      "ist_aktiv": true,
+      "erstellt_am": "2026-03-04T07:43:59.547Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-03-04T07:43:59.547Z",
+      "version": 1,
+      "edges_data": null,
+      "ist_graph_workflow": false
+    }
+  },
+  {
+    "model": "workflow.workflowtemplate",
+    "pk": 16,
+    "fields": {
+      "name": "Facility – Schreiner",
+      "beschreibung": "Automatischer Workflow fuer Stoermeldungen der Kategorie Schreiner.",
+      "kategorie": "bearbeitung",
+      "trigger_event": "stoermeldung_schreiner_erstellt",
+      "ist_aktiv": true,
+      "erstellt_am": "2026-03-04T07:43:59.553Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-03-04T07:43:59.553Z",
+      "version": 1,
+      "edges_data": null,
+      "ist_graph_workflow": false
+    }
+  },
+  {
+    "model": "workflow.workflowtemplate",
+    "pk": 17,
+    "fields": {
+      "name": "Facility – Maler",
+      "beschreibung": "Automatischer Workflow fuer Stoermeldungen der Kategorie Maler.",
+      "kategorie": "bearbeitung",
+      "trigger_event": "stoermeldung_maler_erstellt",
+      "ist_aktiv": true,
+      "erstellt_am": "2026-03-04T07:43:59.559Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-03-04T07:43:59.559Z",
+      "version": 1,
+      "edges_data": null,
+      "ist_graph_workflow": false
+    }
+  },
+  {
+    "model": "workflow.workflowtemplate",
+    "pk": 18,
+    "fields": {
+      "name": "Facility - Elektro",
+      "beschreibung": "Automatischer Workflow fuer Stoermeldungen der Kategorie elektro",
+      "kategorie": "genehmigung",
+      "trigger_event": "stoermeldung_elektro_erstellt",
+      "ist_aktiv": true,
+      "erstellt_am": "2026-03-04T08:54:00.746Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-03-04T08:54:00.746Z",
+      "version": 1,
+      "edges_data": null,
+      "ist_graph_workflow": false
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 69,
+    "fields": {
+      "template": 8,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "Teamleiter prüfen",
+      "beschreibung": "Teamleiter prüfen",
+      "aktion_typ": "pruefen",
+      "zustaendig_rolle": "direkte_fuehrungskraft",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 70,
+    "fields": {
+      "template": 8,
+      "reihenfolge": 2,
+      "schritt_typ": "task",
+      "titel": "Abteilungsleiter",
+      "beschreibung": "genehmigen",
+      "aktion_typ": "genehmigen",
+      "zustaendig_rolle": "abteilungsleitung",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 71,
+    "fields": {
+      "template": 8,
+      "reihenfolge": 3,
+      "schritt_typ": "task",
+      "titel": "ZG Team genhemigen",
+      "beschreibung": "ZG Team genhemigen",
+      "aktion_typ": "genehmigen",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 72,
+    "fields": {
+      "template": 8,
+      "reihenfolge": 4,
+      "schritt_typ": "task",
+      "titel": "team ZE",
+      "beschreibung": "ZE bearbeiten",
+      "aktion_typ": "bearbeiten",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 73,
+    "fields": {
+      "template": 8,
+      "reihenfolge": 5,
+      "schritt_typ": "task",
+      "titel": "Antragsteller",
+      "beschreibung": "",
+      "aktion_typ": "pruefen",
+      "zustaendig_rolle": "antragsteller",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 74,
+    "fields": {
+      "template": 9,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "AL prüfen",
+      "beschreibung": "AL prüft",
+      "aktion_typ": "pruefen",
+      "zustaendig_rolle": "abteilungsleitung",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 75,
+    "fields": {
+      "template": 9,
+      "reihenfolge": 2,
+      "schritt_typ": "task",
+      "titel": "BL genehmigt",
+      "beschreibung": "BL genehmigt",
+      "aktion_typ": "genehmigen",
+      "zustaendig_rolle": "bereichsleitung",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 76,
+    "fields": {
+      "template": 9,
+      "reihenfolge": 3,
+      "schritt_typ": "task",
+      "titel": "Stapel RM",
+      "beschreibung": "Arbeitsstapel Reisemanagement",
+      "aktion_typ": "bearbeiten",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 2,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 77,
+    "fields": {
+      "template": 9,
+      "reihenfolge": 4,
+      "schritt_typ": "task",
+      "titel": "Antragsteller",
+      "beschreibung": "Antragsteller prüft",
+      "aktion_typ": "pruefen",
+      "zustaendig_rolle": "antragsteller",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 78,
+    "fields": {
+      "template": 10,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "Vorgesetzter genehmigt",
+      "beschreibung": "Der direkte Vorgesetzte prueft und genehmigt den Antrag.",
+      "aktion_typ": "genehmigen",
+      "zustaendig_rolle": "direkter_vorgesetzter",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 79,
+    "fields": {
+      "template": 10,
+      "reihenfolge": 2,
+      "schritt_typ": "task",
+      "titel": "Zeiterfassungs-Team bearbeitet",
+      "beschreibung": "Das zustaendige Team bucht den Antrag und schliesst ihn ab.",
+      "aktion_typ": "bearbeiten",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 1,
+      "frist_tage": 5,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 80,
+    "fields": {
+      "template": 11,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "Vorgesetzter genehmigt",
+      "beschreibung": "Der direkte Vorgesetzte prueft und genehmigt den Antrag.",
+      "aktion_typ": "genehmigen",
+      "zustaendig_rolle": "direkter_vorgesetzter",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 81,
+    "fields": {
+      "template": 11,
+      "reihenfolge": 2,
+      "schritt_typ": "task",
+      "titel": "Zeiterfassungs-Team bearbeitet",
+      "beschreibung": "Das zustaendige Team bucht den Antrag und schliesst ihn ab.",
+      "aktion_typ": "bearbeiten",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 1,
+      "frist_tage": 5,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 82,
+    "fields": {
+      "template": 12,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "Vorgesetzter genehmigt",
+      "beschreibung": "Der direkte Vorgesetzte prueft und genehmigt den Antrag.",
+      "aktion_typ": "genehmigen",
+      "zustaendig_rolle": "direkter_vorgesetzter",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 83,
+    "fields": {
+      "template": 12,
+      "reihenfolge": 2,
+      "schritt_typ": "task",
+      "titel": "Zeiterfassungs-Team bearbeitet",
+      "beschreibung": "Das zustaendige Team bucht den Antrag und schliesst ihn ab.",
+      "aktion_typ": "bearbeiten",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 1,
+      "frist_tage": 5,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 89,
+    "fields": {
+      "template": 7,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "Teamleiter prüfen",
+      "beschreibung": "Teamleiter prüfen",
+      "aktion_typ": "pruefen",
+      "zustaendig_rolle": "direkte_fuehrungskraft",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 90,
+    "fields": {
+      "template": 7,
+      "reihenfolge": 2,
+      "schritt_typ": "task",
+      "titel": "Abteilungsleiter",
+      "beschreibung": "genehmigen",
+      "aktion_typ": "genehmigen",
+      "zustaendig_rolle": "abteilungsleitung",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 91,
+    "fields": {
+      "template": 7,
+      "reihenfolge": 3,
+      "schritt_typ": "task",
+      "titel": "ZG Team genhemigen",
+      "beschreibung": "ZG Team genhemigen",
+      "aktion_typ": "genehmigen",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 3,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 92,
+    "fields": {
+      "template": 7,
+      "reihenfolge": 4,
+      "schritt_typ": "task",
+      "titel": "team ZE",
+      "beschreibung": "ZE bearbeiten",
+      "aktion_typ": "bearbeiten",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 1,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 93,
+    "fields": {
+      "template": 7,
+      "reihenfolge": 5,
+      "schritt_typ": "task",
+      "titel": "Antragsteller",
+      "beschreibung": "",
+      "aktion_typ": "pruefen",
+      "zustaendig_rolle": "antragsteller",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 95,
+    "fields": {
+      "template": 14,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "Sanitaer / Heizung – Stoermeldung bearbeiten",
+      "beschreibung": "Das Facility-Team bearbeitet die Stoermeldung.",
+      "aktion_typ": "bearbeiten",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 6,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 96,
+    "fields": {
+      "template": 15,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "Schlosser – Stoermeldung bearbeiten",
+      "beschreibung": "Das Facility-Team bearbeitet die Stoermeldung.",
+      "aktion_typ": "bearbeiten",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 7,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 97,
+    "fields": {
+      "template": 16,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "Schreiner – Stoermeldung bearbeiten",
+      "beschreibung": "Das Facility-Team bearbeitet die Stoermeldung.",
+      "aktion_typ": "bearbeiten",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 8,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 98,
+    "fields": {
+      "template": 17,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "Maler – Stoermeldung bearbeiten",
+      "beschreibung": "Das Facility-Team bearbeitet die Stoermeldung.",
+      "aktion_typ": "bearbeiten",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 9,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 99,
+    "fields": {
+      "template": 18,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "Facility-Team bearbeitet Stoermeldung",
+      "beschreibung": "Das Facility - Elektro-Team bearbeitet und schliesst die Stoermeldung ab.",
+      "aktion_typ": "bearbeiten",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 10,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 7,
+    "fields": {
+      "template": 8,
+      "von_schritt": 69,
+      "zu_schritt": 70,
+      "bedingung_typ": "feld_wert",
+      "bedingung_entscheidung": "genehmigt",
+      "bedingung_feld": "Stunden",
+      "bedingung_operator": ">",
+      "bedingung_wert": "10",
+      "bedingung_python_code": "",
+      "label": "mehr wie 10",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 8,
+    "fields": {
+      "template": 8,
+      "von_schritt": 70,
+      "zu_schritt": 71,
+      "bedingung_typ": "immer",
+      "bedingung_entscheidung": "",
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "",
+      "label": "",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 9,
+    "fields": {
+      "template": 8,
+      "von_schritt": 71,
+      "zu_schritt": 72,
+      "bedingung_typ": "immer",
+      "bedingung_entscheidung": "",
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "",
+      "label": "",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 10,
+    "fields": {
+      "template": 8,
+      "von_schritt": 72,
+      "zu_schritt": 73,
+      "bedingung_typ": "immer",
+      "bedingung_entscheidung": "",
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "",
+      "label": "",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 11,
+    "fields": {
+      "template": 8,
+      "von_schritt": 69,
+      "zu_schritt": 71,
+      "bedingung_typ": "immer",
+      "bedingung_entscheidung": "",
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "",
+      "label": "",
+      "prioritaet": 1
+    }
+  }
+]
