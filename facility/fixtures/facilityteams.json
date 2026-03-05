@@ -1,0 +1,63 @@
+[
+{
+  "model": "facility.facilityteam",
+  "pk": 1,
+  "fields": {
+    "kategorie": "elektro",
+    "teamleiter": null,
+    "eskalation_nach_tagen": 3,
+    "mitglieder": [
+      1,
+      69
+    ]
+  }
+},
+{
+  "model": "facility.facilityteam",
+  "pk": 2,
+  "fields": {
+    "kategorie": "sanitaer_heizung",
+    "teamleiter": null,
+    "eskalation_nach_tagen": 3,
+    "mitglieder": [
+      109
+    ]
+  }
+},
+{
+  "model": "facility.facilityteam",
+  "pk": 3,
+  "fields": {
+    "kategorie": "schlosser",
+    "teamleiter": null,
+    "eskalation_nach_tagen": 3,
+    "mitglieder": [
+      55
+    ]
+  }
+},
+{
+  "model": "facility.facilityteam",
+  "pk": 4,
+  "fields": {
+    "kategorie": "schreiner",
+    "teamleiter": null,
+    "eskalation_nach_tagen": 3,
+    "mitglieder": [
+      126
+    ]
+  }
+},
+{
+  "model": "facility.facilityteam",
+  "pk": 5,
+  "fields": {
+    "kategorie": "maler",
+    "teamleiter": null,
+    "eskalation_nach_tagen": 3,
+    "mitglieder": [
+      82
+    ]
+  }
+}
+]

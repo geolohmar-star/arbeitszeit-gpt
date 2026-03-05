@@ -10,7 +10,8 @@ Reihenfolge (FK-Abhaengigkeiten):
   1. hr.OrgEinheit + hr.Stelle       (Orgstruktur, kein User-FK)
   2. formulare.TeamQueue             (Queues ohne Mitglieder-M2M)
   3. workflow.*                       (Templates, Steps, Transitions)
-  4. raumbuch.*                       (Gebaeudestruktur + Raeume)
+  4. facility.FacilityTeam           (5 Kategorien, ohne User-M2M)
+  5. raumbuch.*                       (Gebaeudestruktur + Raeume)
 
 Aufruf:
   python manage.py seed_initial_data
@@ -54,6 +55,14 @@ class Command(BaseCommand):
             check_app="workflow",
             check_model="WorkflowTemplate",
             fixtures=["workflow/fixtures/templates.json"],
+            force=force,
+        )
+
+        self._laden(
+            label="Facility-Teams (5 Kategorien)",
+            check_app="facility",
+            check_model="FacilityTeam",
+            fixtures=["facility/fixtures/facilityteams.json"],
             force=force,
         )
 
