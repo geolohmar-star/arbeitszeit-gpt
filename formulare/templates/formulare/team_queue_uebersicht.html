@@ -97,6 +97,8 @@
                                                         {% elif ct == 'stoermeldung' %}
                                                             <a href="{% url 'facility:detail' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0 me-1" target="_blank">Ansehen</a>
                                                             <a href="{% url 'facility:queue' %}" class="btn btn-xs btn-outline-primary btn-sm py-0" target="_blank">Facility-Queue</a>
+                                                        {% elif ct == 'arbeitszeitvereinbarung' %}
+                                                            <a href="{% url 'arbeitszeit:admin_vereinbarung_genehmigen' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0" target="_blank">Ansehen</a>
                                                         {% endif %}
                                                     </div>
                                                 {% endwith %}
@@ -176,6 +178,8 @@
                                                         {% elif ct == 'stoermeldung' %}
                                                             <a href="{% url 'facility:detail' obj.pk %}" class="btn btn-sm btn-outline-secondary me-1" target="_blank">Details</a>
                                                             <a href="{% url 'facility:queue' %}" class="btn btn-sm btn-outline-primary">Facility-Queue</a>
+                                                        {% elif ct == 'arbeitszeitvereinbarung' %}
+                                                            <a href="{% url 'arbeitszeit:admin_vereinbarung_genehmigen' obj.pk %}" class="btn btn-sm btn-outline-primary">Details &amp; Bearbeiten</a>
                                                         {% endif %}
                                                     </div>
                                                 {% endwith %}

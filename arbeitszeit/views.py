@@ -2262,12 +2262,17 @@ def admin_vereinbarungen_genehmigen(request):
 
 @login_required
 def admin_vereinbarung_genehmigen(request, pk):
-    """Einzelne Vereinbarung genehmigen (Detailansicht fuer Admin)"""
+    """Einzelne Vereinbarung genehmigen (Detailansicht fuer Admin/Sachbearbeiter/AZV-Team)"""
     is_sachbearbeiter = (
         hasattr(request.user, 'mitarbeiter')
         and request.user.mitarbeiter.rolle == 'sachbearbeiter'
     )
-    if not (request.user.is_staff or is_sachbearbeiter):
+    # Zugriff auch fuer Mitglieder des Teams Arbeitszeitvereinbarungen (kuerzel='azv')
+    from formulare.models import TeamQueue
+    ist_azv_mitglied = TeamQueue.objects.filter(
+        kuerzel='azv', mitglieder=request.user
+    ).exists()
+    if not (request.user.is_staff or is_sachbearbeiter or ist_azv_mitglied):
         return redirect('arbeitszeit:dashboard')
     
     vereinbarung = get_object_or_404(Arbeitszeitvereinbarung, pk=pk)
