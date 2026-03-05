@@ -45,7 +45,7 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Sanitaer / Heizung-Stoermeldungen",
       "kuerzel": "FAC-SAN",
-      "name": "Facility – Sanitaer / Heizung",
+      "name": "Facility â€“ Sanitaer / Heizung",
       "mitglieder": []
     }
   },
@@ -56,7 +56,7 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Schlosser-Stoermeldungen",
       "kuerzel": "FAC-SCH",
-      "name": "Facility – Schlosser",
+      "name": "Facility â€“ Schlosser",
       "mitglieder": []
     }
   },
@@ -67,7 +67,7 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Schreiner-Stoermeldungen",
       "kuerzel": "FAC-SRE",
-      "name": "Facility – Schreiner",
+      "name": "Facility â€“ Schreiner",
       "mitglieder": []
     }
   },
@@ -78,7 +78,7 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Maler-Stoermeldungen",
       "kuerzel": "FAC-MAL",
-      "name": "Facility – Maler",
+      "name": "Facility â€“ Maler",
       "mitglieder": []
     }
   },
