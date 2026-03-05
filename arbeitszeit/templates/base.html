@@ -7,387 +7,503 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Arbeitszeit-Verwaltung{% endblock %}</title>
     <meta name="csrf-token" content="{{ csrf_token }}">
-    
-    <!-- Bootstrap CSS (lokal) -->
-    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
-    
-    <style>
-        .navbar-custom {
-            background: #1a4d2e !important;
-        }
-        
-        .navbar .nav-link {
-            color: white !important;
-            padding: 8px 15px !important;
-        }
 
-        .navbar .nav-link:hover {
-            background: #2d6a42;
-            border-radius: 5px;
-        }
-        
-        /* Dropdown-Items */
-        .dropdown-menu {
-            background-color: #fff;
-        }
-        
-        .dropdown-item {
-            color: #333 !important;
-        }
-        
-        .dropdown-item:hover {
-            background-color: #2d6a42;
-            color: white !important;
-        }
-        
-        /* Logout-Button wie ein Link aussehen lassen */
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+
+    <style>
+        .navbar-custom { background: #1a4d2e !important; }
+        .navbar .nav-link { color: white !important; padding: 8px 15px !important; }
+        .navbar .nav-link:hover { background: #2d6a42; border-radius: 5px; }
+        .dropdown-menu { background-color: #fff; }
+        .dropdown-item { color: #333 !important; }
+        .dropdown-item:hover { background-color: #2d6a42; color: white !important; }
+
         .logout-btn {
-            background: none;
-            border: none;
-            color: white !important;
-            padding: 8px 15px !important;
-            cursor: pointer;
-            font: inherit;
+            background: none; border: none; color: white !important;
+            padding: 8px 15px !important; cursor: pointer; font: inherit;
         }
-        
-        .logout-btn:hover {
-            background: #2d6a42;
+        .logout-btn:hover { background: #2d6a42; border-radius: 5px; }
+
+        /* Suche-Button in Navbar */
+        .cmd-open-btn {
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white !important;
             border-radius: 5px;
+            padding: 5px 12px !important;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .cmd-open-btn:hover { background: rgba(255,255,255,0.22) !important; }
+
+        /* Befehlspalette */
+        #cmd-palette {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 9999;
+            align-items: flex-start;
+            justify-content: center;
+            padding-top: 12vh;
+        }
+        #cmd-palette.cmd-open { display: flex; }
+        #cmd-box {
+            background: white;
+            width: 100%;
+            max-width: 560px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+        }
+        #cmd-input {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 16px;
+            border: none;
+            outline: none;
+            border-bottom: 1px solid #eee;
+            box-sizing: border-box;
+        }
+        #cmd-results { max-height: 380px; overflow-y: auto; }
+        .cmd-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            text-decoration: none;
+            color: #333;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .cmd-item:hover,
+        .cmd-item.cmd-active { background: #2d6a42; color: white !important; }
+        .cmd-gruppe {
+            font-size: 11px;
+            color: #999;
+            margin-left: 12px;
+            white-space: nowrap;
+        }
+        .cmd-item.cmd-active .cmd-gruppe { color: rgba(255,255,255,0.7); }
+        #cmd-hint {
+            padding: 7px 16px;
+            font-size: 11px;
+            color: #999;
+            border-top: 1px solid #eee;
+            background: #fafafa;
         }
     </style>
-    
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'arbeitszeit:dashboard' %}">
-                🏢 Arbeitszeit-Verwaltung
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <!-- Dashboard -->
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'arbeitszeit:dashboard' %}">Dashboard</a>
-                    </li>
 
-                    <!-- Arbeitsstapel / Workflow -->
-                    {% if user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#"
-                           id="workflowDropdown" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
-                            ⚙️ Workflow
-                            {% if workflow_tasks_anzahl or team_stapel_anzahl %}
-                            <span class="badge bg-danger rounded-pill ms-1">{{ workflow_tasks_anzahl|add:team_stapel_anzahl }}</span>
-                            {% endif %}
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="workflowDropdown">
-                            <li>
-                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'workflow:arbeitsstapel' %}">
-                                    📋 Arbeitsstapel
-                                    {% if workflow_tasks_anzahl %}
-                                    <span class="badge bg-danger rounded-pill">{{ workflow_tasks_anzahl }}</span>
-                                    {% endif %}
-                                </a>
-                            </li>
-                            {% if team_stapel_anzahl %}
-                            <li>
-                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'formulare:team_queue' %}">
-                                    📥 Team-Stapel
-                                    <span class="badge bg-danger rounded-pill">{{ team_stapel_anzahl }}</span>
-                                </a>
-                            </li>
-                            {% endif %}
-                            {% if user.is_staff %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'workflow:workflow_editor' %}">
-                                    🎨 Workflow-Editor
-                                </a>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </li>
-                    {% endif %}
+<!-- Navigation -->
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{% url 'arbeitszeit:dashboard' %}">Arbeitszeit-Verwaltung</a>
 
-                    <!-- ============================================ -->
-                    <!-- NEU: SOLL-STUNDEN DROPDOWN -->
-                    <!-- ============================================ -->
-                    {% if user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" 
-                           id="sollStundenDropdown" role="button" 
-                           data-bs-toggle="dropdown" aria-expanded="false">
-                            📊 Soll-Stunden
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="sollStundenDropdown">
-                            <li>
-                                <a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_dashboard' %}">
-                                    📅 Monatsübersicht
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_jahresuebersicht' %}">
-                                    📊 Jahresübersicht
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_berechnen' %}">
-                                    🔄 Neu berechnen
-                                </a>
-                            </li>
-                            {% if user.mitarbeiter %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'arbeitszeit:mitarbeiter_soll_uebersicht' user.mitarbeiter.pk %}">
-                                    👤 Meine Soll-Stunden
-                                </a>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </li>
-                    {% endif %}
-                    <!-- ============================================ -->
-                    
-                    <!-- Genehmigungen (nur fuer Genehmiger) -->
-                    {% if hat_genehmiger_rolle %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'formulare:genehmigung_uebersicht' %}">
-                            Genehmigungen
-                        </a>
-                    </li>
-                    {% endif %}
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-                    <!-- Organigramm (fuer alle eingeloggten User) -->
-                    {% if user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'hr:organigramm' %}">Organigramm</a>
-                    </li>
-                    {% endif %}
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                {% if user.is_authenticated %}
 
-                    <!-- Veranstaltungen -->
-                    {% if user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'veranstaltungen:uebersicht' %}">Veranstaltungen</a>
-                    </li>
-                    {% endif %}
+                <!-- Dashboard -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'arbeitszeit:dashboard' %}">Dashboard</a>
+                </li>
 
-                    <!-- Facility Management -->
-                    {% if user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#"
-                           id="facilityDropdown" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
-                            Facility
-                            {% if facility_queue_anzahl %}
-                            <span class="badge bg-danger rounded-pill ms-1">{{ facility_queue_anzahl }}</span>
-                            {% endif %}
-                            {% if al_queue_anzahl %}
-                            <span class="badge bg-warning text-dark rounded-pill ms-1">{{ al_queue_anzahl }}</span>
-                            {% endif %}
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="facilityDropdown">
-                            <li>
-                                <a class="dropdown-item" href="{% url 'facility:erstellen' %}">
-                                    Stoermeldung erfassen
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'facility:meine' %}">
-                                    Meine Stoermeldungen
-                                </a>
-                            </li>
-                            {% if ist_vorgesetzter %}
-                            <li>
-                                <a class="dropdown-item" href="{% url 'facility:vorgesetzter' %}">
-                                    Team-Meldungen
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'facility:monatsreport' %}">
-                                    Monatsbericht
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'facility:einstellungen' %}">
-                                    Trend-Einstellungen
-                                </a>
-                            </li>
-                            {% endif %}
-                            {% if ist_facility_mitglied %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'facility:queue' %}">
-                                    Facility-Queue
-                                    {% if facility_queue_anzahl %}
-                                    <span class="badge bg-danger rounded-pill">{{ facility_queue_anzahl }}</span>
-                                    {% endif %}
-                                </a>
-                            </li>
-                            {% endif %}
-                            {% if al_queue_anzahl %}
-                            <li>
-                                <a class="dropdown-item d-flex justify-content-between align-items-center"
-                                   href="{% url 'facility:al_queue' %}">
-                                    Eskalationen
-                                    <span class="badge bg-warning text-dark rounded-pill">{{ al_queue_anzahl }}</span>
-                                </a>
-                            </li>
-                            {% endif %}
-                            {% if ist_facility_mitglied or user.is_staff %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{% url 'facility:wartungsplan_liste' %}">
-                                    Wartungsplaene
-                                </a>
-                            </li>
-                            {% endif %}
-                            {% if user.is_staff %}
-                            <li>
-                                <a class="dropdown-item" href="{% url 'facility:textbaustein_liste' %}">
-                                    Textbausteine
-                                </a>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </li>
-                    {% endif %}
-
-                    <!-- Raumbuch -->
-                    {% if user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="raumbuchDropdown"
-                           role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Raumbuch
-                        </a>
-                        <ul class="dropdown-menu" aria-labelledby="raumbuchDropdown">
-                            <li><a class="dropdown-item" href="{% url 'raumbuch:uebersicht' %}">Raumuebersicht</a></li>
-                            <li><a class="dropdown-item" href="{% url 'raumbuch:buchung_kalender' %}">Buchungen</a></li>
-                            <li><a class="dropdown-item" href="{% url 'raumbuch:belegungsplan' %}">Belegungsplan</a></li>
-                            <li><a class="dropdown-item" href="{% url 'raumbuch:besuch_liste' %}">Besuchsanmeldungen</a></li>
-                            {% if user.is_staff or ist_facility_mitglied %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'raumbuch:struktur' %}">Gebaeudestruktur</a></li>
-                            <li><a class="dropdown-item" href="{% url 'raumbuch:schluessel_liste' %}">Schluesselverwaltung</a></li>
-                            <li><a class="dropdown-item" href="{% url 'raumbuch:token_liste' %}">Zutrittsgutschriften</a></li>
-                            <li><a class="dropdown-item" href="{% url 'raumbuch:treppenhaus_liste' %}">Treppenhaeuser</a></li>
-                            <li><a class="dropdown-item" href="{% url 'raumbuch:reinigung' %}">Reinigung</a></li>
-                            <li><a class="dropdown-item" href="{% url 'raumbuch:umzug_liste' %}">Umzugsauftraege</a></li>
-                            {% endif %}
-                            {% if user.is_staff %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'raumbuch:gesamtlog' %}">Audit-Trail</a></li>
-                            {% endif %}
-                        </ul>
-                    </li>
-                    {% endif %}
-
-                    <!-- Rechtevergabe (nur Staff/Admin) -->
-                    {% if user.is_staff %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'berechtigungen:uebersicht' %}">Rechtevergabe</a>
-                    </li>
-                    {% endif %}
-
-                    <!-- Schichtplanung (nur fuer User mit schichtplan_zugang Permission) -->
-                    {% if user.is_authenticated %}
-                        {% if hat_schichtplan_zugang %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'schichtplan:dashboard' %}">Schichtplanung</a>
+                <!-- Aufgaben: alle Queues und To-Dos an einem Ort -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="aufgabenDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Aufgaben
+                        {% if workflow_tasks_anzahl or team_stapel_anzahl or facility_queue_anzahl or al_queue_anzahl %}
+                        <span class="badge bg-danger rounded-pill ms-1">
+                            {{ workflow_tasks_anzahl|add:team_stapel_anzahl|add:facility_queue_anzahl|add:al_queue_anzahl }}
+                        </span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="aufgabenDropdown">
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'workflow:arbeitsstapel' %}">
+                                Arbeitsstapel
+                                {% if workflow_tasks_anzahl %}
+                                <span class="badge bg-danger rounded-pill">{{ workflow_tasks_anzahl }}</span>
+                                {% endif %}
+                            </a>
                         </li>
-                        
-                        <!-- NEU: Urlaubsgenehmigungen -->
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'schichtplan:genehmigungen_uebersicht' %}">
-                                🔐 Urlaubsgenehmigungen
-                                {% if offene_antraege_count > 0 %}
-                                <span class="badge bg-warning">{{ offene_antraege_count }}</span>
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'formulare:team_queue' %}">
+                                Team-Stapel
+                                {% if team_stapel_anzahl %}
+                                <span class="badge bg-danger rounded-pill">{{ team_stapel_anzahl }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        {% if hat_genehmiger_rolle %}
+                        <li>
+                            <a class="dropdown-item" href="{% url 'formulare:genehmigung_uebersicht' %}">
+                                Genehmigungen
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if ist_facility_mitglied %}
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'facility:queue' %}">
+                                Facility-Queue
+                                {% if facility_queue_anzahl %}
+                                <span class="badge bg-danger rounded-pill">{{ facility_queue_anzahl }}</span>
                                 {% endif %}
                             </a>
                         </li>
                         {% endif %}
-                    {% endif %}
-                </ul>
-                
-                <!-- Rechte Seite: User-Info & Logout -->
-                <ul class="navbar-nav">
-                    {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <span class="navbar-text text-white px-3">
-                                👤 {{ user.username }}
-                                {% if user.is_staff %}
-                                    <span class="badge bg-danger">Admin</span>
-                                {% endif %}
-                            </span>
-                        </li>
-                        
-                        {% if user.is_staff %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'admin:index' %}" target="_blank">⚙️ Admin</a>
+                        {% if al_queue_anzahl %}
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'facility:al_queue' %}">
+                                Eskalationen
+                                <span class="badge bg-warning text-dark rounded-pill">{{ al_queue_anzahl }}</span>
+                            </a>
                         </li>
                         {% endif %}
-                        
-                        <li class="nav-item">
-                            <form method="post" action="{% url 'logout' %}" style="display: inline;">
-                                {% csrf_token %}
-                                <button type="submit" class="logout-btn">Abmelden</button>
-                            </form>
+                    </ul>
+                </li>
+
+                <!-- Personal: Zeitkonten + Organigramm -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="personalDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Personal
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="personalDropdown">
+                        <li><a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_dashboard' %}">Soll-Stunden Monat</a></li>
+                        <li><a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_jahresuebersicht' %}">Soll-Stunden Jahr</a></li>
+                        <li><a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_berechnen' %}">Soll-Stunden berechnen</a></li>
+                        {% if user.mitarbeiter %}
+                        <li><a class="dropdown-item" href="{% url 'arbeitszeit:mitarbeiter_soll_uebersicht' user.mitarbeiter.pk %}">Meine Soll-Stunden</a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'hr:organigramm' %}">Organigramm</a></li>
+                    </ul>
+                </li>
+
+                <!-- Gebaeude: Facility + Raumbuch zusammengefasst -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="gebaeudeDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Gebaeude
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="gebaeudeDropdown">
+                        <li><h6 class="dropdown-header">Facility</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:erstellen' %}">Stoermeldung erfassen</a></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:meine' %}">Meine Stoermeldungen</a></li>
+                        {% if ist_vorgesetzter %}
+                        <li><a class="dropdown-item" href="{% url 'facility:vorgesetzter' %}">Team-Meldungen</a></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:monatsreport' %}">Monatsbericht</a></li>
+                        {% endif %}
+                        {% if ist_facility_mitglied or user.is_staff %}
+                        <li><a class="dropdown-item" href="{% url 'facility:wartungsplan_liste' %}">Wartungsplaene</a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Raumbuch</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:uebersicht' %}">Raumuebersicht</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:buchung_kalender' %}">Buchungen</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:belegungsplan' %}">Belegungsplan</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:besuch_liste' %}">Besuchsanmeldungen</a></li>
+                        {% if user.is_staff or ist_facility_mitglied %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:struktur' %}">Gebaeudestruktur</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:schluessel_liste' %}">Schluesselverwaltung</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:token_liste' %}">Zutrittsgutschriften</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:treppenhaus_liste' %}">Treppenhaeuser</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:reinigung' %}">Reinigung</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:umzug_liste' %}">Umzugsauftraege</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+
+                <!-- Planung: Schichtplan + Veranstaltungen -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="planungDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Planung
+                        {% if offene_antraege_count > 0 %}
+                        <span class="badge bg-warning text-dark rounded-pill ms-1">{{ offene_antraege_count }}</span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="planungDropdown">
+                        <li><a class="dropdown-item" href="{% url 'veranstaltungen:uebersicht' %}">Veranstaltungen</a></li>
+                        {% if hat_schichtplan_zugang %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'schichtplan:dashboard' %}">Schichtplanung</a></li>
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'schichtplan:genehmigungen_uebersicht' %}">
+                                Urlaubsgenehmigungen
+                                {% if offene_antraege_count > 0 %}
+                                <span class="badge bg-warning text-dark rounded-pill">{{ offene_antraege_count }}</span>
+                                {% endif %}
+                            </a>
                         </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'login' %}">Anmelden</a>
-                        </li>
-                    {% endif %}
-                </ul>
-            </div>
+                        {% endif %}
+                    </ul>
+                </li>
+
+                <!-- Admin: nur fuer Staff-User sichtbar -->
+                {% if user.is_staff %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="adminDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Admin
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                        <li><a class="dropdown-item" href="{% url 'berechtigungen:uebersicht' %}">Rechtevergabe</a></li>
+                        <li><a class="dropdown-item" href="{% url 'workflow:workflow_editor' %}">Workflow-Editor</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:textbaustein_liste' %}">Textbausteine</a></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:einstellungen' %}">Trend-Einstellungen</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:gesamtlog' %}">Audit-Trail</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank">Django-Admin</a></li>
+                    </ul>
+                </li>
+                {% endif %}
+
+                {% endif %}<!-- end is_authenticated -->
+            </ul>
+
+            <!-- Rechte Seite: Suche + User -->
+            <ul class="navbar-nav align-items-center">
+                {% if user.is_authenticated %}
+                <li class="nav-item me-2">
+                    <button class="nav-link cmd-open-btn" onclick="cmdOpen()" title="Schnellsuche (/)">
+                        Suche
+                        <span style="font-size:10px; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); border-radius:3px; padding:1px 5px; margin-left:4px;">/</span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <span class="navbar-text text-white px-2">
+                        {{ user.username }}
+                        {% if user.is_staff %}<span class="badge bg-danger ms-1">Admin</span>{% endif %}
+                    </span>
+                </li>
+                <li class="nav-item">
+                    <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="logout-btn">Abmelden</button>
+                    </form>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'login' %}">Anmelden</a>
+                </li>
+                {% endif %}
+            </ul>
         </div>
-    </nav>
-    
-    <!-- Messages -->
-    {% if messages %}
-    <div class="container mt-3">
-        {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        {% endfor %}
     </div>
+</nav>
+
+<!-- Befehlspalette (Strg+K) -->
+{% if user.is_authenticated %}
+<div id="cmd-palette" aria-modal="true" role="dialog" aria-label="Schnellsuche">
+    <div id="cmd-box">
+        <input id="cmd-input" type="text" placeholder="Seite suchen..." autocomplete="off">
+        <div id="cmd-results"></div>
+        <div id="cmd-hint">/ oeffnen &nbsp;&middot;&nbsp; Pfeiltasten navigieren &nbsp;&middot;&nbsp; Enter oeffnen &nbsp;&middot;&nbsp; Esc schliessen</div>
+    </div>
+</div>
+
+<!-- Nav-Items fuer die Suche (berechtigungsabhaengig, serverseitig gerendert) -->
+<script>
+var CMD_ITEMS = [
+    {l: "Dashboard", u: "{% url 'arbeitszeit:dashboard' %}", g: "Allgemein"},
+    {l: "Arbeitsstapel", u: "{% url 'workflow:arbeitsstapel' %}", g: "Aufgaben"},
+    {l: "Team-Stapel", u: "{% url 'formulare:team_queue' %}", g: "Aufgaben"},
+    {% if hat_genehmiger_rolle %}
+    {l: "Genehmigungen", u: "{% url 'formulare:genehmigung_uebersicht' %}", g: "Aufgaben"},
     {% endif %}
-    
-    <!-- Content -->
-    <main>
-        {% block content %}{% endblock %}
-    </main>
-    
-    <!-- Footer -->
-    <footer class="mt-5 py-3 bg-light">
-        <div class="container text-center text-muted">
-            <small>© 2026 Arbeitszeit-Verwaltung</small>
-        </div>
-    </footer>
-    
-    <!-- Bootstrap JS (lokal) -->
-    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    {% if ist_facility_mitglied %}
+    {l: "Facility-Queue", u: "{% url 'facility:queue' %}", g: "Aufgaben"},
+    {% endif %}
+    {% if al_queue_anzahl %}
+    {l: "Eskalationen", u: "{% url 'facility:al_queue' %}", g: "Aufgaben"},
+    {% endif %}
+    {l: "Soll-Stunden Monat", u: "{% url 'arbeitszeit:soll_stunden_dashboard' %}", g: "Personal"},
+    {l: "Soll-Stunden Jahr", u: "{% url 'arbeitszeit:soll_stunden_jahresuebersicht' %}", g: "Personal"},
+    {l: "Soll-Stunden berechnen", u: "{% url 'arbeitszeit:soll_stunden_berechnen' %}", g: "Personal"},
+    {% if user.mitarbeiter %}
+    {l: "Meine Soll-Stunden", u: "{% url 'arbeitszeit:mitarbeiter_soll_uebersicht' user.mitarbeiter.pk %}", g: "Personal"},
+    {% endif %}
+    {l: "Organigramm", u: "{% url 'hr:organigramm' %}", g: "Personal"},
+    {l: "Stoermeldung erfassen", u: "{% url 'facility:erstellen' %}", g: "Gebaeude"},
+    {l: "Meine Stoermeldungen", u: "{% url 'facility:meine' %}", g: "Gebaeude"},
+    {% if ist_vorgesetzter %}
+    {l: "Team-Meldungen", u: "{% url 'facility:vorgesetzter' %}", g: "Gebaeude"},
+    {l: "Monatsbericht Facility", u: "{% url 'facility:monatsreport' %}", g: "Gebaeude"},
+    {% endif %}
+    {% if ist_facility_mitglied or user.is_staff %}
+    {l: "Wartungsplaene", u: "{% url 'facility:wartungsplan_liste' %}", g: "Gebaeude"},
+    {% endif %}
+    {l: "Raumuebersicht", u: "{% url 'raumbuch:uebersicht' %}", g: "Gebaeude"},
+    {l: "Buchungen", u: "{% url 'raumbuch:buchung_kalender' %}", g: "Gebaeude"},
+    {l: "Belegungsplan", u: "{% url 'raumbuch:belegungsplan' %}", g: "Gebaeude"},
+    {l: "Besuchsanmeldungen", u: "{% url 'raumbuch:besuch_liste' %}", g: "Gebaeude"},
+    {% if user.is_staff or ist_facility_mitglied %}
+    {l: "Gebaeudestruktur", u: "{% url 'raumbuch:struktur' %}", g: "Gebaeude"},
+    {l: "Schluesselverwaltung", u: "{% url 'raumbuch:schluessel_liste' %}", g: "Gebaeude"},
+    {l: "Zutrittsgutschriften", u: "{% url 'raumbuch:token_liste' %}", g: "Gebaeude"},
+    {l: "Treppenhaeuser", u: "{% url 'raumbuch:treppenhaus_liste' %}", g: "Gebaeude"},
+    {l: "Reinigung", u: "{% url 'raumbuch:reinigung' %}", g: "Gebaeude"},
+    {l: "Umzugsauftraege", u: "{% url 'raumbuch:umzug_liste' %}", g: "Gebaeude"},
+    {% endif %}
+    {l: "Veranstaltungen", u: "{% url 'veranstaltungen:uebersicht' %}", g: "Planung"},
+    {% if hat_schichtplan_zugang %}
+    {l: "Schichtplanung", u: "{% url 'schichtplan:dashboard' %}", g: "Planung"},
+    {l: "Urlaubsgenehmigungen", u: "{% url 'schichtplan:genehmigungen_uebersicht' %}", g: "Planung"},
+    {% endif %}
+    {% if user.is_staff %}
+    {l: "Rechtevergabe", u: "{% url 'berechtigungen:uebersicht' %}", g: "Admin"},
+    {l: "Workflow-Editor", u: "{% url 'workflow:workflow_editor' %}", g: "Admin"},
+    {l: "Textbausteine", u: "{% url 'facility:textbaustein_liste' %}", g: "Admin"},
+    {l: "Trend-Einstellungen", u: "{% url 'facility:einstellungen' %}", g: "Admin"},
+    {l: "Audit-Trail", u: "{% url 'raumbuch:gesamtlog' %}", g: "Admin"},
+    {% endif %}
+];
+</script>
+{% endif %}
 
-    <!-- HTMX (lokal) -->
-    <script src="{% static 'js/htmx.min.js' %}"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", function() {
+<!-- Messages -->
+{% if messages %}
+<div class="container mt-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Content -->
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+<!-- Footer -->
+<footer class="mt-5 py-3 bg-light">
+    <div class="container text-center text-muted">
+        <small>&copy; 2026 Arbeitszeit-Verwaltung</small>
+    </div>
+</footer>
+
+<!-- Bootstrap JS (lokal) -->
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+
+<!-- HTMX (lokal) -->
+<script src="{% static 'js/htmx.min.js' %}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
         document.body.addEventListener("htmx:configRequest", function(event) {
-          event.detail.headers["X-CSRFToken"] = document.querySelector("meta[name='csrf-token']").content;
+            event.detail.headers["X-CSRFToken"] = document.querySelector("meta[name='csrf-token']").content;
         });
-      });
-    </script>
+    });
+</script>
 
-    {% block extra_js %}{% endblock %}
+<!-- Befehlspalette Logik -->
+{% if user.is_authenticated %}
+<script>
+(function() {
+    var palette = document.getElementById("cmd-palette");
+    var input   = document.getElementById("cmd-input");
+    var results = document.getElementById("cmd-results");
+    var sel     = -1;
+
+    window.cmdOpen = function() {
+        palette.classList.add("cmd-open");
+        input.value = "";
+        render("");
+        input.focus();
+    };
+
+    function close() {
+        palette.classList.remove("cmd-open");
+        sel = -1;
+    }
+
+    function render(q) {
+        var filtered = q
+            ? CMD_ITEMS.filter(function(i) {
+                var needle = q.toLowerCase();
+                return i.l.toLowerCase().indexOf(needle) !== -1
+                    || i.g.toLowerCase().indexOf(needle) !== -1;
+              })
+            : CMD_ITEMS;
+
+        results.innerHTML = filtered.map(function(i, idx) {
+            return "<a href=\"" + i.u + "\" class=\"cmd-item\" data-idx=\"" + idx + "\">"
+                + "<span>" + i.l + "</span>"
+                + "<span class=\"cmd-gruppe\">" + i.g + "</span>"
+                + "</a>";
+        }).join("");
+        sel = -1;
+    }
+
+    function getLinks() {
+        return results.querySelectorAll(".cmd-item");
+    }
+
+    function updateSel(links) {
+        links.forEach(function(l, i) { l.classList.toggle("cmd-active", i === sel); });
+        if (links[sel]) { links[sel].scrollIntoView({block: "nearest"}); }
+    }
+
+    document.addEventListener("keydown", function(e) {
+        /* "/" oeffnet die Palette, ausser wenn gerade ein Eingabefeld aktiv ist */
+        if (e.key === "/" && !palette.classList.contains("cmd-open")) {
+            var tag = document.activeElement ? document.activeElement.tagName : "";
+            if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") {
+                e.preventDefault();
+                cmdOpen();
+                return;
+            }
+        }
+        if (!palette.classList.contains("cmd-open")) { return; }
+        var links = getLinks();
+        if (e.key === "Escape") {
+            close();
+        } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            sel = Math.min(sel + 1, links.length - 1);
+            updateSel(links);
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            sel = Math.max(sel - 1, 0);
+            updateSel(links);
+        } else if (e.key === "Enter" && sel >= 0) {
+            links[sel].click();
+        }
+    });
+
+    /* Klick ausserhalb des Suchfelds schliesst die Palette */
+    palette.addEventListener("click", function(e) {
+        if (e.target === palette) { close(); }
+    });
+
+    input.addEventListener("input", function() {
+        render(this.value);
+    });
+})();
+</script>
+{% endif %}
+
+{% block extra_js %}{% endblock %}
 </body>
 </html>

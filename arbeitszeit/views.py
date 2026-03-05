@@ -1,8 +1,9 @@
 """
-Django Views für Arbeitszeitverwaltung
+Django Views fuer Arbeitszeitverwaltung
 """
 from django.db.models.functions import Length
 import io
+import logging
 from collections import defaultdict
 from datetime import datetime, date
 
@@ -668,6 +669,63 @@ def dashboard(request):
     return render(request, 'arbeitszeit/dashboard.html', context)
 
 
+logger = logging.getLogger(__name__)
+
+
+def _starte_arbeitszeitvereinbarung_workflow(vereinbarung, user):
+    """Startet den template-basierten Workflow fuer eine neue Arbeitszeitvereinbarung.
+
+    Sucht nach einem aktiven WorkflowTemplate mit
+    trigger_event='arbeitszeitvereinbarung_beantragt' und startet daraus
+    eine Instanz, die einen Task im Team-Stapel des Teams
+    Arbeitszeitvereinbarungen erzeugt.
+    """
+    from django.contrib.contenttypes.models import ContentType
+
+    from workflow.models import WorkflowInstance, WorkflowTemplate
+    from workflow.services import WorkflowEngine
+
+    trigger = "arbeitszeitvereinbarung_beantragt"
+    template = WorkflowTemplate.objects.filter(
+        trigger_event=trigger, ist_aktiv=True
+    ).first()
+
+    if not template:
+        logger.warning(
+            "Kein aktives WorkflowTemplate fuer trigger_event='%s' gefunden – "
+            "Vereinbarung pk=%s landet ohne Workflow.",
+            trigger,
+            vereinbarung.pk,
+        )
+        return
+
+    # Duplikat-Schutz: kein zweiter laufender Workflow fuer dieselbe Vereinbarung
+    ct = ContentType.objects.get_for_model(vereinbarung)
+    if WorkflowInstance.objects.filter(
+        content_type=ct,
+        object_id=vereinbarung.pk,
+        status__in=["laufend", "wartend"],
+    ).exists():
+        logger.debug(
+            "Workflow fuer Vereinbarung pk=%s bereits vorhanden – wird nicht erneut gestartet.",
+            vereinbarung.pk,
+        )
+        return
+
+    try:
+        WorkflowEngine().start_workflow(template, vereinbarung, user)
+        logger.info(
+            "Workflow '%s' gestartet fuer Arbeitszeitvereinbarung pk=%s",
+            template.name,
+            vereinbarung.pk,
+        )
+    except Exception:
+        logger.exception(
+            "Fehler beim Starten des Workflows fuer Arbeitszeitvereinbarung pk=%s",
+            vereinbarung.pk,
+        )
+
+
 @login_required
 def vereinbarung_erstellen(request):
     """Neue Arbeitszeitvereinbarung erstellen"""
@@ -872,6 +930,9 @@ def vereinbarung_erstellen(request):
                 " erstellt und beantragt"
             ),
         )
+
+        # Workflow starten (legt Task im Team-Stapel Arbeitszeitvereinbarungen an)
+        _starte_arbeitszeitvereinbarung_workflow(vereinbarung, request.user)
 
         messages.success(
             request,
