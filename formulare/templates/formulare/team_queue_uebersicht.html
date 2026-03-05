@@ -77,30 +77,8 @@
                                         </td>
                                         <td>
                                             {% if task.instance.content_object %}
-                                                {% with obj=task.instance.content_object ct=task.instance.content_type.model %}
+                                                {% with obj=task.instance.content_object %}
                                                     {% if obj.antragsteller %}{{ obj.antragsteller }}{% else %}{{ obj }}{% endif %}
-                                                    <div class="mt-1">
-                                                        {% if ct == 'zagantrag' %}
-                                                            <a href="{% url 'formulare:zag_erfolg' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0 me-1" target="_blank">Ansehen</a>
-                                                            <a href="{% url 'formulare:zag_pdf' obj.pk %}" class="btn btn-xs btn-outline-danger btn-sm py-0" target="_blank">PDF</a>
-                                                        {% elif ct == 'aenderungzeiterfassung' %}
-                                                            <a href="{% url 'formulare:aenderung_erfolg' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0 me-1" target="_blank">Ansehen</a>
-                                                            <a href="{% url 'formulare:aenderung_pdf' obj.pk %}" class="btn btn-xs btn-outline-danger btn-sm py-0" target="_blank">PDF</a>
-                                                        {% elif ct == 'zagstorno' %}
-                                                            <a href="{% url 'formulare:zag_storno_erfolg' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0 me-1" target="_blank">Ansehen</a>
-                                                            <a href="{% url 'formulare:zag_storno_pdf' obj.pk %}" class="btn btn-xs btn-outline-danger btn-sm py-0" target="_blank">PDF</a>
-                                                        {% elif ct == 'zeitgutschrift' %}
-                                                            <a href="{% url 'formulare:zeitgutschrift_detail' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0 me-1" target="_blank">Ansehen</a>
-                                                            <a href="{% url 'formulare:zeitgutschrift_pdf' obj.pk %}" class="btn btn-xs btn-outline-danger btn-sm py-0" target="_blank">PDF</a>
-                                                        {% elif ct == 'dienstreiseantrag' %}
-                                                            <a href="{% url 'formulare:dienstreise_detail' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0 me-1" target="_blank">Ansehen</a>
-                                                        {% elif ct == 'stoermeldung' %}
-                                                            <a href="{% url 'facility:detail' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0 me-1" target="_blank">Ansehen</a>
-                                                            <a href="{% url 'facility:queue' %}" class="btn btn-xs btn-outline-primary btn-sm py-0" target="_blank">Facility-Queue</a>
-                                                        {% elif ct == 'arbeitszeitvereinbarung' %}
-                                                            <a href="{% url 'arbeitszeit:admin_vereinbarung_genehmigen' obj.pk %}" class="btn btn-xs btn-outline-secondary btn-sm py-0" target="_blank">Ansehen</a>
-                                                        {% endif %}
-                                                    </div>
                                                 {% endwith %}
                                             {% else %}
                                                 <span class="text-muted">-</span>
