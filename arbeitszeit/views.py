@@ -2300,8 +2300,12 @@ def admin_vereinbarung_genehmigen(request, pk):
             neuer_status=vereinbarung.status,
             bemerkung=bemerkung
         )
+        # Nach Bearbeitung zurueck zur Team-Queue falls von dort aufgerufen
+        naechste = request.POST.get('naechste', '')
+        if naechste == 'team_queue':
+            return redirect('formulare:team_queue')
         return redirect('arbeitszeit:admin_vereinbarungen')
-    
+
     # Sortierung mittels Helper
     tagesarbeitszeiten = vereinbarung.tagesarbeitszeiten.annotate(
         sort_order=_get_wochentag_sortierung()

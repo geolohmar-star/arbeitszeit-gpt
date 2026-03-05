@@ -292,6 +292,7 @@
             <h3 class="card-title" style="color: #856404; border-bottom-color: #ffeeba;">⚡ Entscheidung erforderlich</h3>
             <form method="post" class="action-form" style="border: none; padding: 0;">
                 {% csrf_token %}
+                <input type="hidden" name="naechste" value="{{ request.GET.naechste }}">
                 <div class="form-group">
                     <label for="bemerkung" class="form-label">Interne Notiz / Begründung (optional)</label>
                     <textarea id="bemerkung" name="bemerkung" placeholder="z.B. Genehmigt nach Rücksprache mit HR..."></textarea>

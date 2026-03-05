@@ -157,7 +157,7 @@
                                                             <a href="{% url 'facility:detail' obj.pk %}" class="btn btn-sm btn-outline-secondary me-1" target="_blank">Details</a>
                                                             <a href="{% url 'facility:queue' %}" class="btn btn-sm btn-outline-primary">Facility-Queue</a>
                                                         {% elif ct == 'arbeitszeitvereinbarung' %}
-                                                            <a href="{% url 'arbeitszeit:admin_vereinbarung_genehmigen' obj.pk %}" class="btn btn-sm btn-outline-primary">Details &amp; Bearbeiten</a>
+                                                            <a href="{% url 'arbeitszeit:admin_vereinbarung_genehmigen' obj.pk %}?naechste=team_queue" class="btn btn-sm btn-outline-primary">Details &amp; Bearbeiten</a>
                                                         {% endif %}
                                                     </div>
                                                 {% endwith %}
