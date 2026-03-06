@@ -90,6 +90,8 @@ class Command(BaseCommand):
             force=force,
         )
 
+        self._vergebe_durchwahlnummern()
+
         self.stdout.write(self.style.SUCCESS("seed_initial_data abgeschlossen."))
 
     def _erstelle_abteilung_wenn_noetig(self, label, check_app, check_kuerzel, command, force):
@@ -102,6 +104,32 @@ class Command(BaseCommand):
         self.stdout.write(f"  [LOAD] {label} ...")
         call_command(command, verbosity=1)
         self.stdout.write(f"  [OK]   {label} abgeschlossen.")
+
+    def _vergebe_durchwahlnummern(self):
+        """Vergibt 4-stellige Durchwahlen an alle HRMitarbeiter ohne Durchwahl.
+
+        Laeuft immer – idempotent, da nur leere Felder befuellt werden.
+        """
+        from django.apps import apps
+        from django.db.models import Max
+
+        HRMitarbeiter = apps.get_model("hr", "HRMitarbeiter")
+        ohne = HRMitarbeiter.objects.filter(durchwahl="")
+        count = ohne.count()
+        if count == 0:
+            self.stdout.write("  [SKIP] Durchwahlnummern – alle bereits vergeben.")
+            return
+
+        self.stdout.write(f"  [LOAD] Durchwahlnummern ({count} fehlend) ...")
+        hoechste = HRMitarbeiter.objects.exclude(durchwahl="").aggregate(
+            Max("durchwahl")
+        )["durchwahl__max"]
+        naechste = int(hoechste) + 1 if hoechste and hoechste.isdigit() else 4001
+        for ma in ohne.order_by("personalnummer"):
+            ma.durchwahl = str(naechste)
+            ma.save(update_fields=["durchwahl"])
+            naechste += 1
+        self.stdout.write(f"  [OK]   Durchwahlnummern – {count} vergeben ab 4001.")
 
     def _laden(self, label, check_app, check_model, fixtures, force):
         """Laedt Fixtures nur wenn Tabelle leer ist (oder --force gesetzt)."""
