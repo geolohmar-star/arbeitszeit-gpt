@@ -6,7 +6,7 @@
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3">Zugangs-Tokens</h1>
-        {% if user.is_staff or ist_facility_mitglied %}
+        {% if ist_token_bearbeiter %}
         <a href="{% url 'raumbuch:token_erstellen' %}" class="btn btn-success">
             Neuen Token anlegen
         </a>
@@ -54,7 +54,7 @@
                             </td>
                             <td>
                                 <div class="d-flex gap-1">
-                                    {% if user.is_staff or ist_facility_mitglied %}
+                                    {% if ist_token_bearbeiter %}
                                     <a href="{% url 'raumbuch:token_bearbeiten' token.pk %}"
                                        class="btn btn-sm btn-outline-primary">Bearbeiten</a>
                                     {% if token.status == "aktiv" %}
@@ -89,8 +89,8 @@
         Aktuelles Datum: {{ heute }}.
     </p>
 
-    <!-- Beantragte Token (nur fuer Facility/Staff sichtbar) -->
-    {% if user.is_staff or ist_facility_mitglied %}
+    <!-- Beantragte Token (nur fuer Security-Team, Facility-Team und Staff sichtbar) -->
+    {% if ist_token_bearbeiter %}
     {% if beantragte %}
     <div class="mt-4">
         <h5 class="text-warning">Offene Token-Antraege <span class="badge bg-warning text-dark">{{ beantragte|length }}</span></h5>

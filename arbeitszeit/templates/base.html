@@ -220,14 +220,26 @@
                         {% if ist_fuehrungskraft %}
                         <li><a class="dropdown-item" href="{% url 'raumbuch:token_anfrage' %}">Token beantragen</a></li>
                         {% endif %}
-                        {% if user.is_staff or ist_facility_mitglied %}
+                        {% if user.is_staff or ist_facility_mitglied or ist_security_mitglied %}
                         <li><hr class="dropdown-divider"></li>
+                        {% if user.is_staff or ist_facility_mitglied %}
                         <li><a class="dropdown-item" href="{% url 'raumbuch:struktur' %}">Gebaeudestruktur</a></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:schluessel_liste' %}">Schluesselverwaltung</a></li>
-                        <li><a class="dropdown-item" href="{% url 'raumbuch:token_liste' %}">Zutrittsgutschriften</a></li>
+                        {% endif %}
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'raumbuch:token_liste' %}">
+                                Zutrittsgutschriften
+                                {% if token_anfragen_anzahl %}
+                                <span class="badge bg-warning text-dark ms-2">{{ token_anfragen_anzahl }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        {% if user.is_staff or ist_facility_mitglied %}
                         <li><a class="dropdown-item" href="{% url 'raumbuch:treppenhaus_liste' %}">Treppenhaeuser</a></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:reinigung' %}">Reinigung</a></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:umzug_liste' %}">Umzugsauftraege</a></li>
+                        {% endif %}
                         {% endif %}
                     </ul>
                 </li>

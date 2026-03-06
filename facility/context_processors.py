@@ -1,3 +1,4 @@
+from formulare.models import TeamQueue
 from hr.models import HRMitarbeiter
 
 from .models import FacilityTeam, Stoermeldung
@@ -55,10 +56,33 @@ def facility_context(request):
             status="weitergeleitet", eskaliert_an=request.user
         ).count()
 
+    # Security-Team: Mitglieder der sec-token Queue
+    ist_security_mitglied = request.user.is_staff
+    if not ist_security_mitglied:
+        try:
+            ist_security_mitglied = TeamQueue.objects.filter(
+                kuerzel="sec-token", mitglieder=request.user
+            ).exists()
+        except Exception:
+            pass
+
+    # Badge: offene Token-Antraege (nur fuer Security-Team / Staff)
+    token_anfragen_anzahl = 0
+    if ist_security_mitglied:
+        try:
+            from raumbuch.models import ZutrittsToken
+            token_anfragen_anzahl = ZutrittsToken.objects.filter(
+                status="beantragt"
+            ).count()
+        except Exception:
+            pass
+
     return {
         "ist_facility_mitglied": ist_facility_mitglied,
         "facility_queue_anzahl": facility_queue_anzahl,
         "ist_vorgesetzter": ist_vorgesetzter,
         "ist_fuehrungskraft": ist_fuehrungskraft,
         "al_queue_anzahl": al_queue_anzahl,
+        "ist_security_mitglied": ist_security_mitglied,
+        "token_anfragen_anzahl": token_anfragen_anzahl,
     }

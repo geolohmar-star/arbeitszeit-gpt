@@ -105,5 +105,16 @@
     "name": "Arbeitszeitvereinbarungen",
     "mitglieder": []
   }
+},
+{
+  "model": "formulare.teamqueue",
+  "pk": 12,
+  "fields": {
+    "antragstypen": [],
+    "beschreibung": "Security-Team: bearbeitet Token-Antraege und verwaltet Zutrittsbadges.",
+    "kuerzel": "sec-token",
+    "name": "Security – Tokenverwaltung",
+    "mitglieder": []
+  }
 }
 ]

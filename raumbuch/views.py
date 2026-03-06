@@ -57,6 +57,14 @@ def _ist_facility_oder_staff(user):
     return user.facility_teams.exists()
 
 
+def _ist_token_bearbeiter(user):
+    """True fuer Staff, Facility-Team-Mitglieder und Security-Team-Mitglieder."""
+    if user.is_staff or user.facility_teams.exists():
+        return True
+    from formulare.models import TeamQueue
+    return TeamQueue.objects.filter(kuerzel="sec-token", mitglieder=user).exists()
+
+
 # ---------------------------------------------------------------------------
 # Gebaeudestruktur
 # ---------------------------------------------------------------------------
@@ -646,12 +654,18 @@ def schluessel_rueckgabe(request, ausgabe_pk):
 def token_liste(request):
     """Zutrittstoken-Liste mit Ablauf-Warnung."""
     tokens = ZutrittsToken.objects.select_related("mitarbeiter").prefetch_related("profile").exclude(status="beantragt")
-    beantragte = ZutrittsToken.objects.select_related("mitarbeiter").prefetch_related("profile").filter(status="beantragt")
     heute = date.today()
+
+    # Beantragte Token nur fuer Security-Team, Facility-Team und Staff sichtbar
+    beantragte = None
+    if _ist_token_bearbeiter(request.user):
+        beantragte = ZutrittsToken.objects.select_related("mitarbeiter").prefetch_related("profile").filter(status="beantragt")
+
     return render(request, "raumbuch/token_liste.html", {
         "tokens": tokens,
         "beantragte": beantragte,
         "heute": heute,
+        "ist_token_bearbeiter": _ist_token_bearbeiter(request.user),
     })
 
 
@@ -728,7 +742,7 @@ def token_anfrage(request):
 @login_required
 def token_form(request, pk=None):
     """Zutrittstoken anlegen oder bearbeiten."""
-    if not _ist_facility_oder_staff(request.user):
+    if not _ist_token_bearbeiter(request.user):
         messages.error(request, "Keine Berechtigung.")
         return redirect("raumbuch:token_liste")
 
@@ -790,7 +804,7 @@ def token_form(request, pk=None):
 @login_required
 def token_sperren(request, pk):
     """Token auf 'gesperrt' setzen."""
-    if not _ist_facility_oder_staff(request.user):
+    if not _ist_token_bearbeiter(request.user):
         messages.error(request, "Keine Berechtigung.")
         return redirect("raumbuch:token_liste")
 
