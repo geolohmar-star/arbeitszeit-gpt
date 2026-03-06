@@ -92,6 +92,10 @@ class Command(BaseCommand):
 
         self._vergebe_durchwahlnummern()
 
+        self.stdout.write("  [LOAD] Raumbelegungen (Stelle -> Raum) ...")
+        call_command("seed_belegungen", verbosity=0)
+        self.stdout.write("  [OK]   Raumbelegungen abgeschlossen.")
+
         self.stdout.write(self.style.SUCCESS("seed_initial_data abgeschlossen."))
 
     def _erstelle_abteilung_wenn_noetig(self, label, check_app, check_kuerzel, command, force):

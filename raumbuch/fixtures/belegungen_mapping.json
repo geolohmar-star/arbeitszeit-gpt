@@ -1,0 +1,546 @@
+[
+  {
+    "stelle": "al_sec",
+    "raum": "REGA01"
+  },
+  {
+    "stelle": "sv_sec",
+    "raum": "REGA02"
+  },
+  {
+    "stelle": "ma_sec1",
+    "raum": "REGA03"
+  },
+  {
+    "stelle": "ma_sec2",
+    "raum": "REGA04"
+  },
+  {
+    "stelle": "ma_sec3",
+    "raum": "REGB01"
+  },
+  {
+    "stelle": "ma_sec4",
+    "raum": "REGB02"
+  },
+  {
+    "stelle": "pf_sec",
+    "raum": "E02"
+  },
+  {
+    "stelle": "bl_vw",
+    "raum": "E07"
+  },
+  {
+    "stelle": "gf1",
+    "raum": "E07"
+  },
+  {
+    "stelle": "bl_bv1",
+    "raum": "E08"
+  },
+  {
+    "stelle": "gf_tech",
+    "raum": "E08"
+  },
+  {
+    "stelle": "gf_verw",
+    "raum": "1A01"
+  },
+  {
+    "stelle": "bl_produktion",
+    "raum": "1A01"
+  },
+  {
+    "stelle": "bl_bv2",
+    "raum": "1A02"
+  },
+  {
+    "stelle": "bl_bv3",
+    "raum": "1A02"
+  },
+  {
+    "stelle": "ma_el1",
+    "raum": "1A03"
+  },
+  {
+    "stelle": "ma_el2",
+    "raum": "1A03"
+  },
+  {
+    "stelle": "al_el",
+    "raum": "1A04"
+  },
+  {
+    "stelle": "ma_el3",
+    "raum": "1A04"
+  },
+  {
+    "stelle": "sv_pg",
+    "raum": "1A05"
+  },
+  {
+    "stelle": "ma_el4",
+    "raum": "1A05"
+  },
+  {
+    "stelle": "ma_el7",
+    "raum": "1B01"
+  },
+  {
+    "stelle": "sv_el",
+    "raum": "1B01"
+  },
+  {
+    "stelle": "ma_za4",
+    "raum": "1B02"
+  },
+  {
+    "stelle": "ma_za8",
+    "raum": "1B02"
+  },
+  {
+    "stelle": "ma_fm1",
+    "raum": "1B03"
+  },
+  {
+    "stelle": "al_fm",
+    "raum": "1B03"
+  },
+  {
+    "stelle": "ma_fm2",
+    "raum": "1B04"
+  },
+  {
+    "stelle": "sv_za",
+    "raum": "1B04"
+  },
+  {
+    "stelle": "ma_fm3",
+    "raum": "1B05"
+  },
+  {
+    "stelle": "ma_za1",
+    "raum": "2A01"
+  },
+  {
+    "stelle": "ma_za6",
+    "raum": "2A01"
+  },
+  {
+    "stelle": "ma_qs2",
+    "raum": "2A02"
+  },
+  {
+    "stelle": "sv_qs",
+    "raum": "2A02"
+  },
+  {
+    "stelle": "al_qs",
+    "raum": "2A03"
+  },
+  {
+    "stelle": "ma_qs1",
+    "raum": "2A03"
+  },
+  {
+    "stelle": "ma_qs3",
+    "raum": "2A04"
+  },
+  {
+    "stelle": "ma_qs4",
+    "raum": "2A04"
+  },
+  {
+    "stelle": "ma_fm4",
+    "raum": "2A05"
+  },
+  {
+    "stelle": "ma_bh1",
+    "raum": "2A05"
+  },
+  {
+    "stelle": "ma_bh2",
+    "raum": "2B01"
+  },
+  {
+    "stelle": "sv_co",
+    "raum": "2B01"
+  },
+  {
+    "stelle": "al_bh",
+    "raum": "2B02"
+  },
+  {
+    "stelle": "ma_bh3",
+    "raum": "2B02"
+  },
+  {
+    "stelle": "ma_co1",
+    "raum": "2B04"
+  },
+  {
+    "stelle": "ma_co2",
+    "raum": "2B04"
+  },
+  {
+    "stelle": "al_co",
+    "raum": "2B05"
+  },
+  {
+    "stelle": "ma_co3",
+    "raum": "3A01"
+  },
+  {
+    "stelle": "ma_lg1",
+    "raum": "3A01"
+  },
+  {
+    "stelle": "sv_lg",
+    "raum": "3A02"
+  },
+  {
+    "stelle": "ma_lg2",
+    "raum": "3A02"
+  },
+  {
+    "stelle": "ma_lg3",
+    "raum": "3A03"
+  },
+  {
+    "stelle": "al_mk",
+    "raum": "3A03"
+  },
+  {
+    "stelle": "sv_da",
+    "raum": "3A04"
+  },
+  {
+    "stelle": "sv_bh",
+    "raum": "3A04"
+  },
+  {
+    "stelle": "ma_da1",
+    "raum": "3A05"
+  },
+  {
+    "stelle": "ma_da2",
+    "raum": "3A05"
+  },
+  {
+    "stelle": "al_da",
+    "raum": "3B01"
+  },
+  {
+    "stelle": "ma_da3",
+    "raum": "3B01"
+  },
+  {
+    "stelle": "ma_da4",
+    "raum": "3B02"
+  },
+  {
+    "stelle": "ma_da5",
+    "raum": "3B02"
+  },
+  {
+    "stelle": "sv_ii",
+    "raum": "3B03"
+  },
+  {
+    "stelle": "ma_ii1",
+    "raum": "3B03"
+  },
+  {
+    "stelle": "ma_ii2",
+    "raum": "3B04"
+  },
+  {
+    "stelle": "ma_ii3",
+    "raum": "3B04"
+  },
+  {
+    "stelle": "ma_ii4",
+    "raum": "3B05"
+  },
+  {
+    "stelle": "ma_ii5",
+    "raum": "3B05"
+  },
+  {
+    "stelle": "ma_ii6",
+    "raum": "4A01"
+  },
+  {
+    "stelle": "ma_ad6",
+    "raum": "4A01"
+  },
+  {
+    "stelle": "ma_ii7",
+    "raum": "4A02"
+  },
+  {
+    "stelle": "al_lg",
+    "raum": "4A03"
+  },
+  {
+    "stelle": "ma_pr3",
+    "raum": "4A03"
+  },
+  {
+    "stelle": "ma_pr4",
+    "raum": "4A04"
+  },
+  {
+    "stelle": "sv_pr",
+    "raum": "4A04"
+  },
+  {
+    "stelle": "al_pr",
+    "raum": "4A05"
+  },
+  {
+    "stelle": "ma_pr5",
+    "raum": "4A05"
+  },
+  {
+    "stelle": "ma_pr1",
+    "raum": "4B01"
+  },
+  {
+    "stelle": "ma_pr6",
+    "raum": "4B01"
+  },
+  {
+    "stelle": "ma_pr2",
+    "raum": "4B02"
+  },
+  {
+    "stelle": "ma_pr7",
+    "raum": "4B02"
+  },
+  {
+    "stelle": "ma_za10",
+    "raum": "4B03"
+  },
+  {
+    "stelle": "ma_se10",
+    "raum": "4B03"
+  },
+  {
+    "stelle": "ma_se2",
+    "raum": "4B04"
+  },
+  {
+    "stelle": "al_se",
+    "raum": "4B04"
+  },
+  {
+    "stelle": "ma_se3",
+    "raum": "4B05"
+  },
+  {
+    "stelle": "ma_se4",
+    "raum": "4B05"
+  },
+  {
+    "stelle": "ma_se6",
+    "raum": "5A01"
+  },
+  {
+    "stelle": "ma_se5",
+    "raum": "5A01"
+  },
+  {
+    "stelle": "ma_se1",
+    "raum": "5A02"
+  },
+  {
+    "stelle": "ma_se7",
+    "raum": "5A02"
+  },
+  {
+    "stelle": "sv_se",
+    "raum": "5A03"
+  },
+  {
+    "stelle": "ma_se9",
+    "raum": "5A04"
+  },
+  {
+    "stelle": "ma_se8",
+    "raum": "5A04"
+  },
+  {
+    "stelle": "ma_ka1",
+    "raum": "5A05"
+  },
+  {
+    "stelle": "ma_za9",
+    "raum": "5A05"
+  },
+  {
+    "stelle": "al_ii",
+    "raum": "5B01"
+  },
+  {
+    "stelle": "al_pe",
+    "raum": "5B01"
+  },
+  {
+    "stelle": "ma_pe1",
+    "raum": "5B02"
+  },
+  {
+    "stelle": "sv_pe",
+    "raum": "5B02"
+  },
+  {
+    "stelle": "ma_pe2",
+    "raum": "5B03"
+  },
+  {
+    "stelle": "ma_pe3",
+    "raum": "5B03"
+  },
+  {
+    "stelle": "sv_fm",
+    "raum": "5B04"
+  },
+  {
+    "stelle": "ma_pg1",
+    "raum": "5B04"
+  },
+  {
+    "stelle": "al_pg",
+    "raum": "5B05"
+  },
+  {
+    "stelle": "ma_za7",
+    "raum": "6A01"
+  },
+  {
+    "stelle": "ma_za3",
+    "raum": "6A02"
+  },
+  {
+    "stelle": "ma_pv1",
+    "raum": "6A02"
+  },
+  {
+    "stelle": "sv_pv",
+    "raum": "6A03"
+  },
+  {
+    "stelle": "ma_pv2",
+    "raum": "6A04"
+  },
+  {
+    "stelle": "ma_za2",
+    "raum": "6A04"
+  },
+  {
+    "stelle": "al_pv",
+    "raum": "6A05"
+  },
+  {
+    "stelle": "sv_ad",
+    "raum": "6A05"
+  },
+  {
+    "stelle": "ma_ad1",
+    "raum": "6B01"
+  },
+  {
+    "stelle": "ma_ad2",
+    "raum": "6B01"
+  },
+  {
+    "stelle": "ma_ad3",
+    "raum": "6B02"
+  },
+  {
+    "stelle": "ma_ad4",
+    "raum": "6B02"
+  },
+  {
+    "stelle": "ma_ad5",
+    "raum": "6B03"
+  },
+  {
+    "stelle": "ma_el6",
+    "raum": "6B03"
+  },
+  {
+    "stelle": "ma_pg2",
+    "raum": "6B04"
+  },
+  {
+    "stelle": "ma_za5",
+    "raum": "6B04"
+  },
+  {
+    "stelle": "sv_id",
+    "raum": "6B05"
+  },
+  {
+    "stelle": "ma_id2",
+    "raum": "7A01"
+  },
+  {
+    "stelle": "ma_id1",
+    "raum": "7A01"
+  },
+  {
+    "stelle": "ma_id3",
+    "raum": "7A02"
+  },
+  {
+    "stelle": "ma_id4",
+    "raum": "7A02"
+  },
+  {
+    "stelle": "al_id",
+    "raum": "7A03"
+  },
+  {
+    "stelle": "ma_id5",
+    "raum": "7A03"
+  },
+  {
+    "stelle": "ma_id6",
+    "raum": "7A04"
+  },
+  {
+    "stelle": "ma_mk1",
+    "raum": "7A05"
+  },
+  {
+    "stelle": "sv_mk",
+    "raum": "7A05"
+  },
+  {
+    "stelle": "ma_mk2",
+    "raum": "7B01"
+  },
+  {
+    "stelle": "ma_mk3",
+    "raum": "7B01"
+  },
+  {
+    "stelle": "ma_mk4",
+    "raum": "7B02"
+  },
+  {
+    "stelle": "ma_pv3",
+    "raum": "7B02"
+  },
+  {
+    "stelle": "bl_bv4",
+    "raum": "7B03"
+  },
+  {
+    "stelle": "al_ad",
+    "raum": "7B03"
+  }
+]
