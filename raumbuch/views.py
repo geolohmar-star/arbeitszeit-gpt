@@ -712,7 +712,6 @@ def token_anfrage(request):
             if profil_ids:
                 token.profile.set(ZutrittsProfil.objects.filter(pk__in=profil_ids))
 
-            _log(token, "erstellen", "Token beantragt", request.user, model_name="ZutrittsToken", objekt_id=token.pk)
             messages.success(
                 request,
                 f"Token-Antrag fuer {mitarbeiter} wurde eingereicht. "
