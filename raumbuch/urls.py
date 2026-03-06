@@ -36,6 +36,7 @@ urlpatterns = [
     ),
     # Zutrittskontrolle
     path("token/", views.token_liste, name="token_liste"),
+    path("token/beantragen/", views.token_anfrage, name="token_anfrage"),
     path("token/neu/", views.token_form, name="token_erstellen"),
     path("token/<int:pk>/bearbeiten/", views.token_form, name="token_bearbeiten"),
     path("token/<int:pk>/sperren/", views.token_sperren, name="token_sperren"),

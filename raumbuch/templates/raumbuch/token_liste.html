@@ -88,5 +88,50 @@
         Rot markierte Zeilen: Token läuft innerhalb der konfigurierten Warnfrist ab.
         Aktuelles Datum: {{ heute }}.
     </p>
+
+    <!-- Beantragte Token (nur fuer Facility/Staff sichtbar) -->
+    {% if user.is_staff or ist_facility_mitglied %}
+    {% if beantragte %}
+    <div class="mt-4">
+        <h5 class="text-warning">Offene Token-Antraege <span class="badge bg-warning text-dark">{{ beantragte|length }}</span></h5>
+        <div class="card border-warning">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-warning">
+                            <tr>
+                                <th>Mitarbeiter</th>
+                                <th>Profile</th>
+                                <th>Gueltig bis</th>
+                                <th>Bemerkung</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for token in beantragte %}
+                            <tr>
+                                <td><strong>{{ token.mitarbeiter }}</strong></td>
+                                <td>
+                                    {% for profil in token.profile.all %}
+                                    <span class="badge bg-secondary">{{ profil.bezeichnung }}</span>
+                                    {% empty %}<span class="text-muted">–</span>
+                                    {% endfor %}
+                                </td>
+                                <td>{{ token.gueltig_bis|default:"Unbegrenzt" }}</td>
+                                <td><small>{{ token.bemerkung }}</small></td>
+                                <td>
+                                    <a href="{% url 'raumbuch:token_bearbeiten' token.pk %}"
+                                       class="btn btn-sm btn-warning">Badge-ID eintragen</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
 </div>
 {% endblock %}

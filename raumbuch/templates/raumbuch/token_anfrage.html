@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Raumbuch – Zutrittstoken beantragen{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 640px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">Zutrittstoken beantragen</h1>
+        <a href="{% url 'raumbuch:uebersicht' %}" class="btn btn-outline-secondary btn-sm">Zurueck</a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card">
+        <div class="card-body">
+            <p class="text-muted mb-4">
+                Beantragen Sie einen Zutrittstoken fuer einen Ihrer Mitarbeiter.
+                Facility wird den physischen Badge zuweisen und die Badge-ID nachtragen.
+            </p>
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="mitarbeiter" class="form-label fw-semibold">Mitarbeiter</label>
+                    <select name="mitarbeiter" id="mitarbeiter" class="form-select" required>
+                        <option value="">-- Bitte auswaehlen --</option>
+                        {% for ma in mitarbeiter_qs %}
+                        <option value="{{ ma.pk }}">{{ ma.nachname }}, {{ ma.vorname }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if not mitarbeiter_qs %}
+                    <div class="form-text text-warning">Keine Mitarbeiter unter Ihrer Fuehrung gefunden.</div>
+                    {% endif %}
+                </div>
+
+                {% if profile_qs %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Zutrittsprofil(e)</label>
+                    <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                        {% for profil in profile_qs %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="profile" value="{{ profil.pk }}" id="profil_{{ profil.pk }}">
+                            <label class="form-check-label" for="profil_{{ profil.pk }}">
+                                {{ profil.bezeichnung }}
+                                {% if profil.beschreibung %}
+                                <small class="text-muted">– {{ profil.beschreibung }}</small>
+                                {% endif %}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="form-text">Optional – Facility kann Profile auch nachtraeglich zuweisen.</div>
+                </div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label for="gueltig_bis" class="form-label fw-semibold">Gueltig bis</label>
+                    <input type="date" name="gueltig_bis" id="gueltig_bis" class="form-control">
+                    <div class="form-text">Leer lassen fuer unbegrenzte Gueltigkeit.</div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="bemerkung" class="form-label fw-semibold">Begruendung / Hinweis</label>
+                    <textarea name="bemerkung" id="bemerkung" class="form-control" rows="3"
+                              placeholder="z.B. Neueinstieg, Bereichswechsel, Ersatz fuer verlorenen Badge..."></textarea>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Antrag einreichen</button>
+                    <a href="{% url 'raumbuch:uebersicht' %}" class="btn btn-outline-secondary">Abbrechen</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

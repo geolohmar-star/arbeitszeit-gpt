@@ -645,9 +645,85 @@ def schluessel_rueckgabe(request, ausgabe_pk):
 @login_required
 def token_liste(request):
     """Zutrittstoken-Liste mit Ablauf-Warnung."""
-    tokens = ZutrittsToken.objects.select_related("mitarbeiter").prefetch_related("profile").all()
+    tokens = ZutrittsToken.objects.select_related("mitarbeiter").prefetch_related("profile").exclude(status="beantragt")
+    beantragte = ZutrittsToken.objects.select_related("mitarbeiter").prefetch_related("profile").filter(status="beantragt")
     heute = date.today()
-    return render(request, "raumbuch/token_liste.html", {"tokens": tokens, "heute": heute})
+    return render(request, "raumbuch/token_liste.html", {
+        "tokens": tokens,
+        "beantragte": beantragte,
+        "heute": heute,
+    })
+
+
+@login_required
+def token_anfrage(request):
+    """Fuehrungskraefte (AL/BL/GF) koennen fuer ihre Mitarbeiter Token beantragen.
+
+    Der Token wird mit status='beantragt' und badge_id='AUSSTEHEND' angelegt.
+    Facility bearbeitet den Antrag und traegt die Badge-ID nach.
+    """
+    from hr.models import HRMitarbeiter
+
+    # Zugriff: AL, BL, GF oder Staff
+    try:
+        rolle = request.user.hr_mitarbeiter.rolle
+        ist_berechtigt = rolle in ("gf", "bereichsleiter", "abteilungsleiter")
+    except AttributeError:
+        ist_berechtigt = False
+
+    if not (request.user.is_staff or ist_berechtigt):
+        messages.error(request, "Keine Berechtigung fuer Token-Antraege.")
+        return redirect("raumbuch:uebersicht")
+
+    # Nur direkte Berichte oder (bei Staff) alle aktiven Mitarbeiter
+    if request.user.is_staff:
+        mitarbeiter_qs = HRMitarbeiter.objects.filter(user__is_active=True).order_by("nachname", "vorname")
+    else:
+        mitarbeiter_qs = request.user.hr_mitarbeiter.direkte_berichte.filter(
+            user__is_active=True
+        ).order_by("nachname", "vorname")
+
+    profile_qs = ZutrittsProfil.objects.all().order_by("bezeichnung")
+
+    if request.method == "POST":
+        mitarbeiter_id = request.POST.get("mitarbeiter")
+        profil_ids = request.POST.getlist("profile")
+        gueltig_bis = request.POST.get("gueltig_bis") or None
+        bemerkung = request.POST.get("bemerkung", "").strip()
+
+        if not mitarbeiter_id:
+            messages.error(request, "Bitte einen Mitarbeiter auswaehlen.")
+        else:
+            try:
+                mitarbeiter = mitarbeiter_qs.get(pk=mitarbeiter_id)
+            except HRMitarbeiter.DoesNotExist:
+                messages.error(request, "Ungueltige Auswahl.")
+                return redirect("raumbuch:token_anfrage")
+
+            token = ZutrittsToken.objects.create(
+                mitarbeiter=mitarbeiter,
+                badge_id="AUSSTEHEND",
+                status="beantragt",
+                ausgestellt_am=date.today(),
+                gueltig_bis=gueltig_bis or None,
+                bemerkung=f"Beantragt von {request.user.get_full_name() or request.user.username}"
+                          + (f": {bemerkung}" if bemerkung else ""),
+            )
+            if profil_ids:
+                token.profile.set(ZutrittsProfil.objects.filter(pk__in=profil_ids))
+
+            _log(token, request.user, "Token beantragt")
+            messages.success(
+                request,
+                f"Token-Antrag fuer {mitarbeiter} wurde eingereicht. "
+                "Facility wird den Badge zuweisen.",
+            )
+            return redirect("raumbuch:token_anfrage")
+
+    return render(request, "raumbuch/token_anfrage.html", {
+        "mitarbeiter_qs": mitarbeiter_qs,
+        "profile_qs": profile_qs,
+    })
 
 
 @login_required

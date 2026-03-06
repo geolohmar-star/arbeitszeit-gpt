@@ -451,6 +451,7 @@ class ZutrittsToken(models.Model):
     """Elektronischer Zutrittstoken (Badge, Transponder) eines Mitarbeiters."""
 
     STATUS_CHOICES = [
+        ("beantragt", "Beantragt"),
         ("aktiv", "Aktiv"),
         ("gesperrt", "Gesperrt"),
         ("verloren", "Verloren"),

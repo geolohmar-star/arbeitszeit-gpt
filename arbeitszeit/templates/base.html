@@ -217,6 +217,9 @@
                         <li><a class="dropdown-item" href="{% url 'raumbuch:buchung_kalender' %}">Buchungen</a></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:belegungsplan' %}">Belegungsplan</a></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:besuch_liste' %}">Besuchsanmeldungen</a></li>
+                        {% if ist_fuehrungskraft %}
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:token_anfrage' %}">Token beantragen</a></li>
+                        {% endif %}
                         {% if user.is_staff or ist_facility_mitglied %}
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:struktur' %}">Gebaeudestruktur</a></li>
@@ -356,6 +359,9 @@ var CMD_ITEMS = [
     {l: "Buchungen", u: "{% url 'raumbuch:buchung_kalender' %}", g: "Gebaeude"},
     {l: "Belegungsplan", u: "{% url 'raumbuch:belegungsplan' %}", g: "Gebaeude"},
     {l: "Besuchsanmeldungen", u: "{% url 'raumbuch:besuch_liste' %}", g: "Gebaeude"},
+    {% if ist_fuehrungskraft %}
+    {l: "Token beantragen", u: "{% url 'raumbuch:token_anfrage' %}", g: "Gebaeude"},
+    {% endif %}
     {% if user.is_staff or ist_facility_mitglied %}
     {l: "Gebaeudestruktur", u: "{% url 'raumbuch:struktur' %}", g: "Gebaeude"},
     {l: "Schluesselverwaltung", u: "{% url 'raumbuch:schluessel_liste' %}", g: "Gebaeude"},

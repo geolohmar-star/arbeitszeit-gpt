@@ -26,6 +26,15 @@ def facility_context(request):
     except Exception:
         pass
 
+    # Fuehrungskraft: AL, BL oder GF (duerfen Token beantragen)
+    ist_fuehrungskraft = request.user.is_staff
+    if not ist_fuehrungskraft:
+        try:
+            rolle = request.user.hr_mitarbeiter.rolle
+            ist_fuehrungskraft = rolle in ("gf", "bereichsleiter", "abteilungsleiter")
+        except Exception:
+            pass
+
     # Badge: Anzahl offener (unbearbeiteter) Stoermeldungen in den eigenen Teams
     facility_queue_anzahl = 0
     if ist_facility_mitglied:
@@ -50,5 +59,6 @@ def facility_context(request):
         "ist_facility_mitglied": ist_facility_mitglied,
         "facility_queue_anzahl": facility_queue_anzahl,
         "ist_vorgesetzter": ist_vorgesetzter,
+        "ist_fuehrungskraft": ist_fuehrungskraft,
         "al_queue_anzahl": al_queue_anzahl,
     }
