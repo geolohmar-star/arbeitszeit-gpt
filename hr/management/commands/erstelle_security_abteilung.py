@@ -173,6 +173,11 @@ class Command(BaseCommand):
                 sec_einheit.leitende_stelle = al_stelle
                 sec_einheit.save(update_fields=["leitende_stelle"])
 
+            # --- Raumbelegung ---
+            self._belege_raeume(
+                al_hr, sv_hr, ma_hrs, pf_hr
+            )
+
             self.stdout.write(
                 self.style.SUCCESS(
                     "\nSecurity-Abteilung erfolgreich erstellt!"
@@ -186,6 +191,41 @@ class Command(BaseCommand):
             )
 
     # --- Hilfsmethoden ---
+
+    def _belege_raeume(self, al_hr, sv_hr, ma_hrs, pf_hr):
+        """Weist Security-Mitarbeitern Bueros im Raumbuch zu."""
+        import datetime
+        from raumbuch.models import Belegung, Raum
+
+        heute = datetime.date.today()
+        zuteilungen = [
+            (al_hr,     "REGA01"),
+            (sv_hr,     "REGA02"),
+            (pf_hr,     "E02"),
+        ]
+        for i, ma in enumerate(ma_hrs, start=3):
+            raumnummer = f"REG{'A' if i <= 5 else 'B'}{(i - 2) if i <= 5 else (i - 5):02d}"
+            zuteilungen.append((ma, raumnummer))
+
+        self.stdout.write("\n  Raumbelegung Security:")
+        for ma, raumnummer in zuteilungen:
+            try:
+                raum = Raum.objects.get(raumnummer=raumnummer)
+                _, created = Belegung.objects.get_or_create(
+                    raum=raum,
+                    mitarbeiter=ma,
+                    defaults={"von": heute, "notiz": "Security-Abteilung"},
+                )
+                self.stdout.write(
+                    f"    {ma.user.username} -> {raumnummer} "
+                    f"({'erstellt' if created else 'vorhanden'})"
+                )
+            except Raum.DoesNotExist:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"    Raum {raumnummer} nicht gefunden – uebersprungen"
+                    )
+                )
 
     def _erstelle_stelle(
         self, kuerzel, bezeichnung, org_einheit, kategorie, uebergeordnete_stelle

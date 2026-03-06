@@ -82,7 +82,26 @@ class Command(BaseCommand):
             force=force,
         )
 
+        self._erstelle_abteilung_wenn_noetig(
+            label="Security-Abteilung (User + HRMitarbeiter)",
+            check_app="hr",
+            check_kuerzel="SEC",
+            command="erstelle_security_abteilung",
+            force=force,
+        )
+
         self.stdout.write(self.style.SUCCESS("seed_initial_data abgeschlossen."))
+
+    def _erstelle_abteilung_wenn_noetig(self, label, check_app, check_kuerzel, command, force):
+        """Ruft ein Management-Command auf, wenn die OrgEinheit noch nicht existiert."""
+        from django.apps import apps
+        model = apps.get_model(check_app, "OrgEinheit")
+        if not force and model.objects.filter(kuerzel=check_kuerzel).exists():
+            self.stdout.write(f"  [SKIP] {label} – bereits vorhanden.")
+            return
+        self.stdout.write(f"  [LOAD] {label} ...")
+        call_command(command, verbosity=1)
+        self.stdout.write(f"  [OK]   {label} abgeschlossen.")
 
     def _laden(self, label, check_app, check_model, fixtures, force):
         """Laedt Fixtures nur wenn Tabelle leer ist (oder --force gesetzt)."""
