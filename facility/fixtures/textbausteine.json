@@ -1,0 +1,162 @@
+[
+  {
+    "model": "facility.textbaustein",
+    "pk": 1,
+    "fields": {
+      "kategorie": "elektro",
+      "text": "Licht defekt",
+      "reihenfolge": 0,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 11,
+    "fields": {
+      "kategorie": "elektro",
+      "text": "Licht flackert",
+      "reihenfolge": 0,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 15,
+    "fields": {
+      "kategorie": "elektro",
+      "text": "Untertisch Gerät defekt",
+      "reihenfolge": 0,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 2,
+    "fields": {
+      "kategorie": "elektro",
+      "text": "Steckdose ohne Strom",
+      "reihenfolge": 1,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 3,
+    "fields": {
+      "kategorie": "elektro",
+      "text": "Sicherung ausgeloest",
+      "reihenfolge": 2,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 10,
+    "fields": {
+      "kategorie": "maler",
+      "text": "Wandschaden",
+      "reihenfolge": 0,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 13,
+    "fields": {
+      "kategorie": "sanitaer_heizung",
+      "text": "Druckspüler Urinal defekt (Batteriebetrieben)",
+      "reihenfolge": 0,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 14,
+    "fields": {
+      "kategorie": "sanitaer_heizung",
+      "text": "Druckspüler WC defekt",
+      "reihenfolge": 0,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 16,
+    "fields": {
+      "kategorie": "sanitaer_heizung",
+      "text": "Perlator austauschen",
+      "reihenfolge": 0,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 4,
+    "fields": {
+      "kategorie": "sanitaer_heizung",
+      "text": "Toilette verstopft",
+      "reihenfolge": 0,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 12,
+    "fields": {
+      "kategorie": "sanitaer_heizung",
+      "text": "Urinal verstopft",
+      "reihenfolge": 0,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 5,
+    "fields": {
+      "kategorie": "sanitaer_heizung",
+      "text": "Wasserhahn tropft",
+      "reihenfolge": 1,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 6,
+    "fields": {
+      "kategorie": "sanitaer_heizung",
+      "text": "Heizung kalt",
+      "reihenfolge": 2,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 7,
+    "fields": {
+      "kategorie": "schlosser",
+      "text": "Tuer klemmt",
+      "reihenfolge": 0,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 8,
+    "fields": {
+      "kategorie": "schlosser",
+      "text": "Schloss defekt",
+      "reihenfolge": 1,
+      "ist_aktiv": true
+    }
+  },
+  {
+    "model": "facility.textbaustein",
+    "pk": 9,
+    "fields": {
+      "kategorie": "schreiner",
+      "text": "Möbel beschädigt",
+      "reihenfolge": 0,
+      "ist_aktiv": true
+    }
+  }
+]

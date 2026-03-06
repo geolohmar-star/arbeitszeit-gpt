@@ -67,6 +67,14 @@ class Command(BaseCommand):
         )
 
         self._laden(
+            label="Facility Textbausteine",
+            check_app="facility",
+            check_model="Textbaustein",
+            fixtures=["facility/fixtures/textbausteine.json"],
+            force=force,
+        )
+
+        self._laden(
             label="Raumbuch-Struktur (Gebaeude, Raeume)",
             check_app="raumbuch",
             check_model="Standort",
