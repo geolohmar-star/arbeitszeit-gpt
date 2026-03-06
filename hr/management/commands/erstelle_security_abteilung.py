@@ -168,6 +168,9 @@ class Command(BaseCommand):
                 f"  {len(queue_users)} Mitglieder der Queue hinzugefuegt"
             )
 
+            # --- Durchwahlnummern vergeben (fehlende) ---
+            self._vergebe_durchwahlnummern()
+
             # OrgEinheit leitende Stelle nachpflegen
             if not sec_einheit.leitende_stelle:
                 sec_einheit.leitende_stelle = al_stelle
@@ -191,6 +194,26 @@ class Command(BaseCommand):
             )
 
     # --- Hilfsmethoden ---
+
+    def _vergebe_durchwahlnummern(self):
+        """Vergibt 4-stellige Durchwahlen an alle Mitarbeiter ohne Durchwahl."""
+        ohne = HRMitarbeiter.objects.filter(durchwahl="").order_by("personalnummer")
+        if not ohne.exists():
+            self.stdout.write("  Durchwahlnummern: alle bereits vergeben")
+            return
+        # Hoechste bereits vergebene Nummer ermitteln
+        from django.db.models import Max
+        hoechste = HRMitarbeiter.objects.exclude(durchwahl="").aggregate(
+            Max("durchwahl")
+        )["durchwahl__max"]
+        naechste = int(hoechste) + 1 if hoechste and hoechste.isdigit() else 4001
+        count = 0
+        for ma in ohne:
+            ma.durchwahl = str(naechste)
+            ma.save(update_fields=["durchwahl"])
+            naechste += 1
+            count += 1
+        self.stdout.write(f"  Durchwahlnummern: {count} vergeben")
 
     def _belege_raeume(self, al_hr, sv_hr, ma_hrs, pf_hr):
         """Weist Security-Mitarbeitern Bueros im Raumbuch zu."""

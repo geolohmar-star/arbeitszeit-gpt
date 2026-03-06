@@ -298,6 +298,12 @@ class HRMitarbeiter(models.Model):
         related_name="hrmitarbeiter",
         verbose_name="Stelle",
     )
+    durchwahl = models.CharField(
+        max_length=10,
+        blank=True,
+        verbose_name="Durchwahl",
+        help_text="Interne Telefondurchwahl (z.B. 4201)",
+    )
     eintrittsdatum = models.DateField(null=True, blank=True)
     email = models.EmailField(blank=True)
 

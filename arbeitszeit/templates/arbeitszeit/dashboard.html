@@ -404,6 +404,8 @@
                     {% if hr.stelle %} • {{ hr.stelle.kuerzel }}{% endif %}
                 {% endwith %}
                 • {{ mitarbeiter.standort.name }}
+                {% if raumbelegung %} • Raum {{ raumbelegung.raum.raumnummer }}{% endif %}
+                {% if durchwahl %} • Durchwahl {{ durchwahl }}{% endif %}
             </p>
         </div>
         <!-- Wunschplan für MA1-MA15 -->

@@ -656,6 +656,21 @@ def dashboard(request):
     
     is_kongos = (mitarbeiter.abteilung or '').strip().lower() == 'kongos'
     is_admin = request.user.is_staff or mitarbeiter.rolle == 'sachbearbeiter'
+
+    # Raumbelegung und Durchwahl aus HR
+    raumbelegung = None
+    durchwahl = None
+    try:
+        from raumbuch.models import Belegung
+        from hr.models import HRMitarbeiter
+        hr_ma = user.hr_mitarbeiter
+        durchwahl = hr_ma.durchwahl or None
+        raumbelegung = Belegung.objects.select_related('raum').filter(
+            mitarbeiter=hr_ma, bis__isnull=True
+        ).first()
+    except Exception:
+        pass
+
     context = {
         'mitarbeiter': mitarbeiter,
         'aktuelle_vereinbarung': aktuelle_vereinbarung,
@@ -665,6 +680,8 @@ def dashboard(request):
         'user': user,
         'is_kongos': is_kongos,
         'is_admin': is_admin,
+        'raumbelegung': raumbelegung,
+        'durchwahl': durchwahl,
     }
     return render(request, 'arbeitszeit/dashboard.html', context)
 
