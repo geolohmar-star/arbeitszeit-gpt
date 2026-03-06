@@ -66,12 +66,9 @@ class Command(BaseCommand):
             force=force,
         )
 
-        self._laden(
+        self._laden_immer(
             label="Facility Textbausteine",
-            check_app="facility",
-            check_model="Textbaustein",
             fixtures=["facility/fixtures/textbausteine.json"],
-            force=force,
         )
 
         self._laden(
@@ -93,7 +90,7 @@ class Command(BaseCommand):
         self._vergebe_durchwahlnummern()
 
         self.stdout.write("  [LOAD] Raumbelegungen (Stelle -> Raum) ...")
-        call_command("seed_belegungen", verbosity=0)
+        call_command("seed_belegungen", verbosity=1)
         self.stdout.write("  [OK]   Raumbelegungen abgeschlossen.")
 
         self.stdout.write(self.style.SUCCESS("seed_initial_data abgeschlossen."))
@@ -134,6 +131,13 @@ class Command(BaseCommand):
             ma.save(update_fields=["durchwahl"])
             naechste += 1
         self.stdout.write(f"  [OK]   Durchwahlnummern – {count} vergeben ab 4001.")
+
+    def _laden_immer(self, label, fixtures):
+        """Laedt Fixtures immer – loaddata ist idempotent bei expliziten PKs."""
+        self.stdout.write(f"  [LOAD] {label} (immer) ...")
+        for fixture in fixtures:
+            call_command("loaddata", fixture, verbosity=0)
+        self.stdout.write(f"  [OK]   {label} geladen.")
 
     def _laden(self, label, check_app, check_model, fixtures, force):
         """Laedt Fixtures nur wenn Tabelle leer ist (oder --force gesetzt)."""

@@ -34,17 +34,28 @@ class Command(BaseCommand):
         uebersprungen = 0
         nicht_gefunden = 0
 
+        # Vorhandene Stellen und HRMitarbeiter auf diesem System ermitteln
+        vorhandene_stellen = set(
+            HRMitarbeiter.objects.exclude(stelle=None)
+            .values_list("stelle__kuerzel", flat=True)
+        )
+        self.stdout.write(
+            f"  HRMitarbeiter mit Stelle: {len(vorhandene_stellen)} "
+            f"| Mapping-Eintraege: {len(mapping)}"
+        )
+
         with transaction.atomic():
             for eintrag in mapping:
                 stelle_kuerzel = eintrag["stelle"]
                 raumnummer = eintrag["raum"]
 
-                try:
-                    ma = HRMitarbeiter.objects.get(stelle__kuerzel=stelle_kuerzel)
-                except HRMitarbeiter.DoesNotExist:
+                if stelle_kuerzel not in vorhandene_stellen:
                     nicht_gefunden += 1
                     continue
-                except HRMitarbeiter.MultipleObjectsReturned:
+
+                try:
+                    ma = HRMitarbeiter.objects.get(stelle__kuerzel=stelle_kuerzel)
+                except (HRMitarbeiter.DoesNotExist, HRMitarbeiter.MultipleObjectsReturned):
                     nicht_gefunden += 1
                     continue
 
@@ -68,6 +79,6 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 f"Belegungen: {erstellt} erstellt, "
                 f"{uebersprungen} bereits vorhanden, "
-                f"{nicht_gefunden} Stelle/Raum nicht gefunden."
+                f"{nicht_gefunden} Stelle nicht verknuepft/Raum fehlt."
             )
         )
