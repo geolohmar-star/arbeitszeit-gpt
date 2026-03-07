@@ -214,6 +214,7 @@
                         <li><hr class="dropdown-divider"></li>
                         <li><h6 class="dropdown-header">Raumbuch</h6></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:uebersicht' %}">Raumuebersicht</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:grundriss' %}">Gebaeudeplan</a></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:buchung_kalender' %}">Buchungen</a></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:belegungsplan' %}">Belegungsplan</a></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:besuch_liste' %}">Besuchsanmeldungen</a></li>
@@ -368,6 +369,7 @@ var CMD_ITEMS = [
     {l: "Wartungsplaene", u: "{% url 'facility:wartungsplan_liste' %}", g: "Gebaeude"},
     {% endif %}
     {l: "Raumuebersicht", u: "{% url 'raumbuch:uebersicht' %}", g: "Gebaeude"},
+    {l: "Gebaeudeplan", u: "{% url 'raumbuch:grundriss' %}", g: "Gebaeude"},
     {l: "Buchungen", u: "{% url 'raumbuch:buchung_kalender' %}", g: "Gebaeude"},
     {l: "Belegungsplan", u: "{% url 'raumbuch:belegungsplan' %}", g: "Gebaeude"},
     {l: "Besuchsanmeldungen", u: "{% url 'raumbuch:besuch_liste' %}", g: "Gebaeude"},

@@ -69,4 +69,7 @@ urlpatterns = [
     path("umzug/<int:pk>/erledigen/", views.umzug_erledigen, name="umzug_erledigen"),
     # Log
     path("log/", views.gesamtlog, name="gesamtlog"),
+    # Interaktiver Grundriss
+    path("grundriss/", views.gebaeude_grundriss, name="grundriss"),
+    path("grundriss/status/", views.gebaeude_status_api, name="grundriss_status"),
 ]

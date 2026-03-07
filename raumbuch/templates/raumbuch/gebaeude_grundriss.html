@@ -1,0 +1,566 @@
+{% extends "base.html" %}
+{% block title %}Raumbuch – Gebaeudegrundriss{% endblock %}
+
+{% block content %}
+<style>
+  .grundriss-layout { display: flex; gap: 0; height: calc(100vh - 72px); overflow: hidden; }
+  .grundriss-sidebar { width: 220px; min-width: 220px; background: #1e293b; overflow-y: auto; padding: 12px 0; }
+  .grundriss-sidebar h6 { color: #94a3b8; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; padding: 8px 16px 4px; margin: 0; }
+  .grundriss-sidebar .gb-label { color: #f1f5f9; font-size: 12px; font-weight: 600; padding: 6px 16px; }
+  .grundriss-sidebar .gs-item { display: block; padding: 6px 16px 6px 28px; color: #94a3b8; font-size: 12px; text-decoration: none; cursor: pointer; border-left: 3px solid transparent; }
+  .grundriss-sidebar .gs-item:hover { background: #334155; color: #e2e8f0; }
+  .grundriss-sidebar .gs-item.aktiv { background: #0f172a; color: #38bdf8; border-left-color: #38bdf8; }
+  .grundriss-canvas { flex: 1; display: flex; flex-direction: column; background: #0f172a; overflow: hidden; }
+  .grundriss-toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: #1e293b; border-bottom: 1px solid #334155; flex-wrap: wrap; }
+  .grundriss-toolbar .etagen-titel { color: #f1f5f9; font-weight: 600; font-size: 14px; flex: 1; }
+  .sim-toggle { display: flex; border-radius: 6px; overflow: hidden; border: 1px solid #475569; }
+  .sim-btn { padding: 4px 14px; font-size: 12px; border: none; cursor: pointer; background: #334155; color: #94a3b8; }
+  .sim-btn.aktiv { background: #0ea5e9; color: white; font-weight: 600; }
+  .badge-sim { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #334155; color: #94a3b8; }
+  .grundriss-main { flex: 1; display: flex; overflow: hidden; }
+  .svg-wrapper { flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: flex-start; padding: 16px; }
+  .info-panel { width: 0; min-width: 0; background: #1e293b; border-left: 1px solid #334155; overflow: hidden; transition: width 0.2s; display: flex; flex-direction: column; }
+  .info-panel.offen { width: 300px; min-width: 300px; }
+  .info-panel-inner { padding: 16px; overflow-y: auto; flex: 1; }
+  .info-panel h5 { color: #f1f5f9; font-size: 14px; margin: 0 0 4px; }
+  .info-panel .info-typ { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 12px; }
+  .info-panel .info-row { display: flex; justify-content: space-between; border-bottom: 1px solid #334155; padding: 6px 0; font-size: 12px; }
+  .info-panel .info-row .lbl { color: #64748b; }
+  .info-panel .info-row .val { color: #e2e8f0; font-weight: 500; text-align: right; max-width: 160px; }
+  .info-panel .btn-detail { margin-top: 14px; display: block; text-align: center; background: #0ea5e9; color: white; padding: 8px; border-radius: 6px; text-decoration: none; font-size: 13px; }
+  .info-panel .btn-detail:hover { background: #0284c7; }
+  .info-panel .btn-close { position: absolute; top: 8px; right: 8px; background: none; border: none; color: #64748b; font-size: 18px; cursor: pointer; }
+  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .status-ok { background: #14532d; color: #4ade80; }
+  .status-warn { background: #713f12; color: #fbbf24; }
+  .status-err { background: #7f1d1d; color: #f87171; }
+  .legende { display: flex; gap: 16px; padding: 6px 16px; background: #1e293b; border-top: 1px solid #334155; flex-wrap: wrap; }
+  .leg-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #64748b; }
+  .leg-color { width: 12px; height: 12px; border-radius: 2px; }
+</style>
+
+<div class="grundriss-layout">
+  <!-- Sidebar Navigation -->
+  <nav class="grundriss-sidebar">
+    <h6>Gebaeude</h6>
+    <div id="navStruktur"></div>
+  </nav>
+
+  <!-- Hauptbereich -->
+  <div class="grundriss-canvas">
+    <!-- Toolbar -->
+    <div class="grundriss-toolbar">
+      <span class="etagen-titel" id="etagenTitel">
+        {% if geschoss %}{{ geschoss.bezeichnung }} – {{ geschoss.gebaeude.bezeichnung }}{% else %}Bitte Etage waehlen{% endif %}
+      </span>
+      <span class="badge-sim" id="simStatus">Simulation aktiv</span>
+      <div class="sim-toggle">
+        <button class="sim-btn aktiv" id="btnTag" onclick="setSimModus('tag')">&#9728; Tag  65%</button>
+        <button class="sim-btn" id="btnNacht" onclick="setSimModus('nacht')">&#9790; Nacht 99%</button>
+      </div>
+      <button class="btn btn-sm btn-outline-secondary" onclick="aktualisiereStatus()" style="font-size:11px;">&#8635; Refresh</button>
+    </div>
+
+    <div class="grundriss-main">
+      <!-- SVG Canvas -->
+      <div class="svg-wrapper">
+        <svg id="grundrissSvg" xmlns="http://www.w3.org/2000/svg"
+             style="min-width:900px; background:#0f172a; border-radius:8px;">
+          <text x="450" y="290" text-anchor="middle" fill="#334155" font-size="18" font-family="Arial">
+            {% if not geschoss %}Bitte eine Etage auswaehlen{% endif %}
+          </text>
+        </svg>
+      </div>
+
+      <!-- Info Panel -->
+      <div class="info-panel" id="infoPanel" style="position:relative;">
+        <div class="info-panel-inner" id="infoPanelInner">
+          <button class="btn-close" onclick="schliesseInfoPanel()">&#x2715;</button>
+          <div id="infoPanelContent"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legende -->
+    <div class="legende">
+      <div class="leg-item"><div class="leg-color" style="background:#3b82f6"></div>Einzelbuero</div>
+      <div class="leg-item"><div class="leg-color" style="background:#f59e0b"></div>Konferenz</div>
+      <div class="leg-item"><div class="leg-color" style="background:#10b981"></div>Teekueche</div>
+      <div class="leg-item"><div class="leg-color" style="background:#64748b"></div>WC</div>
+      <div class="leg-item"><div class="leg-color" style="background:#b91c1c"></div>Server/IT</div>
+      <div class="leg-item"><div class="leg-color" style="background:#ef4444"></div>Technik</div>
+      <div class="leg-item"><div class="leg-color" style="background:#d97706"></div>Lager</div>
+      <div class="leg-item">
+        <svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="#22c55e"/></svg>Schloss offen
+      </div>
+      <div class="leg-item">
+        <svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="#ef4444"/></svg>Schloss zu
+      </div>
+      <div class="leg-item">
+        <svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="#22c55e" stroke="#38bdf8" stroke-width="2"/></svg>Elektronisch offen
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STRUKTUR = {{ struktur_json|safe }};
+const RAEUME   = {{ raeume_json|safe }};
+const GESCHOSS_ID = "{{ geschoss_id }}";
+
+// ─── Farben ────────────────────────────────────────────────────────────────
+const FARBEN = {
+  einzelbuero: '#1d4ed8', konferenz: '#d97706', besprechung: '#ca8a04',
+  schulung: '#c2410c', teekueche: '#065f46', pausenraum: '#047857',
+  wc_herren: '#334155', wc_damen: '#334155', wc_barrierefrei: '#1e293b',
+  druckerraum: '#5b21b6', eingang: '#713f12', windfang: '#78350f',
+  flur: '#1e293b', heizungsraum: '#7f1d1d', lueftungsraum: '#991b1b',
+  elektroverteilung: '#b91c1c', serverraum: '#7f1d1d', it_verteiler: '#991b1b',
+  lager: '#78350f', archiv: '#713f12', abstellraum: '#57534e', putzraum: '#3f3f46',
+};
+const FARBE_FALLBACK = '#374151';
+const IT_TYPEN = ['serverraum','it_verteiler','elektroverteilung','heizungsraum','lueftungsraum'];
+const BUCHUNGS_TYPEN = ['konferenz','besprechung','schulung'];
+const KEIN_SCHLOSS = ['wc_herren','wc_damen','wc_barrierefrei','flur','windfang','eingang','putzraum'];
+const ELEKTRONISCH_TYPEN = ['serverraum','it_verteiler','elektroverteilung','konferenz','besprechung'];
+
+// ─── Simulation ────────────────────────────────────────────────────────────
+let simModus = 'tag';
+let buchungsStatus = {};
+
+function seededZufall(seed) {
+  let x = Math.sin(seed + 1) * 10000;
+  return x - Math.floor(x);
+}
+
+function simuliereLock(raumId) {
+  const basis = seededZufall(raumId * 7 + (simModus === 'tag' ? 13 : 97));
+  return simModus === 'tag' ? basis < 0.65 : basis < 0.01;
+}
+
+function simulierePing(raumId) {
+  const v = seededZufall(raumId * 3 + 42);
+  if (v < 0.75) return 'ok';
+  if (v < 0.92) return 'warn';
+  return 'err';
+}
+
+function simuliereTemp(raumId) {
+  return (18 + seededZufall(raumId * 11) * 12).toFixed(1);
+}
+
+function setSimModus(modus) {
+  simModus = modus;
+  document.getElementById('btnTag').className   = 'sim-btn' + (modus === 'tag'   ? ' aktiv' : '');
+  document.getElementById('btnNacht').className = 'sim-btn' + (modus === 'nacht' ? ' aktiv' : '');
+  if (RAEUME.length) zeichneGrundriss(RAEUME);
+}
+
+// ─── Status API ────────────────────────────────────────────────────────────
+function aktualisiereStatus() {
+  if (!GESCHOSS_ID) return;
+  fetch(`/raumbuch/grundriss/status/?geschoss=${GESCHOSS_ID}`)
+    .then(r => r.json())
+    .then(data => {
+      buchungsStatus = data.raeume || {};
+      if (RAEUME.length) zeichneGrundriss(RAEUME);
+    }).catch(() => {});
+}
+
+// ─── SVG Hilfsfunktionen ────────────────────────────────────────────────────
+function el(tag, attrs, children) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  Object.entries(attrs || {}).forEach(([k, v]) => e.setAttribute(k, v));
+  (children || []).forEach(c => typeof c === 'string'
+    ? e.appendChild(document.createTextNode(c))
+    : e.appendChild(c));
+  return e;
+}
+function rect(x, y, w, h, fill, attrs) {
+  return el('rect', {x, y, width: w, height: h, fill, rx: 2, ...attrs});
+}
+function text(x, y, str, attrs) {
+  return el('text', {x, y, 'font-family': 'Arial,sans-serif', ...attrs}, [str]);
+}
+
+// ─── Moebel ────────────────────────────────────────────────────────────────
+function zeichneBueroMoebel(g, x, y, w, h, seite) {
+  // Schreibtisch
+  const dx = seite === 'nord' ? x + w - 10 - 90 : x + 10;
+  const dy = seite === 'nord' ? y + h - 10 - 50 : y + 10;
+  g.appendChild(rect(dx, dy, 90, 50, '#1e3a5f', {rx: 3}));
+  g.appendChild(rect(dx, dy, 90, 4, '#2563eb', {rx: 0})); // desktop edge
+  // Monitor
+  g.appendChild(rect(dx + 25, dy + 8, 35, 22, '#0f172a', {rx: 2}));
+  g.appendChild(rect(dx + 38, dy + 30, 10, 4, '#334155'));
+  // Stuhl
+  const cDy = seite === 'nord' ? dy - 34 : dy + 56;
+  g.appendChild(el('ellipse', {cx: dx + 40, cy: cDy + 15, rx: 16, ry: 16, fill: '#374151'}));
+  g.appendChild(rect(dx + 24, seite === 'nord' ? dy - 12 : dy + 52, 32, 10, '#475569', {rx: 4}));
+}
+
+function zeichneKonferenzMoebel(g, x, y, w, h) {
+  const cx = x + w / 2, cy = y + h / 2;
+  const tw = Math.min(w - 40, 200), th = 60;
+  g.appendChild(el('ellipse', {cx, cy, rx: tw/2, ry: th/2, fill: '#1c3a2e', stroke: '#065f46', 'stroke-width': 2}));
+  const anz = Math.min(Math.floor(tw / 30), 8);
+  for (let i = 0; i < anz; i++) {
+    const a = (i / anz) * Math.PI * 2;
+    const sx = cx + (tw/2 + 18) * Math.cos(a);
+    const sy = cy + (th/2 + 18) * Math.sin(a);
+    g.appendChild(el('ellipse', {cx: sx, cy: sy, rx: 12, ry: 12, fill: '#374151'}));
+  }
+}
+
+function zeichneTKMoebel(g, x, y, w, h) {
+  g.appendChild(rect(x + 6, y + 6, w - 12, 38, '#134e4a', {rx: 4}));
+  g.appendChild(el('ellipse', {cx: x + 30, cy: y + 26, rx: 12, ry: 12, fill: '#0f172a', stroke: '#0d9488', 'stroke-width': 2}));
+  g.appendChild(rect(x + 8, y + 50, 50, 25, '#1e293b', {rx: 2}));
+}
+
+function zeichneServerMoebel(g, x, y, w, h) {
+  const rw = 32, rh = h - 20;
+  const rx0 = x + (w - rw * 2 - 10) / 2;
+  [rx0, rx0 + rw + 10].forEach((rx2, i) => {
+    g.appendChild(rect(rx2, y + 10, rw, rh, '#0f172a', {rx: 2, stroke: '#1e3a5f', 'stroke-width': 1}));
+    for (let j = 0; j < 6; j++) {
+      g.appendChild(rect(rx2 + 3, y + 14 + j * (rh - 10) / 6, rw - 6, 4, i === 0 ? '#16a34a' : '#1d4ed8', {rx: 1}));
+    }
+  });
+}
+
+// ─── Tuer ────────────────────────────────────────────────────────────────
+function zeichneTuer(g, tx, ty, richtung, oeffnungsSeite) {
+  // Tuerblatt + Schwingbogen
+  const L = 36;
+  let d;
+  if (richtung === 'sued') {
+    // Tuer oeffnet nach unten in den Raum
+    if (oeffnungsSeite === 'links') {
+      d = `M ${tx} ${ty} L ${tx} ${ty + L} A ${L} ${L} 0 0 1 ${tx + L} ${ty}`;
+    } else {
+      d = `M ${tx + L} ${ty} L ${tx + L} ${ty + L} A ${L} ${L} 0 0 0 ${tx} ${ty}`;
+    }
+  } else {
+    // Tuer oeffnet nach oben
+    if (oeffnungsSeite === 'links') {
+      d = `M ${tx} ${ty} L ${tx} ${ty - L} A ${L} ${L} 0 0 0 ${tx + L} ${ty}`;
+    } else {
+      d = `M ${tx + L} ${ty} L ${tx + L} ${ty - L} A ${L} ${L} 0 0 1 ${tx} ${ty}`;
+    }
+  }
+  g.appendChild(el('path', {d, stroke: '#94a3b8', 'stroke-width': 1.5, fill: 'rgba(148,163,184,0.08)'}));
+  // Tuerrahmen (Luecke in der Wand = weisser Block davor)
+  const gapRect = richtung === 'sued'
+    ? {x: tx, y: ty - 1, width: L, height: 5}
+    : {x: tx, y: ty - 4, width: L, height: 5};
+  g.appendChild(rect(gapRect.x, gapRect.y, gapRect.width, gapRect.height,
+    '#0f172a', {'stroke': 'none'}));
+}
+
+// ─── Fenster ───────────────────────────────────────────────────────────────
+function zeichneFenster(g, x, y, w, aussenwandSeite) {
+  // 3 Fensterelemente auf der Aussenwand
+  const wy = aussenwandSeite === 'nord' ? y : y - 7;
+  const slots = 3, sw = (w - 20) / slots;
+  for (let i = 0; i < slots; i++) {
+    const fx = x + 10 + i * sw;
+    g.appendChild(rect(fx, wy, sw - 4, 7, '#bfdbfe', {rx: 1, opacity: 0.7}));
+  }
+}
+
+// ─── Schloss-Indikator ─────────────────────────────────────────────────────
+function zeichneLockIndikator(g, ix, iy, istOffen, istElektronisch) {
+  const fill  = istOffen ? '#22c55e' : '#ef4444';
+  const stroke = istElektronisch ? '#38bdf8' : fill;
+  const sw = istElektronisch ? 2 : 0;
+  g.appendChild(el('circle', {cx: ix, cy: iy, r: 7, fill, stroke, 'stroke-width': sw}));
+  // Symbol
+  const sym = el('text', {x: ix, y: iy + 4, 'text-anchor': 'middle',
+    'font-size': 8, fill: 'white', 'font-family': 'Arial'});
+  sym.textContent = istElektronisch ? '\u26a1' : (istOffen ? '\u25CB' : '\u25CF');
+  g.appendChild(sym);
+}
+
+// ─── Ping Indikator ────────────────────────────────────────────────────────
+function zeichnePingIndikator(g, px, py, pingStatus) {
+  const farben = {ok: '#22c55e', warn: '#fbbf24', err: '#ef4444'};
+  [0, 8, 16].forEach((dx, i) => {
+    const alpha = i === 0 ? 1 : i === 1 ? 0.7 : 0.4;
+    g.appendChild(el('circle', {cx: px + dx, cy: py, r: 3,
+      fill: farben[pingStatus] || '#64748b', opacity: alpha}));
+  });
+  const lbl = el('text', {x: px - 2, y: py + 12, 'font-size': 7, fill: '#94a3b8', 'font-family': 'Arial'});
+  lbl.textContent = pingStatus === 'ok' ? 'online' : pingStatus === 'warn' ? 'latenz' : 'offline';
+  g.appendChild(lbl);
+}
+
+// ─── Temperatur Badge ─────────────────────────────────────────────────────
+function zeichneTempBadge(g, bx, by, temp) {
+  const t = parseFloat(temp);
+  const fill = t < 22 ? '#166534' : t < 26 ? '#713f12' : '#7f1d1d';
+  g.appendChild(rect(bx, by, 44, 16, fill, {rx: 3}));
+  const lbl = el('text', {x: bx + 22, y: by + 12, 'text-anchor': 'middle',
+    'font-size': 9, fill: 'white', 'font-family': 'Arial', 'font-weight': 'bold'});
+  lbl.textContent = `${temp}\u00b0C`;
+  g.appendChild(lbl);
+}
+
+// ─── Buchungs-Overlay ─────────────────────────────────────────────────────
+function zeichneBuchungsOverlay(g, x, y, w, h, aktiv, naechste) {
+  if (aktiv) {
+    g.appendChild(rect(x + 4, y + 4, w - 8, 18, '#7f1d1d', {rx: 2, opacity: 0.92}));
+    const lbl = el('text', {x: x + w/2, y: y + 16, 'text-anchor': 'middle',
+      'font-size': 9, fill: '#fca5a5', 'font-weight': 'bold', 'font-family': 'Arial'});
+    lbl.textContent = 'BELEGT';
+    g.appendChild(lbl);
+  } else if (naechste) {
+    g.appendChild(rect(x + 4, y + 4, w - 8, 15, '#1c3a2e', {rx: 2, opacity: 0.9}));
+    const lbl = el('text', {x: x + w/2, y: y + 14, 'text-anchor': 'middle',
+      'font-size': 8, fill: '#6ee7b7', 'font-family': 'Arial'});
+    lbl.textContent = naechste.length > 14 ? naechste.slice(0, 14) + '…' : naechste;
+    g.appendChild(lbl);
+  }
+}
+
+// ─── Raum zeichnen ─────────────────────────────────────────────────────────
+function zeichneRaum(g, raum, x, y, w, h, zone) {
+  const fill  = FARBEN[raum.typ] || FARBE_FALLBACK;
+  const bs    = buchungsStatus[String(raum.id)] || {};
+  const lock  = simuliereLock(raum.id);
+  const istEl = ELEKTRONISCH_TYPEN.includes(raum.typ);
+  const ohneSchloss = KEIN_SCHLOSS.includes(raum.typ);
+
+  // Raum-Hintergrund
+  const raumEl = rect(x, y, w, h, fill, {stroke: '#0f172a', 'stroke-width': 2, rx: 3, style: 'cursor:pointer'});
+  raumEl.addEventListener('click', () => zeigeInfo(raum, lock, istEl, bs));
+  g.appendChild(raumEl);
+
+  // Fenster auf Aussenwand
+  if (zone === 'nord') zeichneFenster(g, x, y, w, 'nord');
+  if (zone === 'sued') zeichneFenster(g, x, y + h, w, 'sued');
+
+  // Moebel
+  const mg = el('g', {opacity: '0.9'});
+  if (raum.typ === 'einzelbuero')  zeichneBueroMoebel(mg, x, y, w, h, zone === 'nord' ? 'nord' : 'sued');
+  if (raum.typ === 'konferenz' || raum.typ === 'besprechung') zeichneKonferenzMoebel(mg, x, y, w, h);
+  if (raum.typ === 'teekueche')    zeichneTKMoebel(mg, x, y, w, h);
+  if (raum.typ === 'serverraum' || raum.typ === 'it_verteiler') zeichneServerMoebel(mg, x, y, w, h);
+  g.appendChild(mg);
+
+  // Tuer (Mitte Innenwand)
+  const tuerX = x + w/2 - 18;
+  if (zone === 'nord') zeichneTuer(g, tuerX, y + h, 'sued', 'links');
+  if (zone === 'sued') zeichneTuer(g, tuerX, y, 'nord', 'links');
+  if (zone === 'kern') {
+    zeichneTuer(g, tuerX, y, 'nord', 'links');
+    zeichneTuer(g, tuerX, y + h, 'sued', 'rechts');
+  }
+  if (zone === 'grid') zeichneTuer(g, tuerX, y + h, 'sued', 'links');
+
+  // Schloss-Indikator neben der Tuer
+  if (!ohneSchloss) {
+    const liy = zone === 'nord' ? y + h - 10 : (zone === 'sued' ? y + 10 : y + h/2);
+    zeichneLockIndikator(g, x + w - 12, liy, lock, istEl);
+  }
+
+  // Ping fuer IT-Raeume
+  if (IT_TYPEN.includes(raum.typ)) {
+    zeichnePingIndikator(g, x + 8, y + 20, simulierePing(raum.id));
+    if (raum.typ === 'serverraum') zeichneTempBadge(g, x + w - 50, y + 8, simuliereTemp(raum.id));
+  }
+
+  // Buchungs-Overlay fuer Konferenz/Besprechung
+  if (BUCHUNGS_TYPEN.includes(raum.typ)) {
+    zeichneBuchungsOverlay(g, x, y, w, h, bs.buchung_aktiv, bs.naechste_buchung);
+  }
+
+  // Raumnummer
+  const lblY = zone === 'nord' ? y + h - 14 : y + 14;
+  const lbl = el('text', {x: x + w/2, y: lblY + 4, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+    'font-size': 10, 'font-weight': 'bold', fill: 'white', 'font-family': 'Arial',
+    'paint-order': 'stroke', stroke: 'rgba(0,0,0,0.5)', 'stroke-width': 3, style: 'pointer-events:none'});
+  lbl.textContent = raum.nummer;
+  g.appendChild(lbl);
+}
+
+// ─── OG Etage (Standard 1-7) ───────────────────────────────────────────────
+function zeichneOGEtage(svg, raeume) {
+  const W = 900, WALL = 7, BUERO_H = 155, KORR = 46, KERN_H = 150;
+  const yN0 = WALL, yN1 = yN0 + BUERO_H;
+  const yKN1 = yN1 + KORR;
+  const yK1 = yKN1 + KERN_H;
+  const yKS1 = yK1 + KORR;
+  const yS1 = yKS1 + BUERO_H;
+  const TOTAL_H = yS1 + WALL;
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${TOTAL_H}`);
+  svg.setAttribute('height', TOTAL_H);
+
+  const nord = raeume.filter(r => r.nummer.match(/A0[1-9]$|A[1-9][0-9]$/)).sort((a, b) => a.nummer.localeCompare(b.nummer));
+  const sued = raeume.filter(r => r.nummer.match(/B0[1-9]$|B[1-9][0-9]$/)).sort((a, b) => a.nummer.localeCompare(b.nummer));
+  const kern = raeume.filter(r => !r.nummer.match(/[AB]0[1-9]$/)).sort((a, b) => a.nummer.localeCompare(b.nummer));
+
+  const g = el('g', {});
+
+  // Aussenwand Nord
+  g.appendChild(rect(0, 0, W, WALL, '#475569'));
+  // Aussenwand Sued
+  g.appendChild(rect(0, yS1, W, WALL, '#475569'));
+  // Korridor Nord (leicht heller)
+  g.appendChild(rect(0, yN1, W, KORR, '#1a2a3a'));
+  g.appendChild(el('text', {x: 8, y: yN1 + KORR/2 + 5, 'font-size': 10, fill: '#334155', 'font-family': 'Arial'})).textContent = 'KORRIDOR NORD';
+  // Korridor Sued
+  g.appendChild(rect(0, yK1, W, KORR, '#1a2a3a'));
+  g.appendChild(el('text', {x: 8, y: yK1 + KORR/2 + 5, 'font-size': 10, fill: '#334155', 'font-family': 'Arial'})).textContent = 'KORRIDOR SUED';
+
+  // Nord-Bueros
+  const nW = nord.length > 0 ? W / nord.length : W;
+  nord.forEach((raum, i) => zeichneRaum(g, raum, i * nW, yN0, nW, BUERO_H, 'nord'));
+
+  // Sued-Bueros
+  const sW = sued.length > 0 ? W / sued.length : W;
+  sued.forEach((raum, i) => zeichneRaum(g, raum, i * sW, yKS1, sW, BUERO_H, 'sued'));
+
+  // Kern (Konferenz, WC, TK)
+  const kernBreiten = { konferenz: 300, besprechung: 300, teekueche: 300, wc_herren: 150, wc_damen: 150 };
+  let gesamtKern = kern.reduce((s, r) => s + (kernBreiten[r.typ] || 180), 0);
+  let kx = 0;
+  const skalierung = W / Math.max(gesamtKern, 1);
+  kern.forEach(raum => {
+    const kw = (kernBreiten[raum.typ] || 180) * skalierung;
+    zeichneRaum(g, raum, kx, yKN1, kw, KERN_H, 'kern');
+    kx += kw;
+  });
+
+  svg.appendChild(g);
+}
+
+// ─── Grid Etage (EG, UG, Reserve) ─────────────────────────────────────────
+function zeichneGridEtage(svg, raeume) {
+  const W = 900;
+  const COLS = 5, RAUMW = W / COLS, RAUMH = 130;
+  const ROWS = Math.ceil(raeume.length / COLS);
+  const TOTAL_H = ROWS * RAUMH + 20;
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${TOTAL_H}`);
+  svg.setAttribute('height', TOTAL_H);
+
+  const g = el('g', {});
+  raeume.forEach((raum, i) => {
+    const col = i % COLS, row = Math.floor(i / COLS);
+    zeichneRaum(g, raum, col * RAUMW, row * RAUMH, RAUMW, RAUMH, 'grid');
+  });
+  svg.appendChild(g);
+}
+
+// ─── Hauptfunktion ─────────────────────────────────────────────────────────
+function zeichneGrundriss(raeume) {
+  const svg = document.getElementById('grundrissSvg');
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  if (!raeume || raeume.length === 0) return;
+
+  const kuerzel = "{{ geschoss.kuerzel|default:'' }}";
+  const isOG = /^[1-9]$/.test(kuerzel);
+  if (isOG) {
+    zeichneOGEtage(svg, raeume);
+  } else {
+    zeichneGridEtage(svg, raeume);
+  }
+}
+
+// ─── Info Panel ────────────────────────────────────────────────────────────
+function zeigeInfo(raum, lock, istEl, bs) {
+  const panel = document.getElementById('infoPanel');
+  const content = document.getElementById('infoPanelContent');
+  panel.classList.add('offen');
+
+  const lockFarbe = lock ? '#22c55e' : '#ef4444';
+  const lockText  = lock ? 'Offen' : 'Verschlossen';
+  const lockTyp   = istEl ? 'Elektronisch (Chipkarte)' : 'Mechanisch (Riegelkontakt)';
+
+  let html = `
+    <h5>${raum.nummer} – ${raum.name}</h5>
+    <div class="info-typ">${raum.typ.replace(/_/g,' ')}</div>`;
+
+  if (raum.belegt_von) {
+    html += `<div class="info-row"><span class="lbl">Belegt von</span><span class="val">${raum.belegt_von}</span></div>`;
+  }
+  if (raum.flaeche) {
+    html += `<div class="info-row"><span class="lbl">Flaeche</span><span class="val">${raum.flaeche} m²</span></div>`;
+  }
+  if (raum.kapazitaet) {
+    html += `<div class="info-row"><span class="lbl">Kapazitaet</span><span class="val">${raum.kapazitaet} Personen</span></div>`;
+  }
+
+  // Schloss
+  if (!KEIN_SCHLOSS.includes(raum.typ)) {
+    html += `<div class="info-row">
+      <span class="lbl">Schloss</span>
+      <span class="val">
+        <span style="color:${lockFarbe};font-weight:bold;">${lockText}</span>
+        <br><small style="color:#64748b;">${lockTyp}</small>
+      </span></div>`;
+  }
+
+  // Buchung
+  if (BUCHUNGS_TYPEN.includes(raum.typ)) {
+    const aktiv = bs.buchung_aktiv;
+    const naechste = bs.naechste_buchung;
+    html += `<div class="info-row"><span class="lbl">Buchung jetzt</span>
+      <span class="val"><span class="status-badge ${aktiv ? 'status-err' : 'status-ok'}">${aktiv ? 'BELEGT' : 'FREI'}</span></span></div>`;
+    if (naechste) {
+      html += `<div class="info-row"><span class="lbl">Naechste</span><span class="val">${naechste}</span></div>`;
+    }
+  }
+
+  // Ping / Temperatur
+  if (IT_TYPEN.includes(raum.typ)) {
+    const ping = simulierePing(raum.id);
+    const farben = {ok: 'status-ok', warn: 'status-warn', err: 'status-err'};
+    html += `<div class="info-row"><span class="lbl">Netzwerk (Ping)</span>
+      <span class="val"><span class="status-badge ${farben[ping]}">${ping.toUpperCase()}</span></span></div>`;
+    if (raum.typ === 'serverraum') {
+      const temp = simuliereTemp(raum.id);
+      const t = parseFloat(temp);
+      const tf = t < 22 ? 'status-ok' : t < 26 ? 'status-warn' : 'status-err';
+      html += `<div class="info-row"><span class="lbl">Temperatur</span>
+        <span class="val"><span class="status-badge ${tf}">${temp} °C</span></span></div>`;
+    }
+  }
+
+  html += `<a href="${raum.url}" class="btn-detail">&#8594; Raumdetail oeffnen</a>`;
+  content.innerHTML = html;
+}
+
+function schliesseInfoPanel() {
+  document.getElementById('infoPanel').classList.remove('offen');
+}
+
+// ─── Navigation ────────────────────────────────────────────────────────────
+function baueSidebar() {
+  const nav = document.getElementById('navStruktur');
+  STRUKTUR.forEach(gb => {
+    const gbLbl = document.createElement('div');
+    gbLbl.className = 'gb-label';
+    gbLbl.textContent = `${gb.bezeichnung} (${gb.kuerzel})`;
+    nav.appendChild(gbLbl);
+    gb.geschosse.forEach(gs => {
+      const a = document.createElement('a');
+      a.className = 'gs-item' + (String(gs.id) === GESCHOSS_ID ? ' aktiv' : '');
+      a.textContent = `${gs.kuerzel} – ${gs.bezeichnung}`;
+      a.href = `?geschoss=${gs.id}`;
+      nav.appendChild(a);
+    });
+  });
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────────
+baueSidebar();
+if (RAEUME.length) {
+  zeichneGrundriss(RAEUME);
+  aktualisiereStatus();
+  setInterval(aktualisiereStatus, 30000);
+}
+</script>
+{% endblock %}

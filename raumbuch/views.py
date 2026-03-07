@@ -35,6 +35,127 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Interaktiver Gebaeudegrundriss
+# ---------------------------------------------------------------------------
+
+@login_required
+def gebaeude_grundriss(request):
+    """Interaktiver SVG-Grundriss mit Statusanzeigen."""
+    import json
+
+    # Navigationsstruktur fuer Sidebar
+    struktur = []
+    for gb in Gebaeude.objects.prefetch_related("geschosse").order_by("pk"):
+        geschosse = []
+        for gs in gb.geschosse.all().order_by("reihenfolge"):
+            geschosse.append({
+                "id": gs.pk,
+                "bezeichnung": gs.bezeichnung,
+                "kuerzel": gs.kuerzel,
+            })
+        struktur.append({
+            "bezeichnung": gb.bezeichnung,
+            "kuerzel": gb.kuerzel,
+            "geschosse": geschosse,
+        })
+
+    # Ausgewaehltes Geschoss
+    geschoss_id = request.GET.get("geschoss")
+    geschoss = None
+    raeume_data = []
+
+    if geschoss_id:
+        geschoss = get_object_or_404(Geschoss, pk=geschoss_id)
+        raeume = Raum.objects.filter(
+            geschoss=geschoss, ist_aktiv=True
+        ).order_by("raumnummer")
+
+        belegungen = {
+            b.raum_id: b.mitarbeiter
+            for b in Belegung.objects.filter(
+                raum__in=raeume, bis__isnull=True
+            ).select_related("mitarbeiter")
+        }
+
+        netzwerk = {
+            n.raum_id: n
+            for n in RaumNetzwerkDaten.objects.filter(raum__in=raeume)
+        }
+
+        for raum in raeume:
+            ma = belegungen.get(raum.pk)
+            nw = netzwerk.get(raum.pk)
+            raeume_data.append({
+                "id": raum.pk,
+                "nummer": raum.raumnummer,
+                "name": raum.raumname,
+                "typ": raum.raumtyp,
+                "flaeche": float(raum.flaeche_m2) if raum.flaeche_m2 else None,
+                "kapazitaet": raum.kapazitaet,
+                "belegt_von": str(ma) if ma else None,
+                "hat_netzwerk": nw is not None,
+                "url": f"/raumbuch/raum/{raum.pk}/",
+            })
+    elif struktur and struktur[0]["geschosse"]:
+        # Default: erstes Geschoss laden
+        first_id = struktur[0]["geschosse"][0]["id"]
+        from django.http import HttpResponseRedirect
+        return HttpResponseRedirect(f"?geschoss={first_id}")
+
+    return render(request, "raumbuch/gebaeude_grundriss.html", {
+        "struktur_json": json.dumps(struktur, ensure_ascii=False),
+        "raeume_json": json.dumps(raeume_data, ensure_ascii=False),
+        "geschoss": geschoss,
+        "geschoss_id": geschoss_id or "",
+    })
+
+
+@login_required
+def gebaeude_status_api(request):
+    """JSON-API: Buchungsstatus fuer alle Raeume eines Geschosses."""
+    from django.http import JsonResponse
+
+    geschoss_id = request.GET.get("geschoss")
+    if not geschoss_id:
+        return JsonResponse({"raeume": {}})
+
+    jetzt = timezone.now()
+    heute = timezone.localdate()
+
+    raeume = Raum.objects.filter(geschoss_id=geschoss_id, ist_aktiv=True)
+
+    buchungen_jetzt = set(
+        Raumbuchung.objects.filter(
+            raum__in=raeume,
+            datum=heute,
+            von__lte=jetzt.time(),
+            bis__gte=jetzt.time(),
+            status__in=["offen", "bestaetigt"],
+        ).values_list("raum_id", flat=True)
+    )
+
+    naechste = {}
+    for b in Raumbuchung.objects.filter(
+        raum__in=raeume,
+        datum=heute,
+        von__gt=jetzt.time(),
+        status__in=["offen", "bestaetigt"],
+    ).order_by("von").select_related("buchender"):
+        if b.raum_id not in naechste:
+            name = b.buchender.get_full_name() or b.buchender.username if b.buchender else "?"
+            naechste[b.raum_id] = f"{b.von.strftime('%H:%M')} {b.betreff or name}"
+
+    result = {}
+    for raum in raeume:
+        result[str(raum.pk)] = {
+            "buchung_aktiv": raum.pk in buchungen_jetzt,
+            "naechste_buchung": naechste.get(raum.pk),
+        }
+
+    return JsonResponse({"raeume": result})
+
+
+# ---------------------------------------------------------------------------
 # Hilfsfunktionen
 # ---------------------------------------------------------------------------
 
