@@ -11,11 +11,15 @@ from django.db import migrations
 
 def repariere_kuerzel(apps, schema_editor):
     TeamQueue = apps.get_model("formulare", "TeamQueue")
-    leere = list(TeamQueue.objects.filter(kuerzel=""))
-    for idx, tq in enumerate(leere):
-        neues_kuerzel = "PG" if idx == 0 else f"PG{idx}"
-        tq.kuerzel = neues_kuerzel
-        tq.save(update_fields=["kuerzel"])
+    for tq in TeamQueue.objects.filter(kuerzel=""):
+        # Falls bereits eine Queue mit dem Ziel-Kuerzel existiert,
+        # die verwaiste leere Queue loeschen statt umbenennen.
+        ziel = "PG"
+        if TeamQueue.objects.filter(kuerzel=ziel).exists():
+            tq.delete()
+        else:
+            tq.kuerzel = ziel
+            tq.save(update_fields=["kuerzel"])
 
 
 def rueckgaengig(apps, schema_editor):
