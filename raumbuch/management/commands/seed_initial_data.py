@@ -93,7 +93,31 @@ class Command(BaseCommand):
         call_command("seed_belegungen", verbosity=1)
         self.stdout.write("  [OK]   Raumbelegungen abgeschlossen.")
 
+        self._verteile_zertifikate()
+
         self.stdout.write(self.style.SUCCESS("seed_initial_data abgeschlossen."))
+
+    def _verteile_zertifikate(self):
+        """Stellt Mitarbeiter-Zertifikate aus falls CA_ROOT_KEY_B64 gesetzt ist.
+
+        Idempotent: User mit vorhandenem aktivem Zertifikat werden uebersprungen.
+        Schlaegt still fehl wenn CA_ROOT_KEY_B64 nicht gesetzt ist.
+        """
+        import os
+        ca_key_b64 = os.environ.get("CA_ROOT_KEY_B64", "")
+        if not ca_key_b64:
+            self.stdout.write(
+                "  [SKIP] Zertifikate – CA_ROOT_KEY_B64 nicht gesetzt."
+            )
+            return
+        self.stdout.write("  [LOAD] Mitarbeiter-Zertifikate pruefen und ausstellen ...")
+        try:
+            call_command("erstelle_ca", verbosity=1)
+            self.stdout.write("  [OK]   Zertifikate verteilt.")
+        except Exception as exc:
+            self.stdout.write(
+                self.style.WARNING(f"  [WARN] Zertifikatsverteilung fehlgeschlagen: {exc}")
+            )
 
     def _erstelle_abteilung_wenn_noetig(self, label, check_app, check_kuerzel, command, force):
         """Ruft ein Management-Command auf, wenn die OrgEinheit noch nicht existiert."""

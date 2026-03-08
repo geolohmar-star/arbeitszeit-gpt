@@ -29,6 +29,8 @@ pydyf==0.12.1
 pyluach==2.3.0
 PyMeeus==0.5.12
 pyphen==0.17.2
+pyhanko==0.34.0
+pyhanko-certvalidator==0.30.0
 python-dateutil==2.9.0.post0
 python-docx==1.2.0
 python-dotenv==1.2.1

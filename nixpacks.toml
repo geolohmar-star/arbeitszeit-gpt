@@ -23,8 +23,7 @@ cmds = [
   "pip-audit -r requirements.txt",
   "python manage.py collectstatic --no-input",
   "python manage.py migrate",
-  "python manage.py seed_initial_data",
-  "if [ -n \"$CA_ROOT_KEY_B64\" ]; then python manage.py erstelle_ca; else echo 'CA_ROOT_KEY_B64 nicht gesetzt – Zertifikatsverteilung uebersprungen.'; fi"
+  "python manage.py seed_initial_data"
 ]
 
 [start]
