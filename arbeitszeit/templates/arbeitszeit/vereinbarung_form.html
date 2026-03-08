@@ -280,6 +280,29 @@ body { font-family: 'DM Sans', sans-serif; background: #faf9f6; color: #1f2421; 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
+  // --- 2. Arbeitszeit-Typ Toggle (muss vor handleAntragsartChange definiert sein) ---
+  var regelRadio = document.getElementById('radio-regelmaessig');
+  var indivRadio = document.getElementById('radio-individuell');
+  var regelSection = document.getElementById('regelmaessig-section');
+  var indivSection = document.getElementById('individuell-section');
+
+  function toggleArbeitszeit() {
+    if (regelRadio && regelRadio.checked) {
+      if (regelSection) { regelSection.style.display = 'block'; regelSection.style.visibility = 'visible'; }
+      if (indivSection) { indivSection.style.display = 'none'; indivSection.style.visibility = 'hidden'; }
+    } else if (indivRadio && indivRadio.checked) {
+      if (indivSection) { indivSection.style.display = 'block'; indivSection.style.visibility = 'visible'; }
+      if (regelSection) { regelSection.style.display = 'none'; regelSection.style.visibility = 'hidden'; }
+    } else {
+      // Kein Radio gewaehlt: beide ausblenden
+      if (regelSection) regelSection.style.display = 'none';
+      if (indivSection) indivSection.style.display = 'none';
+    }
+  }
+
+  if (regelRadio) regelRadio.addEventListener('change', toggleArbeitszeit);
+  if (indivRadio) indivRadio.addEventListener('change', toggleArbeitszeit);
+
   // --- 1. Antragsart Toggle ---
   var antragsartRadios = document.querySelectorAll('input[name="antragsart"]');
   var arbeitszeitCard = document.getElementById('arbeitszeit-card');
@@ -337,6 +360,8 @@ document.addEventListener('DOMContentLoaded', function() {
         datumInput.name = 'gueltig_ab';
         datumInput.required = true;
       }
+      // Arbeitszeit-Toggle neu ausfuehren, da Karte gerade eingeblendet wurde
+      toggleArbeitszeit();
     }
   }
 
@@ -353,39 +378,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // --- 2. Arbeitszeit-Typ Toggle (Regelmaessig vs. Individuell) ---
-  var regelRadio = document.getElementById('radio-regelmaessig');
-  var indivRadio = document.getElementById('radio-individuell');
-  var regelSection = document.getElementById('regelmaessig-section');
-  var indivSection = document.getElementById('individuell-section');
-
-  function toggleArbeitszeit() {
-    if (regelRadio && regelRadio.checked) {
-      if (regelSection) {
-        regelSection.style.display = 'block';
-        regelSection.style.visibility = 'visible';
-      }
-      if (indivSection) {
-        indivSection.style.display = 'none';
-        indivSection.style.visibility = 'hidden';
-      }
-    } else if (indivRadio && indivRadio.checked) {
-      if (indivSection) {
-        indivSection.style.display = 'block';
-        indivSection.style.visibility = 'visible';
-      }
-      if (regelSection) {
-        regelSection.style.display = 'none';
-        regelSection.style.visibility = 'hidden';
-      }
-    }
-  }
-
-  if (regelRadio && indivRadio) {
-    regelRadio.addEventListener('change', toggleArbeitszeit);
-    indivRadio.addEventListener('change', toggleArbeitszeit);
-    toggleArbeitszeit();
-  }
+  // Initialer Zustand
+  toggleArbeitszeit();
 
   // --- 3. Wochen hinzufuegen Logik ---
   var addWeekBtn = document.getElementById('add-week');
