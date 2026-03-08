@@ -117,6 +117,7 @@ TEMPLATES = [
                 'arbeitszeit.context_processors.workflow_tasks_anzahl',
                 'arbeitszeit.context_processors.team_stapel_anzahl',
                 'arbeitszeit.context_processors.hilfe_kontext',
+                'arbeitszeit.context_processors.cmd_items',
                 'facility.context_processors.facility_context',
                 'stellenportal.context_processors.stellenportal_context',
                 'veranstaltungen.context_processors.veranstaltungen_context',

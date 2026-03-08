@@ -129,6 +129,110 @@ def team_stapel_anzahl(request):
     return {"team_stapel_anzahl": anzahl}
 
 
+def cmd_items(request):
+    """Baut die Schnellsuche-Eintraege fuer die Navbar-Befehlspalette.
+
+    Gibt 'cmd_items_json' (Python-Liste) ans Template weiter.
+    Das Template rendert sie per {{ cmd_items_json|json_script:"cmd-items-data" }}
+    als CSP-sicheres JSON-Datentag.
+    """
+    if not request.user.is_authenticated:
+        return {"cmd_items_json": []}
+
+    u = request.user
+
+    def url(name, *args):
+        from django.urls import reverse, NoReverseMatch
+        try:
+            return reverse(name, args=args)
+        except NoReverseMatch:
+            return "#"
+
+    # Berechtigungen ermitteln
+    hat_genehmiger = u.is_staff or u.is_superuser or getattr(u, "hat_genehmiger_rolle", False)
+    try:
+        hat_genehmiger = hat_genehmiger or request.hat_genehmiger_rolle
+    except AttributeError:
+        pass
+
+    ist_facility = getattr(request, "ist_facility_mitglied", False)
+    ist_vorg = getattr(request, "ist_vorgesetzter", False)
+    hat_schicht = getattr(request, "hat_schichtplan_zugang", False)
+    ist_fk = getattr(request, "ist_fuehrungskraft", False)
+    al_anzahl = getattr(request, "al_queue_anzahl", 0)
+    ist_facility_oder_staff = ist_facility or u.is_staff
+
+    items = [
+        {"l": "Dashboard",                  "u": url("arbeitszeit:dashboard"),                         "g": "Allgemein"},
+        {"l": "Arbeitsstapel",               "u": url("workflow:arbeitsstapel"),                        "g": "Aufgaben"},
+        {"l": "Team-Stapel",                 "u": url("formulare:team_queue"),                          "g": "Aufgaben"},
+        {"l": "Antraege / Neuer Antrag",     "u": url("formulare:dashboard"),                           "g": "Antraege"},
+        {"l": "Soll-Stunden Monat",          "u": url("arbeitszeit:soll_stunden_dashboard"),            "g": "Personal"},
+        {"l": "Soll-Stunden Jahr",           "u": url("arbeitszeit:soll_stunden_jahresuebersicht"),     "g": "Personal"},
+        {"l": "Soll-Stunden berechnen",      "u": url("arbeitszeit:soll_stunden_berechnen"),            "g": "Personal"},
+        {"l": "Organigramm",                 "u": url("hr:organigramm"),                                "g": "Personal"},
+        {"l": "Stoermeldung erfassen",        "u": url("facility:erstellen"),                            "g": "Gebaeude"},
+        {"l": "Meine Stoermeldungen",         "u": url("facility:meine"),                                "g": "Gebaeude"},
+        {"l": "Raumuebersicht",              "u": url("raumbuch:uebersicht"),                           "g": "Gebaeude"},
+        {"l": "Gebaeudeplan",                "u": url("raumbuch:grundriss"),                            "g": "Gebaeude"},
+        {"l": "Buchungen",                   "u": url("raumbuch:buchung_kalender"),                     "g": "Gebaeude"},
+        {"l": "Belegungsplan",               "u": url("raumbuch:belegungsplan"),                        "g": "Gebaeude"},
+        {"l": "Besuchsanmeldungen",          "u": url("raumbuch:besuch_liste"),                         "g": "Gebaeude"},
+        {"l": "Veranstaltungen",             "u": url("veranstaltungen:uebersicht"),                    "g": "Veranstaltungen"},
+        {"l": "Meine Daten (DSGVO-Auskunft)","u": url("datenschutz:auskunft_pdf"),                     "g": "Konto"},
+        {"l": "Digitale Signatur",           "u": url("signatur:dashboard"),                            "g": "Konto"},
+    ]
+
+    if hat_genehmiger:
+        items.append({"l": "Genehmigungen", "u": url("formulare:genehmigung_uebersicht"), "g": "Aufgaben"})
+
+    if ist_facility:
+        items.append({"l": "Facility-Queue", "u": url("facility:queue"), "g": "Aufgaben"})
+
+    if al_anzahl:
+        items.append({"l": "Eskalationen", "u": url("facility:al_queue"), "g": "Aufgaben"})
+
+    try:
+        ma_pk = u.mitarbeiter.pk
+        items.append({"l": "Meine Soll-Stunden", "u": url("arbeitszeit:mitarbeiter_soll_uebersicht", ma_pk), "g": "Personal"})
+    except Exception:
+        pass
+
+    if ist_vorg:
+        items.append({"l": "Team-Meldungen",       "u": url("facility:vorgesetzter"),  "g": "Gebaeude"})
+        items.append({"l": "Monatsbericht Facility","u": url("facility:monatsreport"), "g": "Gebaeude"})
+
+    if ist_facility_oder_staff:
+        items.append({"l": "Wartungsplaene",      "u": url("facility:wartungsplan_liste"),  "g": "Gebaeude"})
+        items.append({"l": "Gebaeudestruktur",    "u": url("raumbuch:struktur"),            "g": "Gebaeude"})
+        items.append({"l": "Schluesselverwaltung","u": url("raumbuch:schluessel_liste"),     "g": "Gebaeude"})
+        items.append({"l": "Zutrittsgutschriften","u": url("raumbuch:token_liste"),          "g": "Gebaeude"})
+        items.append({"l": "Treppenhaeuser",      "u": url("raumbuch:treppenhaus_liste"),   "g": "Gebaeude"})
+        items.append({"l": "Reinigung",           "u": url("raumbuch:reinigung"),           "g": "Gebaeude"})
+        items.append({"l": "Umzugsauftraege",     "u": url("raumbuch:umzug_liste"),         "g": "Gebaeude"})
+
+    if ist_fk:
+        items.append({"l": "Token beantragen", "u": url("raumbuch:token_anfrage"), "g": "Gebaeude"})
+
+    if hat_schicht:
+        items.append({"l": "Schichtplanung",       "u": url("schichtplan:dashboard"),                    "g": "Planung"})
+        items.append({"l": "Urlaubsgenehmigungen", "u": url("schichtplan:genehmigungen_uebersicht"),     "g": "Planung"})
+
+    if u.is_staff:
+        items += [
+            {"l": "Rechtevergabe",          "u": url("berechtigungen:uebersicht"),          "g": "Admin"},
+            {"l": "Workflow-Editor",         "u": url("workflow:workflow_editor"),            "g": "Admin"},
+            {"l": "Textbausteine",           "u": url("facility:textbaustein_liste"),         "g": "Admin"},
+            {"l": "Trend-Einstellungen",     "u": url("facility:einstellungen"),              "g": "Admin"},
+            {"l": "Audit-Trail",             "u": url("raumbuch:gesamtlog"),                  "g": "Admin"},
+            {"l": "Digitale Signatur",       "u": url("signatur:dashboard"),                  "g": "Admin"},
+            {"l": "Signatur-Dokumentation",  "u": url("signatur:dokumentation_pdf"),          "g": "Admin"},
+            {"l": "Datenschutz DSGVO",       "u": url("datenschutz:dashboard"),               "g": "Admin"},
+        ]
+
+    return {"cmd_items_json": items}
+
+
 def hilfe_kontext(request):
     """Stellt die App-Liste fuer das Hilfe-Modal bereit."""
     return {

@@ -1398,76 +1398,9 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
     </div>
 </div>
 
-<!-- Nav-Items fuer die Suche (berechtigungsabhaengig, serverseitig gerendert) -->
-<script>
-var CMD_ITEMS = [
-    {l: "Dashboard", u: "{% url 'arbeitszeit:dashboard' %}", g: "Allgemein"},
-    {l: "Arbeitsstapel", u: "{% url 'workflow:arbeitsstapel' %}", g: "Aufgaben"},
-    {l: "Team-Stapel", u: "{% url 'formulare:team_queue' %}", g: "Aufgaben"},
-    {% if hat_genehmiger_rolle %}
-    {l: "Genehmigungen", u: "{% url 'formulare:genehmigung_uebersicht' %}", g: "Aufgaben"},
-    {% endif %}
-    {% if ist_facility_mitglied %}
-    {l: "Facility-Queue", u: "{% url 'facility:queue' %}", g: "Aufgaben"},
-    {% endif %}
-    {% if al_queue_anzahl %}
-    {l: "Eskalationen", u: "{% url 'facility:al_queue' %}", g: "Aufgaben"},
-    {% endif %}
-    {l: "Antraege / Neuer Antrag", u: "{% url 'formulare:dashboard' %}", g: "Antraege"},
-    {% if hat_genehmiger_rolle %}
-    {l: "Genehmigungen", u: "{% url 'formulare:genehmigung_uebersicht' %}", g: "Antraege"},
-    {% endif %}
-    {% if user.mitarbeiter %}
-    {l: "Meine Soll-Stunden", u: "{% url 'arbeitszeit:mitarbeiter_soll_uebersicht' user.mitarbeiter.pk %}", g: "Personal"},
-    {% endif %}
-    {l: "Soll-Stunden Monat", u: "{% url 'arbeitszeit:soll_stunden_dashboard' %}", g: "Personal"},
-    {l: "Soll-Stunden Jahr", u: "{% url 'arbeitszeit:soll_stunden_jahresuebersicht' %}", g: "Personal"},
-    {l: "Soll-Stunden berechnen", u: "{% url 'arbeitszeit:soll_stunden_berechnen' %}", g: "Personal"},
-    {l: "Organigramm", u: "{% url 'hr:organigramm' %}", g: "Personal"},
-    {l: "Stoermeldung erfassen", u: "{% url 'facility:erstellen' %}", g: "Gebaeude"},
-    {l: "Meine Stoermeldungen", u: "{% url 'facility:meine' %}", g: "Gebaeude"},
-    {% if ist_vorgesetzter %}
-    {l: "Team-Meldungen", u: "{% url 'facility:vorgesetzter' %}", g: "Gebaeude"},
-    {l: "Monatsbericht Facility", u: "{% url 'facility:monatsreport' %}", g: "Gebaeude"},
-    {% endif %}
-    {% if ist_facility_mitglied or user.is_staff %}
-    {l: "Wartungsplaene", u: "{% url 'facility:wartungsplan_liste' %}", g: "Gebaeude"},
-    {% endif %}
-    {l: "Raumuebersicht", u: "{% url 'raumbuch:uebersicht' %}", g: "Gebaeude"},
-    {l: "Gebaeudeplan", u: "{% url 'raumbuch:grundriss' %}", g: "Gebaeude"},
-    {l: "Buchungen", u: "{% url 'raumbuch:buchung_kalender' %}", g: "Gebaeude"},
-    {l: "Belegungsplan", u: "{% url 'raumbuch:belegungsplan' %}", g: "Gebaeude"},
-    {l: "Besuchsanmeldungen", u: "{% url 'raumbuch:besuch_liste' %}", g: "Gebaeude"},
-    {% if ist_fuehrungskraft %}
-    {l: "Token beantragen", u: "{% url 'raumbuch:token_anfrage' %}", g: "Gebaeude"},
-    {% endif %}
-    {% if user.is_staff or ist_facility_mitglied %}
-    {l: "Gebaeudestruktur", u: "{% url 'raumbuch:struktur' %}", g: "Gebaeude"},
-    {l: "Schluesselverwaltung", u: "{% url 'raumbuch:schluessel_liste' %}", g: "Gebaeude"},
-    {l: "Zutrittsgutschriften", u: "{% url 'raumbuch:token_liste' %}", g: "Gebaeude"},
-    {l: "Treppenhaeuser", u: "{% url 'raumbuch:treppenhaus_liste' %}", g: "Gebaeude"},
-    {l: "Reinigung", u: "{% url 'raumbuch:reinigung' %}", g: "Gebaeude"},
-    {l: "Umzugsauftraege", u: "{% url 'raumbuch:umzug_liste' %}", g: "Gebaeude"},
-    {% endif %}
-    {l: "Veranstaltungen", u: "{% url 'veranstaltungen:uebersicht' %}", g: "Veranstaltungen"},
-    {% if hat_schichtplan_zugang %}
-    {l: "Schichtplanung", u: "{% url 'schichtplan:dashboard' %}", g: "Planung"},
-    {l: "Urlaubsgenehmigungen", u: "{% url 'schichtplan:genehmigungen_uebersicht' %}", g: "Planung"},
-    {% endif %}
-    {% if user.is_staff %}
-    {l: "Rechtevergabe", u: "{% url 'berechtigungen:uebersicht' %}", g: "Admin"},
-    {l: "Workflow-Editor", u: "{% url 'workflow:workflow_editor' %}", g: "Admin"},
-    {l: "Textbausteine", u: "{% url 'facility:textbaustein_liste' %}", g: "Admin"},
-    {l: "Trend-Einstellungen", u: "{% url 'facility:einstellungen' %}", g: "Admin"},
-    {l: "Audit-Trail", u: "{% url 'raumbuch:gesamtlog' %}", g: "Admin"},
-    {l: "Digitale Signatur", u: "{% url 'signatur:dashboard' %}", g: "Admin"},
-    {l: "Signatur-Dokumentation", u: "{% url 'signatur:dokumentation_pdf' %}", g: "Admin"},
-    {l: "Datenschutz DSGVO", u: "{% url 'datenschutz:dashboard' %}", g: "Admin"},
-    {% endif %}
-    {l: "Meine Daten (DSGVO-Auskunft)", u: "{% url 'datenschutz:auskunft_pdf' %}", g: "Konto"},
-    {l: "Digitale Signatur", u: "{% url 'signatur:dashboard' %}", g: "Konto"},
-];
-</script>
+<!-- Nav-Items fuer die Suche als JSON (CSP-sicher via json_script) -->
+{% if user.is_authenticated %}
+{{ cmd_items_json|json_script:"cmd-items-data" }}
 {% endif %}
 
 <!-- Messages -->
@@ -1499,119 +1432,12 @@ var CMD_ITEMS = [
 
 <!-- HTMX (lokal) -->
 <script src="{% static 'js/htmx.min.js' %}"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        document.body.addEventListener("htmx:configRequest", function(event) {
-            event.detail.headers["X-CSRFToken"] = document.querySelector("meta[name='csrf-token']").content;
-        });
-    });
-</script>
+<script src="{% static 'js/htmx_csrf.js' %}"></script>
 
-<!-- Befehlspalette Logik -->
+<!-- Befehlspalette + aktiver Navbar-Eintrag -->
 {% if user.is_authenticated %}
-<script>
-(function() {
-    var palette = document.getElementById("cmd-palette");
-    var input   = document.getElementById("cmd-input");
-    var results = document.getElementById("cmd-results");
-    var sel     = -1;
-
-    window.cmdOpen = function() {
-        palette.classList.add("cmd-open");
-        input.value = "";
-        render("");
-        input.focus();
-    };
-
-    function close() {
-        palette.classList.remove("cmd-open");
-        sel = -1;
-    }
-
-    function render(q) {
-        var filtered = q
-            ? CMD_ITEMS.filter(function(i) {
-                var needle = q.toLowerCase();
-                return i.l.toLowerCase().indexOf(needle) !== -1
-                    || i.g.toLowerCase().indexOf(needle) !== -1;
-              })
-            : CMD_ITEMS;
-
-        results.innerHTML = filtered.map(function(i, idx) {
-            return "<a href=\"" + i.u + "\" class=\"cmd-item\" data-idx=\"" + idx + "\">"
-                + "<span>" + i.l + "</span>"
-                + "<span class=\"cmd-gruppe\">" + i.g + "</span>"
-                + "</a>";
-        }).join("");
-        sel = -1;
-    }
-
-    function getLinks() {
-        return results.querySelectorAll(".cmd-item");
-    }
-
-    function updateSel(links) {
-        links.forEach(function(l, i) { l.classList.toggle("cmd-active", i === sel); });
-        if (links[sel]) { links[sel].scrollIntoView({block: "nearest"}); }
-    }
-
-    document.addEventListener("keydown", function(e) {
-        /* "/" oeffnet die Palette, ausser wenn gerade ein Eingabefeld aktiv ist */
-        if (e.key === "/" && !palette.classList.contains("cmd-open")) {
-            var tag = document.activeElement ? document.activeElement.tagName : "";
-            if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") {
-                e.preventDefault();
-                cmdOpen();
-                return;
-            }
-        }
-        if (!palette.classList.contains("cmd-open")) { return; }
-        var links = getLinks();
-        if (e.key === "Escape") {
-            close();
-        } else if (e.key === "ArrowDown") {
-            e.preventDefault();
-            sel = Math.min(sel + 1, links.length - 1);
-            updateSel(links);
-        } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            sel = Math.max(sel - 1, 0);
-            updateSel(links);
-        } else if (e.key === "Enter" && sel >= 0) {
-            links[sel].click();
-        }
-    });
-
-    /* Klick ausserhalb des Suchfelds schliesst die Palette */
-    palette.addEventListener("click", function(e) {
-        if (e.target === palette) { close(); }
-    });
-
-    input.addEventListener("input", function() {
-        render(this.value);
-    });
-})();
-</script>
-{% endif %}
-
-<!-- Aktiver Navbar-Eintrag: hebt den passenden Nav-Punkt hervor -->
-{% if user.is_authenticated %}
-<script>
-(function() {
-    var path = window.location.pathname;
-    document.querySelectorAll(".navbar-nav .nav-item").forEach(function(item) {
-        var link = item.querySelector(":scope > .nav-link:not(.dropdown-toggle)");
-        if (link && link.getAttribute("href") && link.getAttribute("href") !== "#") {
-            try {
-                var linkPath = new URL(link.href, window.location.origin).pathname;
-                if (linkPath !== "/" && path.startsWith(linkPath)) {
-                    item.classList.add("nav-active");
-                }
-            } catch(e) {}
-        }
-    });
-})();
-</script>
+<script src="{% static 'js/cmd_palette.js' %}"></script>
+<script src="{% static 'js/nav_active.js' %}"></script>
 {% endif %}
 
 {% block extra_js %}{% endblock %}
