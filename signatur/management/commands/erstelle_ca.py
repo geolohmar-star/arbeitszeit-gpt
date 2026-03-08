@@ -84,19 +84,33 @@ class Command(BaseCommand):
         else:
             users = User.objects.filter(is_active=True)
 
-        # Root-Key laden
+        # Root-Key laden: erst Datei, dann Umgebungsvariable (Railway/Produktion)
         import os
+        import base64
+        from cryptography.hazmat.primitives.serialization import load_pem_private_key
+
         ca_key_pfad = os.path.join("signatur", "ca_root.key.pem")
-        if not os.path.exists(ca_key_pfad):
+        ca_key_b64 = os.environ.get("CA_ROOT_KEY_B64", "")
+
+        if os.path.exists(ca_key_pfad):
+            with open(ca_key_pfad, "rb") as f:
+                root_key_pem_bytes = f.read()
+        elif ca_key_b64:
+            # Produktionsbetrieb: Key kommt aus Umgebungsvariable (base64-kodiert)
+            root_key_pem_bytes = base64.b64decode(ca_key_b64)
+            self.stdout.write(self.style.WARNING(
+                "Root-CA-Schluessel aus Umgebungsvariable CA_ROOT_KEY_B64 geladen."
+            ))
+        else:
             self.stdout.write(self.style.ERROR(
-                f"Root-CA-Schluessel nicht gefunden: {ca_key_pfad}. "
-                "Erst 'python manage.py erstelle_ca --nur_ca' ausfuehren."
+                f"Root-CA-Schluessel nicht gefunden: weder {ca_key_pfad} "
+                "noch Umgebungsvariable CA_ROOT_KEY_B64 gesetzt. "
+                "Lokal: 'python manage.py erstelle_ca --nur_ca' ausfuehren. "
+                "Railway: CA_ROOT_KEY_B64 als Umgebungsvariable setzen."
             ))
             return
 
-        with open(ca_key_pfad, "rb") as f:
-            from cryptography.hazmat.primitives.serialization import load_pem_private_key
-            root_key = load_pem_private_key(f.read(), password=None)
+        root_key = load_pem_private_key(root_key_pem_bytes, password=None)
 
         from cryptography.x509 import load_pem_x509_certificate
         root_cert = load_pem_x509_certificate(root_cert_pem)
