@@ -25,6 +25,11 @@ urlpatterns = [
         name="gutschrift_pdf",
     ),
     path(
+        "<int:pk>/gutschrift/download/",
+        views.gutschrift_pdf_download,
+        name="gutschrift_pdf_download",
+    ),
+    path(
         "<int:pk>/status/",
         views.status_aendern,
         name="status_aendern",

@@ -1,0 +1,20 @@
+{% load static %}
+{% if ist_mitglied %}
+<button
+    hx-post="{% url 'betriebssport:beitreten_toggle' gruppe.pk %}"
+    hx-target="#beitreten-bereich"
+    hx-swap="innerHTML"
+    hx-include="[name=csrfmiddlewaretoken]"
+    class="btn btn-outline-danger btn-sm">
+    Gruppe verlassen
+</button>
+{% else %}
+<button
+    hx-post="{% url 'betriebssport:beitreten_toggle' gruppe.pk %}"
+    hx-target="#beitreten-bereich"
+    hx-swap="innerHTML"
+    hx-include="[name=csrfmiddlewaretoken]"
+    class="btn btn-success btn-sm">
+    Gruppe beitreten
+</button>
+{% endif %}

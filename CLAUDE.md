@@ -91,7 +91,7 @@ Der PostgreSQL-Container muss `Up` zeigen bevor `manage.py` aufgerufen wird.
 - Maximale Zeilenlänge: **88 Zeichen** (Black-Standard)
 - Einrückung: **4 Spaces** (keine Tabs)
 - Strings: **doppelte Anführungszeichen** `"`
-- Alle Dateien mit **UTF-8** kodieren
+- Alle Dateien mit **UTF-8** kodieren – das gilt ABSOLUT fuer alle Dateitypen: `.py`, `.html`, `.json`, `.txt`, `.md`, `.toml`
 
 ### Benennung
 | Element | Stil | Beispiel |
@@ -420,6 +420,105 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 
 ---
 
+## Content Security Policy (CSP) – Pflichtregeln
+
+**Hintergrund:** AdGuard (und andere Browser-Extensions) injizieren einen strikten
+`script-src 'self'`-Header. Das blockiert jeden inline JS-Code im Browser.
+
+### Was VERBOTEN ist (CSP-Violation):
+
+```html
+<!-- FALSCH: Inline-Script-Block -->
+<script>
+  var x = 1;
+</script>
+
+<!-- FALSCH: Inline-Event-Handler -->
+<button onclick="tuWas()">Klick</button>
+<select onchange="ladeEtwas()">...</select>
+<input oninput="filtere()">
+
+<!-- FALSCH: Server-Daten direkt in Script einspeisen -->
+<script>var DATA = {{ daten|safe }};</script>
+```
+
+### Was KORREKT ist:
+
+**1. JS immer in externe Dateien auslagern:**
+```html
+<!-- Template: nur externe Datei laden -->
+{% load static %}
+<script src="{% static 'js/meine_seite.js' %}"></script>
+```
+
+**2. Event-Handler via addEventListener verdrahten:**
+```javascript
+// static/js/meine_seite.js
+document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("mein-btn").addEventListener("click", tuWas);
+    document.getElementById("mein-select").addEventListener("change", ladeEtwas);
+});
+```
+
+**3. Event Delegation fuer dynamisch gerenderte Elemente:**
+```html
+<!-- Template: data-action statt onclick -->
+<button data-action="loeschen" data-id="{{ obj.pk }}">Loeschen</button>
+```
+```javascript
+// JS: ein einziger Listener fuer alle data-action-Buttons
+document.body.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    var action = btn.dataset.action;
+    if (action === "loeschen") { loeschen(btn.dataset.id); }
+});
+```
+
+**4. Server-Daten CSP-sicher einbetten (json_script):**
+```html
+<!-- Template: json_script-Filter erzeugt <script type="application/json"> -->
+{{ meine_daten|json_script:"meine-daten" }}
+```
+```javascript
+// JS: sicher auslesen (kein eval, kein inline)
+var data = JSON.parse(document.getElementById("meine-daten").textContent);
+```
+> **WICHTIG:** Den View-Wert als Python-Objekt (list/dict) uebergeben – NICHT
+> vorher mit `json.dumps()` serialisieren, sonst liest `JSON.parse()` einen
+> String statt ein Array (doppelte Serialisierung).
+
+**5. Print-Button und aehnliche Einzeiler:**
+```html
+<button id="btn-print">Drucken</button>
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/meine_seite.js' %}"></script>
+{% endblock %}
+```
+```javascript
+document.getElementById("btn-print").addEventListener("click", function () {
+    window.print();
+});
+```
+
+### base.html – verfuegbare Bloecke fuer JS:
+
+```html
+{% block extra_js %}{% endblock %}  <!-- direkt vor </body> -->
+```
+
+### Dateinamen-Konvention fuer seitenspezifische JS-Dateien:
+
+| Template | JS-Datei |
+|---|---|
+| `formulare/team_builder.html` | `static/js/team_builder.js` |
+| `workflow/workflow_editor.html` | `static/js/workflow_editor.js` |
+| `veranstaltungen/gutschrift_pdf.html` | `static/js/gutschrift_pdf.js` |
+| `xyz/meine_seite.html` | `static/js/meine_seite.js` |
+
+---
+
 ## Was Claude Code tun soll
 
 - Code immer auf **Deutsch** kommentieren
@@ -433,6 +532,7 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 - Keine `print()`-Statements – stattdessen `logging`
 - **Keine Emojis in Python-Code** (auch nicht in Strings, Kommentaren oder Logs) – Windows cp1252 kann Unicode-Emojis nicht kodieren und wirft `UnicodeEncodeError`
 - **Umlaute (ä, ö, ü, ß, Ä, Ö, Ü) in HTML-Templates erlaubt** – Templates sind UTF-8 kodiert, Umlaute dürfen direkt verwendet werden. Nur in Python-Dateien weiterhin ausschreiben (ae, oe, ue usw.)
+- **Fixtures immer als UTF-8 speichern** – `dumpdata` schreibt manchmal cp1252 (Windows). Nach jedem `dumpdata` pruefen: `python -c "open('datei.json', encoding='utf-8').read()"`. Falls Fehler: `json.load(open(..., encoding='cp1252'))` lesen, dann als UTF-8 neu schreiben. Werkzeug dafuer: `python manage.py dumpdata ... | python -c "import sys,json; json.dump(json.load(sys.stdin), open('datei.json','w',encoding='utf-8'), ensure_ascii=False, indent=2)"`
 - Partials immer in `partials/` Unterordner mit `_` Prefix benennen
 
 ---

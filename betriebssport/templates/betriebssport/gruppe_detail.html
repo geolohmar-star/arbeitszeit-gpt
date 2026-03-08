@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% load static custom_filters %}
+{% block title %}{{ gruppe.name }} – Betriebssport{% endblock %}
+
+{% block extra_css %}
+<style>
+    .matrix-table th, .matrix-table td {
+        font-size: 0.82rem;
+        padding: 0.35rem 0.5rem;
+        white-space: nowrap;
+    }
+    .matrix-table thead th {
+        background: #f0f4ff;
+        font-weight: 600;
+        vertical-align: bottom;
+    }
+    .matrix-table thead th.eigene-spalte {
+        background: #dbeafe;
+    }
+    .matrix-table .ausgefallen-row td {
+        background: #f8f8f8;
+        color: #aaa;
+    }
+    .btn-teilnahme {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        border: 2px solid #6c757d;
+        background: white;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        transition: all 0.1s;
+    }
+    .btn-teilnahme.anwesend {
+        background: #198754;
+        border-color: #198754;
+        color: white;
+    }
+    .btn-teilnahme:hover {
+        border-color: #0d6efd;
+    }
+    .dot-readonly {
+        width: 1.6rem;
+        height: 1.6rem;
+        border-radius: 50%;
+        border: 2px solid #dee2e6;
+        background: #f8f9fa;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
+    .dot-readonly.anwesend {
+        background: #d1fae5;
+        border-color: #6ee7b7;
+        color: #065f46;
+    }
+    .summen-row td {
+        background: #e8f4f8 !important;
+        font-weight: 600;
+        border-top: 2px solid #a0c4d8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 px-4">
+
+    <!-- Kopfzeile -->
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+        <div>
+            <a href="{% url 'betriebssport:uebersicht' %}" class="btn btn-outline-secondary btn-sm mb-2">
+                &larr; Uebersicht
+            </a>
+            <h3 class="mb-0">{{ gruppe.name }}</h3>
+            <div class="text-muted small">
+                {{ gruppe.get_sportart_display }}
+                &middot; {{ gruppe.get_wochentag_display }}
+                {% if gruppe.uhrzeit_von %} {{ gruppe.uhrzeit_von|time:"H:i" }}{% endif %}
+                {% if gruppe.uhrzeit_bis %} &ndash; {{ gruppe.uhrzeit_bis|time:"H:i" }}{% endif %}
+                {% if gruppe.standort %} &middot; {{ gruppe.standort.name }}{% endif %}
+                {% if gruppe.ort_beschreibung %} &middot; {{ gruppe.ort_beschreibung }}{% endif %}
+            </div>
+            <div class="small text-muted mt-1">
+                Verantwortlich: <strong>{{ gruppe.verantwortlicher.vollname }}</strong>
+                &middot; {{ gruppe.gutschrift_stunden }} h/Einheit
+                &middot; {{ mitglieder|length }} Mitglieder
+            </div>
+        </div>
+
+        <!-- Beitreten / Verlassen -->
+        {% if hrma %}
+        <div id="beitreten-bereich">
+            {% include "betriebssport/partials/_beitreten_btn.html" with gruppe=gruppe ist_mitglied=ist_mitglied %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Monatsnavigation -->
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <a href="?monat={{ vormonat|date:'Y-m' }}" class="btn btn-outline-secondary btn-sm">&lsaquo;</a>
+        <h5 class="mb-0">{{ monat|date:"F Y" }}</h5>
+        <a href="?monat={{ naechster_monat|date:'Y-m' }}" class="btn btn-outline-secondary btn-sm">&rsaquo;</a>
+        <a href="?" class="btn btn-outline-secondary btn-sm">Heute</a>
+    </div>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} py-2">{{ msg }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Einheit anlegen (nur Verantwortlicher) -->
+    {% if ist_verantwortlicher %}
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <form method="post" action="{% url 'betriebssport:einheit_anlegen' gruppe.pk %}"
+                  class="d-flex align-items-end gap-2">
+                {% csrf_token %}
+                <div>
+                    <label class="form-label small mb-1 fw-semibold">Einheit anlegen</label>
+                    <input type="date" name="datum" class="form-control form-control-sm"
+                           value="{{ heute|date:'Y-m-d' }}" required>
+                </div>
+                <button type="submit" class="btn btn-success btn-sm">+ Einheit anlegen</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Matrix -->
+    {% if einheiten %}
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered matrix-table">
+            <thead>
+                <tr>
+                    <th style="min-width:110px;">Datum / KW</th>
+                    <th style="min-width:90px;">Status</th>
+                    {% for ma in mitglieder %}
+                    <th class="text-center {% if hrma and ma.pk == hrma.pk %}eigene-spalte{% endif %}"
+                        title="{{ ma.vollname }}">
+                        {{ ma.vorname|slice:":1" }}. {{ ma.nachname }}
+                        {% if hrma and ma.pk == hrma.pk %}
+                        <div class="badge bg-primary" style="font-size:0.65rem;">Ich</div>
+                        {% endif %}
+                    </th>
+                    {% endfor %}
+                    {% if ist_verantwortlicher %}
+                    <th class="text-center">Aktion</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for zeile in matrix %}
+                {% with e=zeile.einheit %}
+                <tr class="{% if e.status == 'ausgefallen' %}ausgefallen-row{% endif %}">
+                    <td>
+                        <strong>{{ e.datum|date:"d.m.Y" }}</strong><br>
+                        <span class="text-muted" style="font-size:0.78rem;">KW {{ e.kw }}</span>
+                    </td>
+                    <td>
+                        {% if e.status == "stattgefunden" %}
+                        <span class="badge bg-success">stattgefunden</span>
+                        {% elif e.status == "ausgefallen" %}
+                        <span class="badge bg-secondary">ausgefallen</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">geplant</span>
+                        {% endif %}
+                    </td>
+                    {% for zelle in zeile.zeilen %}
+                    <td class="text-center align-middle
+                        {% if hrma and zelle.mitarbeiter.pk == hrma.pk %}eigene-spalte{% endif %}">
+                        {% if e.status == "ausgefallen" %}
+                        <span class="text-muted">–</span>
+                        {% elif zelle.eigene_zeile or ist_verantwortlicher %}
+                        {# Klickbare Zelle per HTMX #}
+                        <span id="zelle-{{ e.pk }}-{{ zelle.mitarbeiter.pk }}">
+                            {% include "betriebssport/partials/_teilnahme_zelle.html" with einheit=e mitarbeiter=zelle.mitarbeiter anwesend=zelle.anwesend eigene_zeile=zelle.eigene_zeile ist_verantwortlicher=ist_verantwortlicher gruppe=gruppe %}
+                        </span>
+                        {% else %}
+                        {# Nur lesbare Anzeige #}
+                        <span class="dot-readonly {% if zelle.anwesend %}anwesend{% endif %}">
+                            {% if zelle.anwesend %}&#10003;{% endif %}
+                        </span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    {% if ist_verantwortlicher %}
+                    <td class="text-center align-middle">
+                        <form method="post"
+                              action="{% url 'betriebssport:einheit_ausgefallen' gruppe.pk e.pk %}?monat={{ monat|date:'Y-m' }}">
+                            {% csrf_token %}
+                            {% if e.status == "ausgefallen" %}
+                            <button type="submit" class="btn btn-outline-success btn-sm" title="Wieder aktivieren">
+                                Reaktivieren
+                            </button>
+                            {% else %}
+                            <button type="submit" class="btn btn-outline-warning btn-sm" title="Als ausgefallen markieren">
+                                Ausgefallen
+                            </button>
+                            {% endif %}
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endwith %}
+                {% endfor %}
+
+                <!-- Summenzeile -->
+                <tr class="summen-row">
+                    <td colspan="2">Gesamt (stattgefundene Einheiten)</td>
+                    {% for ma in mitglieder %}
+                    <td class="text-center">
+                        {% with s=summen|dictsort:"0" %}
+                        {{ summen|get_item:ma.pk|default:"0" }} &times;
+                        {{ gruppe.gutschrift_stunden }}h
+                        {% endwith %}
+                    </td>
+                    {% endfor %}
+                    {% if ist_verantwortlicher %}<td></td>{% endif %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Gutschrift-Bereich (nur Verantwortlicher) -->
+    {% if ist_verantwortlicher %}
+    <div class="card border-primary mb-4">
+        <div class="card-header bg-primary text-white fw-semibold">
+            Monats-Gutschrift {{ monat|date:"F Y" }}
+        </div>
+        <div class="card-body">
+            {% if gutschrift %}
+                {% if gutschrift.status == "entwurf" %}
+                <p class="mb-2 text-muted small">
+                    Gutschrift im Entwurfsstatus. Nach Abschluss der Monatsteilnahmen einreichen.
+                </p>
+                <a href="{% url 'betriebssport:gutschrift_monat' gruppe.pk monat|date:'Y-m' %}"
+                   class="btn btn-primary btn-sm">Gutschrift pruefen &amp; einreichen</a>
+                {% elif gutschrift.status == "eingereicht" %}
+                <p class="text-success fw-semibold mb-2">Gutschrift eingereicht – Workflow laeuft.</p>
+                <a href="{% url 'betriebssport:gutschrift_download' gruppe.pk monat|date:'Y-m' %}"
+                   class="btn btn-success btn-sm">PDF herunterladen</a>
+                {% else %}
+                <p class="text-success fw-semibold mb-2">
+                    Gutschrift {{ gutschrift.get_status_display }}.
+                </p>
+                <a href="{% url 'betriebssport:gutschrift_download' gruppe.pk monat|date:'Y-m' %}"
+                   class="btn btn-outline-success btn-sm">PDF herunterladen</a>
+                {% endif %}
+            {% else %}
+            <p class="text-muted small mb-2">Noch keine Gutschrift fuer diesen Monat.</p>
+            <a href="{% url 'betriebssport:gutschrift_monat' gruppe.pk monat|date:'Y-m' %}"
+               class="btn btn-outline-primary btn-sm">Gutschrift vorbereiten</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="alert alert-light border">
+        In diesem Monat wurden noch keine Einheiten angelegt.
+        {% if ist_verantwortlicher %}
+        Lege oben eine Einheit an.
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/betriebssport.js' %}"></script>
+{% endblock %}

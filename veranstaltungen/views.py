@@ -12,6 +12,9 @@ from .models import Feier, FeierteilnahmeAnmeldung, FeierteilnahmeGutschrift
 from .context_processors import _filter_nach_sichtbarkeit
 
 
+logger = logging.getLogger(__name__)
+
+
 def _starte_gutschrift_workflow(gutschrift, user):
     """Startet den Veranstaltungs-Gutschrift-Workflow falls ein aktives Template vorhanden ist."""
     from workflow.models import WorkflowTemplate, WorkflowInstance
@@ -42,7 +45,89 @@ def _starte_gutschrift_workflow(gutschrift, user):
     except Exception as exc:
         logger.error("Fehler beim Starten des Gutschrift-Workflows: %s", exc)
 
-logger = logging.getLogger(__name__)
+
+def _auto_signiere_gutschrift(gutschrift, request):
+    """Veranstaltungs-Gutschrift nach Submit auto-signieren.
+
+    Rendert das WeasyPrint-Template, signiert es und legt ein SignaturProtokoll an.
+    Schlaegt still fehl – unterbricht nie die Einreichung.
+    """
+    try:
+        from weasyprint import HTML
+        from django.template.loader import render_to_string
+        from signatur.services import signiere_pdf
+
+        feier = gutschrift.feier
+        teilnehmer = gutschrift.teilnehmer_bestaetigt()
+        vorbereitungsteam = gutschrift.vorbereitungsteam_bestaetigt()
+
+        teilnehmer_gesamt = feier.gutschrift_teilnehmer_gesamt * teilnehmer.count()
+        vorbereitung_gesamt = feier.gutschrift_vorbereitung_gesamt * vorbereitungsteam.count()
+
+        ctx = {
+            "feier": feier,
+            "gutschrift": gutschrift,
+            "teilnehmer": teilnehmer,
+            "vorbereitungsteam": vorbereitungsteam,
+            "workflow_tasks": [],
+            "teilnehmer_gesamt_stunden": teilnehmer_gesamt,
+            "vorbereitung_gesamt_stunden": vorbereitung_gesamt,
+            "gesamt_stunden": teilnehmer_gesamt + vorbereitung_gesamt,
+            "jetzt": timezone.now(),
+        }
+
+        html_string = render_to_string(
+            "veranstaltungen/pdf/gutschrift_pdf.html",
+            ctx,
+            request=request,
+        )
+        pdf = HTML(
+            string=html_string,
+            base_url=request.build_absolute_uri(),
+        ).write_pdf()
+
+        antragsteller_user = gutschrift.erstellt_von.user if gutschrift.erstellt_von else request.user
+        dateiname = f"ZGS-{gutschrift.pk}_{feier.titel}.pdf".replace(" ", "_")
+        signiere_pdf(
+            pdf,
+            antragsteller_user,
+            dokument_name=dateiname,
+            content_type="feierteilnahmegutschrift",
+            object_id=gutschrift.pk,
+        )
+        logger.info("Auto-Signatur OK: FeierteilnahmeGutschrift pk=%s", gutschrift.pk)
+    except Exception as exc:
+        logger.warning(
+            "Auto-Signatur fehlgeschlagen: FeierteilnahmeGutschrift pk=%s – %s",
+            gutschrift.pk,
+            exc,
+        )
+
+
+def _hole_workflow_tasks_fuer_gutschrift(gutschrift):
+    """Gibt alle WorkflowTasks der laufenden/abgeschlossenen Instanz zurueck."""
+    try:
+        from workflow.models import WorkflowInstance, WorkflowTask
+        from django.contrib.contenttypes.models import ContentType
+
+        ct = ContentType.objects.get_for_model(gutschrift)
+        instanz = (
+            WorkflowInstance.objects.filter(
+                content_type=ct,
+                object_id=gutschrift.pk,
+            )
+            .order_by("-gestartet_am")
+            .first()
+        )
+        if not instanz:
+            return []
+        return list(
+            WorkflowTask.objects.filter(instance=instanz)
+            .select_related("step", "bearbeitet_von", "claimed_von")
+            .order_by("step__reihenfolge")
+        )
+    except Exception:
+        return []
 
 
 def _get_aktueller_hrma(request):
@@ -325,6 +410,9 @@ def gutschrift_erstellen(request, pk):
         # Workflow starten (Zeitgutschriften-Team -> Zeiterfassung-Team)
         _starte_gutschrift_workflow(gutschrift, request.user)
 
+        # PDF erzeugen und signieren
+        _auto_signiere_gutschrift(gutschrift, request)
+
         messages.success(
             request, "Zeitgutschrift-Sammelliste eingereicht."
         )
@@ -360,8 +448,112 @@ def gutschrift_pdf(request, pk):
         "teilnehmer": teilnehmer,
         "vorbereitungsteam": vorbereitungsteam,
         "jetzt": timezone.now(),
+        "hat_signatur": _hat_signatur(gutschrift),
     }
     return render(request, "veranstaltungen/gutschrift_pdf.html", context)
+
+
+def _hat_signatur(gutschrift):
+    """Prueft ob ein SignaturProtokoll fuer die Gutschrift existiert."""
+    try:
+        from signatur.models import SignaturJob
+        return SignaturJob.objects.filter(
+            content_type="feierteilnahmegutschrift",
+            object_id=gutschrift.pk,
+            status="completed",
+        ).exists()
+    except Exception:
+        return False
+
+
+@login_required
+def gutschrift_pdf_download(request, pk):
+    """Laed die signierte PDF-Sammelliste herunter oder generiert sie neu."""
+    feier = get_object_or_404(Feier, pk=pk)
+    gutschrift = get_object_or_404(FeierteilnahmeGutschrift, feier=feier)
+
+    dateiname = f"ZGS-{gutschrift.pk}_{feier.titel}.pdf".replace(" ", "_")
+
+    # Vorhandene Signatur suchen
+    try:
+        from signatur.models import SignaturJob
+        job = (
+            SignaturJob.objects.filter(
+                content_type="feierteilnahmegutschrift",
+                object_id=gutschrift.pk,
+                status="completed",
+            )
+            .select_related("protokoll")
+            .order_by("-erstellt_am")
+            .first()
+        )
+        if job and hasattr(job, "protokoll") and job.protokoll and job.protokoll.signiertes_pdf:
+            pdf_bytes = bytes(job.protokoll.signiertes_pdf)
+            response = HttpResponse(pdf_bytes, content_type="application/pdf")
+            response["Content-Disposition"] = (
+                f'attachment; filename="{dateiname}"'
+            )
+            return response
+    except Exception as exc:
+        logger.warning("SignaturJob-Lookup fehlgeschlagen: %s", exc)
+
+    # Fallback: frisch erzeugen und signieren
+    try:
+        from weasyprint import HTML
+        from django.template.loader import render_to_string
+
+        teilnehmer = gutschrift.teilnehmer_bestaetigt()
+        vorbereitungsteam = gutschrift.vorbereitungsteam_bestaetigt()
+        workflow_tasks = _hole_workflow_tasks_fuer_gutschrift(gutschrift)
+
+        teilnehmer_gesamt = feier.gutschrift_teilnehmer_gesamt * teilnehmer.count()
+        vorbereitung_gesamt = feier.gutschrift_vorbereitung_gesamt * vorbereitungsteam.count()
+
+        ctx = {
+            "feier": feier,
+            "gutschrift": gutschrift,
+            "teilnehmer": teilnehmer,
+            "vorbereitungsteam": vorbereitungsteam,
+            "workflow_tasks": workflow_tasks,
+            "teilnehmer_gesamt_stunden": teilnehmer_gesamt,
+            "vorbereitung_gesamt_stunden": vorbereitung_gesamt,
+            "gesamt_stunden": teilnehmer_gesamt + vorbereitung_gesamt,
+            "jetzt": timezone.now(),
+        }
+
+        html_string = render_to_string(
+            "veranstaltungen/pdf/gutschrift_pdf.html",
+            ctx,
+            request=request,
+        )
+        pdf_bytes = HTML(
+            string=html_string,
+            base_url=request.build_absolute_uri(),
+        ).write_pdf()
+    except Exception as exc:
+        logger.error("WeasyPrint-Fehler bei Gutschrift pk=%s: %s", gutschrift.pk, exc)
+        messages.error(request, "PDF konnte nicht erzeugt werden.")
+        return redirect("veranstaltungen:gutschrift_pdf", pk=pk)
+
+    # Signatur-Versuch (still failing ok)
+    try:
+        from signatur.services import signiere_pdf
+        antragsteller_user = (
+            gutschrift.erstellt_von.user if gutschrift.erstellt_von else request.user
+        )
+        pdf_bytes = signiere_pdf(
+            pdf_bytes,
+            antragsteller_user,
+            dokument_name=dateiname,
+            content_type="feierteilnahmegutschrift",
+            object_id=gutschrift.pk,
+        )
+    except Exception as exc:
+        logger.warning("Signatur fehlgeschlagen, liefere unsigniertes PDF: %s", exc)
+
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{dateiname}"'
+    return response
 
 
 @login_required

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Betriebssport{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Betriebssport</h2>
+        <a href="{% url 'betriebssport:gruppe_anlegen' %}" class="btn btn-primary btn-sm">
+            + Gruppe anlegen
+        </a>
+    </div>
+
+    {% if gruppen_liste %}
+    <div class="row g-3">
+        {% for eintrag in gruppen_liste %}
+        {% with g=eintrag.gruppe %}
+        <div class="col-md-4">
+            <div class="card h-100 {% if eintrag.ist_mitglied %}border-success{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <h5 class="card-title mb-0">
+                            <a href="{% url 'betriebssport:gruppe_detail' g.pk %}"
+                               class="text-decoration-none text-dark">
+                                {{ g.name }}
+                            </a>
+                        </h5>
+                        {% if eintrag.ist_mitglied %}
+                        <span class="badge bg-success">Mitglied</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-muted small mb-2">{{ g.get_sportart_display }}</div>
+
+                    <div class="small mb-1">
+                        <strong>Wann:</strong>
+                        {{ g.get_wochentag_display }}
+                        {% if g.uhrzeit_von %} {{ g.uhrzeit_von|time:"H:i" }}{% endif %}
+                        {% if g.uhrzeit_bis %} &ndash; {{ g.uhrzeit_bis|time:"H:i" }}{% endif %}
+                    </div>
+                    {% if g.standort %}
+                    <div class="small mb-1">
+                        <strong>Standort:</strong> {{ g.standort.name }}
+                    </div>
+                    {% endif %}
+                    {% if g.ort_beschreibung %}
+                    <div class="small mb-1">
+                        <strong>Ort:</strong> {{ g.ort_beschreibung }}
+                    </div>
+                    {% endif %}
+                    <div class="small text-muted">
+                        {{ eintrag.mitglieder_anzahl }} Mitglieder &middot;
+                        {{ g.gutschrift_stunden }} h/Einheit &middot;
+                        Verantw.: {{ g.verantwortlicher.vollname }}
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="{% url 'betriebssport:gruppe_detail' g.pk %}"
+                       class="btn btn-outline-primary btn-sm w-100">
+                        Zur Gruppe
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="alert alert-info">
+        Noch keine Sportgruppen vorhanden.
+        <a href="{% url 'betriebssport:gruppe_anlegen' %}">Jetzt anlegen</a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

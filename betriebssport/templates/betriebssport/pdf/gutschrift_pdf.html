@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Betriebssport-Gutschrift – {{ gruppe.name }} – {{ gutschrift.monat|date:"F Y" }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            margin: 2cm 2.5cm;
+            color: #222;
+        }
+        h1 { font-size: 16pt; margin: 0 0 0.2cm 0; }
+        h2 { font-size: 12pt; margin: 0.8cm 0 0.2cm 0;
+             border-bottom: 1px solid #aaa; padding-bottom: 2px; }
+
+        .header-box {
+            border: 1.5px solid #333;
+            padding: 0.4cm 0.6cm;
+            margin-bottom: 0.6cm;
+        }
+        .header-meta { font-size: 9pt; color: #555; margin-top: 0.2cm; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0.5cm;
+            font-size: 9pt;
+        }
+        th {
+            background-color: #e8e8e8;
+            border: 1px solid #999;
+            padding: 0.2cm 0.3cm;
+            text-align: left;
+            font-weight: bold;
+        }
+        td { border: 1px solid #bbb; padding: 0.18cm 0.3cm; }
+        tr:nth-child(even) td { background-color: #f9f9f9; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+
+        .summe-zeile td {
+            background-color: #dce8f5 !important;
+            font-weight: bold;
+            border-top: 2px solid #666;
+        }
+
+        .status-table th { background-color: #dce8f5; }
+        .status-ok { color: #2e7d32; font-weight: bold; }
+        .status-offen { color: #888; font-style: italic; }
+
+        .sig-section { margin-top: 1.2cm; page-break-inside: avoid; }
+        .sig-grid { display: table; width: 100%; }
+        .sig-col {
+            display: table-cell;
+            width: 33%;
+            padding: 0 0.4cm;
+            text-align: center;
+            vertical-align: bottom;
+        }
+        .sig-col:first-child { padding-left: 0; }
+        .sig-col:last-child { padding-right: 0; }
+        .sig-line {
+            border-top: 1px solid #333;
+            padding-top: 0.15cm;
+            margin-top: 1.2cm;
+            font-size: 8.5pt;
+        }
+        .sig-line .name { font-weight: bold; font-size: 9pt; }
+        .sig-line .rolle { color: #555; font-size: 8pt; }
+        .sig-done {
+            background-color: #eaf7ea;
+            border: 1px solid #4caf50;
+            border-radius: 2px;
+            padding: 0.1cm 0.2cm;
+            font-size: 8pt;
+            color: #2e7d32;
+            display: inline-block;
+            margin-bottom: 0.1cm;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 1cm;
+            left: 2.5cm;
+            right: 2.5cm;
+            font-size: 7.5pt;
+            color: #888;
+            border-top: 0.5px solid #ccc;
+            padding-top: 0.15cm;
+            text-align: center;
+        }
+
+        .kz-box {
+            float: right;
+            border: 1px solid #aaa;
+            padding: 0.15cm 0.3cm;
+            font-size: 8pt;
+            color: #555;
+            margin-bottom: 0.2cm;
+        }
+
+        .einheit-badge-ja {
+            display: inline-block;
+            width: 1.2em;
+            height: 1.2em;
+            border-radius: 50%;
+            background: #4caf50;
+            color: white;
+            text-align: center;
+            font-size: 9pt;
+            line-height: 1.2em;
+        }
+        .einheit-badge-nein {
+            display: inline-block;
+            width: 1.2em;
+            height: 1.2em;
+            border-radius: 50%;
+            background: #e0e0e0;
+            text-align: center;
+            font-size: 9pt;
+            line-height: 1.2em;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Kopfzeile -->
+<div class="header-box">
+    <div class="kz-box">
+        Dok-Nr.: BSG-{{ gutschrift.pk }}<br>
+        Datum: {{ jetzt|date:"d.m.Y" }}<br>
+        Status: {{ gutschrift.get_status_display }}
+    </div>
+    <h1>Betriebssport-Gutschrift</h1>
+    <div style="font-size: 13pt; margin: 0.1cm 0;">{{ gruppe.name }}</div>
+    <div class="header-meta">
+        <strong>Sportart:</strong> {{ gruppe.get_sportart_display }}
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <strong>Wochentag:</strong> {{ gruppe.get_wochentag_display }}
+        {% if gruppe.uhrzeit_von %} {{ gruppe.uhrzeit_von|time:"H:i" }}{% endif %}
+        {% if gruppe.uhrzeit_bis %} &ndash; {{ gruppe.uhrzeit_bis|time:"H:i" }}{% endif %}
+        {% if gruppe.standort %}
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <strong>Standort:</strong> {{ gruppe.standort.name }}
+        {% endif %}
+        {% if gruppe.ort_beschreibung %}
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <strong>Ort:</strong> {{ gruppe.ort_beschreibung }}
+        {% endif %}
+        <br>
+        <strong>Monat:</strong> {{ gutschrift.monat|date:"F Y" }}
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <strong>Verantwortlicher:</strong> {{ gruppe.verantwortlicher.vollname }}
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <strong>Gutschrift je Einheit:</strong> {{ gruppe.gutschrift_stunden }} h
+    </div>
+    {% if gutschrift.bemerkung %}
+    <div class="header-meta" style="margin-top:0.2cm;">
+        <strong>Bemerkung:</strong> {{ gutschrift.bemerkung }}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Einheiten-Uebersicht -->
+<h2>Einheiten im {{ gutschrift.monat|date:"F Y" }}</h2>
+<table>
+    <thead>
+        <tr>
+            <th style="width:18%;">Datum</th>
+            <th style="width:8%;">KW</th>
+            <th style="width:20%;">Status</th>
+            <th class="text-right" style="width:15%;">Anwesende</th>
+            <th>Notiz</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for e in einheiten %}
+        <tr>
+            <td>{{ e.datum|date:"d.m.Y" }}</td>
+            <td class="text-center">{{ e.kw }}</td>
+            <td>
+                {% if e.status == "stattgefunden" %}stattgefunden
+                {% elif e.status == "ausgefallen" %}ausgefallen
+                {% else %}geplant{% endif %}
+            </td>
+            <td class="text-right">
+                {% if e.status != "ausgefallen" %}{{ e.teilnahmen.count }}{% else %}–{% endif %}
+            </td>
+            <td>{{ e.notiz|default:"" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Teilnehmer-Liste -->
+<h2>Teilnehmer mit Zeitgutschrift ({{ teilnehmer_daten|length }} Personen)</h2>
+{% if teilnehmer_daten %}
+<table>
+    <thead>
+        <tr>
+            <th class="text-center" style="width:4%;">Nr.</th>
+            <th style="width:22%;">Name</th>
+            <th style="width:12%;">Personal-Nr.</th>
+            <th style="width:18%;">Abteilung</th>
+            <th class="text-center" style="width:10%;">Einheiten</th>
+            <th class="text-right" style="width:12%;">Gutschrift</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in teilnehmer_daten %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td>{{ p.mitarbeiter.vollname }}</td>
+            <td class="text-center">{{ p.mitarbeiter.personalnummer|default:"–" }}</td>
+            <td>{{ p.mitarbeiter.abteilung.name|default:"–" }}</td>
+            <td class="text-center">{{ p.anzahl_einheiten }}</td>
+            <td class="text-right"><strong>{{ p.stunden }} h</strong></td>
+        </tr>
+        {% endfor %}
+        <tr class="summe-zeile">
+            <td colspan="5">Gesamte Zeitgutschrift (alle Teilnehmer)</td>
+            <td class="text-right">{{ gesamt_stunden }} h</td>
+        </tr>
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Workflow-Bearbeitungsstatus -->
+{% if workflow_tasks %}
+<h2>Bearbeitungsverlauf</h2>
+<table class="status-table">
+    <thead>
+        <tr>
+            <th style="width:35%;">Schritt</th>
+            <th style="width:25%;">Bearbeiter</th>
+            <th style="width:20%;">Erledigt am</th>
+            <th style="width:20%;">Entscheidung</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for task in workflow_tasks %}
+        <tr>
+            <td>{{ task.step.titel }}</td>
+            <td>
+                {% if task.bearbeitet_von %}
+                    {{ task.bearbeitet_von.get_full_name|default:task.bearbeitet_von.username }}
+                {% elif task.claimed_von %}
+                    {{ task.claimed_von.get_full_name|default:task.claimed_von.username }}
+                {% else %}–{% endif %}
+            </td>
+            <td>
+                {% if task.abgeschlossen_am %}
+                    <span class="status-ok">{{ task.abgeschlossen_am|date:"d.m.Y H:i" }}</span>
+                {% else %}
+                    <span class="status-offen">ausstehend</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if task.entscheidung %}{{ task.get_entscheidung_display }}
+                {% elif task.status == "erledigt" %}abgeschlossen
+                {% else %}–{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Unterschriften -->
+<div class="sig-section">
+    <h2>Unterschriften</h2>
+    <div class="sig-grid">
+        <div class="sig-col">
+            <div class="sig-line">
+                <div class="name">{{ gruppe.verantwortlicher.vollname }}</div>
+                <div class="rolle">Gruppenverantwortlicher</div>
+                {% if gutschrift.eingereicht_am %}
+                <div class="sig-done">Eingereicht {{ gutschrift.eingereicht_am|date:"d.m.Y" }}</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="sig-col">
+            <div class="sig-line">
+                <div class="name">Zeitgutschriften-Team (ZG)</div>
+                <div class="rolle">Fachliche Pruefung</div>
+                {% for task in workflow_tasks %}{% if "ZG" in task.step.titel or "pruefen" in task.step.titel|lower and "ZG" in task.step.titel %}{% if task.abgeschlossen_am %}<div class="sig-done">Geprueft {{ task.abgeschlossen_am|date:"d.m.Y" }}</div>{% endif %}{% endif %}{% endfor %}
+            </div>
+        </div>
+        <div class="sig-col">
+            <div class="sig-line">
+                <div class="name">Zeiterfassung / ZA-Team</div>
+                <div class="rolle">Buchung in Zeiterfassung</div>
+                {% for task in workflow_tasks %}{% if "ZA" in task.step.titel or "buchen" in task.step.titel|lower %}{% if task.abgeschlossen_am %}<div class="sig-done">Gebucht {{ task.abgeschlossen_am|date:"d.m.Y" }}</div>{% endif %}{% endif %}{% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fusszeile -->
+<div class="footer">
+    Betriebssport-Gutschrift | {{ gruppe.name }} | {{ gutschrift.monat|date:"F Y" }} |
+    Dok-Nr. BSG-{{ gutschrift.pk }} |
+    Erstellt: {{ jetzt|date:"d.m.Y H:i" }} Uhr |
+    Dieses Dokument ist nur als Originalausdruck oder signiertes PDF gueltig.
+</div>
+
+</body>
+</html>

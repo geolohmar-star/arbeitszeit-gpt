@@ -115,6 +115,15 @@ class Command(BaseCommand):
                 self.style.WARNING(f"  [WARN] Gutschrift-Workflow fehlgeschlagen: {exc}")
             )
 
+        self.stdout.write("  [LOAD] Betriebssport-Workflow ...")
+        try:
+            call_command("erstelle_betriebssport_workflow", verbosity=1)
+            self.stdout.write("  [OK]   Betriebssport-Workflow abgeschlossen.")
+        except Exception as exc:
+            self.stdout.write(
+                self.style.WARNING(f"  [WARN] Betriebssport-Workflow fehlgeschlagen: {exc}")
+            )
+
         # Einladungscodes fuer externen Bewerbungsprozess
         from bewerbung.models import EinladungsCode
         if not EinladungsCode.objects.exists():

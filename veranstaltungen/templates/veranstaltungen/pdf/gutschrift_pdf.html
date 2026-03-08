@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Zeitgutschrift-Sammelliste – {{ feier.titel }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            margin: 2cm 2.5cm;
+            color: #222;
+        }
+        h1 { font-size: 16pt; margin: 0 0 0.2cm 0; }
+        h2 { font-size: 12pt; margin: 0.8cm 0 0.2cm 0; border-bottom: 1px solid #aaa; padding-bottom: 2px; }
+        h3 { font-size: 10pt; margin: 0.5cm 0 0.1cm 0; }
+
+        .header-box {
+            border: 1.5px solid #333;
+            padding: 0.4cm 0.6cm;
+            margin-bottom: 0.6cm;
+        }
+        .header-meta {
+            font-size: 9pt;
+            color: #555;
+            margin-top: 0.2cm;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0.5cm;
+            font-size: 9pt;
+        }
+        th {
+            background-color: #e8e8e8;
+            border: 1px solid #999;
+            padding: 0.2cm 0.3cm;
+            text-align: left;
+            font-weight: bold;
+        }
+        td {
+            border: 1px solid #bbb;
+            padding: 0.18cm 0.3cm;
+        }
+        tr:nth-child(even) td { background-color: #f9f9f9; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+
+        .summe-zeile td {
+            background-color: #dce8f5 !important;
+            font-weight: bold;
+            border-top: 2px solid #666;
+        }
+
+        .info-table td:first-child {
+            width: 38%;
+            font-weight: bold;
+            color: #444;
+        }
+
+        /* Unterschriften-Bereich */
+        .sig-section {
+            margin-top: 1.2cm;
+            page-break-inside: avoid;
+        }
+        .sig-grid {
+            display: table;
+            width: 100%;
+        }
+        .sig-col {
+            display: table-cell;
+            width: 33%;
+            padding: 0 0.4cm;
+            text-align: center;
+            vertical-align: bottom;
+        }
+        .sig-col:first-child { padding-left: 0; }
+        .sig-col:last-child { padding-right: 0; }
+        .sig-line {
+            border-top: 1px solid #333;
+            padding-top: 0.15cm;
+            margin-top: 1.2cm;
+            font-size: 8.5pt;
+        }
+        .sig-line .name { font-weight: bold; font-size: 9pt; }
+        .sig-line .rolle { color: #555; font-size: 8pt; }
+        .sig-done {
+            background-color: #eaf7ea;
+            border: 1px solid #4caf50;
+            border-radius: 2px;
+            padding: 0.1cm 0.2cm;
+            font-size: 8pt;
+            color: #2e7d32;
+            display: inline-block;
+            margin-bottom: 0.1cm;
+        }
+
+        /* Workflow-Status-Tabelle */
+        .status-table th { background-color: #dce8f5; }
+        .status-ok { color: #2e7d32; font-weight: bold; }
+        .status-offen { color: #888; font-style: italic; }
+
+        .footer {
+            position: fixed;
+            bottom: 1cm;
+            left: 2.5cm;
+            right: 2.5cm;
+            font-size: 7.5pt;
+            color: #888;
+            border-top: 0.5px solid #ccc;
+            padding-top: 0.15cm;
+            text-align: center;
+        }
+
+        .kz-box {
+            float: right;
+            border: 1px solid #aaa;
+            padding: 0.15cm 0.3cm;
+            font-size: 8pt;
+            color: #555;
+            margin-bottom: 0.2cm;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Kopfzeile -->
+<div class="header-box">
+    <div class="kz-box">
+        Dok-Nr.: ZGS-{{ feier.pk }}<br>
+        Datum: {{ jetzt|date:"d.m.Y" }}<br>
+        Status: {{ gutschrift.get_status_display }}
+    </div>
+    <h1>Zeitgutschrift-Sammelliste</h1>
+    <div style="font-size: 13pt; margin: 0.1cm 0;">{{ feier.titel }}</div>
+    <div class="header-meta">
+        <strong>Art:</strong> {{ feier.get_art_display }}
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <strong>Datum:</strong> {{ feier.datum }}
+        {% if feier.uhrzeit_von %}&nbsp;&nbsp;{{ feier.uhrzeit_von }}{% if feier.uhrzeit_bis %}&nbsp;–&nbsp;{{ feier.uhrzeit_bis }}{% endif %}{% endif %}
+        {% if feier.ort %}&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Ort:</strong> {{ feier.ort }}{% endif %}
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <strong>Reichweite:</strong> {{ feier.get_reichweite_display }}
+        {% if feier.abteilung %}&nbsp;&nbsp;|&nbsp;&nbsp;<strong>Abteilung:</strong> {{ feier.abteilung }}{% endif %}
+    </div>
+    {% if gutschrift.bemerkung %}
+    <div class="header-meta" style="margin-top:0.2cm;"><strong>Bemerkung:</strong> {{ gutschrift.bemerkung }}</div>
+    {% endif %}
+</div>
+
+<!-- Veranstaltungsdaten -->
+<h2>Gutschrift-Parameter</h2>
+<table class="info-table">
+    <tr>
+        <td>Gutschrift-Stunden (Teilnehmer)</td>
+        <td>{{ feier.gutschrift_stunden }} h &times; Faktor {{ feier.gutschrift_faktor }} = <strong>{{ feier.gutschrift_teilnehmer_gesamt }} h</strong> je Person</td>
+    </tr>
+    {% if feier.vorbereitung_stunden %}
+    <tr>
+        <td>Gutschrift-Stunden (Vorbereitungsteam)</td>
+        <td>{{ feier.vorbereitung_stunden }} h &times; Faktor {{ feier.vorbereitung_faktor }} = <strong>{{ feier.gutschrift_vorbereitung_gesamt }} h</strong> je Person</td>
+    </tr>
+    {% endif %}
+    <tr>
+        <td>Erstellt von</td>
+        <td>{% if gutschrift.erstellt_von %}{{ gutschrift.erstellt_von.vollname }}{% else %}–{% endif %}</td>
+    </tr>
+    <tr>
+        <td>Eingereicht am</td>
+        <td>{% if gutschrift.eingereicht_am %}{{ gutschrift.eingereicht_am|date:"d.m.Y H:i" }} Uhr{% else %}–{% endif %}</td>
+    </tr>
+</table>
+
+<!-- Teilnehmer-Tabelle -->
+<h2>Teilnehmer ({{ teilnehmer.count }} Personen)</h2>
+{% if teilnehmer %}
+<table>
+    <thead>
+        <tr>
+            <th class="text-center" style="width:4%">Nr.</th>
+            <th style="width:22%">Name</th>
+            <th style="width:12%">Personal-Nr.</th>
+            <th style="width:18%">Stelle</th>
+            <th style="width:18%">Abteilung</th>
+            <th style="width:10%">Datum</th>
+            <th class="text-right" style="width:8%">Gutschrift</th>
+            <th class="text-center" style="width:8%">Bestaetigt</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for anm in teilnehmer %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td>{{ anm.mitarbeiter.vollname }}</td>
+            <td class="text-center">{{ anm.mitarbeiter.personalnummer|default:"–" }}</td>
+            <td>{% if anm.mitarbeiter.stelle %}{{ anm.mitarbeiter.stelle.bezeichnung }}{% else %}–{% endif %}</td>
+            <td>{{ anm.mitarbeiter.abteilung.name|default:"–" }}</td>
+            <td>{{ feier.datum }}</td>
+            <td class="text-right"><strong>{{ feier.gutschrift_teilnehmer_gesamt }} h</strong></td>
+            <td class="text-center">{% if anm.bestaetigt_am %}{{ anm.bestaetigt_am|date:"d.m.Y" }}{% else %}–{% endif %}</td>
+        </tr>
+        {% endfor %}
+        <tr class="summe-zeile">
+            <td colspan="6">Gesamt Zeitgutschrift Teilnehmer</td>
+            <td class="text-right">{{ teilnehmer_gesamt_stunden }} h</td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+{% else %}
+<p style="color:#888; font-style:italic;">Keine bestaetigten Teilnehmer.</p>
+{% endif %}
+
+<!-- Vorbereitungsteam -->
+{% if vorbereitungsteam %}
+<h2>Vorbereitungsteam ({{ vorbereitungsteam.count }} Personen)</h2>
+<table>
+    <thead>
+        <tr>
+            <th class="text-center" style="width:4%">Nr.</th>
+            <th style="width:22%">Name</th>
+            <th style="width:12%">Personal-Nr.</th>
+            <th style="width:18%">Stelle</th>
+            <th style="width:18%">Abteilung</th>
+            <th style="width:10%">Datum</th>
+            <th class="text-right" style="width:8%">Gutschrift</th>
+            <th class="text-center" style="width:8%">Bestaetigt</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for anm in vorbereitungsteam %}
+        <tr>
+            <td class="text-center">{{ forloop.counter }}</td>
+            <td>{{ anm.mitarbeiter.vollname }}</td>
+            <td class="text-center">{{ anm.mitarbeiter.personalnummer|default:"–" }}</td>
+            <td>{% if anm.mitarbeiter.stelle %}{{ anm.mitarbeiter.stelle.bezeichnung }}{% else %}–{% endif %}</td>
+            <td>{{ anm.mitarbeiter.abteilung.name|default:"–" }}</td>
+            <td>{{ feier.datum }}</td>
+            <td class="text-right"><strong>{{ feier.gutschrift_vorbereitung_gesamt }} h</strong></td>
+            <td class="text-center">{% if anm.bestaetigt_am %}{{ anm.bestaetigt_am|date:"d.m.Y" }}{% else %}–{% endif %}</td>
+        </tr>
+        {% endfor %}
+        <tr class="summe-zeile">
+            <td colspan="6">Gesamt Zeitgutschrift Vorbereitungsteam</td>
+            <td class="text-right">{{ vorbereitung_gesamt_stunden }} h</td>
+            <td></td>
+        </tr>
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Gesamtsumme -->
+<table style="margin-top:0.3cm;">
+    <tr class="summe-zeile">
+        <td style="width:80%;"><strong>Gesamte Zeitgutschrift (alle Personen)</strong></td>
+        <td class="text-right"><strong>{{ gesamt_stunden }} h</strong></td>
+    </tr>
+</table>
+
+<!-- Workflow-Bearbeitungsstatus -->
+{% if workflow_tasks %}
+<h2>Bearbeitungsverlauf</h2>
+<table class="status-table">
+    <thead>
+        <tr>
+            <th style="width:35%">Schritt</th>
+            <th style="width:25%">Bearbeiter</th>
+            <th style="width:20%">Erledigt am</th>
+            <th style="width:20%">Entscheidung</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for task in workflow_tasks %}
+        <tr>
+            <td>{{ task.step.titel }}</td>
+            <td>
+                {% if task.bearbeitet_von %}{{ task.bearbeitet_von.get_full_name|default:task.bearbeitet_von.username }}
+                {% elif task.claimed_von %}{{ task.claimed_von.get_full_name|default:task.claimed_von.username }}
+                {% else %}–{% endif %}
+            </td>
+            <td>
+                {% if task.abgeschlossen_am %}
+                    <span class="status-ok">{{ task.abgeschlossen_am|date:"d.m.Y H:i" }}</span>
+                {% else %}
+                    <span class="status-offen">ausstehend</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if task.entscheidung %}{{ task.get_entscheidung_display }}
+                {% elif task.status == "erledigt" %}abgeschlossen
+                {% else %}–{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Unterschriften -->
+<div class="sig-section">
+    <h2>Unterschriften</h2>
+    <div class="sig-grid">
+        <div class="sig-col">
+            <div class="sig-line">
+                <div class="name">
+                    {% if gutschrift.erstellt_von %}{{ gutschrift.erstellt_von.vollname }}{% else %}Ersteller{% endif %}
+                </div>
+                <div class="rolle">Ersteller / Verantwortlicher</div>
+                {% if gutschrift.eingereicht_am %}
+                <div class="sig-done">Eingereicht {{ gutschrift.eingereicht_am|date:"d.m.Y" }}</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="sig-col">
+            <div class="sig-line">
+                <div class="name">{% if feier.get_reichweite_display == "Abteilung" %}Abteilungsleitung{% elif feier.get_reichweite_display == "Bereich" %}Bereichsleitung{% else %}Geschaeftsfuehrung{% endif %}</div>
+                <div class="rolle">Genehmigung ({{ feier.get_reichweite_display }})</div>
+                {% for task in workflow_tasks %}{% if "leiter" in task.step.titel|lower or "fuehrungs" in task.step.titel|lower or "geschaeft" in task.step.titel|lower %}{% if task.abgeschlossen_am %}<div class="sig-done">Genehmigt {{ task.abgeschlossen_am|date:"d.m.Y" }}</div>{% endif %}{% endif %}{% endfor %}
+            </div>
+        </div>
+        <div class="sig-col">
+            <div class="sig-line">
+                <div class="name">Zeiterfassung / ZA-Team</div>
+                <div class="rolle">Buchung in Zeiterfassung</div>
+                {% for task in workflow_tasks %}{% if "ZA" in task.step.titel or "Zeitgutschrift" in task.step.titel or "buchen" in task.step.titel|lower %}{% if task.abgeschlossen_am %}<div class="sig-done">Gebucht {{ task.abgeschlossen_am|date:"d.m.Y" }}</div>{% endif %}{% endif %}{% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fusszeile -->
+<div class="footer">
+    Zeitgutschrift-Sammelliste | {{ feier.titel }} | Dok-Nr. ZGS-{{ feier.pk }} |
+    Erstellt: {{ jetzt|date:"d.m.Y H:i" }} Uhr |
+    Dieses Dokument wurde digital signiert und ist nur als Originalausdruck oder PDF gueltig.
+</div>
+
+</body>
+</html>

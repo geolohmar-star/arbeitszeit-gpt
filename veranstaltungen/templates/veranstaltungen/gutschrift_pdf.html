@@ -18,7 +18,14 @@
     <div class="d-flex justify-content-between align-items-start mb-4 d-print-none">
         <a href="{% url 'veranstaltungen:gutschrift_erstellen' feier.pk %}"
            class="btn btn-outline-secondary btn-sm">&larr; Zurück</a>
-        <button onclick="window.print()" class="btn btn-primary btn-sm">Drucken / PDF</button>
+        <div class="d-flex gap-2">
+            <a href="{% url 'veranstaltungen:gutschrift_pdf_download' feier.pk %}"
+               class="btn btn-success btn-sm">
+                PDF herunterladen
+                {% if hat_signatur %}<span class="badge bg-light text-success ms-1">signiert</span>{% endif %}
+            </a>
+            <button id="btn-print" class="btn btn-primary btn-sm">Drucken</button>
+        </div>
     </div>
 
     <!-- Briefkopf -->
@@ -151,4 +158,9 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/gutschrift_pdf.js' %}"></script>
 {% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Gutschrift {{ monat|date:"F Y" }} – {{ gruppe.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 900px;">
+
+    <div class="mb-4">
+        <a href="{% url 'betriebssport:gruppe_detail' gruppe.pk %}?monat={{ monat|date:'Y-m' }}"
+           class="btn btn-outline-secondary btn-sm">&larr; Zur Gruppe</a>
+    </div>
+
+    <h3 class="mb-1">Betriebssport-Gutschrift</h3>
+    <div class="text-muted mb-4">
+        {{ gruppe.name }} &middot; {{ monat|date:"F Y" }}
+    </div>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+    {% endfor %}
+    {% endif %}
+
+    {% if gutschrift.status != "entwurf" %}
+    <div class="alert alert-success d-flex justify-content-between align-items-center">
+        <span>Gutschrift bereits eingereicht ({{ gutschrift.get_status_display }}).</span>
+        <a href="{% url 'betriebssport:gutschrift_download' gruppe.pk monat|date:'Y-m' %}"
+           class="btn btn-success btn-sm">PDF herunterladen</a>
+    </div>
+    {% endif %}
+
+    <!-- Einheiten-Uebersicht -->
+    <h5 class="mb-2">Einheiten im {{ monat|date:"F Y" }}</h5>
+    <table class="table table-sm table-bordered mb-4">
+        <thead class="table-light">
+            <tr>
+                <th>Datum</th>
+                <th>KW</th>
+                <th>Status</th>
+                <th class="text-end">Teilnehmer</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in einheiten %}
+            <tr class="{% if e.status == 'ausgefallen' %}table-secondary text-muted{% endif %}">
+                <td>{{ e.datum|date:"d.m.Y" }}</td>
+                <td>{{ e.kw }}</td>
+                <td>
+                    {% if e.status == "stattgefunden" %}
+                    <span class="badge bg-success">stattgefunden</span>
+                    {% elif e.status == "ausgefallen" %}
+                    <span class="badge bg-secondary">ausgefallen</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">geplant</span>
+                    {% endif %}
+                </td>
+                <td class="text-end">{{ e.teilnahmen.count }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center text-muted">Keine Einheiten in diesem Monat.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Teilnehmer-Vorschau -->
+    {% if vorschau %}
+    <h5 class="mb-2">Gutschrift-Vorschau (nur Teilnehmer mit mind. 1 Einheit)</h5>
+    <table class="table table-sm table-bordered mb-4">
+        <thead class="table-light">
+            <tr>
+                <th>Nr.</th>
+                <th>Name</th>
+                <th>Personal-Nr.</th>
+                <th>Abteilung</th>
+                <th class="text-center">Einheiten</th>
+                <th class="text-end">Gutschrift</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in vorschau %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ p.mitarbeiter.vollname }}</td>
+                <td class="small text-muted">{{ p.mitarbeiter.personalnummer|default:"–" }}</td>
+                <td class="small">{{ p.mitarbeiter.abteilung.name|default:"–" }}</td>
+                <td class="text-center">{{ p.anzahl }}</td>
+                <td class="text-end fw-semibold">{{ p.stunden }} h</td>
+            </tr>
+            {% endfor %}
+            <tr class="table-primary fw-bold">
+                <td colspan="5">Gesamt</td>
+                <td class="text-end">{{ gesamt_stunden }} h</td>
+            </tr>
+        </tbody>
+    </table>
+    {% else %}
+    <div class="alert alert-warning">
+        Noch keine Teilnahmen erfasst – bitte zuerst in der Matrix markieren.
+    </div>
+    {% endif %}
+
+    <!-- Einreichungs-Formular -->
+    {% if gutschrift.status == "entwurf" and vorschau %}
+    <div class="card border-primary">
+        <div class="card-header bg-primary text-white fw-semibold">Gutschrift einreichen</div>
+        <div class="card-body">
+            <p class="text-muted small mb-3">
+                Nach dem Einreichen wird der Workflow gestartet und ein signiertes PDF erzeugt.
+                Aenderungen sind danach nicht mehr moeglich.
+            </p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Bemerkung (optional)</label>
+                    <textarea name="bemerkung" class="form-control" rows="2"
+                              placeholder="z.B. Hinweise fuer das ZA-Team"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    Gutschrift einreichen &amp; Workflow starten
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

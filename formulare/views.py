@@ -2057,13 +2057,11 @@ def team_builder(request):
         )
         all_users = _mit_stelle(all_qs)
 
-    # Alle User als flache JSON-Liste fuer JavaScript-Suche
-    import json as _json
+    # Alle User als Python-Liste fuer json_script im Template
     if org:
         alle_fuer_json = (org_users or []) + (other_users or [])
     else:
         alle_fuer_json = all_users or []
-    users_json = _json.dumps(alle_fuer_json, ensure_ascii=False)
 
     context = {
         "teams": teams,
@@ -2073,7 +2071,7 @@ def team_builder(request):
         "other_users": other_users,
         "org": org,
         "org_kuerzel": org_kuerzel,
-        "users_json": users_json,
+        "users_json": alle_fuer_json,
     }
 
     return render(request, "formulare/team_builder.html", context)

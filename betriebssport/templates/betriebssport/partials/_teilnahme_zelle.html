@@ -1,0 +1,14 @@
+{% comment %}
+Kontext-Variablen:
+  einheit, gruppe, mitarbeiter, anwesend, eigene_zeile, ist_verantwortlicher
+{% endcomment %}
+<button
+    hx-post="{% url 'betriebssport:teilnahme_toggle' gruppe.pk einheit.pk %}"
+    hx-target="#zelle-{{ einheit.pk }}-{{ mitarbeiter.pk }}"
+    hx-swap="innerHTML"
+    hx-vals='{"mitarbeiter_pk": "{{ mitarbeiter.pk }}"}'
+    hx-include="[name=csrfmiddlewaretoken]"
+    class="btn-teilnahme {% if anwesend %}anwesend{% endif %}"
+    title="{% if anwesend %}Anwesenheit zuruecknehmen{% else %}Als anwesend markieren{% endif %}">
+    {% if anwesend %}&#10003;{% endif %}
+</button>

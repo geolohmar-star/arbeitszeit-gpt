@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Sportgruppe anlegen{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 680px;">
+
+    <div class="mb-4">
+        <a href="{% url 'betriebssport:uebersicht' %}" class="btn btn-outline-secondary btn-sm">
+            &larr; Zur Uebersicht
+        </a>
+    </div>
+
+    <h3 class="mb-4">Neue Sportgruppe anlegen</h3>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" required
+                   placeholder="z.B. Fussball Standort Nord">
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Sportart</label>
+                <select name="sportart" class="form-select">
+                    {% for wert, label in sportart_choices %}
+                    <option value="{{ wert }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Wochentag</label>
+                <select name="wochentag" class="form-select">
+                    {% for wert, label in wochentag_choices %}
+                    <option value="{{ wert }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Uhrzeit von</label>
+                <input type="time" name="uhrzeit_von" class="form-control">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Uhrzeit bis</label>
+                <input type="time" name="uhrzeit_bis" class="form-control">
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Standort</label>
+                <select name="standort" class="form-select">
+                    <option value="">– kein Standort –</option>
+                    {% for s in standorte %}
+                    <option value="{{ s.pk }}">{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Ort / Halle</label>
+                <input type="text" name="ort_beschreibung" class="form-control"
+                       placeholder="z.B. Turnhalle Hauptgebaeude">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Beschreibung</label>
+            <textarea name="beschreibung" class="form-control" rows="3"
+                      placeholder="Kurze Beschreibung der Gruppe"></textarea>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Anlegen</button>
+            <a href="{% url 'betriebssport:uebersicht' %}" class="btn btn-outline-secondary">Abbrechen</a>
+        </div>
+    </form>
+
+</div>
+{% endblock %}

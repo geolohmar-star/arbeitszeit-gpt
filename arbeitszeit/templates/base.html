@@ -293,6 +293,11 @@
                                 {% endif %}
                             </a>
                         </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'betriebssport:uebersicht' %}">
+                                Betriebssport
+                            </a>
+                        </li>
                         {% if hat_schichtplan_zugang %}
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'schichtplan:dashboard' %}">Schichtplanung</a></li>
@@ -533,6 +538,38 @@
                   Bei Einstellung: atomarer Transfer in HRMitarbeiter + Personalstammdaten.
                   Bei Ablehnung: DSGVO-konformer Hard-Delete aller Daten (Art. 17 DSGVO).
                   Dokumente verschluesselt (Fernet AES-128) + ClamAV-Scan vor Speicherung.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #16a34a; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-2" style="color:#16a34a;">Veranstaltungen &amp; Betriebssport</div>
+                <div class="text-muted mb-2" style="font-size:0.82rem;">
+                  <strong>Veranstaltungen</strong> (Sommerfest, Weihnachtsfeier, Teamausflug): Anmeldung,
+                  Teilnahmebestaetigung, automatische Zeitgutschrift-Sammelliste mit Genehmigungsworkflow
+                  nach Reichweite (Abteilung &rarr; AL / Bereich &rarr; BL / Unternehmen &rarr; GF).
+                  Signiertes PDF auf Knopfdruck.
+                </div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  <strong>Betriebssport</strong>: Wiederkehrende Gruppen nach Sportart / Standort / Wochentag.
+                  Jeder Mitarbeiter meldet sich selbst an und markiert seine Anwesenheit
+                  in einer gemeinsamen Matrix &mdash; alle sehen alle (Selbstkontrolle).
+                  Der Verantwortliche prueft und reicht monatlich ein.
+                  Workflow: Verantwortlicher &rarr; ZG-Team &rarr; ZA-Team bucht &rarr; Abschluss.
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.75rem;">
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Selbst-Eintrag (Matrix)</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Monatliche Sammelliste</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Signiertes PDF</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Genehmigungsworkflow</span>
+                </div>
+                <div style="font-size:0.78rem; color:#374151; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.6rem 0.8rem;">
+                  <strong>Kurzanleitung Betriebssport:</strong><br>
+                  1. Gruppe anlegen (Sportart, Wochentag, Uhrzeit, Standort) &mdash; Verantwortlicher tritt automatisch bei.<br>
+                  2. Mitarbeiter treten der Gruppe bei (Gruppe beitreten-Button).<br>
+                  3. Verantwortlicher legt nach jeder Einheit einen Datumseintrag an.<br>
+                  4. Jeder Teilnehmer hakt sich selbst in der Matrix ab (HTMX, sofort).<br>
+                  5. Am Monatsende: Verantwortlicher oeffnet &ldquo;Gutschrift vorbereiten&rdquo;, prueft Vorschau, reicht ein.<br>
+                  6. Workflow startet automatisch &rarr; ZG-Team &rarr; ZA-Team bucht Stunden &rarr; PDF signiert &amp; archiviert.
                 </div>
               </div>
 
@@ -1340,7 +1377,7 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                     <tr><td class="fw-semibold">Antraege</td><td class="text-muted">ZAG, Zeitgutschrift, Dienstreise</td></tr>
                     <tr><td class="fw-semibold">Personal</td><td class="text-muted">Soll-Stunden, Organigramm</td></tr>
                     <tr><td class="fw-semibold">Gebaeude</td><td class="text-muted">Facility + Raumbuch</td></tr>
-                    <tr><td class="fw-semibold">Planung</td><td class="text-muted">Schichtplan, Veranstaltungen</td></tr>
+                    <tr><td class="fw-semibold">Planung</td><td class="text-muted">Schichtplan, Veranstaltungen, Betriebssport</td></tr>
                     <tr><td class="fw-semibold">Admin</td><td class="text-muted">Nur Staff: Verwaltung, Compliance</td></tr>
                     <tr><td class="fw-semibold">Username (rechts)</td><td class="text-muted">Meine Daten, Dokumente, Abmelden</td></tr>
                   </tbody>
@@ -1357,6 +1394,9 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                     <tr><td class="fw-semibold">DSGVO-Auskunft</td><td class="text-muted">Username &rarr; Meine Daten (DSGVO)</td></tr>
                     <tr><td class="fw-semibold">Raum buchen</td><td class="text-muted">Gebaeude &rarr; Raumreservierungen</td></tr>
                     <tr><td class="fw-semibold">Signatur-Status</td><td class="text-muted">Username &rarr; Digitale Signatur</td></tr>
+                    <tr><td class="fw-semibold">Betriebssport beitreten</td><td class="text-muted">Planung &rarr; Betriebssport &rarr; Gruppe auswaehlen &rarr; Gruppe beitreten</td></tr>
+                    <tr><td class="fw-semibold">Anwesenheit markieren</td><td class="text-muted">Betriebssport &rarr; Gruppe &rarr; eigene Spalte anklicken</td></tr>
+                    <tr><td class="fw-semibold">Gutschrift einreichen</td><td class="text-muted">Betriebssport &rarr; Gruppe &rarr; Monat &rarr; Gutschrift vorbereiten &rarr; Einreichen (nur Verantwortlicher)</td></tr>
                   </tbody>
                 </table>
 

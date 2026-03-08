@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     'dokumente.apps.DokumenteConfig',
     'bewerbung.apps.BewerbungConfig',
     'stellenportal.apps.StellenportalConfig',
+    'betriebssport.apps.BetriebssportConfig',
 ]
 
 # Verschluesselung fuer sensible Dokumente (Fernet AES-128)
