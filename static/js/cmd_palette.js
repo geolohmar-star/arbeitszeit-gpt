@@ -80,4 +80,7 @@
     input.addEventListener("input", function() {
         render(this.value);
     });
+
+    var openBtn = document.querySelector(".cmd-open-btn");
+    if (openBtn) { openBtn.addEventListener("click", cmdOpen); }
 })();
