@@ -1,4 +1,8 @@
 from django.conf import settings
+from arbeitszeit import views as arbeitszeit_views
+
+handler404 = arbeitszeit_views.fehler_404
+handler500 = arbeitszeit_views.fehler_500
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
@@ -22,6 +26,10 @@ urlpatterns = [
     path('veranstaltungen/', include('veranstaltungen.urls')),
     path('facility/', include('facility.urls', namespace='facility')),
     path('raumbuch/', include('raumbuch.urls', namespace='raumbuch')),
+    path('signatur/', include('signatur.urls', namespace='signatur')),
+    path('datenschutz/', include('datenschutz.urls', namespace='datenschutz')),
+    path('dokumente/', include('dokumente.urls', namespace='dokumente')),
+    path('bewerbung/', include('bewerbung.urls', namespace='bewerbung')),
 ]
 
 # Media-Files (nur in Development)

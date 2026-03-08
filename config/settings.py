@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_filters',
     'guardian',
+    'axes',
     'arbeitszeit.apps.ArbeitszeitConfig',
     'schichtplan',
     'formulare.apps.FormulareConfig',
@@ -55,9 +56,26 @@ INSTALLED_APPS = [
     'veranstaltungen.apps.VeranstaltungenConfig',
     'facility.apps.FacilityConfig',
     'raumbuch.apps.RaumbuchConfig',
+    'signatur.apps.SignaturConfig',
+    'datenschutz.apps.DatenschutzConfig',
+    'dokumente.apps.DokumenteConfig',
+    'bewerbung.apps.BewerbungConfig',
 ]
 
+# Verschluesselung fuer sensible Dokumente (Fernet AES-128)
+# Schluessel generieren: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+DOKUMENT_VERSCHLUESSEL_KEY = os.environ.get("DOKUMENT_VERSCHLUESSEL_KEY", "")
+
+# ---------------------------------------------------------------------------
+# Signatur-System
+# ---------------------------------------------------------------------------
+SIGNATUR_BACKEND = os.environ.get("SIGNATUR_BACKEND", "intern")
+SIGNATUR_SIGN_ME_URL = os.environ.get("SIGNATUR_SIGN_ME_URL", "https://api.sign-me.de")
+SIGNATUR_SIGN_ME_KEY = os.environ.get("SIGNATUR_SIGN_ME_KEY", "")
+SIGNATUR_SIGN_ME_TIMEOUT = 30
+
 AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
     'django.contrib.auth.backends.ModelBackend',
     'guardian.backends.ObjectPermissionBackend',
 ]
@@ -72,6 +90,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'axes.middleware.AxesMiddleware',
+    'config.middleware.CSPMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -95,6 +115,7 @@ TEMPLATES = [
                 'arbeitszeit.context_processors.genehmiger_rolle',
                 'arbeitszeit.context_processors.workflow_tasks_anzahl',
                 'arbeitszeit.context_processors.team_stapel_anzahl',
+                'arbeitszeit.context_processors.hilfe_kontext',
                 'facility.context_processors.facility_context',
             ],
         },
@@ -219,3 +240,78 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
+
+# ---------------------------------------------------------------------------
+# BSI IT-Grundschutz: Session-Sicherheit (ORP.4)
+# ---------------------------------------------------------------------------
+SESSION_COOKIE_AGE = 28800          # 8 Stunden Sitzungslaenge
+SESSION_SAVE_EVERY_REQUEST = True   # Timer bei Aktivitaet zuruecksetzen
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Tab schliessen = abgemeldet
+
+# ---------------------------------------------------------------------------
+# BSI IT-Grundschutz: Brute-Force-Schutz (APP.3.1) via django-axes
+# ---------------------------------------------------------------------------
+AXES_FAILURE_LIMIT = 5              # 5 Fehlversuche bis zur Sperre
+AXES_COOLOFF_TIME = 1               # 1 Stunde Sperrzeit
+AXES_LOCKOUT_PARAMETERS = ["ip_address", "username"]
+AXES_RESET_ON_SUCCESS = True        # Zaehler nach Erfolg zuruecksetzen
+AXES_LOCKOUT_TEMPLATE = "fehler/429.html"
+AXES_VERBOSE = False
+
+# ---------------------------------------------------------------------------
+# BSI IT-Grundschutz: Logging (OPS.1.1.5)
+# ---------------------------------------------------------------------------
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "prima": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "konsole": {
+            "class": "logging.StreamHandler",
+            "formatter": "prima",
+        },
+    },
+    "loggers": {
+        "django.security": {
+            "handlers": ["konsole"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "axes": {
+            "handlers": ["konsole"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "bewerbung":  {"handlers": ["konsole"], "level": "INFO", "propagate": False},
+        "dokumente":  {"handlers": ["konsole"], "level": "INFO", "propagate": False},
+        "workflow":   {"handlers": ["konsole"], "level": "INFO", "propagate": False},
+        "facility":   {"handlers": ["konsole"], "level": "INFO", "propagate": False},
+        "signatur":   {"handlers": ["konsole"], "level": "INFO", "propagate": False},
+        "datenschutz":{"handlers": ["konsole"], "level": "INFO", "propagate": False},
+        "config.kommunikation_utils": {"handlers": ["konsole"], "level": "INFO", "propagate": False},
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Kommunikationsintegration: Jitsi Meet + Matrix/Element
+# ---------------------------------------------------------------------------
+# Alle Werte kommen aus Umgebungsvariablen – leer = Integration deaktiviert.
+# Lokal: in .env eintragen. Railway: in den Service-Variablen setzen.
+
+# Jitsi Meet: Basis-URL des eigenen Jitsi-Servers (ohne abschliessendes /)
+# Beispiel: JITSI_BASE_URL=https://meet.intranet.firma.de
+JITSI_BASE_URL = os.environ.get("JITSI_BASE_URL", "")
+
+# Matrix/Element: Homeserver-URL + Bot-Token (Zugangstoken eines Bot-Accounts)
+# Beispiel: MATRIX_HOMESERVER_URL=https://matrix.intranet.firma.de
+MATRIX_HOMESERVER_URL = os.environ.get("MATRIX_HOMESERVER_URL", "")
+MATRIX_BOT_TOKEN = os.environ.get("MATRIX_BOT_TOKEN", "")
+
+# Matrix-Raum-ID des Facility-Teams (fuer automatische Stoermeldungs-Pings)
+# Format: !raumid:server  – im Element-Client unter Raumeinstellungen abrufbar
+MATRIX_FACILITY_ROOM_ID = os.environ.get("MATRIX_FACILITY_ROOM_ID", "")

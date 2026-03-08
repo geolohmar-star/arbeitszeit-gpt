@@ -498,6 +498,12 @@ class Mitarbeiter(models.Model):
         default='mitarbeiter'
     )
     eintrittsdatum = models.DateField(null=True, blank=True)
+    austritt_datum = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Austrittsdatum",
+        help_text="Bei Setzen werden automatisch alle Zugaenge gesperrt.",
+    )
     aktiv = models.BooleanField(default=True)
 
     # Vorgesetzter (Uebergangsfeld bis zur HR-Migration)

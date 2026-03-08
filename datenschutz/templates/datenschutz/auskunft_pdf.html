@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>DSGVO-Auskunft</title>
+<style>
+  @page {
+    size: A4;
+    margin: 2cm 2cm 2.5cm 2cm;
+    @top-center {
+      content: "DSGVO-Auskunft nach Art. 15 – Vertraulich";
+      font-size: 9pt;
+      color: #666;
+    }
+    @bottom-center {
+      content: "Seite " counter(page) " von " counter(pages) " | Erstellt am: {{ auskunft_datum|date:'d.m.Y H:i' }}";
+      font-size: 8pt;
+      color: #999;
+    }
+  }
+  body { font-family: Arial, sans-serif; font-size: 10pt; color: #222; line-height: 1.5; }
+  h1 { font-size: 18pt; color: #1a3c6e; border-bottom: 2px solid #1a3c6e; padding-bottom: 6px; }
+  h2 { font-size: 13pt; color: #1a3c6e; margin-top: 20px; border-left: 4px solid #1a3c6e; padding-left: 8px; }
+  .meta-box { background: #f0f4fa; border: 1px solid #c5d3e8; padding: 10px 14px; margin-bottom: 20px; border-radius: 4px; }
+  .meta-box p { margin: 3px 0; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+  th { background: #1a3c6e; color: #fff; padding: 5px 8px; text-align: left; font-size: 9pt; }
+  td { padding: 4px 8px; border-bottom: 1px solid #e0e0e0; font-size: 9.5pt; }
+  tr:nth-child(even) td { background: #f7f9fc; }
+  .badge-info { background: #17a2b8; color: #fff; padding: 1px 6px; border-radius: 10px; font-size: 8pt; }
+  .rechtshinweis { background: #fff8e1; border-left: 4px solid #f0ad4e; padding: 8px 12px; margin-top: 24px; font-size: 9pt; }
+  .footer-box { margin-top: 30px; border-top: 1px solid #ccc; padding-top: 10px; font-size: 9pt; color: #555; }
+</style>
+</head>
+<body>
+
+<h1>Datenschutz-Auskunft nach Art. 15 DSGVO</h1>
+
+<div class="meta-box">
+  <p><strong>Betreffende Person:</strong> {{ user.get_full_name }} ({{ user.username }})</p>
+  <p><strong>E-Mail:</strong> {{ user.email|default:"–" }}</p>
+  {% if mitarbeiter %}
+  <p><strong>Personalnummer:</strong> {{ mitarbeiter.personalnummer }}</p>
+  <p><strong>Abteilung:</strong> {{ mitarbeiter.abteilung }}</p>
+  <p><strong>Eintrittsdatum:</strong> {{ mitarbeiter.eintrittsdatum|default:"–" }}</p>
+  {% endif %}
+  <p><strong>Auskunft erstellt am:</strong> {{ auskunft_datum|date:"d.m.Y H:i" }} Uhr</p>
+  <p><strong>Verantwortliche Stelle:</strong> {{ request.get_host }}</p>
+</div>
+
+<p>
+  Gemaess Art. 15 der Datenschutz-Grundverordnung (DSGVO) erhalten Sie nachfolgend eine vollstaendige
+  Auskunft ueber alle personenbezogenen Daten, die in unserem System ueber Sie gespeichert sind.
+</p>
+
+{% for kat in kategorien %}
+<h2>{{ kat.titel }}</h2>
+
+<table>
+  <tr>
+    <th style="width:35%">Information</th>
+    <th>Inhalt / Menge</th>
+  </tr>
+  <tr>
+    <td>Rechtsgrundlage</td>
+    <td>{{ kat.rechtsgrundlage }}</td>
+  </tr>
+  <tr>
+    <td>Speicherfrist</td>
+    <td>{{ kat.speicherfrist }}</td>
+  </tr>
+  {% if kat.felder %}
+    {% for feld, wert in kat.felder %}
+    <tr>
+      <td>{{ feld }}</td>
+      <td>{{ wert|default:"–" }}</td>
+    </tr>
+    {% endfor %}
+  {% endif %}
+  {% if kat.anzahl is not None %}
+  <tr>
+    <td>Anzahl Datensaetze</td>
+    <td><strong>{{ kat.anzahl }}</strong></td>
+  </tr>
+  {% endif %}
+  {% if kat.zeitraum %}
+  <tr>
+    <td>Erfasster Zeitraum</td>
+    <td>{{ kat.zeitraum }}</td>
+  </tr>
+  {% endif %}
+  {% if kat.details %}
+  <tr>
+    <td>Details</td>
+    <td>{{ kat.details }}</td>
+  </tr>
+  {% endif %}
+</table>
+{% endfor %}
+
+<div class="rechtshinweis">
+  <strong>Ihre weiteren Rechte nach DSGVO:</strong><br>
+  Art. 16 – Recht auf Berichtigung unrichtiger Daten &nbsp;|&nbsp;
+  Art. 17 – Recht auf Loeschung nach Ablauf der gesetzlichen Fristen &nbsp;|&nbsp;
+  Art. 18 – Recht auf Einschraenkung der Verarbeitung &nbsp;|&nbsp;
+  Art. 77 – Beschwerderecht bei der Aufsichtsbehoerde
+</div>
+
+<div class="footer-box">
+  Dieses Dokument wurde automatisch generiert und ist ohne Unterschrift gueltig.<br>
+  Bei Rueckfragen wenden Sie sich an den Datenschutzbeauftragten Ihrer Organisation.
+</div>
+
+</body>
+</html>

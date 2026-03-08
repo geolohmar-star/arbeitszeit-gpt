@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Bewerbungen – HR{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0">Bewerbungseingang</h2>
+    <span class="badge bg-secondary">{{ bewerbungen|length }} Eintraege</span>
+</div>
+
+<!-- Statusfilter -->
+<div class="mb-3">
+    <div class="btn-group btn-group-sm" role="group">
+        <a href="?" class="btn {% if not status_filter %}btn-dark{% else %}btn-outline-secondary{% endif %}">Alle</a>
+        {% for code, label in status_choices %}
+        <a href="?status={{ code }}"
+           class="btn {% if status_filter == code %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+            {{ label }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+{% if bewerbungen %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle bg-white rounded shadow-sm">
+        <thead class="table-light">
+            <tr>
+                <th>Name</th>
+                <th>Geburtstag</th>
+                <th>Mobil</th>
+                <th>Eingegangen</th>
+                <th>Status</th>
+                <th>Dokumente</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in bewerbungen %}
+            <tr>
+                <td class="fw-semibold">{{ b.vollname }}</td>
+                <td>{{ b.geburtsdatum|date:"d.m.Y" }}</td>
+                <td>{{ b.mobil_privat }}</td>
+                <td class="text-muted small">{{ b.erstellt_am|date:"d.m.Y H:i" }}</td>
+                <td>
+                    {% if b.status == "neu" %}
+                        <span class="badge bg-warning text-dark">Neu</span>
+                    {% elif b.status == "pruefung" %}
+                        <span class="badge bg-info text-dark">In Pruefung</span>
+                    {% elif b.status == "gespraech" %}
+                        <span class="badge bg-primary">Gespraech</span>
+                    {% elif b.status == "eingestellt" %}
+                        <span class="badge bg-success">Eingestellt</span>
+                    {% elif b.status == "abgelehnt" %}
+                        <span class="badge bg-danger">Abgelehnt</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ b.get_status_display }}</span>
+                    {% endif %}
+                </td>
+                <td class="text-muted small">{{ b.dokumente.count }} Datei(en)</td>
+                <td>
+                    <a href="{% url 'bewerbung:hr_detail' pk=b.pk %}"
+                       class="btn btn-sm btn-outline-dark">Detail</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-light border text-center py-5">
+    <p class="text-muted mb-0">Keine Bewerbungen vorhanden{% if status_filter %} fuer diesen Status{% endif %}.</p>
+</div>
+{% endif %}
+{% endblock %}

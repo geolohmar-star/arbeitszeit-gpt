@@ -1,673 +1,525 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Arbeitszeitverwaltung</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #1a4d2e;
-            --primary-light: #2d6a4f;
-            --accent: #f77f00;
-            --bg: #faf9f6;
-            --card-bg: #ffffff;
-            --text: #1f2421;
-            --text-secondary: #52796f;
-            --border: #d6e4df;
-        }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% block title %}PRIMA – Dashboard{% endblock %}
 
-        body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-        }
+{% block extra_css %}
+<style>
+    /* Kachel-Grid */
+    .app-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
 
-        .header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            color: white;
-            padding: 1.5rem 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
+    /* Einzelne App-Kachel */
+    .app-tile {
+        background: #fff;
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+        border-top: 4px solid #1a4d2e;
+        padding: 1.25rem 1.25rem 1rem;
+        transition: box-shadow 0.18s, transform 0.18s;
+        display: flex;
+        flex-direction: column;
+    }
+    .app-tile:hover {
+        box-shadow: 0 4px 18px rgba(26,77,46,0.13);
+        transform: translateY(-3px);
+    }
+    .app-tile.tile-blue   { border-top-color: #0d6efd; }
+    .app-tile.tile-orange { border-top-color: #f77f00; }
+    .app-tile.tile-teal   { border-top-color: #0d9488; }
+    .app-tile.tile-purple { border-top-color: #7c3aed; }
+    .app-tile.tile-red    { border-top-color: #dc2626; }
+    .app-tile.tile-gray   { border-top-color: #6b7280; }
 
-        .header-content {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .tile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+    .tile-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1a4d2e;
+        margin: 0;
+    }
+    .tile-blue   .tile-title { color: #0d6efd; }
+    .tile-orange .tile-title { color: #f77f00; }
+    .tile-teal   .tile-title { color: #0d9488; }
+    .tile-purple .tile-title { color: #7c3aed; }
+    .tile-red    .tile-title { color: #dc2626; }
+    .tile-gray   .tile-title { color: #6b7280; }
 
-        .logo {
-            font-family: 'Fraunces', serif;
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
+    .tile-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 12px;
+        background: #dc3545;
+        color: white;
+        white-space: nowrap;
+    }
 
-        .header-nav {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
+    .tile-links {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        flex: 1;
+    }
+    .tile-links li {
+        border-bottom: 1px solid #f3f4f6;
+    }
+    .tile-links li:last-child {
+        border-bottom: none;
+    }
+    .tile-links a {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.45rem 0;
+        color: #374151;
+        text-decoration: none;
+        font-size: 0.875rem;
+        transition: color 0.15s;
+    }
+    .tile-links a:hover {
+        color: #1a4d2e;
+        font-weight: 500;
+    }
+    .tile-links .link-badge {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        border-radius: 10px;
+        background: #fef3c7;
+        color: #92400e;
+        font-weight: 700;
+    }
 
-        .header-nav a {
-            color: white;
-            text-decoration: none;
-            font-weight: 500;
-            transition: opacity 0.2s;
-        }
+    /* Stat-Streifen oben */
+    .stat-bar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .stat-item {
+        background: #fff;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        padding: 0.9rem 1.1rem;
+        display: flex;
+        flex-direction: column;
+    }
+    .stat-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6b7280;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1a4d2e;
+        line-height: 1.1;
+    }
+    .stat-sub {
+        font-size: 0.75rem;
+        color: #9ca3af;
+        margin-top: 0.15rem;
+    }
 
-        .header-nav a:hover {
-            opacity: 0.8;
-        }
+    /* Gruppen-Ueberschrift */
+    .group-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #9ca3af;
+        font-weight: 700;
+        margin: 1.75rem 0 0.6rem;
+    }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
+    @media (max-width: 576px) {
+        .app-grid { grid-template-columns: 1fr; }
+        .stat-bar  { grid-template-columns: 1fr 1fr; }
+    }
+</style>
+{% endblock %}
 
-        .page-header {
-            margin-bottom: 2rem;
-        }
+{% block content %}
+<div class="container-fluid px-4 py-4" style="max-width: 1400px;">
 
-        .page-title {
-            font-family: 'Fraunces', serif;
-            font-size: 2.5rem;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .page-subtitle {
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-        }
-
-        .stat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .stat-title {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-        }
-
-        .stat-icon {
-            font-size: 1.5rem;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.25rem;
-        }
-
-        .stat-label {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .quick-action {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-decoration: none;
-            color: var(--text);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            transition: all 0.2s;
-            border: 2px solid transparent;
-        }
-
-        .quick-action:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-            border-color: var(--primary);
-        }
-
-        .quick-action-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .quick-action-desc {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            margin-bottom: 1.5rem;
-        }
-
-        .card-header {
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--border);
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .table th {
-            text-align: left;
-            padding: 0.75rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            border-bottom: 2px solid var(--border);
-            font-size: 0.875rem;
-        }
-
-        .table td {
-            padding: 0.75rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .badge-beantragt {
-            background: rgba(255, 193, 7, 0.2);
-            color: #856404;
-        }
-
-        .badge-genehmigt {
-            background: rgba(40, 167, 69, 0.2);
-            color: #155724;
-        }
-
-        .badge-aktiv {
-            background: rgba(23, 162, 184, 0.2);
-            color: #0c5460;
-        }
-
-        .badge-abgelehnt {
-            background: rgba(220, 53, 69, 0.2);
-            color: #721c24;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-secondary);
-        }
-
-        .empty-state-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.3;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 0.75rem 1.5rem;
-            background: var(--primary);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.2s;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn:hover {
-            background: var(--primary-light);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(26, 77, 46, 0.3);
-        }
-
-        .btn-secondary {
-            background: var(--border);
-            color: var(--text);
-            padding: 0.5rem 1rem;
-        }
-
-        .btn-secondary:hover {
-            background: #c0d4cc;
-        }
-
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .quick-actions {
-                grid-template-columns: 1fr;
-            }
-
-            .container {
-                padding: 1rem;
-            }
-
-            .page-title {
-                font-size: 2rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Header / Navbar -->
-    <div class="header">
-        <div class="header-content">
-            <div class="logo">⏰ Arbeitszeitverwaltung</div>
-            <nav class="header-nav">
-                <a href="{% url 'arbeitszeit:dashboard' %}">Dashboard</a>
-                <a href="{% url 'arbeitszeit:vereinbarung_liste' %}">Vereinbarungen</a>
-                <a href="{% url 'arbeitszeit:zeiterfassung_uebersicht' %}">Zeiterfassung</a>
-                
-                {% if is_admin %}
-                    <a href="{% url 'arbeitszeit:admin_dashboard' %}">Verwaltung</a>
-                {% endif %}
-                {% if user.is_authenticated %}
-                <a href="{% url 'workflow:arbeitsstapel' %}" style="white-space: nowrap;">
-                    Arbeitsstapel
-                    {% if workflow_tasks_anzahl %}
-                    <span style="display: inline-flex; align-items: center; justify-content: center;
-                                 background: #dc3545; color: white; border-radius: 50%;
-                                 width: 20px; height: 20px; font-size: 11px; font-weight: 700;
-                                 margin-left: 4px; vertical-align: middle;">{{ workflow_tasks_anzahl }}</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-                {% if team_stapel_anzahl %}
-                <a href="{% url 'formulare:team_queue' %}" style="white-space: nowrap;">
-                    Team-Stapel
-                    <span style="display: inline-flex; align-items: center; justify-content: center;
-                                 background: #dc3545; color: white; border-radius: 50%;
-                                 width: 20px; height: 20px; font-size: 11px; font-weight: 700;
-                                 margin-left: 4px; vertical-align: middle;">{{ team_stapel_anzahl }}</span>
-                </a>
-                {% endif %}
-                <a href="{% url 'hr:organigramm' %}">Organigramm</a>
-                {% if user.is_authenticated %}
-                <a href="{% url 'facility:erstellen' %}">Stoermeldung</a>
-                {% endif %}
-                {% if ist_facility_mitglied %}
-                <a href="{% url 'facility:queue' %}" style="white-space: nowrap;">
-                    Facility-Queue
-                    {% if facility_queue_anzahl %}
-                    <span style="display: inline-flex; align-items: center; justify-content: center;
-                                 background: #dc3545; color: white; border-radius: 50%;
-                                 width: 20px; height: 20px; font-size: 11px; font-weight: 700;
-                                 margin-left: 4px; vertical-align: middle;">{{ facility_queue_anzahl }}</span>
-                    {% endif %}
-                </a>
-                {% endif %}
-                {% if user.is_staff %}
-                    <a href="{% url 'berechtigungen:uebersicht' %}">Rechtevergabe</a>
-                {% endif %}
-                {% if hat_schichtplan_zugang %}
-                    <a href="{% url 'schichtplan:dashboard' %}">Schichtplanung</a>
-                {% endif %}
-                {% if user.is_staff %}
-                    <a href="{% url 'admin:index' %}" target="_blank">Admin</a>
-                {% endif %}
-                
-                <span style="color: rgba(255,255,255,0.8);">👤 {{ user.username }}</span>
-                
-                <form method="post" action="{% url 'logout' %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" style="background: none; border: none; color: white; font: inherit; cursor: pointer; padding: 0; font-weight: 500;">
-                        Abmelden
-                    </button>
-                </form>
-            </nav>
-        </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="container">
-        <!-- Page Header -->
-        <div class="page-header">
-            <h1 class="page-title">Willkommen, {{ mitarbeiter.vorname }}!</h1>
-            {% if mitarbeiter.rolle == 'schichtplaner' %}
-            <div class="alert alert-info mb-4">
-                <h5>🗓️ Schichtplaner-Funktionen</h5>
-                <p>Sie haben Zugriff auf die Schichtplan-Verwaltung.</p>
-                <a href="{% url 'schichtplan:dashboard' %}" class="btn btn-primary">
-                    📊 Zum Schichtplan-Dashboard
-                </a>
-            </div>
-            {% endif %}
-            <p class="page-subtitle">
+    <!-- Begruessung -->
+    <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-0" style="color:#1a4d2e;">
+                Willkommen, {{ mitarbeiter.vorname }}
+            </h1>
+            <p class="text-muted mb-0" style="font-size:0.9rem;">
                 {% with hr=request.user.hr_mitarbeiter %}
                     {% if hr.abteilung %}{{ hr.abteilung }}{% else %}{{ mitarbeiter.abteilung }}{% endif %}
-                    {% if hr.stelle %} • {{ hr.stelle.kuerzel }}{% endif %}
+                    {% if hr.stelle %} &middot; {{ hr.stelle.kuerzel }}{% endif %}
                 {% endwith %}
-                • {{ mitarbeiter.standort.name }}
-                {% if raumbelegung %} • Raum {{ raumbelegung.raum.raumnummer }}{% endif %}
-                {% if durchwahl %} • Durchwahl {{ durchwahl }}{% endif %}
+                &middot; {{ mitarbeiter.standort.name }}
+                {% if raumbelegung %} &middot; Raum {{ raumbelegung.raum.raumnummer }}{% endif %}
+                {% if durchwahl %} &middot; Durchwahl {{ durchwahl }}{% endif %}
             </p>
         </div>
-        <!-- Wunschplan für MA1-MA15 -->
-        {% if mitarbeiter.schichtplan_kennung %}
-            {% with kennung=mitarbeiter.schichtplan_kennung %}
-                {% if kennung == 'MA1' or kennung == 'MA2' or kennung == 'MA3' or kennung == 'MA4' or kennung == 'MA5' or kennung == 'MA6' or kennung == 'MA7' or kennung == 'MA8' or kennung == 'MA9' or kennung == 'MA10' or kennung == 'MA11' or kennung == 'MA12' or kennung == 'MA13' or kennung == 'MA14' or kennung == 'MA15' %}
-                <div class="card mb-4" style="border: 2px solid #0d6efd;">
-                    <div class="card-header" style="background: #0d6efd; color: white;">
-                        <h5 class="mb-0">🗓️ Schichtwünsche</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="mb-3">
-                            Hier können Sie Ihre Wünsche für kommende Schichtpläne eintragen.
-                            <br>
-                            <small class="text-muted">
-                                ✅ Transparenz: Alle Kollegen (MA1-MA15) sehen Ihre Wünsche
-                            </small>
-                        </p>
-                        <a href="{% url 'schichtplan:wunschperioden_liste' %}" class="btn btn-primary">
-                            📝 Zu meinen Wünschen
-                        </a>
-                    </div>
-                </div>
-                {% endif %}
-            {% endwith %}
-        {% endif %}
+        <a href="{% url 'formulare:dashboard' %}" class="btn btn-sm"
+           style="background:#1a4d2e; color:white;">
+            + Neuer Antrag
+        </a>
+    </div>
 
-        <!-- Messages -->
-        {% if messages %}
-            {% for message in messages %}
-                <div style="padding: 1rem; margin-bottom: 1rem; border-radius: 8px; {% if message.tags == 'error' %}background: #f8d7da; color: #721c24;{% elif message.tags == 'success' %}background: #d4edda; color: #155724;{% else %}background: #d1ecf1; color: #0c5460;{% endif %}">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
+    <!-- Messages -->
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2 mb-2">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
-        <!-- Schichtplanung Kachel für Schichtplaner -->
-        {% if user.mitarbeiter %}
-            {% if user.mitarbeiter.rolle == 'schichtplaner' %}
-                <div class="card" style="background: linear-gradient(135deg, #2d6a4f 0%, #1a4d2e 100%); color: white; margin-bottom: 2rem;">
-                    <div class="card-body" style="border: none;">
-                        <h3 style="color: white; margin-bottom: 0.5rem;">📅 Schichtplanung</h3>
-                        <p style="opacity: 0.9; margin-bottom: 1rem;">Verwalten Sie Schichtpläne und Mitarbeiter</p>
-                        <a href="{% url 'schichtplan:dashboard' %}" class="btn" style="background: white; color: var(--primary);">
-                            Zur Schichtplanung →
-                        </a>
-                    </div>
-                </div>
-            {% elif is_kongos %}
-                <div class="card" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; margin-bottom: 2rem;">
-                    <div class="card-body" style="border: none;">
-                        <h3 style="color: white; margin-bottom: 0.5rem;">📅 Schichtplan</h3>
-                        <p style="opacity: 0.9; margin-bottom: 1rem;">Veröffentlichte Schichtpläne Ihrer Abteilung anzeigen</p>
-                        <a href="{% url 'schichtplan:dashboard' %}" class="btn" style="background: white; color: #0d6efd;">
-                            Schichtplan anzeigen →
-                        </a>
-                    </div>
-                </div>
+    <!-- Stat-Streifen -->
+    <div class="stat-bar">
+        <div class="stat-item">
+            <div class="stat-label">Wochenstunden</div>
+            {% if aktuelle_vereinbarung and aktuelle_vereinbarung.get_wochenstunden_summe %}
+                <div class="stat-value">{{ aktuelle_vereinbarung.get_wochenstunden_summe }}</div>
+                <div class="stat-sub">aktuelle Vereinbarung</div>
+            {% else %}
+                <div class="stat-value" style="color:#9ca3af;">—</div>
+                <div class="stat-sub">keine Vereinbarung</div>
             {% endif %}
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Resturlaub</div>
+            {% if urlaubsanspruch %}
+                <div class="stat-value">{{ urlaubsanspruch.resturlaubstage }}</div>
+                <div class="stat-sub">Tage {{ urlaubsanspruch.jahr }}</div>
+            {% else %}
+                <div class="stat-value" style="color:#9ca3af;">—</div>
+                <div class="stat-sub">nicht erfasst</div>
+            {% endif %}
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Zeiterfassungen</div>
+            <div class="stat-value">{{ letzte_erfassungen.count }}</div>
+            <div class="stat-sub">letzte Eintraege</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Vereinbarungen</div>
+            <div class="stat-value">{{ alle_vereinbarungen.count }}</div>
+            <div class="stat-sub">gesamt</div>
+        </div>
+        {% if workflow_tasks_anzahl or team_stapel_anzahl %}
+        <div class="stat-item" style="border-color:#dc3545;">
+            <div class="stat-label">Offene Aufgaben</div>
+            <div class="stat-value" style="color:#dc3545;">
+                {{ workflow_tasks_anzahl|add:team_stapel_anzahl }}
+            </div>
+            <div class="stat-sub">auf mich zugewiesen</div>
+        </div>
         {% endif %}
+    </div>
 
-        <!-- Statistics Cards -->
-        <div class="stats-grid">
-            <!-- Aktuelle Arbeitszeit -->
-           <div class="stat-card">
-    <div class="stat-header">
-        <div class="stat-title">Aktuelle Arbeitszeit</div>
-        <div class="stat-icon">⏰</div>
+    <!-- ---- App-Kacheln ---- -->
+
+    <!-- Gruppe: Arbeitszeit & Antraege -->
+    <div class="group-label">Arbeitszeit &amp; Antraege</div>
+    <div class="app-grid">
+
+        <!-- Arbeitszeit -->
+        <div class="app-tile">
+            <div class="tile-header">
+                <h2 class="tile-title">Arbeitszeit</h2>
             </div>
-                {% if aktuelle_vereinbarung %}
-                    {# Wir nutzen unsere neue Property, die beide Typen berechnet #}
-                    {% if aktuelle_vereinbarung.get_wochenstunden_summe %}
-                        <div class="stat-value">{{ aktuelle_vereinbarung.get_wochenstunden_summe }}</div>
-                        <div class="stat-label">
-                            {% if aktuelle_vereinbarung.arbeitszeit_typ == 'regelmaessig' %}
-                                Wochenstunden (Regulär)
-                            {% else %}
-                                Wochenstunden (Individuell)
-                            {% endif %}
-                        </div>
-                    {% else %}
-                        <div class="stat-value">Keine Daten</div>
-                        <div class="stat-label">Bitte Zeiten nachpflegen</div>
-                    {% endif %}
-                {% else %}
-                    <div class="stat-value">-</div>
-                    <div class="stat-label">Keine aktive Vereinbarung</div>
+            <ul class="tile-links">
+                <li><a href="{% url 'arbeitszeit:vereinbarung_erstellen' %}">Neue Vereinbarung beantragen</a></li>
+                <li><a href="{% url 'arbeitszeit:vereinbarung_liste' %}">Meine Vereinbarungen</a></li>
+                <li><a href="{% url 'arbeitszeit:zeiterfassung_erstellen' %}">Zeit erfassen</a></li>
+                <li><a href="{% url 'arbeitszeit:zeiterfassung_uebersicht' %}">Zeiterfassung Uebersicht</a></li>
+                {% if user.mitarbeiter %}
+                <li><a href="{% url 'arbeitszeit:mitarbeiter_soll_uebersicht' mitarbeiter.pk %}">Meine Soll-Stunden</a></li>
                 {% endif %}
-            </div>
-
-            <!-- Urlaubsanspruch -->
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-title">Urlaubsanspruch</div>
-                    <div class="stat-icon">🏖️</div>
-                </div>
-                {% if urlaubsanspruch %}
-                    <div class="stat-value">{{ urlaubsanspruch.resturlaubstage }}</div>
-                    <div class="stat-label">Resturlaubstage</div>
-                {% else %}
-                    <div class="stat-value">-</div>
-                    <div class="stat-label">Nicht erfasst</div>
-                {% endif %}
-            </div>
-
-            <!-- Zeiterfassungen -->
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-title">Zeiterfassungen</div>
-                    <div class="stat-icon">📊</div>
-                </div>
-                <div class="stat-value">{{ letzte_erfassungen.count }}</div>
-                <div class="stat-label">Letzte Einträge</div>
-            </div>
-
-            <!-- Vereinbarungen -->
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-title">Vereinbarungen</div>
-                    <div class="stat-icon">📋</div>
-                </div>
-                <div class="stat-value">{{ alle_vereinbarungen.count }}</div>
-                <div class="stat-label">Gesamt</div>
-            </div>
+            </ul>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">Schnellaktionen</h3>
+        <!-- Antraege -->
+        <div class="app-tile tile-blue">
+            <div class="tile-header">
+                <h2 class="tile-title">Antraege &amp; Formulare</h2>
             </div>
-            <div class="card-body">
-                <div class="quick-actions">
-                    <a href="{% url 'arbeitszeit:vereinbarung_erstellen' %}" class="quick-action">
-                        <div class="quick-action-title">📝 Neue Vereinbarung</div>
-                        <div class="quick-action-desc">Arbeitszeitvereinbarung beantragen</div>
+            <ul class="tile-links">
+                <li><a href="{% url 'formulare:dashboard' %}">Alle Antragstypen / Neu</a></li>
+                {% if hat_genehmiger_rolle %}
+                <li>
+                    <a href="{% url 'formulare:genehmigung_uebersicht' %}">
+                        Genehmigungen
+                        {% if offene_antraege_count %}<span class="link-badge">{{ offene_antraege_count }}</span>{% endif %}
                     </a>
-
-                    <a href="{% url 'arbeitszeit:zeiterfassung_erstellen' %}" class="quick-action">
-                        <div class="quick-action-title">⏱️ Zeit erfassen</div>
-                        <div class="quick-action-desc">Arbeitszeit für heute eintragen</div>
-                    </a>
-
-                    <a href="{% url 'arbeitszeit:vereinbarung_liste' %}" class="quick-action">
-                        <div class="quick-action-title">📂 Meine Vereinbarungen</div>
-                        <div class="quick-action-desc">Alle Vereinbarungen ansehen</div>
-                    </a>
-
-                    <a href="{% url 'arbeitszeit:zeiterfassung_uebersicht' %}" class="quick-action">
-                        <div class="quick-action-title">Zeituebersicht</div>
-                        <div class="quick-action-desc">Erfasste Zeiten einsehen</div>
-                    </a>
-
-                    <a href="{% url 'formulare:dashboard' %}" class="quick-action">
-                        <div class="quick-action-title">Formulare</div>
-                        <div class="quick-action-desc">Digitale Antragsformulare</div>
-                    </a>
-
-                    {% if is_admin %}
-                    <a href="{% url 'arbeitszeit:admin_dashboard' %}" class="quick-action" style="border-color: var(--primary); background: rgba(26, 77, 46, 0.03);">
-                        <div class="quick-action-title">Verwaltung</div>
-                        <div class="quick-action-desc">Antraege genehmigen, Mitarbeiter verwalten</div>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
+                </li>
+                {% endif %}
+            </ul>
         </div>
 
-        <!-- Grid Layout für untere Bereiche -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 1.5rem;">
-            
-            <!-- Letzte Zeiterfassungen -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Letzte Zeiterfassungen</h3>
-                </div>
+        <!-- Aufgaben -->
+        <div class="app-tile tile-orange">
+            <div class="tile-header">
+                <h2 class="tile-title">Aufgaben</h2>
+                {% with total=workflow_tasks_anzahl|add:team_stapel_anzahl|add:facility_queue_anzahl|add:al_queue_anzahl %}
+                    {% if total %}<span class="tile-badge">{{ total }}</span>{% endif %}
+                {% endwith %}
+            </div>
+            <ul class="tile-links">
+                <li>
+                    <a href="{% url 'workflow:arbeitsstapel' %}">
+                        Mein Arbeitsstapel
+                        {% if workflow_tasks_anzahl %}<span class="link-badge">{{ workflow_tasks_anzahl }}</span>{% endif %}
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'formulare:team_queue' %}">
+                        Team-Stapel
+                        {% if team_stapel_anzahl %}<span class="link-badge">{{ team_stapel_anzahl }}</span>{% endif %}
+                    </a>
+                </li>
+                {% if ist_facility_mitglied %}
+                <li>
+                    <a href="{% url 'facility:queue' %}">
+                        Facility-Queue
+                        {% if facility_queue_anzahl %}<span class="link-badge">{{ facility_queue_anzahl }}</span>{% endif %}
+                    </a>
+                </li>
+                {% endif %}
+                {% if al_queue_anzahl %}
+                <li>
+                    <a href="{% url 'facility:al_queue' %}">
+                        Eskalationen (AL)
+                        <span class="link-badge">{{ al_queue_anzahl }}</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+
+    </div>
+
+    <!-- Gruppe: Gebaeude & Raum -->
+    <div class="group-label">Gebaeude &amp; Infrastruktur</div>
+    <div class="app-grid">
+
+        <!-- Facility -->
+        <div class="app-tile tile-teal">
+            <div class="tile-header">
+                <h2 class="tile-title">Facility / Stoermeldungen</h2>
+            </div>
+            <ul class="tile-links">
+                <li><a href="{% url 'facility:erstellen' %}">Neue Stoermeldung erfassen</a></li>
+                <li><a href="{% url 'facility:meine' %}">Meine Meldungen</a></li>
+                {% if ist_vorgesetzter %}
+                <li><a href="{% url 'facility:vorgesetzter' %}">Team-Meldungen</a></li>
+                <li><a href="{% url 'facility:monatsreport' %}">Monatsbericht</a></li>
+                {% endif %}
+                {% if ist_facility_mitglied or user.is_staff %}
+                <li><a href="{% url 'facility:wartungsplan_liste' %}">Wartungsplaene</a></li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Raumbuch -->
+        <div class="app-tile tile-teal">
+            <div class="tile-header">
+                <h2 class="tile-title">Raumbuch</h2>
+            </div>
+            <ul class="tile-links">
+                <li><a href="{% url 'raumbuch:uebersicht' %}">Raumuebersicht</a></li>
+                <li><a href="{% url 'raumbuch:grundriss' %}">Gebaeudeplan</a></li>
+                <li><a href="{% url 'raumbuch:buchung_kalender' %}">Raumreservierungen</a></li>
+                <li><a href="{% url 'raumbuch:besuch_liste' %}">Besuchsanmeldungen</a></li>
+                {% if ist_fuehrungskraft %}
+                <li><a href="{% url 'raumbuch:token_anfrage' %}">Zutrittstoken beantragen</a></li>
+                {% endif %}
+                {% if user.is_staff or ist_facility_mitglied %}
+                <li><a href="{% url 'raumbuch:schluessel_liste' %}">Schluesselverwaltung</a></li>
+                {% endif %}
+            </ul>
+        </div>
+
+    </div>
+
+    <!-- Gruppe: Personal & Planung -->
+    <div class="group-label">Personal &amp; Planung</div>
+    <div class="app-grid">
+
+        <!-- Personal -->
+        <div class="app-tile tile-purple">
+            <div class="tile-header">
+                <h2 class="tile-title">Personal</h2>
+            </div>
+            <ul class="tile-links">
+                <li><a href="{% url 'hr:organigramm' %}">Organigramm</a></li>
+                <li><a href="{% url 'arbeitszeit:soll_stunden_dashboard' %}">Soll-Stunden Monat</a></li>
+                <li><a href="{% url 'arbeitszeit:soll_stunden_jahresuebersicht' %}">Soll-Stunden Jahr</a></li>
+            </ul>
+        </div>
+
+        <!-- Planung / Schichtplan -->
+        <div class="app-tile tile-purple">
+            <div class="tile-header">
+                <h2 class="tile-title">Planung</h2>
+                {% if offene_antraege_count %}<span class="tile-badge">{{ offene_antraege_count }}</span>{% endif %}
+            </div>
+            <ul class="tile-links">
+                <li><a href="{% url 'veranstaltungen:uebersicht' %}">Veranstaltungen</a></li>
+                {% if hat_schichtplan_zugang %}
+                <li><a href="{% url 'schichtplan:dashboard' %}">Schichtplanung</a></li>
+                <li>
+                    <a href="{% url 'schichtplan:genehmigungen_uebersicht' %}">
+                        Urlaubsgenehmigungen
+                        {% if offene_antraege_count %}<span class="link-badge">{{ offene_antraege_count }}</span>{% endif %}
+                    </a>
+                </li>
+                {% endif %}
+                {% if mitarbeiter.schichtplan_kennung %}
+                <li><a href="{% url 'schichtplan:wunschperioden_liste' %}">Meine Schichtwuensche</a></li>
+                {% endif %}
+            </ul>
+        </div>
+
+    </div>
+
+    <!-- Gruppe: Admin & Compliance (nur Staff) -->
+    {% if user.is_staff %}
+    <div class="group-label">Administration &amp; Compliance</div>
+    <div class="app-grid">
+
+        <div class="app-tile tile-red">
+            <div class="tile-header">
+                <h2 class="tile-title">Verwaltung</h2>
+            </div>
+            <ul class="tile-links">
+                <li><a href="{% url 'berechtigungen:uebersicht' %}">Rechtevergabe</a></li>
+                <li><a href="{% url 'workflow:workflow_editor' %}">Workflow-Editor</a></li>
+                <li><a href="{% url 'arbeitszeit:admin_dashboard' %}">Arbeitszeitverwaltung (Admin)</a></li>
+                <li><a href="{% url 'admin:index' %}" target="_blank">Django-Admin</a></li>
+            </ul>
+        </div>
+
+        <div class="app-tile tile-red">
+            <div class="tile-header">
+                <h2 class="tile-title">Sicherheit &amp; Datenschutz</h2>
+            </div>
+            <ul class="tile-links">
+                <li><a href="{% url 'signatur:dashboard' %}">Digitale Signatur</a></li>
+                <li><a href="{% url 'signatur:dokumentation_pdf' %}" target="_blank">Signatur-Dokumentation</a></li>
+                <li><a href="{% url 'datenschutz:dashboard' %}">Datenschutz (DSGVO)</a></li>
+                <li><a href="{% url 'raumbuch:gesamtlog' %}">Audit-Trail</a></li>
+                <li><a href="{% url 'facility:einstellungen' %}">Facility-Einstellungen</a></li>
+            </ul>
+        </div>
+
+    </div>
+    {% endif %}
+
+    <!-- Letzte Aktivitaet -->
+    <div class="group-label">Letzte Aktivitaet</div>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
+                    <h6 class="card-title text-muted fw-semibold mb-3" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">
+                        Letzte Zeiterfassungen
+                    </h6>
                     {% if letzte_erfassungen %}
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Datum</th>
-                                    <th>Arbeitszeit</th>
-                                    <th>Art</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for erfassung in letzte_erfassungen %}
-                                    <tr>
-                                        <td>{{ erfassung.datum|date:"d.m.Y" }}</td>
-                                        <td>{{ erfassung.arbeitszeit_formatiert }}</td>
-                                        <td>{{ erfassung.get_art_display }}</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        <div style="margin-top: 1rem; text-align: right;">
-                            <a href="{% url 'arbeitszeit:zeiterfassung_uebersicht' %}" class="btn btn-secondary">
-                                Alle anzeigen
-                            </a>
-                        </div>
+                    <table class="table table-sm table-borderless mb-2">
+                        <tbody>
+                            {% for erfassung in letzte_erfassungen|slice:":5" %}
+                            <tr>
+                                <td class="text-muted" style="font-size:0.85rem; width:35%;">{{ erfassung.datum|date:"d.m.Y" }}</td>
+                                <td style="font-size:0.85rem;">{{ erfassung.arbeitszeit_formatiert }}</td>
+                                <td class="text-muted" style="font-size:0.8rem;">{{ erfassung.get_art_display }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <a href="{% url 'arbeitszeit:zeiterfassung_uebersicht' %}" class="btn btn-sm btn-outline-secondary">
+                        Alle anzeigen
+                    </a>
                     {% else %}
-                        <div class="empty-state">
-                            <div class="empty-state-icon">⏱️</div>
-                            <p>Noch keine Zeiterfassungen vorhanden</p>
-                            <a href="{% url 'arbeitszeit:zeiterfassung_erstellen' %}" class="btn btn-primary" style="margin-top: 1rem;">
-                                Erste Erfassung erstellen
-                            </a>
-                        </div>
+                    <p class="text-muted small">Noch keine Zeiterfassungen vorhanden.</p>
+                    <a href="{% url 'arbeitszeit:zeiterfassung_erstellen' %}" class="btn btn-sm btn-outline-secondary">
+                        Erste Erfassung erstellen
+                    </a>
                     {% endif %}
                 </div>
             </div>
-
-            <!-- Vereinbarungen -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">Vereinbarungen</h3>
-                </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
+                    <h6 class="card-title text-muted fw-semibold mb-3" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">
+                        Meine Vereinbarungen
+                    </h6>
                     {% if alle_vereinbarungen %}
-                        <table class="table">
-                            <tbody>
-                                {% for vereinbarung in alle_vereinbarungen %}
-                                    <tr>
-                                        <td>
-                                            <div style="font-weight: 600;">{{ vereinbarung.get_antragsart_display }}</div>
-                                            <div style="font-size: 0.875rem; color: var(--text-secondary);">
-                                                ab {{ vereinbarung.gueltig_ab|date:"d.m.Y" }}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="badge badge-{{ vereinbarung.status }}">
-                                                {{ vereinbarung.get_status_display }}
-                                            </span>
-                                        </td>
-                                        <td style="text-align: right;">
-                                            <a href="{% url 'arbeitszeit:vereinbarung_detail' vereinbarung.pk %}" class="btn btn-secondary">
-                                                Details
-                                            </a>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        <div style="margin-top: 1rem; text-align: right;">
-                            <a href="{% url 'arbeitszeit:vereinbarung_liste' %}" class="btn btn-secondary">
-                                Alle anzeigen
-                            </a>
-                        </div>
+                    <table class="table table-sm table-borderless mb-2">
+                        <tbody>
+                            {% for v in alle_vereinbarungen %}
+                            <tr>
+                                <td style="font-size:0.85rem; width:55%;">{{ v.get_antragsart_display }}</td>
+                                <td style="font-size:0.8rem; color:#6b7280;">ab {{ v.gueltig_ab|date:"d.m.Y" }}</td>
+                                <td>
+                                    <span class="badge rounded-pill
+                                        {% if v.status == 'genehmigt' %}bg-success
+                                        {% elif v.status == 'beantragt' %}bg-warning text-dark
+                                        {% elif v.status == 'abgelehnt' %}bg-danger
+                                        {% else %}bg-secondary{% endif %}"
+                                        style="font-size:0.65rem;">
+                                        {{ v.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <a href="{% url 'arbeitszeit:vereinbarung_liste' %}" class="btn btn-sm btn-outline-secondary">
+                        Alle anzeigen
+                    </a>
                     {% else %}
-                        <div class="empty-state">
-                            <div class="empty-state-icon">📋</div>
-                            <h3>Noch keine Vereinbarungen</h3>
-                            <p style="margin-top: 0.5rem;">Erstellen Sie Ihre erste Arbeitszeitvereinbarung</p>
-                            <a href="{% url 'arbeitszeit:vereinbarung_erstellen' %}" class="btn btn-primary" style="margin-top: 1rem;">
-                                Neue Vereinbarung erstellen
-                            </a>
-                        </div>
+                    <p class="text-muted small">Noch keine Vereinbarungen vorhanden.</p>
+                    <a href="{% url 'arbeitszeit:vereinbarung_erstellen' %}" class="btn btn-sm btn-outline-secondary">
+                        Neue Vereinbarung erstellen
+                    </a>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
-</body>
-</html>
+
+</div>
+
+<!-- PRIMA Footer -->
+<div class="mt-5 pt-4" style="border-top: 1px solid #dee2e6;">
+    <div class="text-center pb-4">
+        <div style="font-size: 2rem; font-weight: 900; letter-spacing: 0.25rem; color: #1a4d2e;">
+            PRIMA
+        </div>
+        <div class="text-muted mt-1" style="font-size: 0.75rem; letter-spacing: 0.15rem; text-transform: uppercase;">
+            Personal &middot; Raum &middot; Infrastruktur &middot; Management &middot; Antr&auml;ge
+        </div>
+        <div class="text-muted mt-2" style="font-size: 0.7rem;">
+            Intranet-Betriebssystem &mdash; intern &amp; vertraulich
+        </div>
+    </div>
+</div>
+
+</div>
+{% endblock %}

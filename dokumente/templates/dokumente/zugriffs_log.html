@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Dokument-Zugriffsprotokoll{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:1000px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-0" style="color:#1a4d2e;">Zugriffsprotokoll</h1>
+            <p class="text-muted small mb-0">
+                Jeder Download eines sensiblen Dokuments wird unveraenderlich protokolliert.
+            </p>
+        </div>
+        <a href="{% url 'dokumente:liste' %}" class="btn btn-sm btn-outline-secondary">
+            &larr; Zur Dokumentenliste
+        </a>
+    </div>
+
+    {% if zugriffe %}
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="background:#f8f9fa; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.4px; color:#6b7280;">
+                    <tr>
+                        <th class="px-4 py-3">Zeitpunkt</th>
+                        <th class="py-3">Zugegriffen von</th>
+                        {% if request.user.is_staff %}<th class="py-3">Eigentuemer</th>{% endif %}
+                        <th class="py-3">Dokument</th>
+                        <th class="py-3">Kategorie</th>
+                        {% if request.user.is_staff %}<th class="py-3">IP-Adresse</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for zugriff in zugriffe %}
+                    <tr>
+                        <td class="px-4 py-3" style="font-size:0.85rem; white-space:nowrap;">
+                            {{ zugriff.zeitpunkt|date:"d.m.Y H:i:s" }}
+                        </td>
+                        <td style="font-size:0.85rem;">
+                            {% if zugriff.user %}
+                                {{ zugriff.user.get_full_name|default:zugriff.user.username }}
+                                {% if zugriff.user != zugriff.dokument.user %}
+                                <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;"
+                                      title="Nicht der Eigentuemer des Dokuments">Fremd</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">geloeschter User</span>
+                            {% endif %}
+                        </td>
+                        {% if request.user.is_staff %}
+                        <td style="font-size:0.85rem; color:#6b7280;">
+                            {{ zugriff.dokument.user.get_full_name|default:zugriff.dokument.user.username }}
+                        </td>
+                        {% endif %}
+                        <td style="font-size:0.85rem;">
+                            {{ zugriff.dokument.dateiname }}
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill
+                                {% if zugriff.dokument.kategorie == 'zeugnis' %}bg-success
+                                {% elif zugriff.dokument.kategorie == 'abschluss' %}bg-primary
+                                {% elif zugriff.dokument.kategorie == 'reise' %}bg-warning text-dark
+                                {% elif zugriff.dokument.kategorie == 'ausweis' %}bg-danger
+                                {% else %}bg-secondary{% endif %}"
+                                style="font-size:0.68rem;">
+                                {{ zugriff.dokument.get_kategorie_display }}
+                            </span>
+                        </td>
+                        {% if request.user.is_staff %}
+                        <td style="font-size:0.8rem; color:#9ca3af; font-family:monospace;">
+                            {{ zugriff.ip_adresse|default:"—" }}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <div style="font-size:2.5rem; opacity:0.2; margin-bottom:1rem;">&#128203;</div>
+            <h5 class="text-muted fw-normal">Noch keine Zugriffe protokolliert</h5>
+            <p class="text-muted small">Jeder Download wird hier automatisch eingetragen.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="mt-4 p-3 rounded" style="background:#f0fdf4; border:1px solid #bbf7d0; font-size:0.82rem; color:#166534;">
+        <strong>Hinweis:</strong>
+        Dieses Protokoll ist unveraenderlich &mdash; Eintraege koennen weder bearbeitet noch geloescht werden.
+        Es dient als DSGVO-konformer Nachweis gemaess Art. 5 Abs. 2 (Rechenschaftspflicht).
+        {% if request.user.is_staff %}Es werden die letzten 500 Eintraege angezeigt.{% else %}Es werden Ihre letzten 200 Zugriffe angezeigt.{% endif %}
+    </div>
+
+</div>
+{% endblock %}

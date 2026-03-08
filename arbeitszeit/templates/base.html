@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Arbeitszeit-Verwaltung{% endblock %}</title>
+    <title>{% block title %}PRIMA{% endblock %}</title>
     <meta name="csrf-token" content="{{ csrf_token }}">
 
     <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
@@ -23,6 +23,14 @@
             padding: 8px 15px !important; cursor: pointer; font: inherit;
         }
         .logout-btn:hover { background: #2d6a42; border-radius: 5px; }
+
+        /* Aktiver Navbar-Eintrag */
+        .nav-active > .nav-link,
+        .nav-active > .nav-link:hover { background: rgba(255,255,255,0.18) !important; border-radius: 5px; }
+
+        /* User-Dropdown-Button */
+        .user-btn { background: rgba(255,255,255,0.12) !important; border-radius: 6px; padding: 5px 12px !important; }
+        .user-btn:hover { background: rgba(255,255,255,0.22) !important; }
 
         /* Suche-Button in Navbar */
         .cmd-open-btn {
@@ -101,7 +109,7 @@
 <!-- Navigation -->
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
     <div class="container-fluid">
-        <a class="navbar-brand" href="{% url 'arbeitszeit:dashboard' %}">Arbeitszeit-Verwaltung</a>
+        <a class="navbar-brand fw-bold" href="{% url 'arbeitszeit:dashboard' %}">PRIMA</a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
@@ -116,7 +124,7 @@
                     <a class="nav-link" href="{% url 'arbeitszeit:dashboard' %}">Dashboard</a>
                 </li>
 
-                <!-- Aufgaben: alle Queues und To-Dos an einem Ort -->
+                <!-- Aufgaben -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="aufgabenDropdown"
                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -132,35 +140,22 @@
                             <a class="dropdown-item d-flex justify-content-between align-items-center"
                                href="{% url 'workflow:arbeitsstapel' %}">
                                 Arbeitsstapel
-                                {% if workflow_tasks_anzahl %}
-                                <span class="badge bg-danger rounded-pill">{{ workflow_tasks_anzahl }}</span>
-                                {% endif %}
+                                {% if workflow_tasks_anzahl %}<span class="badge bg-danger rounded-pill">{{ workflow_tasks_anzahl }}</span>{% endif %}
                             </a>
                         </li>
                         <li>
                             <a class="dropdown-item d-flex justify-content-between align-items-center"
                                href="{% url 'formulare:team_queue' %}">
                                 Team-Stapel
-                                {% if team_stapel_anzahl %}
-                                <span class="badge bg-danger rounded-pill">{{ team_stapel_anzahl }}</span>
-                                {% endif %}
+                                {% if team_stapel_anzahl %}<span class="badge bg-danger rounded-pill">{{ team_stapel_anzahl }}</span>{% endif %}
                             </a>
                         </li>
-                        {% if hat_genehmiger_rolle %}
-                        <li>
-                            <a class="dropdown-item" href="{% url 'formulare:genehmigung_uebersicht' %}">
-                                Genehmigungen
-                            </a>
-                        </li>
-                        {% endif %}
                         {% if ist_facility_mitglied %}
                         <li>
                             <a class="dropdown-item d-flex justify-content-between align-items-center"
                                href="{% url 'facility:queue' %}">
                                 Facility-Queue
-                                {% if facility_queue_anzahl %}
-                                <span class="badge bg-danger rounded-pill">{{ facility_queue_anzahl }}</span>
-                                {% endif %}
+                                {% if facility_queue_anzahl %}<span class="badge bg-danger rounded-pill">{{ facility_queue_anzahl }}</span>{% endif %}
                             </a>
                         </li>
                         {% endif %}
@@ -173,48 +168,68 @@
                             </a>
                         </li>
                         {% endif %}
+                        {% if hat_genehmiger_rolle %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'formulare:genehmigung_uebersicht' %}">Genehmigungen</a></li>
+                        {% endif %}
                     </ul>
                 </li>
 
-                <!-- Personal: Zeitkonten + Organigramm -->
+                <!-- Anträge (NEU) -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="antraegeDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Anträge
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="antraegeDropdown">
+                        <li><a class="dropdown-item" href="{% url 'formulare:dashboard' %}">Übersicht / Neuer Antrag</a></li>
+                        {% if hat_genehmiger_rolle %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'formulare:genehmigung_uebersicht' %}">Genehmigungen</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+
+                <!-- Personal -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="personalDropdown"
                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Personal
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="personalDropdown">
+                        {% if user.mitarbeiter %}
+                        <li><a class="dropdown-item" href="{% url 'arbeitszeit:mitarbeiter_soll_uebersicht' user.mitarbeiter.pk %}">Meine Soll-Stunden</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% endif %}
                         <li><a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_dashboard' %}">Soll-Stunden Monat</a></li>
                         <li><a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_jahresuebersicht' %}">Soll-Stunden Jahr</a></li>
                         <li><a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_berechnen' %}">Soll-Stunden berechnen</a></li>
-                        {% if user.mitarbeiter %}
-                        <li><a class="dropdown-item" href="{% url 'arbeitszeit:mitarbeiter_soll_uebersicht' user.mitarbeiter.pk %}">Meine Soll-Stunden</a></li>
-                        {% endif %}
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'hr:organigramm' %}">Organigramm</a></li>
                     </ul>
                 </li>
 
-                <!-- Gebaeude: Facility + Raumbuch zusammengefasst -->
+                <!-- Gebäude: Facility + Raumbuch -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="gebaeudeDropdown"
                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Gebaeude
+                        Gebäude
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="gebaeudeDropdown">
                         <li><h6 class="dropdown-header">Facility</h6></li>
-                        <li><a class="dropdown-item" href="{% url 'facility:erstellen' %}">Stoermeldung erfassen</a></li>
-                        <li><a class="dropdown-item" href="{% url 'facility:meine' %}">Meine Stoermeldungen</a></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:erstellen' %}">Störmeldung erfassen</a></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:meine' %}">Meine Störmeldungen</a></li>
                         {% if ist_vorgesetzter %}
                         <li><a class="dropdown-item" href="{% url 'facility:vorgesetzter' %}">Team-Meldungen</a></li>
                         <li><a class="dropdown-item" href="{% url 'facility:monatsreport' %}">Monatsbericht</a></li>
                         {% endif %}
                         {% if ist_facility_mitglied or user.is_staff %}
-                        <li><a class="dropdown-item" href="{% url 'facility:wartungsplan_liste' %}">Wartungsplaene</a></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:wartungsplan_liste' %}">Wartungspläne</a></li>
                         {% endif %}
                         <li><hr class="dropdown-divider"></li>
                         <li><h6 class="dropdown-header">Raumbuch</h6></li>
-                        <li><a class="dropdown-item" href="{% url 'raumbuch:uebersicht' %}">Raumuebersicht</a></li>
-                        <li><a class="dropdown-item" href="{% url 'raumbuch:grundriss' %}">Gebaeudeplan</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:uebersicht' %}">Raumübersicht</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:grundriss' %}">Gebäudeplan</a></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:buchung_kalender' %}">Buchungen</a></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:belegungsplan' %}">Belegungsplan</a></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:besuch_liste' %}">Besuchsanmeldungen</a></li>
@@ -224,28 +239,26 @@
                         {% if user.is_staff or ist_facility_mitglied or ist_security_mitglied %}
                         <li><hr class="dropdown-divider"></li>
                         {% if user.is_staff or ist_facility_mitglied %}
-                        <li><a class="dropdown-item" href="{% url 'raumbuch:struktur' %}">Gebaeudestruktur</a></li>
-                        <li><a class="dropdown-item" href="{% url 'raumbuch:schluessel_liste' %}">Schluesselverwaltung</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:struktur' %}">Gebäudestruktur</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:schluessel_liste' %}">Schlüsselverwaltung</a></li>
                         {% endif %}
                         <li>
                             <a class="dropdown-item d-flex justify-content-between align-items-center"
                                href="{% url 'raumbuch:token_liste' %}">
                                 Zutrittsgutschriften
-                                {% if token_anfragen_anzahl %}
-                                <span class="badge bg-warning text-dark ms-2">{{ token_anfragen_anzahl }}</span>
-                                {% endif %}
+                                {% if token_anfragen_anzahl %}<span class="badge bg-warning text-dark ms-2">{{ token_anfragen_anzahl }}</span>{% endif %}
                             </a>
                         </li>
                         {% if user.is_staff or ist_facility_mitglied %}
-                        <li><a class="dropdown-item" href="{% url 'raumbuch:treppenhaus_liste' %}">Treppenhaeuser</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:treppenhaus_liste' %}">Treppenhäuser</a></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:reinigung' %}">Reinigung</a></li>
-                        <li><a class="dropdown-item" href="{% url 'raumbuch:umzug_liste' %}">Umzugsauftraege</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:umzug_liste' %}">Umzugsaufträge</a></li>
                         {% endif %}
                         {% endif %}
                     </ul>
                 </li>
 
-                <!-- Planung: Schichtplan + Veranstaltungen -->
+                <!-- Planung -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="planungDropdown"
                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -263,16 +276,14 @@
                             <a class="dropdown-item d-flex justify-content-between align-items-center"
                                href="{% url 'schichtplan:genehmigungen_uebersicht' %}">
                                 Urlaubsgenehmigungen
-                                {% if offene_antraege_count > 0 %}
-                                <span class="badge bg-warning text-dark rounded-pill">{{ offene_antraege_count }}</span>
-                                {% endif %}
+                                {% if offene_antraege_count > 0 %}<span class="badge bg-warning text-dark rounded-pill">{{ offene_antraege_count }}</span>{% endif %}
                             </a>
                         </li>
                         {% endif %}
                     </ul>
                 </li>
 
-                <!-- Admin: nur fuer Staff-User sichtbar -->
+                <!-- Admin (nur Staff) -->
                 {% if user.is_staff %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="adminDropdown"
@@ -280,15 +291,25 @@
                         Admin
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                        <li><h6 class="dropdown-header">Verwaltung</h6></li>
                         <li><a class="dropdown-item" href="{% url 'berechtigungen:uebersicht' %}">Rechtevergabe</a></li>
                         <li><a class="dropdown-item" href="{% url 'workflow:workflow_editor' %}">Workflow-Editor</a></li>
                         <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Facility / Gebäude</h6></li>
                         <li><a class="dropdown-item" href="{% url 'facility:textbaustein_liste' %}">Textbausteine</a></li>
                         <li><a class="dropdown-item" href="{% url 'facility:einstellungen' %}">Trend-Einstellungen</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'raumbuch:gesamtlog' %}">Audit-Trail</a></li>
+                        <li><h6 class="dropdown-header">Personal & Onboarding</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'bewerbung:hr_liste' %}">Bewerbungseingang</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank">Django-Admin</a></li>
+                        <li><h6 class="dropdown-header">Sicherheit & Compliance</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:gesamtlog' %}">Audit-Trail</a></li>
+                        <li><a class="dropdown-item" href="{% url 'signatur:dashboard' %}">Digitale Signatur</a></li>
+                        <li><a class="dropdown-item" href="{% url 'signatur:dokumentation_pdf' %}" target="_blank">Signatur-Doku ↗</a></li>
+                        <li><a class="dropdown-item" href="{% url 'datenschutz:dashboard' %}">Datenschutz (DSGVO)</a></li>
+                        <li><a class="dropdown-item" href="{% url 'dokumente:liste' %}">Sensible Dokumente</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank">Django-Admin ↗</a></li>
                     </ul>
                 </li>
                 {% endif %}
@@ -296,26 +317,40 @@
                 {% endif %}<!-- end is_authenticated -->
             </ul>
 
-            <!-- Rechte Seite: Suche + User -->
+            <!-- Rechte Seite: Suche + User-Dropdown -->
             <ul class="navbar-nav align-items-center">
                 {% if user.is_authenticated %}
-                <li class="nav-item me-2">
+                <li class="nav-item me-1">
                     <button class="nav-link cmd-open-btn" onclick="cmdOpen()" title="Schnellsuche (/)">
                         Suche
                         <span style="font-size:10px; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); border-radius:3px; padding:1px 5px; margin-left:4px;">/</span>
                     </button>
                 </li>
-                <li class="nav-item">
-                    <span class="navbar-text text-white px-2">
-                        {{ user.username }}
-                        {% if user.is_staff %}<span class="badge bg-danger ms-1">Admin</span>{% endif %}
-                    </span>
+                <li class="nav-item me-2">
+                    <button class="nav-link cmd-open-btn" data-bs-toggle="modal" data-bs-target="#hilfeModal" title="Hilfe &amp; App-Info">
+                        ? Hilfe
+                    </button>
                 </li>
-                <li class="nav-item">
-                    <form method="post" action="{% url 'logout' %}" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="logout-btn">Abmelden</button>
-                    </form>
+                <!-- Benutzer-Dropdown -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle user-btn" href="#" id="userDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        {{ user.get_full_name|default:user.username }}
+                        {% if user.is_staff %}<span class="badge bg-danger ms-1" style="font-size:0.65rem;">Admin</span>{% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><h6 class="dropdown-header">{{ user.username }}</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'datenschutz:auskunft_pdf' %}">Meine Daten (DSGVO)</a></li>
+                        <li><a class="dropdown-item" href="{% url 'dokumente:liste' %}">Meine Dokumente</a></li>
+                        <li><a class="dropdown-item" href="{% url 'signatur:dashboard' %}">Digitale Signatur</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item text-danger">Abmelden</button>
+                            </form>
+                        </li>
+                    </ul>
                 </li>
                 {% else %}
                 <li class="nav-item">
@@ -326,6 +361,1007 @@
         </div>
     </div>
 </nav>
+
+<!-- ==================== HILFE-MODAL ==================== -->
+<div class="modal fade" id="hilfeModal" tabindex="-1" aria-labelledby="hilfeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <!-- Header -->
+      <div class="modal-header" style="background:#1a4d2e; color:white;">
+        <h5 class="modal-title fw-bold" id="hilfeModalLabel">
+          PRIMA &mdash; Hilfe &amp; App-Info
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="modal-body p-0">
+        <ul class="nav nav-tabs px-3 pt-3" id="hilfeTabs" role="tablist" style="border-bottom:2px solid #e5e7eb;">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-semibold" id="tab-highlights" data-bs-toggle="tab"
+                    data-bs-target="#pane-highlights" type="button" role="tab">
+              App-Highlights
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-tech" data-bs-toggle="tab"
+                    data-bs-target="#pane-tech" type="button" role="tab">
+              Technologie-Stack
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-security" data-bs-toggle="tab"
+                    data-bs-target="#pane-security" type="button" role="tab">
+              Sicherheitsbewertung
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-bedienung" data-bs-toggle="tab"
+                    data-bs-target="#pane-bedienung" type="button" role="tab">
+              Bedienung
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content p-4">
+
+          <!-- ===== TAB 1: APP-HIGHLIGHTS ===== -->
+          <div class="tab-pane fade show active" id="pane-highlights" role="tabpanel">
+            <p class="text-muted mb-4" style="font-size:0.9rem;">
+              Die Anwendung deckt den vollstaendigen Verwaltungskreislauf eines mittelstaendischen Unternehmens ab &mdash;
+              vollstaendig offline-faehig, ohne externe Abhaengigkeiten.
+            </p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1rem;">
+
+              <div style="border:2px solid #1a4d2e; border-top:5px solid #1a4d2e; border-radius:8px; padding:1rem; background:#f0fdf4; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#1a4d2e; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  FUNDAMENT
+                </div>
+                <div class="fw-bold mb-2" style="color:#1a4d2e; font-size:1rem;">Arbeitszeitvereinbarung als Stammdatum</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  Die Vereinbarung ist nicht nur ein Formular &mdash; sie ist das Stammdatum, auf dem
+                  das gesamte System aufbaut. Vom ersten Arbeitstag an ist definiert, was ein
+                  Mitarbeiter arbeiten soll. Alles andere leitet sich daraus ab.
+                </div>
+                <div style="font-size:0.78rem; color:#374151; background:#dcfce7; border:1px solid #86efac; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Vereinbarung &rarr; Soll-Stunden &rarr; Zeiterfassung &rarr; ZAG / Zeitgutschrift / Dienstreise &rarr; Genehmigung &rarr; PDF signiert &rarr; DSGVO-Archivierung
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Grundlage aller Berechnungen</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Regulaer &amp; individuell</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Genehmigungsworkflow</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Rechtssicher ab Tag 1</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Kein Folgesystem kann sinnvoll arbeiten ohne zu wissen was vereinbart wurde &mdash; hier ist es von Anfang an da.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #0d6efd; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#0d6efd;">Antraege &amp; Formulare (HTMX)</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Digitale Antragstypen: Zusatzarbeit (ZAG), Zeitgutschrift, Dienstreise.
+                  Inline-Validierung, Team-Queue-System, mehrstufige Genehmigungsworkflows.
+                  Alle PDFs signiert.
+                </div>
+              </div>
+
+              <div style="border:2px solid #f77f00; border-top:5px solid #f77f00; border-radius:8px; padding:1rem; background:#fffbf5; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#f77f00; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  HIGHLIGHT
+                </div>
+                <div class="fw-bold mb-2" style="color:#f77f00; font-size:1rem;">Workflow-Engine mit Team-Queue</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  Konfigurierbare State Machine, die Workflows als <em>Daten</em> behandelt &mdash; nicht als hartcodierten If-Else-Block.
+                  Zustaendigkeiten werden dynamisch ueber die HR-Stellenhierarchie aufgeloest.
+                  Team-Pools mit Claiming-Mechanismus (wer nimmt welche Aufgabe).
+                  Duplikat-Schutz, Navbar-Badges in Echtzeit, visueller Editor &mdash; keine Code-Aenderung noetig.
+                </div>
+                <div style="font-size:0.78rem; color:#374151; background:#fff7ed; border:1px solid #fed7aa; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  <strong>Beispiel:</strong> ZAG-Antrag &rarr; Teamleiter (via HR) &rarr; Abteilungsleiter &rarr; ZG-Team &rarr; ZE-Team &rarr; Antragsteller &rarr; PDF signiert &amp; archiviert &mdash; vollautomatisch.
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">JSON-Workflow-Definition</span>
+                  <span style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Team-Queue &amp; Claiming</span>
+                  <span style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">HR-Stellenhierarchie als Resolver</span>
+                  <span style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Visueller Editor</span>
+                  <span style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Kein externes Framework</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Vergleichbar mit: Jira Workflows, SAP Workflow, Camunda &mdash; selbst gebaut, ~400 Zeilen Python.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #0d9488; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#0d9488;">Facility Management</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Stoermeldungen erfassen, kategorisieren, Team-Queue bearbeiten.
+                  Eskalation an Abteilungsleiter. Wartungsplaene, Textbausteine,
+                  Monatsbericht mit Tendenz-Erkennung (konfigurierbare Schwellwerte).
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #0d9488; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#0d9488;">Raumbuch</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Hierarchische Gebaeudestruktur (Standort &rarr; Gebaeude &rarr; Geschoss &rarr; Bereich &rarr; Raum).
+                  22 Models: Belegung, Buchung, Besuch, Reinigung, Schluessel,
+                  Zutrittstoken, Umzugsauftrag. Vollstaendiger Audit-Trail.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #7c3aed; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#7c3aed;">HR &amp; Organigramm</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Stellenplan (OrgEinheit &rarr; Stelle &rarr; HR-Mitarbeiter).
+                  Interaktives Organigramm (D3.js v7, lokal eingebunden).
+                  Durchwahlen, Raumzuordnung, Fuehrungskraft-Hierarchie.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #7c3aed; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#7c3aed;">Bewerbung &amp; Personalaufnahme</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Single Point of Truth fuer Personalstammdaten. Bewerber fuellt am Intranet-PC
+                  einen Aufnahmebogen aus (kein Login). HR prueft, nimmt an oder lehnt ab.
+                  Bei Einstellung: atomarer Transfer in HRMitarbeiter + Personalstammdaten.
+                  Bei Ablehnung: DSGVO-konformer Hard-Delete aller Daten (Art. 17 DSGVO).
+                  Dokumente verschluesselt (Fernet AES-128) + ClamAV-Scan vor Speicherung.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #dc2626; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#dc2626;">Digitale Signatur</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Automatische Signatur aller erzeugten PDFs (WeasyPrint + pyhanko).
+                  PKCS#12-Zertifikate pro Mitarbeiter, CA-Infrastruktur.
+                  Signatur-Protokoll mit Pruefbarkeit. Systemdokumentation als PDF.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #dc2626; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#dc2626;">Datenschutz (DSGVO)</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Art. 15-Auskunft als PDF auf Knopfdruck. Loeschprotokoll (unveraenderlich).
+                  Management-Command fuer Loeschfristen (2/3/10 Jahre je Kategorie).
+                  Automatische Zugangssperre bei Austrittsdatum.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #dc2626; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#dc2626;">Sensible Dokumente</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Verschluesselter Dokumentenspeicher (AES-128 Fernet) fuer Zeugnisse,
+                  Abschluesse, Reiseunterlagen. Unveraenderbares Zugriffsprotokoll
+                  mit IP, User, Zeitstempel. Kein Klartext in der Datenbank.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #dc2626; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#dc2626;">ClamAV Virenscanner-Integration</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Alle hochgeladenen Dateien werden vor dem Speichern automatisch
+                  gegen einen zentralen ClamAV-Netzwerkscanner geprueft.
+                  Graceful Fallback: ist der Scanner nicht erreichbar, wird der Upload
+                  geloggt aber nicht blockiert &mdash; konfigurierbar per Umgebungsvariable.
+                  Bedrohungen werden abgelehnt und vollstaendig protokolliert.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #dc2626; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#dc2626;">BSI IT-Grundschutz (APP.3.1 / ORP.4 / OPS.1.1.5)</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  PRIMA orientiert sich am BSI IT-Grundschutz als freiwilligem internen Sicherheitsmassstab.
+                  Umgesetzt: Brute-Force-Schutz am Login (django-axes, 5 Versuche / 1h Sperre, BSI APP.3.1),
+                  Content Security Policy Header (XSS-Schutz, BSI APP.3.1),
+                  Session-Timeout nach 8h Inaktivitaet (BSI ORP.4),
+                  zentrales Security-Logging aller sicherheitsrelevanten Ereignisse (BSI OPS.1.1.5),
+                  eigene Fehlerseiten ohne technische Details (BSI APP.3.1),
+                  automatische CVE-Pruefung per pip-audit im Deployment-Build (BSI OPS.1.1.3
+                  Patch-Management) &mdash; beim ersten Lauf 4 Schwachstellen sofort behoben.
+                  Ergaenzend: HSTS, X-Frame-Options, CSRF, MIME-Sniffing-Schutz,
+                  Secret-Key aus Umgebungsvariable, kein Debug-Modus in Produktion.
+                </div>
+              </div>
+
+              <div style="border:2px solid #64748b; border-top:5px solid #64748b; border-radius:8px; padding:1rem; background:#f8fafc; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#64748b; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  IN PLANUNG
+                </div>
+                <div class="fw-bold mb-2" style="color:#475569; font-size:1rem;">Bewerber-Kiosk: Alpine Linux Netboot</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  Hoechste Sicherheitsstufe fuer den Bewerber-Aufnahmerechner.
+                  Der PC bootet taeglich neu aus dem Netzwerk (PXE/TFTP) &mdash; ohne lokales Dateisystem.
+                  Das komplette Betriebssystem (Alpine Linux, ~50 MB) wird in den RAM geladen.
+                  Nach jeder Session automatischer Reboot: Malware kann nicht ueberleben, da es
+                  nichts zu infizieren gibt. Kombiniert mit VLAN-Isolation (nur ein einziger
+                  Intranet-Endpunkt erreichbar) und Browser-Kiosk-Modus (kein DevTools, keine Adressleiste).
+                </div>
+                <div style="font-size:0.78rem; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Netzwerk &rarr; PXE-Boot &rarr; Alpine-Image (RAM) &rarr; Chromium --kiosk &rarr; Bewerbungsformular &rarr; Reboot nach Session
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Diskless / RAM-only</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">PXE Netboot</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">VLAN-Isolation</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Session-Reboot</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Raspberry Pi 5 als Boot-Server</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Verteidigungslinien: VLAN (Netzwerk) + RAM-only (Persistenz) + Kiosk-Modus (Browser) + USB deaktiviert (Hardware) + ClamAV (Uploads)
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #0891b2; border-radius:8px; padding:1rem; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#0891b2; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  PRIMA-SEITE UMGESETZT
+                </div>
+                <div class="fw-bold mb-1" style="color:#0e7490;">Videokonferenz: Jitsi Meet &amp; Matrix/Element</div>
+                <div class="text-muted mb-2" style="font-size:0.82rem;">
+                  PRIMA generiert automatisch einen <strong>Jitsi-Meeting-Link</strong> bei jeder Raumbuchung
+                  (sichtbar im Buchungsdetail). Parallel wird ein <strong>Matrix/Element-Raum-Link</strong>
+                  bereitgestellt &mdash; persistenter, E2EE-verschluesselter Chat-Kanal fuer den gebuchten Raum.
+                  Bei neuen Facility-Stoermeldungen sendet PRIMA automatisch einen Ping an den konfigurierten
+                  Matrix-Team-Raum.
+                </div>
+                <div style="font-size:0.78rem; color:#0e7490; background:#ecfeff; border:1px solid #a5f3fc; border-radius:6px; padding:0.5rem 0.8rem; margin-bottom:0.75rem;">
+                  Raumbuchung &rarr; Jitsi-Link + Matrix-Raum-Link automatisch generiert &middot;
+                  Stoermeldung &rarr; Matrix-Ping ans Facility-Team &middot;
+                  Jitsi-Server + Matrix-Homeserver: eigenstaendig betrieben (PRIMA verweist nur)
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.75rem;">
+                  <span style="background:#ecfeff; border:1px solid #a5f3fc; color:#0e7490; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Jitsi E2EE (alle Standorte)</span>
+                  <span style="background:#ecfeff; border:1px solid #a5f3fc; color:#0e7490; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Matrix Megolm/Signal-Protokoll</span>
+                  <span style="background:#ecfeff; border:1px solid #a5f3fc; color:#0e7490; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Kein Cloud-Anbieter</span>
+                  <span style="background:#ecfeff; border:1px solid #a5f3fc; color:#0e7490; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Matrix-Pings bei Stoermeldung</span>
+                  <span style="background:#ecfeff; border:1px solid #a5f3fc; color:#0e7490; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">config: JITSI_BASE_URL / MATRIX_*</span>
+                </div>
+                <div style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Jitsi-Server (Docker) + Matrix-Homeserver (Synapse/Dendrite, Docker) separat aufsetzen
+                  &rarr; Umgebungsvariablen in .env / Railway setzen &rarr; fertig.
+                </div>
+
+                <!-- Ausfuehrlicher Leitfaden (Collapse) -->
+                <div class="mt-3">
+                  <button class="btn btn-sm btn-outline-secondary" type="button"
+                          data-bs-toggle="collapse" data-bs-target="#collapse-jitsi-matrix"
+                          aria-expanded="false">
+                    Ausfuehrlicher Leitfaden (Datensicherheit &amp; Verschluesselung)
+                  </button>
+                  <div class="collapse mt-3" id="collapse-jitsi-matrix">
+                    <div style="font-size:0.82rem; line-height:1.6; border-top:1px solid #e0f2fe; padding-top:1rem;">
+
+                      <p class="fw-semibold mb-1" style="color:#0e7490;">Was ist das ueberhaupt?</p>
+                      <p class="text-muted">
+                        Stell dir vor, du nutzt WhatsApp zum Chatten und Zoom fuer Videokonferenzen &mdash;
+                        beides laeuft aber auf einem Server <strong>in eurer eigenen Firma</strong>.
+                        Kein amerikanisches Unternehmen sieht deine Nachrichten, kein Cloud-Anbieter speichert
+                        deine Gespraeche, keine Lizenzkosten, keine AGBs.
+                        Genau das ist <strong>Matrix</strong> (Chat) und <strong>Jitsi</strong> (Video).
+                      </p>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Matrix / Element &ndash; der Firmen-Chat</p>
+                      <p class="text-muted mb-1">
+                        <strong>Raeume</strong> sind das Herzstuck. Ein Raum ist wie eine WhatsApp-Gruppe, nur besser:
+                      </p>
+                      <ul class="text-muted mb-2" style="padding-left:1.2rem;">
+                        <li><code>#allgemein</code> &ndash; alle Mitarbeiter</li>
+                        <li><code>#facility-elektro</code> &ndash; nur das Elektro-Team</li>
+                        <li><code>#hr-intern</code> &ndash; nur HR, extra verschluesselt</li>
+                        <li><code>#raum-101</code> &ndash; automatisch erstellt bei Raumbuchung</li>
+                        <li>Direktnachrichten &ndash; 1:1, komplett privat</li>
+                      </ul>
+                      <p class="text-muted">
+                        Du wirst automatisch in die richtigen Raeume eingeladen. Wenn ein Mitarbeiter
+                        ausscheidet: Account gesperrt, aus allen Raeumen entfernt &mdash; sofort, nicht
+                        erst wenn jemand daran denkt die WhatsApp-Gruppe zu bereinigen.
+                      </p>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Jitsi Meet &ndash; die Videokonferenz</p>
+                      <p class="text-muted mb-1">
+                        Wie Zoom &mdash; aber auf eurem eigenen Server. Keine Lizenz, keine Daten in
+                        amerikanischen Rechenzentren.
+                      </p>
+                      <p class="text-muted">
+                        <strong>Aus der Raumbuchung:</strong> Raum in PRIMA buchen &rarr; im Buchungsdetail
+                        erscheint automatisch ein Button &bdquo;Meeting beitreten&ldquo;. Link per Matrix
+                        an Teilnehmer schicken &mdash; fertig. Externe Gaeste koennen per Link beitreten,
+                        kein Account noetig.
+                      </p>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Verschluesselung &ndash; drei Ebenen erklaert</p>
+                      <p class="text-muted mb-1">Stell dir einen Brief vor. Es gibt drei Wege ihn zu schuetzen:</p>
+                      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.75rem; margin-bottom:0.5rem;">
+                        <strong style="color:#166534;">Ebene 1 &ndash; Der Umschlag (TLS)</strong><br>
+                        <span class="text-muted">Der Brief steckt im Umschlag. Niemand auf dem Postweg liest ihn.
+                        Der Server selbst koennte ihn aber oeffnen. &rarr; Standard auf allen Webseiten (https://).</span>
+                      </div>
+                      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.75rem; margin-bottom:0.5rem;">
+                        <strong style="color:#166534;">Ebene 2 &ndash; Tresor auf dem Server (Verschluesselung at Rest)</strong><br>
+                        <span class="text-muted">Nachrichten werden verschluesselt gespeichert. Wer die Festplatte
+                        stiehlt, liest nichts. &rarr; Matrix macht das automatisch.</span>
+                      </div>
+                      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.75rem; margin-bottom:0.5rem;">
+                        <strong style="color:#166534;">Ebene 3 &ndash; Tresor in deinem Geraet (E2EE)</strong><br>
+                        <span class="text-muted">Die Nachricht wird auf <em>deinem Geraet</em> verschluesselt,
+                        bevor sie den Server erreicht. Der Server sieht nur unlesbaren Datenmuell.
+                        Nur das Geraet des Empfaengers kann entschluesseln.
+                        &rarr; Matrix/Element standardmaessig in privaten Raeumen.
+                        &rarr; Jitsi optional bei sensiblen Gespraechen.</span>
+                      </div>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Was bedeutet das konkret?</p>
+                      <table class="table table-sm table-bordered" style="font-size:0.78rem;">
+                        <thead style="background:#ecfeff;">
+                          <tr><th>Szenario</th><th>Was passiert</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td>IT-Admin schaut auf den Server</td><td class="text-muted">Sieht verschluesselte Daten &ndash; kann nichts lesen</td></tr>
+                          <tr><td>Server wird gehackt</td><td class="text-muted">Angreifer sieht verschluesselte Blobs &ndash; wertlos ohne Schluessel</td></tr>
+                          <tr><td>Behoerde beschlagnahmt Server</td><td class="text-muted">Ohne Nutzergeraete kein Zugriff auf Inhalte</td></tr>
+                          <tr><td>Mitarbeiter verlaesst Firma</td><td class="text-muted">Schluessel weg, alte Nachrichten fuer ihn nicht mehr lesbar</td></tr>
+                          <tr><td>Jemand hoert WLAN ab</td><td class="text-muted">TLS schuetzt Transport, E2EE schuetzt Inhalt</td></tr>
+                        </tbody>
+                      </table>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Warum nicht einfach WhatsApp / Teams / Zoom?</p>
+                      <table class="table table-sm table-bordered" style="font-size:0.78rem;">
+                        <thead style="background:#ecfeff;">
+                          <tr><th></th><th>WhatsApp / Teams / Zoom</th><th>Matrix / Jitsi</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td>Wer sieht meine Daten?</td><td class="text-muted">Meta, Microsoft, Zoom Inc.</td><td class="text-muted fw-semibold">Niemand ausser euch</td></tr>
+                          <tr><td>Wo liegen die Daten?</td><td class="text-muted">USA (Cloud)</td><td class="text-muted fw-semibold">Euer Server</td></tr>
+                          <tr><td>DSGVO-konform?</td><td class="text-muted">Fraglich</td><td class="text-muted fw-semibold">Ja &ndash; ihr seid Verantwortliche</td></tr>
+                          <tr><td>Kosten?</td><td class="text-muted">Lizenz pro Nutzer</td><td class="text-muted fw-semibold">Nur Serverkosten</td></tr>
+                          <tr><td>Funktioniert ohne Internet?</td><td class="text-muted">Nein</td><td class="text-muted fw-semibold">Ja (Intranet)</td></tr>
+                        </tbody>
+                      </table>
+                      <p class="text-muted">
+                        <strong>Der entscheidende Unterschied:</strong> Bei Teams oder Zoom vertraust du dem
+                        Anbieter, dass er nicht mitliest. Du kannst es nicht pruefen.
+                        Bei Matrix/Jitsi auf eurem Server musst du nicht vertrauen &mdash; technisch ist es
+                        schlicht unmoeglich fuer Aussenstehende mitzulesen, weil der Schluessel nur auf
+                        euren Geraeten liegt.
+                      </p>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Was PRIMA automatisch macht</p>
+                      <ul class="text-muted" style="padding-left:1.2rem;">
+                        <li>Raum buchen &rarr; Jitsi-Link + Matrix-Raum-Link sofort im Buchungsdetail</li>
+                        <li>Stoermeldung abschicken &rarr; Matrix-Ping ans Facility-Team</li>
+                        <li>Geplant: Neuer Mitarbeiter &rarr; Matrix-Account automatisch, direkt in Teamraeume eingeladen</li>
+                        <li>Geplant: Mitarbeiter tritt aus &rarr; ueberall sofort gesperrt</li>
+                      </ul>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">E2EE bei Videokonferenzen &ndash; wann einschalten?</p>
+                      <ul class="text-muted" style="padding-left:1.2rem;">
+                        <li><strong>Standard (ohne E2EE):</strong> Verbindung zum Jitsi-Server verschluesselt (TLS). Da der Server euch gehoert: kein Problem.</li>
+                        <li><strong>Mit E2EE:</strong> Bild und Ton werden auf deinem Geraet verschluesselt. Server sieht nur Datenpakete. Empfohlen fuer Personalgespräche, GF-Sitzungen, Verhandlungen.</li>
+                        <li><strong>Voraussetzung E2EE:</strong> Chromium-basierter Browser (Edge, Chrome) oder Jitsi-App &ndash; Firefox noch nicht vollstaendig unterstuetzt.</li>
+                      </ul>
+
+                      <div style="background:#ecfeff; border:1px solid #a5f3fc; border-radius:6px; padding:0.75rem; margin-top:1rem; font-size:0.78rem; color:#0e7490;">
+                        <strong>Kurz zusammengefasst:</strong><br>
+                        Matrix/Element ist euer WhatsApp &ndash; auf eurem Server, niemand liest mit.<br>
+                        Jitsi ist euer Zoom &ndash; kostenlos, ohne Lizenzvertrag, mit echter E2EE fuer sensible Gespraeche.<br>
+                        PRIMA verbindet alles: Raum buchen &rarr; Meeting-Link da. Stoerung melden &rarr; Team sofort benachrichtigt.
+                      </div>
+                      <p class="text-muted mt-2" style="font-size:0.72rem; font-style:italic;">
+                        Technisch: Matrix verwendet Megolm (basiert auf Signal-Protokoll) fuer E2EE.
+                        Jitsi verwendet WebRTC Insertable Streams. Beide Verfahren gelten als sicher und sind Open Source &ndash; der Code ist oeffentlich pruefbar.
+                      </p>
+
+                    </div>
+                  </div>
+                </div>
+                <!-- Ende Leitfaden -->
+
+                <!-- Docker-Installationsanleitung (Collapse) -->
+                <div class="mt-2">
+                  <button class="btn btn-sm btn-outline-secondary" type="button"
+                          data-bs-toggle="collapse" data-bs-target="#collapse-docker-install"
+                          aria-expanded="false">
+                    Docker-Installation (Technik-Referenz)
+                  </button>
+                  <div class="collapse mt-3" id="collapse-docker-install">
+                    <div style="font-size:0.8rem; line-height:1.6; border-top:1px solid #e0f2fe; padding-top:1rem;">
+
+                      <!-- Voraussetzungen -->
+                      <p class="fw-semibold mb-1" style="color:#0e7490;">Voraussetzungen</p>
+                      <ul class="text-muted mb-3" style="padding-left:1.2rem;">
+                        <li>VPS mit Ubuntu 22.04 LTS, mind. 4 GB RAM (8 GB empfohlen fuer beide Dienste)</li>
+                        <li>Domain mit DNS-Zugriff (z.B. <code>firma.de</code>)</li>
+                        <li>DNS-A-Records gesetzt: <code>matrix.firma.de</code>, <code>chat.firma.de</code>, <code>meet.firma.de</code> &rarr; VPS-IP</li>
+                        <li>Docker + Docker Compose installiert</li>
+                        <li>Ports 80, 443, 10000/UDP in Firewall offen</li>
+                      </ul>
+
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># Docker + Compose auf Ubuntu installieren
+curl -fsSL https://get.docker.com | sh
+apt install docker-compose-plugin -y</pre>
+
+                      <!-- Nginx + Let's Encrypt -->
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">1. Nginx Reverse Proxy + Let's Encrypt</p>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># /opt/proxy/docker-compose.yml
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+    restart: always
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - acme:/etc/acme.sh
+    environment:
+      - DEFAULT_EMAIL=admin@firma.de
+    restart: always
+
+volumes:
+  certs:
+  vhost:
+  html:
+  acme:
+
+networks:
+  default:
+    name: proxy-net
+    external: false</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;">cd /opt/proxy && docker compose up -d</pre>
+
+                      <!-- Matrix Synapse -->
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">2. Matrix Homeserver (Synapse) + Element Web</p>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># Konfiguration einmalig generieren
+docker run --rm \
+  -v /opt/matrix/synapse:/data \
+  -e SYNAPSE_SERVER_NAME=matrix.firma.de \
+  -e SYNAPSE_REPORT_STATS=no \
+  matrixdotorg/synapse generate</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># /opt/matrix/docker-compose.yml
+services:
+  synapse:
+    image: matrixdotorg/synapse:latest
+    volumes:
+      - ./synapse:/data
+    environment:
+      - VIRTUAL_HOST=matrix.firma.de
+      - VIRTUAL_PORT=8008
+      - LETSENCRYPT_HOST=matrix.firma.de
+    networks:
+      - proxy-net
+      - matrix-internal
+    restart: always
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=synapse
+      - POSTGRES_USER=synapse
+      - POSTGRES_PASSWORD=SICHERES_PASSWORT_HIER
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - matrix-internal
+    restart: always
+
+  element:
+    image: vectorim/element-web:latest
+    volumes:
+      - ./element-config.json:/app/config.json:ro
+    environment:
+      - VIRTUAL_HOST=chat.firma.de
+      - VIRTUAL_PORT=80
+      - LETSENCRYPT_HOST=chat.firma.de
+    networks:
+      - proxy-net
+    restart: always
+
+volumes:
+  pg-data:
+
+networks:
+  proxy-net:
+    external: true
+  matrix-internal:</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># /opt/matrix/element-config.json
+{
+  "default_server_config": {
+    "m.homeserver": {
+      "base_url": "https://matrix.firma.de",
+      "server_name": "matrix.firma.de"
+    }
+  },
+  "brand": "PRIMA Chat",
+  "default_theme": "light",
+  "disable_guests": true,
+  "disable_login_language_selector": true
+}</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># Synapse starten + ersten Admin anlegen
+cd /opt/matrix && docker compose up -d
+docker compose exec synapse register_new_matrix_user \
+  -c /data/homeserver.yaml \
+  --admin -u prima-admin -p ADMINPASSWORT \
+  http://localhost:8008
+
+# Bot-Account anlegen (fuer PRIMA-Benachrichtigungen)
+docker compose exec synapse register_new_matrix_user \
+  -c /data/homeserver.yaml \
+  --no-admin -u prima-bot -p BOTPASSWORT \
+  http://localhost:8008</pre>
+
+                      <!-- Jitsi -->
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">3. Jitsi Meet</p>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># Offizielles Jitsi Docker-Setup holen
+git clone https://github.com/jitsi/docker-jitsi-meet /opt/jitsi
+cd /opt/jitsi
+cp env.example .env</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># /opt/jitsi/.env (wichtigste Werte)
+PUBLIC_URL=https://meet.firma.de
+HTTP_PORT=8080
+HTTPS_PORT=8443
+
+# Starke zufaellige Passwoerter generieren: pwgen 32 4
+JICOFO_AUTH_PASSWORD=ZUFALLSWERT_1
+JVB_AUTH_PASSWORD=ZUFALLSWERT_2
+JIGASI_XMPP_PASSWORD=ZUFALLSWERT_3
+JIBRI_RECORDER_PASSWORD=ZUFALLSWERT_4
+
+# E2EE aktivieren (WebRTC Insertable Streams)
+ENABLE_XMPP_WEBSOCKET=1
+ENABLE_COLIBRI_WEBSOCKET=1
+
+# Nur authentifizierte Nutzer duerfen Raeume erstellen
+ENABLE_AUTH=1
+ENABLE_GUESTS=1
+AUTH_TYPE=internal</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># Nginx-Proxy Eintrag fuer Jitsi (web-Container anpassen)
+# In /opt/jitsi/docker-compose.yml beim web-Service ergaenzen:
+#   environment:
+#     - VIRTUAL_HOST=meet.firma.de
+#     - VIRTUAL_PORT=80
+#     - LETSENCRYPT_HOST=meet.firma.de
+#   networks:
+#     - proxy-net (zusaetzlich zu den Jitsi-internen Netzen)
+
+cd /opt/jitsi && docker compose up -d
+
+# Ersten Jitsi-User anlegen
+docker compose exec prosody \
+  prosodyctl --config /config/prosody.cfg.lua \
+  register nutzer1 meet.jitsi PASSWORT</pre>
+
+                      <!-- PRIMA Umgebungsvariablen -->
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">4. PRIMA-Umgebungsvariablen setzen</p>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># .env (lokal) oder Railway Service-Variablen
+
+# Jitsi
+JITSI_BASE_URL=https://meet.firma.de
+
+# Matrix
+MATRIX_HOMESERVER_URL=https://matrix.firma.de
+MATRIX_BOT_TOKEN=syt_prima-bot_TOKEN_HIER  # aus Schritt 2 (Login-Antwort)
+MATRIX_FACILITY_ROOM_ID=!RAUMID:matrix.firma.de  # in Element unter Raumeinstellungen</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># Bot-Token ermitteln (Matrix Client-Server-API)
+curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "m.login.password",
+    "user": "prima-bot",
+    "password": "BOTPASSWORT"
+  }' | python3 -m json.tool
+# -> "access_token": "syt_..." --> das ist der MATRIX_BOT_TOKEN</pre>
+
+                      <!-- Uebersicht -->
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Ergebnis</p>
+                      <table class="table table-sm table-bordered" style="font-size:0.78rem;">
+                        <thead style="background:#ecfeff;">
+                          <tr><th>Dienst</th><th>URL</th><th>Zweck</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td>Matrix Synapse</td><td><code>matrix.firma.de</code></td><td>Homeserver (API)</td></tr>
+                          <tr><td>Element Web</td><td><code>chat.firma.de</code></td><td>Chat-Client im Browser</td></tr>
+                          <tr><td>Jitsi Meet</td><td><code>meet.firma.de</code></td><td>Videokonferenz</td></tr>
+                          <tr><td>PRIMA</td><td><code>prima.firma.de</code></td><td>Koordination + Links</td></tr>
+                        </tbody>
+                      </table>
+
+                      <div style="background:#fef9c3; border:1px solid #fde047; border-radius:6px; padding:0.75rem; margin-top:0.75rem; font-size:0.78rem; color:#713f12;">
+                        <strong>Sicherheitshinweise:</strong>
+                        Alle Passwoerter mit <code>pwgen 32 1</code> oder <code>openssl rand -hex 32</code> generieren.
+                        Synapse-Registrierung nach Admin-Anlage deaktivieren
+                        (<code>enable_registration: false</code> in homeserver.yaml).
+                        Regelmaessige Backups: <code>/opt/matrix/synapse</code> + PostgreSQL-Dump.
+                        Firewall: nur Port 80, 443, 10000/UDP offen &mdash; SSH nur per Key.
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+                <!-- Ende Docker-Installation -->
+
+              </div>
+
+              <div style="border:2px solid #64748b; border-top:5px solid #64748b; border-radius:8px; padding:1rem; background:#f8fafc; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#64748b; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  IN PLANUNG
+                </div>
+                <div class="fw-bold mb-2" style="color:#475569; font-size:1rem;">Single Sign-On: LDAP &rarr; Keycloak</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  Zweistufiger SSO-Ansatz auf Basis der vorhandenen Windows-Domäne (Active Directory).
+                  Stufe 1: LDAP-Anbindung &mdash; Mitarbeiter meldet sich mit Windows-Passwort in PRIMA an,
+                  AD ist die einzige Passwort-Wahrheit, AD-Gruppen werden auf PRIMA-Rechte gemappt.
+                  Stufe 2: Keycloak als zentraler Identity Provider &mdash; spricht per LDAP-Federation
+                  mit AD und stellt OIDC/OAuth2 fuer alle Apps bereit.
+                  PRIMA, Jitsi und alle kuenftigen Systeme authentifizieren sich ueber einen
+                  einzigen Punkt. MFA zentral konfigurierbar. Einmal abmelden &rarr; ueberall abgemeldet.
+                </div>
+                <div style="font-size:0.78rem; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Active Directory &rarr; (LDAP) &rarr; Keycloak &rarr; (OIDC/OAuth2) &rarr; PRIMA + Jitsi + weitere Apps
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Active Directory</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">LDAP-Federation</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Keycloak OIDC</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">MFA</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Ein Login fuer alles</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Edge per GPO &rarr; interne CA per GPO &rarr; SSO per Keycloak &rarr; alle Standorte automatisch eingebunden.
+                </div>
+              </div>
+
+              <div style="border:2px solid #64748b; border-top:5px solid #64748b; border-radius:8px; padding:1rem; background:#f8fafc; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#64748b; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  IN PLANUNG
+                </div>
+                <div class="fw-bold mb-2" style="color:#475569; font-size:1rem;">Dokumentenmanagement: PRIMA DMS + Paperless-ngx</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  Hybrides Dokumentenmanagementsystem mit zwei Klassen:
+                  <strong>Offen</strong> (Betriebsanweisungen, Protokolle, Formulare) &mdash;
+                  Volltext durchsuchbar via PostgreSQL tsvector, GIN-Index, deutsche Stemming-Analyse.
+                  <strong>Sensibel</strong> (Personalakten, Zeugnisse, Steuerunterlagen) &mdash;
+                  Fernet AES-128 verschluesselt, nur Metadaten-Suche.
+                  Scan-Workflow ueber vorhandene Etagenscanner: Scanner schickt PDF per E-Mail
+                  an zentrales Postfach &rarr; Paperless-ngx verarbeitet automatisch (OCR via Tesseract,
+                  Auto-Tagging nach Absender/Standort/Etage, Volltext-Index) &rarr;
+                  Webhook an PRIMA &rarr; Dokument erscheint sofort im DMS mit korrekten Berechtigungen.
+                  Kein manuelles Ablegen, kein Ordner-Chaos, standortuebergreifend.
+                </div>
+                <div style="font-size:0.78rem; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Etagenscanner &rarr; E-Mail &rarr; Paperless OCR + Auto-Tag &rarr; Webhook &rarr; PRIMA DMS &rarr; Volltext-Suche
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">PostgreSQL Volltext</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">OCR (Tesseract)</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Auto-Tagging</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">AES-128 sensibel</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">E-Mail-Scan-Eingang</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Paperless-ngx</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Self-hosted, keine Cloud, keine Lizenzkosten &mdash; Etagenscanner werden zum automatischen Dokumenten-Eingang.
+                </div>
+              </div>
+
+              <div style="border:2px solid #94a3b8; border-top:5px solid #94a3b8; border-radius:8px; padding:1rem; background:#f8fafc; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#94a3b8; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  VISION
+                </div>
+                <div class="fw-bold mb-2" style="color:#64748b; font-size:1rem;">PRIMA als freundliches SAP-Frontend</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  Eine denkbare Weiterentwicklung: PRIMA positioniert sich nicht als Ersatz
+                  fuer bestehende ERP-Systeme, sondern als die menschliche Schicht davor.
+                  SAP bleibt was es ist &mdash; Buchungssystem, Compliance-Motor, Wahrheit der Zahlen.
+                  PRIMA uebernimmt was SAP nicht kann: eine Bedienoberflaeche die normale
+                  Mitarbeiter verstehen und gerne nutzen.
+                  Zeiterfassung, Dienstreisen, Antraege &mdash; erfasst in PRIMA, gebucht in SAP.
+                  Kein SAP-GUI. Kein Schulungsaufwand. Keine SAP-Lizenz pro Arbeitsplatz.
+                  <br><br>
+                  <em>Ob und wie diese Integration sinnvoll ist, wird gemeinsam mit
+                  erfahrenen SAP-Beratern bewertet.</em>
+                </div>
+                <div style="font-size:0.78rem; color:#64748b; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Mitarbeiter &rarr; PRIMA (einfach) &rarr; SAP (unsichtbar) &rarr; Buchhaltung, Lohn, Compliance
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#64748b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">SAP RFC / OData</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#64748b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Zeitwirtschaft</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#64748b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Reisekosten</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#64748b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Kein SAP-GUI</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Was SAP kann, soll SAP machen. Was Menschen brauchen, macht PRIMA.
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ===== TAB 2: TECHNOLOGIE-STACK ===== -->
+          <div class="tab-pane fade" id="pane-tech" role="tabpanel">
+            <p class="text-muted mb-4" style="font-size:0.9rem;">
+              Alle Libraries sind lokal eingebunden &mdash; die Anwendung laeuft vollstaendig
+              ohne Internet-Verbindung (Intranet-only).
+            </p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+
+              <div>
+                <h6 class="fw-bold mb-3" style="color:#1a4d2e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Backend</h6>
+                <table class="table table-sm" style="font-size:0.85rem;">
+                  <tbody>
+                    <tr><td class="fw-semibold" style="width:45%;">Django</td><td class="text-muted">6.0.2 &mdash; Web-Framework (FBVs)</td></tr>
+                    <tr><td class="fw-semibold">Python</td><td class="text-muted">3.11+ &mdash; Laufzeitumgebung</td></tr>
+                    <tr><td class="fw-semibold">PostgreSQL</td><td class="text-muted">16 &mdash; Datenbank (Supabase/Docker)</td></tr>
+                    <tr><td class="fw-semibold">psycopg2</td><td class="text-muted">2.9.11 &mdash; DB-Adapter</td></tr>
+                    <tr><td class="fw-semibold">django-guardian</td><td class="text-muted">3.2.0 &mdash; Object-Permissions</td></tr>
+                    <tr><td class="fw-semibold">WeasyPrint</td><td class="text-muted">68.1 &mdash; HTML &rarr; PDF-Erzeugung</td></tr>
+                    <tr><td class="fw-semibold">pyhanko</td><td class="text-muted">PDF-Signatur (PKCS#12 / PAdES)</td></tr>
+                    <tr><td class="fw-semibold">cryptography</td><td class="text-muted">44.0.3 &mdash; Fernet AES-128 Dokumentenverschluesselung</td></tr>
+                    <tr><td class="fw-semibold">OR-Tools</td><td class="text-muted">9.15 &mdash; Schichtplan-Optimierung (Google)</td></tr>
+                    <tr><td class="fw-semibold">workalendar</td><td class="text-muted">17.0 &mdash; Feiertagskalender NRW</td></tr>
+                    <tr><td class="fw-semibold">openpyxl</td><td class="text-muted">3.1.5 &mdash; Excel-Import Schichtplan</td></tr>
+                    <tr><td class="fw-semibold">Gunicorn</td><td class="text-muted">25.0.3 &mdash; WSGI-Server (Produktion)</td></tr>
+                    <tr><td class="fw-semibold">Whitenoise</td><td class="text-muted">6.11 &mdash; Static-File-Serving</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div>
+                <h6 class="fw-bold mb-3" style="color:#1a4d2e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Frontend (alle lokal)</h6>
+                <table class="table table-sm" style="font-size:0.85rem;">
+                  <tbody>
+                    <tr><td class="fw-semibold" style="width:45%;">Bootstrap 5</td><td class="text-muted">CSS/JS-Framework (lokal)</td></tr>
+                    <tr><td class="fw-semibold">HTMX</td><td class="text-muted">Partial-Rendering fuer Formulare-App</td></tr>
+                    <tr><td class="fw-semibold">D3.js v7</td><td class="text-muted">Interaktives Organigramm (SVG)</td></tr>
+                    <tr><td class="fw-semibold">Vanilla JS</td><td class="text-muted">Befehlspalette (Strg+K / /)</td></tr>
+                  </tbody>
+                </table>
+
+                <h6 class="fw-bold mt-4 mb-3" style="color:#1a4d2e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Deployment &amp; Infrastruktur</h6>
+                <table class="table table-sm" style="font-size:0.85rem;">
+                  <tbody>
+                    <tr><td class="fw-semibold" style="width:45%;">Railway</td><td class="text-muted">App-Hosting (nixpacks, auto-deploy)</td></tr>
+                    <tr><td class="fw-semibold">Supabase</td><td class="text-muted">PostgreSQL-Hosting (Produktion)</td></tr>
+                    <tr><td class="fw-semibold">Docker</td><td class="text-muted">Lokale Entwicklung (PostgreSQL)</td></tr>
+                    <tr><td class="fw-semibold">GitHub</td><td class="text-muted">Versionskontrolle + CI-Trigger</td></tr>
+                  </tbody>
+                </table>
+
+                <h6 class="fw-bold mt-4 mb-3" style="color:#1a4d2e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Apps im System</h6>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  {% for app in apps_liste %}
+                  <span class="badge" style="background:#e8f5e9; color:#1a4d2e; font-size:0.72rem; font-weight:600;">{{ app }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ===== TAB 3: SICHERHEITSBEWERTUNG ===== -->
+          <div class="tab-pane fade" id="pane-security" role="tabpanel">
+            <p class="text-muted mb-4" style="font-size:0.9rem;">
+              Ehrliche Bewertung der implementierten Sicherheitsmassnahmen nach Schutzebenen.
+            </p>
+
+            <!-- Schutzebenen -->
+            <h6 class="fw-bold mb-3" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:#374151;">Implementierte Schutzebenen</h6>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:0.75rem; margin-bottom:1.5rem;">
+
+              <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:0.9rem;">
+                <div class="fw-bold mb-1" style="color:#166534; font-size:0.85rem;">Transport-Verschluesselung</div>
+                <div style="font-size:0.78rem; color:#374151;">TLS 1.3 via Railway/Supabase. Alle HTTP-Requests verschluesselt.</div>
+                <div class="mt-2">
+                  <span class="badge" style="background:#16a34a; color:white; font-size:0.65rem;">STARK</span>
+                </div>
+              </div>
+
+              <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:0.9rem;">
+                <div class="fw-bold mb-1" style="color:#166534; font-size:0.85rem;">Datenbank at-rest</div>
+                <div style="font-size:0.78rem; color:#374151;">AES-256 durch Supabase-Infrastruktur. Automatisch, ohne Konfiguration.</div>
+                <div class="mt-2">
+                  <span class="badge" style="background:#16a34a; color:white; font-size:0.65rem;">STARK</span>
+                </div>
+              </div>
+
+              <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:0.9rem;">
+                <div class="fw-bold mb-1" style="color:#166534; font-size:0.85rem;">Dokument-Verschluesselung</div>
+                <div style="font-size:0.78rem; color:#374151;">AES-128 Fernet auf App-Ebene. Kein Klartext in der DB, auch nicht fuer DB-Admins lesbar.</div>
+                <div class="mt-2">
+                  <span class="badge" style="background:#16a34a; color:white; font-size:0.65rem;">GUT</span>
+                </div>
+              </div>
+
+              <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:0.9rem;">
+                <div class="fw-bold mb-1" style="color:#166534; font-size:0.85rem;">PDF-Signatur (PAdES)</div>
+                <div style="font-size:0.78rem; color:#374151;">PKCS#12-Zertifikate, X.509. Jedes ausgegebene PDF kryptografisch signiert und pruefbar.</div>
+                <div class="mt-2">
+                  <span class="badge" style="background:#16a34a; color:white; font-size:0.65rem;">GUT</span>
+                </div>
+              </div>
+
+              <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:0.9rem;">
+                <div class="fw-bold mb-1" style="color:#166534; font-size:0.85rem;">Zugriffsprotokoll</div>
+                <div style="font-size:0.78rem; color:#374151;">Unveraenderbares Log fuer Dokument-Downloads (User, IP, Zeitstempel). DSGVO Art. 5 Abs. 2.</div>
+                <div class="mt-2">
+                  <span class="badge" style="background:#16a34a; color:white; font-size:0.65rem;">GUT</span>
+                </div>
+              </div>
+
+              <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:0.9rem;">
+                <div class="fw-bold mb-1" style="color:#166534; font-size:0.85rem;">Zugriffskontrolle</div>
+                <div style="font-size:0.78rem; color:#374151;">Django-Auth + django-guardian Object-Permissions. Rollen: Sachbearbeiter, Schichtplaner. Login fuer alle Bereiche.</div>
+                <div class="mt-2">
+                  <span class="badge" style="background:#16a34a; color:white; font-size:0.65rem;">GUT</span>
+                </div>
+              </div>
+
+              <div style="background:#fefce8; border:1px solid #fef08a; border-radius:8px; padding:0.9rem;">
+                <div class="fw-bold mb-1" style="color:#713f12; font-size:0.85rem;">Schluessel-Management</div>
+                <div style="font-size:0.78rem; color:#374151;">Dokument-Schluessel als Railway-Envvar. Kompromittierung des Hosting-Accounts = Schluessel exponiert.</div>
+                <div class="mt-2">
+                  <span class="badge" style="background:#ca8a04; color:white; font-size:0.65rem;">MITTEL</span>
+                </div>
+              </div>
+
+              <div style="background:#fefce8; border:1px solid #fef08a; border-radius:8px; padding:0.9rem;">
+                <div class="fw-bold mb-1" style="color:#713f12; font-size:0.85rem;">Session-Sicherheit</div>
+                <div style="font-size:0.78rem; color:#374151;">Django-Standard-Sessions. Kein 2FA, kein Token-Ablauf nach Inaktivitaet konfiguriert.</div>
+                <div class="mt-2">
+                  <span class="badge" style="background:#ca8a04; color:white; font-size:0.65rem;">MITTEL</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Risikomatrix -->
+            <h6 class="fw-bold mb-3 mt-4" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:#374151;">Risikobewertung Szenarien</h6>
+            <table class="table table-sm" style="font-size:0.82rem;">
+              <thead style="background:#f8f9fa;">
+                <tr>
+                  <th style="width:35%;">Angriffsszenario</th>
+                  <th style="width:15%;">Risiko</th>
+                  <th>Schutz vorhanden</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Gestohlener DB-Dump (Supabase)</td>
+                  <td><span class="badge bg-success" style="font-size:0.7rem;">GERING</span></td>
+                  <td class="text-muted">AES-256 at-rest + AES-128 Dokumente. Klartext nicht lesbar.</td>
+                </tr>
+                <tr>
+                  <td>Gestohlene DB-Credentials (direkter Zugang)</td>
+                  <td><span class="badge bg-warning text-dark" style="font-size:0.7rem;">MITTEL</span></td>
+                  <td class="text-muted">Dokumente verschluesselt. Personaldaten, Vereinbarungen, Zeiterfassung aber sichtbar.</td>
+                </tr>
+                <tr>
+                  <td>Kompromittierter Railway-Account</td>
+                  <td><span class="badge bg-danger" style="font-size:0.7rem;">HOCH</span></td>
+                  <td class="text-muted">Envvars einsehbar &rarr; Dokument-Schluessel exponiert. 2FA fuer Railway dringend empfohlen.</td>
+                </tr>
+                <tr>
+                  <td>Kompromittierte laufende App (RCE)</td>
+                  <td><span class="badge bg-danger" style="font-size:0.7rem;">HOCH</span></td>
+                  <td class="text-muted">Vollstaendiger Zugriff auf alle Daten. Nur durch sichere Deployment-Konfiguration mildert.</td>
+                </tr>
+                <tr>
+                  <td>Gestohlene Mitarbeiter-Session</td>
+                  <td><span class="badge bg-warning text-dark" style="font-size:0.7rem;">MITTEL</span></td>
+                  <td class="text-muted">Zugriff auf eigene Daten. Zugriffsprotokoll erkennt ungewoehnliche IPs im Nachgang.</td>
+                </tr>
+                <tr>
+                  <td>Interne unberechtigte Einsicht (Kollegen)</td>
+                  <td><span class="badge bg-success" style="font-size:0.7rem;">GERING</span></td>
+                  <td class="text-muted">Rollenbasierte Zugriffssteuerung. Sensible Daten nur fuer Eigentuemer + Staff sichtbar.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="mt-3 p-3 rounded" style="background:#eff6ff; border:1px solid #bfdbfe; font-size:0.82rem; color:#1e40af;">
+              <strong>Gesamteinschaetzung:</strong>
+              Fuer ein Intranet-System ohne Hochsicherheitsanforderungen ist der Schutz
+              <strong>angemessen und professionell</strong> umgesetzt (DSGVO Art. 32 konform).
+              Die groessten Risiken liegen im Hosting-Account-Schutz, nicht im Code.
+              Empfehlung: 2FA fuer Railway- und Supabase-Accounts aktivieren.
+            </div>
+          </div>
+
+          <!-- ===== TAB 4: BEDIENUNG ===== -->
+          <div class="tab-pane fade" id="pane-bedienung" role="tabpanel">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:2rem;">
+              <div>
+                <h6 class="fw-bold mb-3" style="color:#1a4d2e;">Tastaturkuerzel</h6>
+                <table class="table table-sm" style="font-size:0.85rem;">
+                  <tbody>
+                    <tr>
+                      <td><kbd>/</kbd> oder <kbd>Strg</kbd>+<kbd>K</kbd></td>
+                      <td class="text-muted">Schnellsuche oeffnen</td>
+                    </tr>
+                    <tr>
+                      <td><kbd>Esc</kbd></td>
+                      <td class="text-muted">Schnellsuche schliessen</td>
+                    </tr>
+                    <tr>
+                      <td><kbd>Pfeil auf/ab</kbd></td>
+                      <td class="text-muted">In Suchergebnissen navigieren</td>
+                    </tr>
+                    <tr>
+                      <td><kbd>Enter</kbd></td>
+                      <td class="text-muted">Markierten Eintrag oeffnen</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <h6 class="fw-bold mt-4 mb-3" style="color:#1a4d2e;">Navbar-Struktur</h6>
+                <table class="table table-sm" style="font-size:0.85rem;">
+                  <tbody>
+                    <tr><td class="fw-semibold">Dashboard</td><td class="text-muted">Startseite mit App-Kacheln</td></tr>
+                    <tr><td class="fw-semibold">Aufgaben</td><td class="text-muted">Arbeitsstapel, Team-Queue, Eskalationen</td></tr>
+                    <tr><td class="fw-semibold">Antraege</td><td class="text-muted">ZAG, Zeitgutschrift, Dienstreise</td></tr>
+                    <tr><td class="fw-semibold">Personal</td><td class="text-muted">Soll-Stunden, Organigramm</td></tr>
+                    <tr><td class="fw-semibold">Gebaeude</td><td class="text-muted">Facility + Raumbuch</td></tr>
+                    <tr><td class="fw-semibold">Planung</td><td class="text-muted">Schichtplan, Veranstaltungen</td></tr>
+                    <tr><td class="fw-semibold">Admin</td><td class="text-muted">Nur Staff: Verwaltung, Compliance</td></tr>
+                    <tr><td class="fw-semibold">Username (rechts)</td><td class="text-muted">Meine Daten, Dokumente, Abmelden</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div>
+                <h6 class="fw-bold mb-3" style="color:#1a4d2e;">Haeufige Aktionen</h6>
+                <table class="table table-sm" style="font-size:0.85rem;">
+                  <tbody>
+                    <tr><td class="fw-semibold">Neuer Antrag</td><td class="text-muted">Antraege &rarr; Uebersicht / Neuer Antrag</td></tr>
+                    <tr><td class="fw-semibold">Stoermeldung</td><td class="text-muted">Gebaeude &rarr; Stoermeldung erfassen</td></tr>
+                    <tr><td class="fw-semibold">Dokument hochladen</td><td class="text-muted">Username &rarr; Meine Dokumente &rarr; + hochladen</td></tr>
+                    <tr><td class="fw-semibold">DSGVO-Auskunft</td><td class="text-muted">Username &rarr; Meine Daten (DSGVO)</td></tr>
+                    <tr><td class="fw-semibold">Raum buchen</td><td class="text-muted">Gebaeude &rarr; Raumreservierungen</td></tr>
+                    <tr><td class="fw-semibold">Signatur-Status</td><td class="text-muted">Username &rarr; Digitale Signatur</td></tr>
+                  </tbody>
+                </table>
+
+                <div class="mt-4 p-3 rounded" style="background:#f0fdf4; border:1px solid #bbf7d0; font-size:0.82rem; color:#166534;">
+                  <strong>Offline-Betrieb:</strong><br>
+                  Die Anwendung funktioniert vollstaendig ohne Internet.
+                  Alle Libraries (Bootstrap, HTMX, D3.js) sind lokal eingebunden.
+                  Keine externen API-Aufrufe, keine CDN-Abhaengigkeiten.
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- end tab-content -->
+      </div><!-- end modal-body -->
+
+      <div class="modal-footer" style="background:#f9fafb;">
+        <span class="text-muted" style="font-size:0.78rem;">
+          Version: Django {{ "6.0.2" }} &middot; Python 3.11+ &middot;
+          PRIMA &mdash; Intranet-Betriebssystem
+        </span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+          Schliessen
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- ==================== ENDE HILFE-MODAL ==================== -->
 
 <!-- Befehlspalette (Strg+K) -->
 {% if user.is_authenticated %}
@@ -352,12 +1388,16 @@ var CMD_ITEMS = [
     {% if al_queue_anzahl %}
     {l: "Eskalationen", u: "{% url 'facility:al_queue' %}", g: "Aufgaben"},
     {% endif %}
-    {l: "Soll-Stunden Monat", u: "{% url 'arbeitszeit:soll_stunden_dashboard' %}", g: "Personal"},
-    {l: "Soll-Stunden Jahr", u: "{% url 'arbeitszeit:soll_stunden_jahresuebersicht' %}", g: "Personal"},
-    {l: "Soll-Stunden berechnen", u: "{% url 'arbeitszeit:soll_stunden_berechnen' %}", g: "Personal"},
+    {l: "Antraege / Neuer Antrag", u: "{% url 'formulare:dashboard' %}", g: "Antraege"},
+    {% if hat_genehmiger_rolle %}
+    {l: "Genehmigungen", u: "{% url 'formulare:genehmigung_uebersicht' %}", g: "Antraege"},
+    {% endif %}
     {% if user.mitarbeiter %}
     {l: "Meine Soll-Stunden", u: "{% url 'arbeitszeit:mitarbeiter_soll_uebersicht' user.mitarbeiter.pk %}", g: "Personal"},
     {% endif %}
+    {l: "Soll-Stunden Monat", u: "{% url 'arbeitszeit:soll_stunden_dashboard' %}", g: "Personal"},
+    {l: "Soll-Stunden Jahr", u: "{% url 'arbeitszeit:soll_stunden_jahresuebersicht' %}", g: "Personal"},
+    {l: "Soll-Stunden berechnen", u: "{% url 'arbeitszeit:soll_stunden_berechnen' %}", g: "Personal"},
     {l: "Organigramm", u: "{% url 'hr:organigramm' %}", g: "Personal"},
     {l: "Stoermeldung erfassen", u: "{% url 'facility:erstellen' %}", g: "Gebaeude"},
     {l: "Meine Stoermeldungen", u: "{% url 'facility:meine' %}", g: "Gebaeude"},
@@ -395,7 +1435,12 @@ var CMD_ITEMS = [
     {l: "Textbausteine", u: "{% url 'facility:textbaustein_liste' %}", g: "Admin"},
     {l: "Trend-Einstellungen", u: "{% url 'facility:einstellungen' %}", g: "Admin"},
     {l: "Audit-Trail", u: "{% url 'raumbuch:gesamtlog' %}", g: "Admin"},
+    {l: "Digitale Signatur", u: "{% url 'signatur:dashboard' %}", g: "Admin"},
+    {l: "Signatur-Dokumentation", u: "{% url 'signatur:dokumentation_pdf' %}", g: "Admin"},
+    {l: "Datenschutz DSGVO", u: "{% url 'datenschutz:dashboard' %}", g: "Admin"},
     {% endif %}
+    {l: "Meine Daten (DSGVO-Auskunft)", u: "{% url 'datenschutz:auskunft_pdf' %}", g: "Konto"},
+    {l: "Digitale Signatur", u: "{% url 'signatur:dashboard' %}", g: "Konto"},
 ];
 </script>
 {% endif %}
@@ -420,7 +1465,7 @@ var CMD_ITEMS = [
 <!-- Footer -->
 <footer class="mt-5 py-3 bg-light">
     <div class="container text-center text-muted">
-        <small>&copy; 2026 Arbeitszeit-Verwaltung</small>
+        <small><strong>PRIMA</strong> &mdash; Intranet-Betriebssystem &mdash; intern &amp; vertraulich</small>
     </div>
 </footer>
 
@@ -519,6 +1564,26 @@ var CMD_ITEMS = [
 
     input.addEventListener("input", function() {
         render(this.value);
+    });
+})();
+</script>
+{% endif %}
+
+<!-- Aktiver Navbar-Eintrag: hebt den passenden Nav-Punkt hervor -->
+{% if user.is_authenticated %}
+<script>
+(function() {
+    var path = window.location.pathname;
+    document.querySelectorAll(".navbar-nav .nav-item").forEach(function(item) {
+        var link = item.querySelector(":scope > .nav-link:not(.dropdown-toggle)");
+        if (link && link.getAttribute("href") && link.getAttribute("href") !== "#") {
+            try {
+                var linkPath = new URL(link.href, window.location.origin).pathname;
+                if (linkPath !== "/" && path.startsWith(linkPath)) {
+                    item.classList.add("nav-active");
+                }
+            } catch(e) {}
+        }
     });
 })();
 </script>

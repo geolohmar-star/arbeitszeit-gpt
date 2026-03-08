@@ -6,12 +6,16 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from config.kommunikation_utils import jitsi_link_generieren, matrix_raum_link
+
 from .models import (
     Belegung,
     Bereich,
     Besuchsanmeldung,
     Gebaeude,
     Geschoss,
+    Glasfaserverbindung,
+    NetzwerkKomponente,
     RaumbuchLog,
     Raumbuchung,
     RaumArbeitsschutzDaten,
@@ -94,7 +98,9 @@ def gebaeude_grundriss(request):
                 "kapazitaet": raum.kapazitaet,
                 "belegt_von": str(ma) if ma else None,
                 "hat_netzwerk": nw is not None,
+                "hat_netzwerkplan": raum.raumtyp in {"serverraum", "it_verteiler", "druckerraum", "elektroverteilung"},
                 "url": f"/raumbuch/raum/{raum.pk}/",
+                "netzwerkplan_url": f"/raumbuch/raum/{raum.pk}/netzwerkplan/",
             })
     elif struktur and struktur[0]["geschosse"]:
         # Default: erstes Geschoss laden
@@ -1318,6 +1324,14 @@ def buchung_erstellen(request, raum_pk=None):
                 )
             else:
                 buchungs_nr = Raumbuchung.generiere_buchungsnummer()
+                # Raum-Objekt laden fuer Jitsi-Link-Generierung
+                raum = get_object_or_404(Raum, pk=raum_id)
+                raumname_slug = (
+                    f"{raum.raumnummer}-{raum.raumname}"
+                    if raum.raumname
+                    else raum.raumnummer
+                )
+                jitsi_url = jitsi_link_generieren(raumname_slug, datum, buchungs_nr)
                 buchung = Raumbuchung.objects.create(
                     raum_id=raum_id,
                     datum=datum,
@@ -1327,9 +1341,9 @@ def buchung_erstellen(request, raum_pk=None):
                     teilnehmerzahl=teilnehmerzahl,
                     buchender=request.user,
                     buchungs_nr=buchungs_nr,
+                    jitsi_link=jitsi_url,
                     status="offen",
                 )
-                raum = buchung.raum
                 _log(raum, "Buchung erstellt", buchungs_nr, request.user, "Raumbuchung", buchung.pk)
                 messages.success(request, f"Buchung {buchungs_nr} angelegt.")
                 return redirect("raumbuch:buchung_detail", pk=buchung.pk)
@@ -1348,9 +1362,18 @@ def buchung_erstellen(request, raum_pk=None):
 
 @login_required
 def buchung_detail(request, pk):
-    """Buchungsdetail."""
+    """Buchungsdetail mit Jitsi- und Matrix-Links."""
     buchung = get_object_or_404(Raumbuchung, pk=pk)
-    return render(request, "raumbuch/buchung_detail.html", {"buchung": buchung})
+    matrix_link = matrix_raum_link(
+        f"{buchung.raum.raumnummer}-{buchung.raum.raumname}"
+        if buchung.raum.raumname
+        else buchung.raum.raumnummer
+    )
+    return render(
+        request,
+        "raumbuch/buchung_detail.html",
+        {"buchung": buchung, "matrix_link": matrix_link},
+    )
 
 
 @login_required
@@ -1503,3 +1526,60 @@ def gesamtlog(request):
         "raumbuch/log_liste.html",
         {"raum": None, "log_eintraege": log_eintraege},
     )
+
+
+# ---------------------------------------------------------------------------
+# Netzwerkplan – IT-Raum Detail mit Rack-Visualisierung
+# ---------------------------------------------------------------------------
+
+@login_required
+def raum_netzwerkplan(request, pk):
+    """Netzwerkplan eines IT-Raums: 19-Zoll Rack-SVG, Komponenten, Glasfaser."""
+    raum = get_object_or_404(Raum, pk=pk)
+
+    # Nur IT-Raeume freischalten
+    it_typen = {"serverraum", "it_verteiler", "druckerraum", "elektroverteilung"}
+    if raum.raumtyp not in it_typen and not request.user.is_staff:
+        messages.error(request, "Kein Netzwerkplan fuer diesen Raumtyp verfuegbar.")
+        return redirect("raumbuch:raum_detail", pk=pk)
+
+    komponenten = raum.netzwerk_komponenten.all().order_by("-rack_einheit_start")
+
+    # Hoechste belegte Rack-Einheit ermitteln (fuer SVG-Groesse)
+    max_he = 42
+    for k in komponenten:
+        if k.rack_einheit_start:
+            max_he = max(max_he, k.rack_einheit_start)
+
+    # Glasfaserverbindungen die diesen Raum betreffen
+    glasfaser = Glasfaserverbindung.objects.filter(
+        von_raum=raum
+    ).exclude(nach_raum=raum).select_related("nach_raum")
+
+    # Verbundene Raeume: alle Bueros die ueber diesen Switch laufen
+    try:
+        netz = raum.netzwerk_daten
+        switch_name = netz.switch_name or raum.raumnummer
+    except RaumNetzwerkDaten.DoesNotExist:
+        switch_name = raum.raumnummer
+
+    # Alle Raeume die auf Komponenten in diesem Raum verweisen
+    verbundene_raeume = (
+        RaumNetzwerkDaten.objects.filter(switch_name__in=[k.bezeichnung for k in komponenten])
+        .select_related("raum__geschoss")
+        .order_by("raum__geschoss__reihenfolge", "raum__raumnummer")
+    )
+
+    # Gesamtport-Statistik
+    gesamt_ports = sum(k.ports_gesamt or 0 for k in komponenten)
+    belegte_ports = sum(k.ports_belegt or 0 for k in komponenten)
+
+    return render(request, "raumbuch/netzwerkplan.html", {
+        "raum": raum,
+        "komponenten": komponenten,
+        "max_he": max_he,
+        "glasfaser": glasfaser,
+        "verbundene_raeume": verbundene_raeume,
+        "gesamt_ports": gesamt_ports,
+        "belegte_ports": belegte_ports,
+    })

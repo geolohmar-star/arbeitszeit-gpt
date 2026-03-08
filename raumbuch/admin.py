@@ -6,6 +6,8 @@ from .models import (
     Besuchsanmeldung,
     Gebaeude,
     Geschoss,
+    Glasfaserverbindung,
+    NetzwerkKomponente,
     RaumbuchLog,
     Raumbuchung,
     RaumArbeitsschutzDaten,
@@ -157,3 +159,18 @@ class RaumbuchLogAdmin(admin.ModelAdmin):
     list_display = ["aktion", "raum", "geaendert_von", "geaendert_am", "model_name"]
     list_filter = ["aktion", "model_name"]
     readonly_fields = ["geaendert_am"]
+
+
+@admin.register(NetzwerkKomponente)
+class NetzwerkKomponenteAdmin(admin.ModelAdmin):
+    list_display = ["bezeichnung", "typ", "raum", "rack_einheit_start", "rack_einheiten", "ports_gesamt", "ports_belegt", "ip_adresse"]
+    list_filter = ["typ", "raum"]
+    search_fields = ["bezeichnung", "hersteller", "modell", "ip_adresse"]
+    ordering = ["raum", "-rack_einheit_start"]
+
+
+@admin.register(Glasfaserverbindung)
+class GlasfaserverbindungAdmin(admin.ModelAdmin):
+    list_display = ["bezeichnung", "von_raum", "nach_raum", "kabel_typ", "fasern_anzahl", "bandbreite", "laenge_m"]
+    list_filter = ["kabel_typ"]
+    search_fields = ["bezeichnung"]

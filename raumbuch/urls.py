@@ -72,4 +72,6 @@ urlpatterns = [
     # Interaktiver Grundriss
     path("grundriss/", views.gebaeude_grundriss, name="grundriss"),
     path("grundriss/status/", views.gebaeude_status_api, name="grundriss_status"),
+    # Netzwerkplan
+    path("raum/<int:pk>/netzwerkplan/", views.raum_netzwerkplan, name="netzwerkplan"),
 ]

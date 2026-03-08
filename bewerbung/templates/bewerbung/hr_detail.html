@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Bewerbung – {{ bewerbung.vollname }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{% url 'bewerbung:hr_liste' %}" class="text-muted small text-decoration-none">&larr; Alle Bewerbungen</a>
+        <h2 class="fw-bold mb-0 mt-1">{{ bewerbung.vollname }}</h2>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        {% if bewerbung.status == "neu" %}
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" name="pruefung" value="1" class="btn btn-sm btn-outline-info fw-semibold">
+                In Pruefung setzen
+            </button>
+        </form>
+        {% endif %}
+        <span class="badge fs-6
+            {% if bewerbung.status == 'neu' %}bg-warning text-dark
+            {% elif bewerbung.status == 'pruefung' %}bg-info text-dark
+            {% elif bewerbung.status == 'gespraech' %}bg-primary
+            {% elif bewerbung.status == 'eingestellt' %}bg-success
+            {% elif bewerbung.status == 'abgelehnt' %}bg-danger
+            {% else %}bg-secondary{% endif %}">
+            {{ bewerbung.get_status_display }}
+        </span>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+    {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="row g-4">
+    <!-- Linke Spalte: Stammdaten -->
+    <div class="col-lg-7">
+
+        <!-- Persoenliche Daten -->
+        <div class="card mb-3">
+            <div class="card-header fw-semibold" style="background:#f0fdf4; color:#1a4d2e;">
+                1. Persoenliche Daten
+            </div>
+            <div class="card-body">
+                <div class="row g-2 small">
+                    <div class="col-4 text-muted">Anrede</div><div class="col-8">{{ bewerbung.get_anrede_display|default:"–" }}</div>
+                    <div class="col-4 text-muted">Vorname</div><div class="col-8">{{ bewerbung.vorname }}</div>
+                    <div class="col-4 text-muted">Nachname</div><div class="col-8">{{ bewerbung.nachname }}</div>
+                    <div class="col-4 text-muted">Geburtsname</div><div class="col-8">{{ bewerbung.geburtsname|default:"–" }}</div>
+                    <div class="col-4 text-muted">Geburtsdatum</div><div class="col-8">{{ bewerbung.geburtsdatum|date:"d.m.Y" }}</div>
+                    <div class="col-4 text-muted">Geburtsort</div><div class="col-8">{{ bewerbung.geburtsort }}</div>
+                    <div class="col-4 text-muted">Staatsangeh.</div><div class="col-8">{{ bewerbung.staatsangehoerigkeit|default:"–" }}</div>
+                    <div class="col-4 text-muted">Familienstand</div><div class="col-8">{{ bewerbung.get_familienstand_display|default:"–" }}</div>
+                    <div class="col-4 text-muted">Kinder</div><div class="col-8">{{ bewerbung.anzahl_kinder }}</div>
+                    <div class="col-4 text-muted">Konfession</div><div class="col-8">{{ bewerbung.konfession|default:"–" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Anschrift -->
+        <div class="card mb-3">
+            <div class="card-header fw-semibold" style="background:#f0fdf4; color:#1a4d2e;">2. Anschrift</div>
+            <div class="card-body">
+                <div class="row g-2 small">
+                    <div class="col-4 text-muted">Strasse / Nr.</div>
+                    <div class="col-8">{{ bewerbung.strasse }} {{ bewerbung.hausnummer }}</div>
+                    <div class="col-4 text-muted">PLZ / Ort</div>
+                    <div class="col-8">{{ bewerbung.plz }} {{ bewerbung.ort }}</div>
+                    <div class="col-4 text-muted">Land</div>
+                    <div class="col-8">{{ bewerbung.land|default:"–" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kontakt -->
+        <div class="card mb-3">
+            <div class="card-header fw-semibold" style="background:#f0fdf4; color:#1a4d2e;">3. Kontakt</div>
+            <div class="card-body">
+                <div class="row g-2 small">
+                    <div class="col-4 text-muted">Telefon</div><div class="col-8">{{ bewerbung.telefon_privat|default:"–" }}</div>
+                    <div class="col-4 text-muted">Mobil</div><div class="col-8">{{ bewerbung.mobil_privat }}</div>
+                    <div class="col-4 text-muted">E-Mail</div><div class="col-8">{{ bewerbung.email_privat|default:"–" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sensible Daten -->
+        <div class="card mb-3" style="border-top: 3px solid #dc2626;">
+            <div class="card-header fw-semibold" style="background:#fef2f2; color:#dc2626;">
+                Steuer &amp; Bank (vertraulich)
+            </div>
+            <div class="card-body">
+                <div class="row g-2 small">
+                    <div class="col-4 text-muted">Steuerklasse</div><div class="col-8">{{ bewerbung.steuerklasse|default:"–" }}</div>
+                    <div class="col-4 text-muted">Steuer-ID</div><div class="col-8">{{ bewerbung.steuer_id|default:"–" }}</div>
+                    <div class="col-4 text-muted">SV-Nummer</div><div class="col-8">{{ bewerbung.sozialversicherungsnummer|default:"–" }}</div>
+                    <div class="col-4 text-muted">IBAN</div><div class="col-8">{{ bewerbung.iban|default:"–" }}</div>
+                    <div class="col-4 text-muted">BIC</div><div class="col-8">{{ bewerbung.bic|default:"–" }}</div>
+                    <div class="col-4 text-muted">Bank</div><div class="col-8">{{ bewerbung.bank_name|default:"–" }}</div>
+                    <div class="col-4 text-muted">Krankenkasse</div><div class="col-8">{{ bewerbung.krankenkasse_name|default:"–" }}</div>
+                    <div class="col-4 text-muted">KV-Art</div><div class="col-8">{{ bewerbung.get_krankenversicherungsart_display|default:"–" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rechte Spalte: HR-Aktionen + Dokumente -->
+    <div class="col-lg-5">
+
+        <!-- HR-Felder bearbeiten -->
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">HR-Angaben</div>
+            <div class="card-body">
+                <form method="post" action="{% url 'bewerbung:hr_detail_speichern' pk=bewerbung.pk %}">
+                    {% csrf_token %}
+                    {% for field in hr_form %}
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}<div class="text-danger small">{{ field.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-sm fw-semibold w-100"
+                            style="background:#1a4d2e; color:white;">
+                        Speichern
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dokumente -->
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Dokumente ({{ dokumente|length }})</div>
+            <div class="card-body p-0">
+                {% if dokumente %}
+                <ul class="list-group list-group-flush">
+                    {% for dok in dokumente %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center small">
+                        <div>
+                            <span class="badge bg-secondary me-2">{{ dok.get_typ_display }}</span>
+                            {{ dok.dateiname }}
+                        </div>
+                        <a href="{% url 'bewerbung:hr_dokument_download' pk=bewerbung.pk dok_pk=dok.pk %}"
+                           class="btn btn-xs btn-outline-secondary"
+                           style="font-size:0.75rem; padding:0.1rem 0.5rem;">
+                            Download
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted small p-3 mb-0">Keine Dokumente hochgeladen.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Aktionen -->
+        {% if bewerbung.status != "eingestellt" and bewerbung.status != "abgelehnt" %}
+        <div class="card border-0">
+            <div class="card-body d-grid gap-2">
+                <a href="{% url 'bewerbung:hr_einstellen' pk=bewerbung.pk %}"
+                   class="btn fw-bold" style="background:#1a4d2e; color:white;">
+                    Einstellen
+                </a>
+                <a href="{% url 'bewerbung:hr_ablehnen' pk=bewerbung.pk %}"
+                   class="btn btn-outline-danger fw-bold">
+                    Ablehnen (DSGVO-Loeschung)
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Metadaten -->
+        <div class="text-muted small mt-3">
+            <p class="mb-1">Eingegangen: {{ bewerbung.erstellt_am|date:"d.m.Y H:i" }}</p>
+            {% if bewerbung.bearbeitet_von %}
+            <p class="mb-1">Bearbeitet von: {{ bewerbung.bearbeitet_von.get_full_name|default:bewerbung.bearbeitet_von.username }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

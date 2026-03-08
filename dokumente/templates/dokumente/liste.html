@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Sensible Dokumente{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:1100px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-0" style="color:#1a4d2e;">Sensible Dokumente</h1>
+            <p class="text-muted small mb-0">Verschluesselt gespeichert &middot; AES-128 Fernet</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'dokumente:log' %}" class="btn btn-sm btn-outline-secondary">
+                Zugriffsprotokoll
+            </a>
+            <a href="{% url 'dokumente:hochladen' %}" class="btn btn-sm"
+               style="background:#1a4d2e; color:white;">
+                + Dokument hochladen
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Staff-Filter nach Mitarbeiter -->
+    {% if alle_user %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-2">
+            <form method="get" class="d-flex align-items-center gap-3 flex-wrap">
+                <label class="form-label mb-0 fw-semibold small">Mitarbeiter:</label>
+                <select name="user" class="form-select form-select-sm" style="max-width:250px;"
+                        onchange="this.form.submit()">
+                    <option value="">-- Alle --</option>
+                    {% for u in alle_user %}
+                    <option value="{{ u.pk }}" {% if filter_user.pk == u.pk %}selected{% endif %}>
+                        {{ u.get_full_name|default:u.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if filter_user %}
+                <a href="{% url 'dokumente:liste' %}" class="btn btn-sm btn-outline-secondary">
+                    Alle anzeigen
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Dokument-Tabelle -->
+    {% if dokumente %}
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="background:#f8f9fa; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.4px; color:#6b7280;">
+                    <tr>
+                        <th class="px-4 py-3">Datei</th>
+                        <th class="py-3">Kategorie</th>
+                        {% if request.user.is_staff %}<th class="py-3">Mitarbeiter</th>{% endif %}
+                        <th class="py-3">Groesse</th>
+                        <th class="py-3">Gueltig bis</th>
+                        <th class="py-3">Hochgeladen</th>
+                        <th class="py-3">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dok in dokumente %}
+                    <tr>
+                        <td class="px-4 py-3">
+                            <div class="fw-semibold" style="font-size:0.9rem;">{{ dok.dateiname }}</div>
+                            {% if dok.beschreibung %}
+                            <div class="text-muted" style="font-size:0.78rem;">{{ dok.beschreibung }}</div>
+                            {% endif %}
+                            <div style="font-size:0.72rem; color:#9ca3af;">{{ dok.dateityp }}</div>
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill
+                                {% if dok.kategorie == 'zeugnis' %}bg-success
+                                {% elif dok.kategorie == 'abschluss' %}bg-primary
+                                {% elif dok.kategorie == 'reise' %}bg-warning text-dark
+                                {% elif dok.kategorie == 'ausweis' %}bg-danger
+                                {% else %}bg-secondary{% endif %}"
+                                style="font-size:0.7rem;">
+                                {{ dok.get_kategorie_display }}
+                            </span>
+                        </td>
+                        {% if request.user.is_staff %}
+                        <td style="font-size:0.85rem;">
+                            {{ dok.user.get_full_name|default:dok.user.username }}
+                        </td>
+                        {% endif %}
+                        <td style="font-size:0.85rem; white-space:nowrap;">{{ dok.groesse_lesbar }}</td>
+                        <td style="font-size:0.85rem;">
+                            {% if dok.gueltig_bis %}
+                                {{ dok.gueltig_bis|date:"d.m.Y" }}
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:0.82rem; color:#6b7280;">
+                            {{ dok.hochgeladen_am|date:"d.m.Y H:i" }}
+                            {% if dok.hochgeladen_von and dok.hochgeladen_von != dok.user %}
+                            <div style="font-size:0.75rem;">von {{ dok.hochgeladen_von.get_full_name|default:dok.hochgeladen_von.username }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if dok.zugriff_anzahl %}
+                            <div style="font-size:0.72rem; color:#9ca3af; margin-bottom:4px;">
+                                {{ dok.zugriff_anzahl }}x abgerufen
+                            </div>
+                            {% endif %}
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'dokumente:download' dok.pk %}"
+                                   class="btn btn-sm btn-outline-secondary"
+                                   style="font-size:0.78rem;">
+                                    Download
+                                </a>
+                                <form method="post" action="{% url 'dokumente:loeschen' dok.pk %}"
+                                      onsubmit="return confirm('&quot;{{ dok.dateiname }}&quot; wirklich loeschen? Dieser Vorgang kann nicht rueckgaengig gemacht werden.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            style="font-size:0.78rem;">
+                                        Loeschen
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <div style="font-size:3rem; opacity:0.2; margin-bottom:1rem;">&#128274;</div>
+            <h5 class="text-muted fw-normal">Noch keine Dokumente vorhanden</h5>
+            <p class="text-muted small">
+                {% if filter_user %}
+                    Fuer {{ filter_user.get_full_name|default:filter_user.username }} wurden noch keine Dokumente hochgeladen.
+                {% else %}
+                    Es wurden noch keine Dokumente hochgeladen.
+                {% endif %}
+            </p>
+            <a href="{% url 'dokumente:hochladen' %}" class="btn btn-sm mt-2"
+               style="background:#1a4d2e; color:white;">
+                Erstes Dokument hochladen
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Hinweis auf Verschluesselung -->
+    <div class="mt-4 p-3 rounded" style="background:#f0fdf4; border:1px solid #bbf7d0; font-size:0.82rem; color:#166534;">
+        <strong>Sicherheitshinweis:</strong>
+        Alle Dokumente werden vor dem Speichern mit AES-128 (Fernet) verschluesselt.
+        In der Datenbank sind nur verschluesselte Bytes sichtbar &mdash; nicht der Inhalt.
+        Der Schluessel liegt ausschliesslich in der Server-Konfiguration.
+    </div>
+</div>
+{% endblock %}

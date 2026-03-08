@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Dokument loeschen{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:520px;">
+
+    <div class="mb-4">
+        <a href="{% url 'dokumente:liste' %}" class="text-muted text-decoration-none small">
+            &larr; Zurueck zur Uebersicht
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm border-danger" style="border-top:4px solid #dc2626 !important;">
+        <div class="card-body p-4">
+            <h2 class="h5 fw-bold text-danger mb-3">Dokument endgueltig loeschen?</h2>
+            <p class="mb-1"><strong>Datei:</strong> {{ dokument.dateiname }}</p>
+            <p class="mb-1"><strong>Kategorie:</strong> {{ dokument.get_kategorie_display }}</p>
+            <p class="mb-3"><strong>Gehoert:</strong> {{ dokument.user.get_full_name|default:dokument.user.username }}</p>
+            <p class="text-danger small mb-4">
+                Dieser Vorgang kann nicht rueckgaengig gemacht werden.
+                Das Dokument wird unwiederbringlich geloescht.
+            </p>
+            <form method="post" class="d-flex gap-2">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Endgueltig loeschen</button>
+                <a href="{% url 'dokumente:liste' %}" class="btn btn-outline-secondary">Abbrechen</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

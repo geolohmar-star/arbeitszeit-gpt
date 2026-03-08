@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Loeschprotokoll</title>
+<style>
+  @page {
+    size: A4;
+    margin: 2cm;
+    @top-center {
+      content: "Datenschutz-Loeschprotokoll – Vertraulich – Nur Metadaten";
+      font-size: 9pt; color: #666;
+    }
+    @bottom-center {
+      content: "Seite " counter(page) " von " counter(pages);
+      font-size: 8pt; color: #999;
+    }
+  }
+  body { font-family: Arial, sans-serif; font-size: 10pt; color: #222; line-height: 1.5; }
+  h1 { font-size: 16pt; color: #8b0000; border-bottom: 2px solid #8b0000; padding-bottom: 6px; }
+  h2 { font-size: 12pt; color: #333; margin-top: 20px; }
+  .meta-box { background: #fdf2f2; border: 1px solid #e8c5c5; padding: 10px 14px; margin-bottom: 20px; border-radius: 4px; }
+  .meta-box p { margin: 3px 0; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+  th { background: #8b0000; color: #fff; padding: 5px 8px; text-align: left; font-size: 9pt; }
+  td { padding: 4px 8px; border-bottom: 1px solid #e0e0e0; font-size: 9.5pt; }
+  tr:nth-child(even) td { background: #fdf8f8; }
+  .hinweis { background: #fff8e1; border-left: 4px solid #f0ad4e; padding: 8px 12px; margin-top: 24px; font-size: 9pt; }
+  .footer-box { margin-top: 30px; border-top: 1px solid #ccc; padding-top: 10px; font-size: 9pt; color: #555; }
+</style>
+</head>
+<body>
+
+<h1>Datenschutz-Loeschprotokoll</h1>
+<p style="color:#8b0000; font-weight:bold;">
+  WICHTIG: Dieses Dokument enthaelt ausschliesslich Metadaten.
+  Keine personenbezogenen Inhalte sind mehr vorhanden.
+</p>
+
+<div class="meta-box">
+  <p><strong>Personalnummer:</strong> {{ eintrag.personalnummer }}</p>
+  <p><strong>Name (anonymisiert):</strong> {{ eintrag.nachname_kuerzel }}*** (nur 3 Buchstaben des Nachnamens)</p>
+  <p><strong>Eintrittsdatum:</strong> {{ eintrag.eintritt_datum|default:"–" }}</p>
+  <p><strong>Austrittsdatum:</strong> {{ eintrag.austritt_datum|default:"–" }}</p>
+  <p><strong>Interne User-ID (war):</strong> {{ eintrag.user_id_intern }}</p>
+  <p><strong>Loeschung ausgefuehrt am:</strong> {{ heute }}</p>
+  <p><strong>Ausgefuehrt durch:</strong> {{ eintrag.loeschung_durch }}</p>
+</div>
+
+<h2>Geloeschte Datenkategorien (Mengenuebersicht)</h2>
+<table>
+  <tr>
+    <th>Datenkategorie</th>
+    <th>Anzahl geloeschter Datensaetze</th>
+  </tr>
+  {% for kat, anzahl in kategorien.items %}
+  <tr>
+    <td>{{ kat }}</td>
+    <td>{{ anzahl }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="2">Keine Kategorien protokolliert.</td></tr>
+  {% endfor %}
+</table>
+
+<div class="hinweis">
+  <strong>Rechtsgrundlage dieser Loeschung:</strong><br>
+  DSGVO Art. 5 Abs. 1 lit. e (Speicherbegrenzung) in Verbindung mit den anwendbaren
+  gesetzlichen Aufbewahrungsfristen (§ 147 AO, § 195 BGB, eIDAS Art. 40).<br><br>
+  Dieses Protokoll wird gemaess Art. 5 Abs. 2 DSGVO (Rechenschaftspflicht) dauerhaft aufbewahrt.
+  Es enthaelt <strong>keine personenbezogenen Inhalte</strong>, sondern lediglich Metadaten
+  ueber den Loeschvorgang.
+</div>
+
+<div class="footer-box">
+  Automatisch generiert durch das interne Datenmanagementsystem.<br>
+  Dieses Dokument ist ohne Unterschrift als Nachweis gueltig (Art. 5 Abs. 2 DSGVO).
+</div>
+
+</body>
+</html>

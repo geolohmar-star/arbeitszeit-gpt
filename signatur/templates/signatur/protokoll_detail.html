@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Signaturprotokoll #{{ protokoll.pk }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h2>Signaturprotokoll</h2>
+
+  <div class="card mb-4">
+    <div class="card-header"><strong>Protokoll #{{ protokoll.pk }}</strong></div>
+    <div class="card-body">
+      <table class="table table-sm">
+        <tr><th>Unterzeichner</th><td>{{ protokoll.unterzeichner.get_full_name }} ({{ protokoll.unterzeichner.username }})</td></tr>
+        <tr><th>Signiert am</th><td>{{ protokoll.signiert_am|date:"d.m.Y H:i:s" }}</td></tr>
+        <tr><th>Signatur-Typ</th><td><span class="badge bg-info text-dark">{{ protokoll.signatur_typ }}</span></td></tr>
+        <tr><th>Hash (SHA-256)</th><td><code>{{ protokoll.hash_sha256 }}</code></td></tr>
+        {% if protokoll.zertifikat %}
+        <tr><th>Zertifikat</th><td>
+          Seriennr. {{ protokoll.zertifikat.seriennummer }},
+          gueltig bis {{ protokoll.zertifikat.gueltig_bis }}
+        </td></tr>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header"><strong>Signatur-Job</strong></div>
+    <div class="card-body">
+      <table class="table table-sm">
+        <tr><th>Job-ID</th><td><code>{{ protokoll.job.job_id }}</code></td></tr>
+        <tr><th>Backend</th><td>{{ protokoll.job.backend }}</td></tr>
+        <tr><th>Dokument</th><td>{{ protokoll.job.dokument_name }}</td></tr>
+        <tr><th>Status</th><td>{{ protokoll.job.status }}</td></tr>
+        <tr><th>Erstellt von</th><td>{{ protokoll.job.erstellt_von }}</td></tr>
+        <tr><th>Erstellt am</th><td>{{ protokoll.job.erstellt_am|date:"d.m.Y H:i" }}</td></tr>
+        <tr><th>Abgeschlossen am</th><td>{{ protokoll.job.abgeschlossen_am|date:"d.m.Y H:i" }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    {% if protokoll.signiertes_pdf %}
+    <a href="{% url 'signatur:pdf_download' pk=protokoll.pk %}" class="btn btn-primary">
+      Signiertes PDF herunterladen
+    </a>
+    {% endif %}
+    <a href="{% url 'signatur:dashboard' %}" class="btn btn-outline-secondary">Zurueck</a>
+  </div>
+</div>
+{% endblock %}

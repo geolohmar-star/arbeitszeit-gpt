@@ -365,6 +365,128 @@ class HRMitarbeiter(models.Model):
         return None
 
 
+class Personalstammdaten(models.Model):
+    """Sensible persoenliche Daten eines Mitarbeiters (Single Point of Truth).
+
+    OneToOne zu HRMitarbeiter. Nur HR mit explizitem Recht sieht diese Daten.
+    Wird bei Einstellung aus der Bewerbung befuellt – kein doppeltes Eintippen.
+    """
+
+    ANREDE_CHOICES = [
+        ("herr", "Herr"),
+        ("frau", "Frau"),
+        ("divers", "Divers"),
+        ("keine", "Keine Angabe"),
+    ]
+    FAMILIENSTAND_CHOICES = [
+        ("ledig", "Ledig"),
+        ("verheiratet", "Verheiratet"),
+        ("geschieden", "Geschieden"),
+        ("verwitwet", "Verwitwet"),
+        ("partnerschaft", "Eingetragene Lebenspartnerschaft"),
+    ]
+    KONFESSION_CHOICES = [
+        ("evangelisch", "Evangelisch"),
+        ("katholisch", "Katholisch"),
+        ("keine", "Keine / Sonstige"),
+    ]
+    STEUERKLASSE_CHOICES = [
+        ("1", "I"), ("2", "II"), ("3", "III"),
+        ("4", "IV"), ("5", "V"), ("6", "VI"),
+    ]
+    KRANKENVERSICHERUNG_CHOICES = [
+        ("gesetzlich", "Gesetzlich versichert"),
+        ("privat", "Privat versichert"),
+    ]
+    VERTRAGSART_CHOICES = [
+        ("unbefristet", "Unbefristet"),
+        ("befristet", "Befristet"),
+        ("minijob", "Minijob"),
+        ("praktikum", "Praktikum / Ausbildung"),
+    ]
+
+    mitarbeiter = models.OneToOneField(
+        HRMitarbeiter,
+        on_delete=models.CASCADE,
+        related_name="stammdaten",
+        verbose_name="Mitarbeiter",
+    )
+
+    # Persoenliche Daten
+    anrede = models.CharField(max_length=10, choices=ANREDE_CHOICES, default="keine", verbose_name="Anrede")
+    geburtsdatum = models.DateField(null=True, blank=True, verbose_name="Geburtsdatum")
+    geburtsort = models.CharField(max_length=100, blank=True, verbose_name="Geburtsort")
+    geburtsname = models.CharField(max_length=100, blank=True, verbose_name="Geburtsname", help_text="Falls abweichend vom aktuellen Nachnamen")
+    staatsangehoerigkeit = models.CharField(max_length=50, blank=True, default="deutsch", verbose_name="Staatsangehoerigkeit")
+    familienstand = models.CharField(max_length=20, choices=FAMILIENSTAND_CHOICES, blank=True, verbose_name="Familienstand")
+    konfession = models.CharField(max_length=20, choices=KONFESSION_CHOICES, blank=True, verbose_name="Konfession", help_text="Relevant fuer Kirchensteuer")
+    anzahl_kinder = models.PositiveSmallIntegerField(default=0, verbose_name="Anzahl Kinder")
+
+    # Adresse
+    strasse = models.CharField(max_length=100, blank=True, verbose_name="Strasse")
+    hausnummer = models.CharField(max_length=10, blank=True, verbose_name="Hausnummer")
+    plz = models.CharField(max_length=10, blank=True, verbose_name="PLZ")
+    ort = models.CharField(max_length=100, blank=True, verbose_name="Wohnort")
+    land = models.CharField(max_length=50, blank=True, default="Deutschland", verbose_name="Land")
+
+    # Kontakt privat
+    telefon_privat = models.CharField(max_length=30, blank=True, verbose_name="Telefon privat")
+    mobil_privat = models.CharField(max_length=30, blank=True, verbose_name="Mobil privat")
+    email_privat = models.EmailField(blank=True, verbose_name="E-Mail privat")
+
+    # Steuer & Sozialversicherung (hochsensibel)
+    steuerklasse = models.CharField(max_length=1, choices=STEUERKLASSE_CHOICES, blank=True, verbose_name="Steuerklasse")
+    steuer_id = models.CharField(max_length=11, blank=True, verbose_name="Steuer-Identifikationsnummer", help_text="11-stellige Steuer-ID (Bundeszentralamt)")
+    sozialversicherungsnummer = models.CharField(max_length=12, blank=True, verbose_name="Sozialversicherungsnummer")
+
+    # Bankverbindung (hochsensibel)
+    iban = models.CharField(max_length=34, blank=True, verbose_name="IBAN")
+    bic = models.CharField(max_length=11, blank=True, verbose_name="BIC")
+    bank_name = models.CharField(max_length=100, blank=True, verbose_name="Kreditinstitut")
+
+    # Krankenversicherung
+    krankenkasse_name = models.CharField(max_length=100, blank=True, verbose_name="Krankenkasse")
+    krankenversicherungsart = models.CharField(max_length=15, choices=KRANKENVERSICHERUNG_CHOICES, blank=True, verbose_name="Versicherungsart")
+
+    # Notfallkontakt
+    notfallkontakt_name = models.CharField(max_length=100, blank=True, verbose_name="Notfallkontakt Name")
+    notfallkontakt_beziehung = models.CharField(max_length=50, blank=True, verbose_name="Beziehung", help_text="z.B. Ehepartner, Elternteil")
+    notfallkontakt_telefon = models.CharField(max_length=30, blank=True, verbose_name="Notfallkontakt Telefon")
+
+    # Vertrag
+    vertragsart = models.CharField(max_length=15, choices=VERTRAGSART_CHOICES, blank=True, verbose_name="Vertragsart")
+    probezeit_bis = models.DateField(null=True, blank=True, verbose_name="Probezeit bis")
+    austrittsdatum = models.DateField(null=True, blank=True, verbose_name="Austrittsdatum")
+
+    # Audit
+    angelegt_am = models.DateTimeField(auto_now_add=True, verbose_name="Angelegt am")
+    geaendert_am = models.DateTimeField(auto_now=True, verbose_name="Geaendert am")
+    angelegt_von = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="angelegte_stammdaten",
+        verbose_name="Angelegt von",
+    )
+
+    class Meta:
+        verbose_name = "Personalstammdaten"
+        verbose_name_plural = "Personalstammdaten"
+        permissions = [
+            ("hr_view_stammdaten", "Kann sensible Personalstammdaten einsehen"),
+            ("hr_change_stammdaten", "Kann sensible Personalstammdaten bearbeiten"),
+        ]
+
+    def __str__(self):
+        return f"Stammdaten {self.mitarbeiter.vollname}"
+
+    @property
+    def vollstaendige_adresse(self):
+        teile = [f"{self.strasse} {self.hausnummer}".strip(), f"{self.plz} {self.ort}".strip(), self.land]
+        return ", ".join(t for t in teile if t.strip())
+
+
 class HierarchieSnapshot(models.Model):
     """Snapshot der Organisationshierarchie fuer Undo-Funktionalitaet.
 

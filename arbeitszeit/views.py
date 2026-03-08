@@ -49,6 +49,27 @@ from openpyxl.styles import Font, PatternFill, Alignment
 from weasyprint import HTML
 from docx import Document
 
+
+def _signiere_pdf_sicher(pdf_bytes, user, dokument_name):
+    """Signiert ein PDF mit dem konfigurierten Backend (FES/QES).
+
+    Gibt das signierte PDF zurueck. Falls kein Zertifikat vorhanden ist
+    oder ein Fehler auftritt, wird das unsignierte PDF zurueckgegeben
+    und eine Warnung geloggt.
+    """
+    try:
+        from signatur.services import signiere_pdf
+        return signiere_pdf(pdf_bytes, user, dokument_name=dokument_name)
+    except Exception as exc:
+        logger.warning(
+            "PDF-Signatur fehlgeschlagen fuer '%s' (User %s): %s – PDF wird unsigniert ausgeliefert.",
+            dokument_name,
+            user.username,
+            exc,
+        )
+        return pdf_bytes
+
+
 def hhmm_to_minuten(hhmm_wert):
     """Konvertiert HHMM-Format (z.B. 830 = 8:30) in Minuten."""
     if hhmm_wert is None:
@@ -1854,6 +1875,10 @@ def wochenbericht_pdf(request):
         base_url=request.build_absolute_uri("/"),
     )
     pdf = html.write_pdf()
+    filename_wb = (
+        f"Wochenbericht_{mitarbeiter.nachname}_KW{kw}_{jahr}.pdf"
+    )
+    pdf = _signiere_pdf_sicher(pdf, request.user, filename_wb)
 
     # Druckstatus tracken
     Wochenbericht.objects.update_or_create(
@@ -1962,6 +1987,10 @@ def monatsbericht_pdf(request):
         base_url=request.build_absolute_uri("/"),
     )
     pdf = html.write_pdf()
+    pdf = _signiere_pdf_sicher(
+        pdf, request.user,
+        f"Monatsbericht_{mitarbeiter.nachname}_{monat:02d}_{jahr}.pdf"
+    )
 
     # Druckstatus tracken
     Monatsbericht.objects.update_or_create(
@@ -2669,9 +2698,10 @@ def admin_vereinbarung_pdf_export(request, pk):
     html_string = render_to_string('arbeitszeit/pdf_vereinbarung.html', context)
     html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
     pdf = html.write_pdf()
+    filename = f"Arbeitszeit_{vereinbarung.mitarbeiter.nachname}_{vereinbarung.pk}.pdf"
+    pdf = _signiere_pdf_sicher(pdf, request.user, filename)
 
     response = HttpResponse(pdf, content_type='application/pdf')
-    filename = f"Arbeitszeit_{vereinbarung.mitarbeiter.nachname}_{vereinbarung.pk}.pdf"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
@@ -2704,3 +2734,16 @@ def mitarbeiter_detail(request, pk):
         return redirect('schichtplan:mitarbeiter_uebersicht')
     
     return render(request, 'arbeitszeit/mitarbeiter_detail.html', {'mitarbeiter': mitarbeiter})
+
+# ---------------------------------------------------------------------------
+# BSI IT-Grundschutz: Eigene Fehlerseiten (APP.3.1)
+# ---------------------------------------------------------------------------
+
+def fehler_404(request, exception):
+    """Eigene 404-Fehlerseite."""
+    return render(request, "fehler/404.html", status=404)
+
+
+def fehler_500(request):
+    """Eigene 500-Fehlerseite."""
+    return render(request, "fehler/500.html", status=500)

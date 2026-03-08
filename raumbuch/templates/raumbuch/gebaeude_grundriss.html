@@ -530,6 +530,14 @@ function zeigeInfo(raum, lock, istEl, bs) {
   }
 
   html += `<a href="${raum.url}" class="btn-detail">&#8594; Raumdetail oeffnen</a>`;
+
+  // Netzwerkplan-Button fuer IT-Raeume
+  if (raum.hat_netzwerkplan) {
+    html += `<a href="${raum.netzwerkplan_url}" class="btn-detail" style="margin-top:6px; background:#6366f1;">
+      &#128225; Netzwerkplan / Rack-Belegung
+    </a>`;
+  }
+
   content.innerHTML = html;
 }
 

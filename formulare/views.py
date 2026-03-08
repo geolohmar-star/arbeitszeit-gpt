@@ -109,6 +109,26 @@ def _starte_workflow_fuer_antrag(trigger_event, content_object, user):
         )
 
 
+def _signiere_pdf_sicher(pdf_bytes, user, dokument_name):
+    """Signiert ein PDF mit dem konfigurierten Backend (FES/QES).
+
+    Gibt das signierte PDF zurueck. Falls kein Zertifikat vorhanden ist
+    oder ein Fehler auftritt, wird das unsignierte PDF zurueckgegeben
+    und eine Warnung geloggt.
+    """
+    try:
+        from signatur.services import signiere_pdf
+        return signiere_pdf(pdf_bytes, user, dokument_name=dokument_name)
+    except Exception as exc:
+        logger.warning(
+            "PDF-Signatur fehlgeschlagen fuer '%s' (User %s): %s – PDF wird unsigniert ausgeliefert.",
+            dokument_name,
+            user.username,
+            exc,
+        )
+        return pdf_bytes
+
+
 @login_required
 def dashboard(request):
     """Dashboard fuer die Formulare-App.
@@ -510,9 +530,9 @@ def aenderung_pdf(request, pk):
         string=html_string,
         base_url=request.build_absolute_uri(),
     ).write_pdf()
-
-    # Dateiname wie Betreffzeile, Leerzeichen durch Unterstrich ersetzen
     dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
+    pdf = _signiere_pdf_sicher(pdf, request.user, dateiname)
+
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{dateiname}"'
     return response
@@ -926,8 +946,9 @@ def zag_pdf(request, pk):
         string=html_string,
         base_url=request.build_absolute_uri(),
     ).write_pdf()
-
     dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
+    pdf = _signiere_pdf_sicher(pdf, request.user, dateiname)
+
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{dateiname}"'
     return response
@@ -1230,8 +1251,9 @@ def zag_storno_pdf(request, pk):
         string=html_string,
         base_url=request.build_absolute_uri(),
     ).write_pdf()
-
     dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
+    pdf = _signiere_pdf_sicher(pdf, request.user, dateiname)
+
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{dateiname}"'
     return response
@@ -2723,6 +2745,7 @@ def zeitgutschrift_pdf(request, pk):
 
         html = HTML(string=html_string, base_url=request.build_absolute_uri())
         pdf = html.write_pdf()
+        pdf = _signiere_pdf_sicher(pdf, request.user, f"zeitgutschrift_{antrag.id}.pdf")
 
         response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = (
@@ -3297,6 +3320,7 @@ def dienstreise_pdf(request, pk):
         )
         html = HTML(string=html_string, base_url=request.build_absolute_uri())
         pdf = html.write_pdf()
+        pdf = _signiere_pdf_sicher(pdf, request.user, f"dienstreise_{antrag.pk}_{antrag.ziel}.pdf")
         response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = (
             f'inline; filename="dienstreise_{antrag.pk}_{antrag.ziel}.pdf"'

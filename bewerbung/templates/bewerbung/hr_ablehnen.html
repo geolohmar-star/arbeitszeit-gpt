@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Ablehnen – {{ bewerbung.vollname }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <a href="{% url 'bewerbung:hr_detail' pk=bewerbung.pk %}" class="text-muted small text-decoration-none">&larr; Zurueck</a>
+        <h2 class="fw-bold mt-2 mb-4">Bewerbung ablehnen</h2>
+
+        <div class="card border-danger mb-4">
+            <div class="card-header bg-danger text-white fw-semibold">
+                Unwiderrufliche DSGVO-Loeschung
+            </div>
+            <div class="card-body">
+                <p><strong>Bewerber:</strong> {{ bewerbung.vollname }}</p>
+                <p><strong>Dokumente:</strong> {{ bewerbung.dokumente.count }} Datei(en)</p>
+                <hr>
+                <p class="text-danger fw-semibold mb-2">
+                    Diese Aktion kann NICHT rueckgaengig gemacht werden!
+                </p>
+                <p class="text-muted small mb-0">
+                    Alle erfassten Daten dieses Bewerbers werden sofort und vollstaendig aus der Datenbank
+                    geloescht – einschliesslich aller hochgeladenen Dokumente.
+                    Dies entspricht Art. 17 DSGVO (Recht auf Vergessenwerden).
+                </p>
+            </div>
+        </div>
+
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="d-flex gap-3">
+                <button type="submit" class="btn btn-danger fw-bold px-4">
+                    Ablehnen &amp; alle Daten loeschen
+                </button>
+                <a href="{% url 'bewerbung:hr_detail' pk=bewerbung.pk %}"
+                   class="btn btn-outline-secondary">Abbrechen</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

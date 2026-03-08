@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dokumente hochladen</title>
+    {% load static %}
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; }
+        .bogen-header { background: #1a4d2e; color: white; padding: 1.5rem 2rem; margin-bottom: 2rem; }
+        .abschnitt { background: white; border-radius: 8px; border: 1px solid #dee2e6;
+                     border-top: 3px solid #1a4d2e; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .abschnitt-titel { font-weight: 700; color: #1a4d2e; font-size: 0.85rem;
+                           text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; }
+        .dokument-zeile { display: flex; align-items: center; gap: 0.75rem;
+                          padding: 0.5rem 0.75rem; background: #f0fdf4; border-radius: 6px;
+                          border: 1px solid #bbf7d0; margin-bottom: 0.5rem; }
+        .dokument-zeile .typ-badge { background: #1a4d2e; color: white; font-size: 0.75rem;
+                                      padding: 0.2rem 0.5rem; border-radius: 4px; white-space: nowrap; }
+        label { font-weight: 500; font-size: 0.875rem; }
+        .schritt-badge { background: rgba(255,255,255,0.2); padding: 0.25rem 0.75rem;
+                         border-radius: 20px; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+<div class="bogen-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h4 mb-0 fw-bold">Personalaufnahmebogen</h1>
+            <p class="mb-0 mt-1" style="opacity:0.8; font-size:0.9rem;">
+                {{ bewerbung.vorname }} {{ bewerbung.nachname }}
+            </p>
+        </div>
+        <span class="schritt-badge">Schritt 2 von 2: Dokumente</span>
+    </div>
+</div>
+
+<div class="container" style="max-width:860px;">
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+        {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Bereits hochgeladene Dokumente -->
+    {% if vorhandene %}
+    <div class="abschnitt">
+        <div class="abschnitt-titel">Hochgeladene Dokumente ({{ vorhandene|length }})</div>
+        {% for dok in vorhandene %}
+        <div class="dokument-zeile">
+            <span class="typ-badge">{{ dok.get_typ_display }}</span>
+            <span class="text-muted small">{{ dok.dateiname }}</span>
+            <span class="text-muted small ms-auto">{{ dok.groesse_bytes|filesizeformat }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Dokument hochladen -->
+    <div class="abschnitt">
+        <div class="abschnitt-titel">Dokument hinzufügen</div>
+        <p class="text-muted small mb-3">
+            Bitte laden Sie relevante Unterlagen hoch: Zeugnisse, Abschlüsse, Ausweise etc.
+            Erlaubte Formate: PDF, JPG, PNG. Maximale Dateigröße: 10 MB.
+        </p>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label>Dokumenttyp *</label>
+                    {{ form.typ }}
+                    {% if form.typ.errors %}<div class="text-danger small">{{ form.typ.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-7">
+                    <label>Datei *</label>
+                    {{ form.datei }}
+                    {% if form.datei.errors %}<div class="text-danger small">{{ form.datei.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn fw-bold"
+                        style="background:#1a4d2e; color:white;">
+                    Hochladen
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Abschliessen -->
+    <div class="abschnitt" style="border-top-color: #6b7280;">
+        <div class="abschnitt-titel" style="color:#6b7280;">Bewerbung abschliessen</div>
+        <p class="text-muted small">
+            Wenn Sie alle relevanten Dokumente hochgeladen haben, koennen Sie die Erfassung abschliessen.
+            Die Bewerbung wird dann an die Personalabteilung weitergeleitet.
+        </p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" name="fertig" value="1" class="btn btn-outline-secondary fw-bold px-4">
+                Bewerbung abschliessen &rarr;
+            </button>
+        </form>
+    </div>
+
+</div>
+
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

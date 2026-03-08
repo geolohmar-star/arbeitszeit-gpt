@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Systemdokumentation – Digitale Signaturen</title>
+<style>
+  @page {
+    size: A4;
+    margin: 2.2cm 2cm 2.5cm 2cm;
+    @top-center {
+      content: "Systemdokumentation – Digitale Signaturen";
+      font-size: 8pt; color: #64748b; font-family: Arial, sans-serif;
+    }
+    @bottom-right {
+      content: "Seite " counter(page) " von " counter(pages);
+      font-size: 8pt; color: #64748b; font-family: Arial, sans-serif;
+    }
+    @bottom-left {
+      content: "INTERN – Vertraulich";
+      font-size: 8pt; color: #dc2626; font-family: Arial, sans-serif;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    line-height: 1.6;
+    color: #1e293b;
+  }
+
+  /* Titelseite */
+  .titelseite {
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    min-height: 24cm;
+  }
+  .titel-kopf {
+    background: #1e293b;
+    color: white;
+    padding: 32px;
+    border-radius: 4px;
+    margin-bottom: 40px;
+  }
+  .titel-kopf h1 { font-size: 22pt; margin-bottom: 6px; }
+  .titel-kopf .untertitel { font-size: 13pt; color: #94a3b8; }
+  .titel-meta { padding: 0 4px; }
+  .titel-meta table { width: 100%; border-collapse: collapse; }
+  .titel-meta td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-size: 10pt; }
+  .titel-meta td:first-child { color: #64748b; width: 40%; }
+
+  .status-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 9pt;
+    font-weight: bold;
+  }
+  .badge-aktiv   { background: #dcfce7; color: #166534; }
+  .badge-intern  { background: #dbeafe; color: #1e40af; }
+  .badge-fes     { background: #fef9c3; color: #854d0e; }
+  .badge-qes     { background: #fce7f3; color: #9d174d; }
+
+  .hinweis-box {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .info-box {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .erfolg-box {
+    background: #f0fdf4;
+    border-left: 4px solid #22c55e;
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+  }
+
+  h2 {
+    font-size: 15pt;
+    color: #1e293b;
+    border-bottom: 2px solid #1e293b;
+    padding-bottom: 4px;
+    margin: 24px 0 12px;
+  }
+  h3 { font-size: 12pt; color: #334155; margin: 18px 0 8px; }
+  h4 { font-size: 10pt; color: #475569; margin: 12px 0 6px; font-weight: bold; }
+
+  p { margin: 8px 0; }
+  ul, ol { padding-left: 20px; margin: 8px 0; }
+  li { margin: 3px 0; }
+
+  table.doku-tabelle {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 9.5pt;
+  }
+  table.doku-tabelle th {
+    background: #1e293b;
+    color: white;
+    padding: 7px 10px;
+    text-align: left;
+  }
+  table.doku-tabelle td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  table.doku-tabelle tr:nth-child(even) td { background: #f8fafc; }
+
+  .code-block {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-family: "Courier New", monospace;
+    font-size: 8.5pt;
+    line-height: 1.5;
+    margin: 10px 0;
+    white-space: pre;
+  }
+  .code-block .kommentar { color: #64748b; }
+  .code-block .schluessel { color: #7dd3fc; }
+  .code-block .wert { color: #86efac; }
+  .code-block .highlight { color: #fbbf24; }
+
+  /* Diagramme als ASCII / Box-Zeichnungen */
+  .diagramm {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 16px;
+    border-radius: 4px;
+    font-family: "Courier New", monospace;
+    font-size: 8pt;
+    line-height: 1.6;
+    margin: 12px 0;
+    white-space: pre;
+  }
+
+  .seitenumbruch { page-break-before: always; }
+
+  .fussnote {
+    font-size: 8pt;
+    color: #64748b;
+    border-top: 1px solid #e2e8f0;
+    margin-top: 20px;
+    padding-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ================================================================
+     TITELSEITE
+================================================================ -->
+<div class="titelseite">
+  <div class="titel-kopf">
+    <h1>Systemdokumentation</h1>
+    <div class="untertitel">Digitale Signaturen &ndash; FES &amp; QES-Architektur</div>
+    <div style="margin-top:16px; font-size:9pt; color:#64748b">
+      Vertraulich &ndash; Nur fuer internen Gebrauch
+    </div>
+  </div>
+
+  <div class="titel-meta">
+    <table>
+      <tr><td>Dokument</td><td><strong>Signatur-System Architekturdokumentation</strong></td></tr>
+      <tr><td>Version</td><td>1.0 &ndash; FES-Produktivbetrieb</td></tr>
+      <tr><td>Aktueller Backend</td>
+          <td><span class="status-badge badge-intern">{{ backend_name }}</span></td></tr>
+      <tr><td>Signaturtyp</td>
+          <td><span class="status-badge badge-fes">Fortgeschrittene Elektronische Signatur (FES)</span></td></tr>
+      <tr><td>Rechtsbasis</td><td>eIDAS-Verordnung (EU) Nr. 910/2014 &ndash; Art. 26</td></tr>
+      <tr><td>Gateway-URL</td><td><code>{{ gateway_url }}</code></td></tr>
+      <tr><td>Erstellt am</td><td>{% now "d.m.Y H:i" %} Uhr</td></tr>
+      <tr><td>Erstellt von</td><td>{{ request.user.get_full_name }}</td></tr>
+    </table>
+  </div>
+
+  <div style="margin-top:40px;">
+    <div class="info-box">
+      <strong>Ziel dieses Dokuments:</strong> Vollstaendige technische Beschreibung des
+      Signatur-Systems, des aktuellen FES-Betriebs mit pyhanko und des geplanten
+      QES-Upgrades ueber die Bundesdruckerei sign-me API.
+    </div>
+  </div>
+</div>
+
+
+<!-- ================================================================
+     INHALTSVERZEICHNIS
+================================================================ -->
+<h2>Inhaltsverzeichnis</h2>
+<ol>
+  <li>Rechtliche Grundlagen (eIDAS)</li>
+  <li>Systemarchitektur &ndash; Uebersicht</li>
+  <li>Aktueller Betrieb: FES mit pyhanko (Intranet, offline)</li>
+  <li>Zertifikatsstruktur &ndash; Interne Root-CA</li>
+  <li>Signaturprozess Schritt fuer Schritt</li>
+  <li>Geplante Erweiterung: QES ueber Bundesdruckerei sign-me</li>
+  <li>Gateway-Konzept: Intranet &rarr; Internet (kontrolliert)</li>
+  <li>Backend-Architektur &ndash; Wechsel ohne Code-Aenderung</li>
+  <li>Sicherheitskonzept</li>
+  <li>Betrieb &amp; Administration</li>
+  <li>Upgrade-Pfad: FES &rarr; QES</li>
+</ol>
+
+<div class="seitenumbruch"></div>
+
+
+<!-- ================================================================
+     1. RECHTLICHE GRUNDLAGEN
+================================================================ -->
+<h2>1. Rechtliche Grundlagen (eIDAS-Verordnung)</h2>
+
+<p>Die <strong>eIDAS-Verordnung</strong> (EU) Nr. 910/2014 regelt elektronische Identifizierung
+und Vertrauensdienste in der EU. Sie definiert drei Stufen elektronischer Signaturen:</p>
+
+<table class="doku-tabelle">
+  <tr>
+    <th>Stufe</th>
+    <th>Bezeichnung</th>
+    <th>Anforderungen</th>
+    <th>Rechtskraft</th>
+    <th>Unser System</th>
+  </tr>
+  <tr>
+    <td><strong>Stufe 1</strong></td>
+    <td>Einfache elektronische Signatur (EES)</td>
+    <td>Keine technischen Anforderungen</td>
+    <td>Gering</td>
+    <td>&ndash;</td>
+  </tr>
+  <tr>
+    <td><strong>Stufe 2</strong></td>
+    <td>Fortgeschrittene Signatur (FES)</td>
+    <td>Art. 26 eIDAS: Eindeut. Unterzeichner, Datenintegritaet, Kontrolle privater Schluessel</td>
+    <td>Mittel &ndash; intern rechtssicher</td>
+    <td><span class="status-badge badge-fes">AKTIV</span></td>
+  </tr>
+  <tr>
+    <td><strong>Stufe 3</strong></td>
+    <td>Qualifizierte Signatur (QES)</td>
+    <td>FES + zugelassener TSP + qualifiziertes Zertifikat + Identitaetspruefung</td>
+    <td>= handschriftliche Unterschrift (Art. 25 III)</td>
+    <td><span class="status-badge badge-qes">GEPLANT</span></td>
+  </tr>
+</table>
+
+<div class="info-box">
+  <strong>Artikel 26 eIDAS &ndash; Anforderungen an FES:</strong><br>
+  (a) eindeutig dem Unterzeichner zugeordnet<br>
+  (b) zur Identifizierung des Unterzeichners geeignet<br>
+  (c) mit Daten erstellt, die der Unterzeichner mit hohem Vertrauen unter seiner alleinigen Kontrolle verwenden kann<br>
+  (d) mit den unterzeichneten Daten so verbunden, dass nachtraegliche Veraenderungen erkennbar sind
+</div>
+
+<p>Unser FES-System erfuellt alle vier Anforderungen des Art. 26 durch:</p>
+<ul>
+  <li>(a+b) X.509-Zertifikat mit Name + E-Mail, ausgestellt von interner CA</li>
+  <li>(c) Privater Schluessel verschluesselt in DB, nur der eingeloggte User hat Zugriff</li>
+  <li>(d) PDF-Hashwert (SHA-256) in Signatur eingebettet &ndash; jede Aenderung bricht die Signatur</li>
+</ul>
+
+
+<!-- ================================================================
+     2. SYSTEMARCHITEKTUR
+================================================================ -->
+<h2>2. Systemarchitektur &ndash; Uebersicht</h2>
+
+<div class="diagramm">&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+&#9474;  Django-Anwendung (Intranet, offline)                           &#9474;
+&#9474;                                                                  &#9474;
+&#9474;   View                                                           &#9474;
+&#9474;    &#9474;                                                            &#9474;
+&#9474;    &#9492;&#9472; signatur.services.signiere_pdf()  &lt;&#9472;&#9472; EINZIGER Einstieg &#9474;
+&#9474;              &#9474;                                                    &#9474;
+&#9474;              &#9492;&#9472; get_backend()  &#9472;&#9472; liest settings.SIGNATUR_BACKEND &#9474;
+&#9474;                        &#9474;                                          &#9474;
+&#9474;           &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;                           &#9474;
+&#9474;           &#9474;  "intern"  &#9474;  "sign_me"  &#9474;                           &#9474;
+&#9474;           &#9474;             &#9474;             &#9474;                           &#9474;
+&#9474;           &#9474; InternBackend&#9474; SignMeBackend&#9474;                           &#9474;
+&#9474;           &#9474;  (pyhanko)   &#9474; (REST-Client)&#9474;                           &#9474;
+&#9474;           &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9524;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;                           &#9474;
+&#9474;              &#9474;              &#9474;                                    &#9474;
+&#9474;              &#9474;              &#9492;&#9472;&#9472; HTTP &#9472;&#9472;&#9488;                          &#9474;
+&#9474;              &#9474;                        &#9474;                          &#9474;
+&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;
+    &#9474;                         &#9474;
+Lokale DB              Gateway-Server (DMZ)
+(FES, sofort)          &#9474;
+                       &#9492;&#9472;&#9472; HTTPS &#9472;&#9472;&#9488;
+                                     &#9474;
+                              api.sign-me.de
+                             (Bundesdruckerei)
+                               QES / Internet</div>
+
+<p>Die Schluesseleigenschaft: <strong>Django spricht immer mit derselben Schnittstelle</strong>
+(base.py). Der Backend wird per Konfigurationsvariable gewechselt &ndash; kein Code
+in Views oder anderen Apps muss angefasst werden.</p>
+
+
+<!-- ================================================================
+     3. FES MIT PYHANKO
+================================================================ -->
+<div class="seitenumbruch"></div>
+<h2>3. Aktueller Betrieb: FES mit pyhanko (Intranet, offline)</h2>
+
+<h3>3.1 Was ist pyhanko?</h3>
+<p><strong>pyhanko</strong> (Python PDF Signing Tool) ist eine Open-Source-Bibliothek
+(MIT-Lizenz) fuer PDF-Signaturen nach dem PAdES-Standard (PDF Advanced Electronic
+Signatures). pyhanko implementiert:</p>
+<ul>
+  <li>PAdES-B-B (Baseline) &ndash; einfache Signatur mit Zertifikat</li>
+  <li>PAdES-B-T &ndash; mit Zeitstempel</li>
+  <li>PAdES-B-LT / LTA &ndash; Langzeitvalidierung</li>
+  <li>Sichtbare Signaturfelder im PDF (Name, Datum, Zertifikatsinfo)</li>
+  <li>Verifikation bestehender Signaturen</li>
+</ul>
+
+<h3>3.2 Verwendete Bibliotheken</h3>
+<table class="doku-tabelle">
+  <tr><th>Bibliothek</th><th>Version</th><th>Funktion</th><th>Lizenz</th></tr>
+  <tr><td>pyhanko</td><td>0.34+</td><td>PDF signieren und verifizieren</td><td>MIT</td></tr>
+  <tr><td>pyhanko-certvalidator</td><td>0.30+</td><td>Zertifikatsketten-Validierung</td><td>MIT</td></tr>
+  <tr><td>cryptography</td><td>46+</td><td>RSA-Schluessel, X.509-Zertifikate</td><td>Apache 2</td></tr>
+  <tr><td>weasyprint</td><td>bestehend</td><td>HTML &rarr; PDF (Dokument-Erzeugung)</td><td>BSD</td></tr>
+</table>
+
+<h3>3.3 Was ist PAdES?</h3>
+<p><strong>PAdES</strong> (PDF Advanced Electronic Signatures) ist der europaeische Standard
+fuer PDF-Signaturen (ETSI EN 319 132). PAdES-Signaturen sind in Adobe Reader,
+Foxit, und allen EU-konformen Pruefprogrammen direkt sichtbar und pruefbar.</p>
+
+<div class="erfolg-box">
+  PAdES ist der einzige PDF-Signaturstandard der von der EU-Kommission fuer
+  eIDAS-konforme Signaturen empfohlen wird.
+</div>
+
+
+<!-- ================================================================
+     4. ZERTIFIKATSSTRUKTUR
+================================================================ -->
+<h2>4. Zertifikatsstruktur &ndash; Interne Root-CA</h2>
+
+<div class="diagramm">Root-CA (selbstsigniert, 4096-Bit RSA, 10 Jahre)
+&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+&#9474;  CN=Interne Root CA                                    &#9474;
+&#9474;  O=Intern, C=DE                                        &#9474;
+&#9474;  BasicConstraints: CA:TRUE                             &#9474;
+&#9474;  KeyUsage: keyCertSign, cRLSign                        &#9474;
+&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;
+           &#9474;  unterzeichnet
+     &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9524;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+     &#9474;              &#9474;
+Mitarbeiter-   Mitarbeiter-
+Zertifikat 1   Zertifikat 2  ...
+&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;  &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+&#9474; CN=Max   &#9474;  &#9474; CN=Anna  &#9474;
+&#9474; Muster  &#9474;  &#9474; Schmid  &#9474;
+&#9474; 2048-Bit&#9474;  &#9474; 2048-Bit&#9474;
+&#9474; 2 Jahre &#9474;  &#9474; 2 Jahre &#9474;
+&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;  &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;</div>
+
+<table class="doku-tabelle">
+  <tr><th>Zertifikatstyp</th><th>Schluessellaenge</th><th>Algorithmus</th><th>Gueltigkeit</th><th>Speicherort</th></tr>
+  <tr><td>Root-CA</td><td>4096 Bit RSA</td><td>SHA-256</td><td>10 Jahre</td><td>DB + Datei (ca_root.key.pem)</td></tr>
+  <tr><td>Mitarbeiter</td><td>2048 Bit RSA</td><td>SHA-256</td><td>2 Jahre</td><td>Datenbank (verschluesselt)</td></tr>
+</table>
+
+<div class="hinweis-box">
+  <strong>Wichtig:</strong> Der Root-CA-Schluessel (ca_root.key.pem) darf NICHT
+  in die Versionsverwaltung (Git) committet werden. Er muss sicher aufbewahrt und
+  regelmaessig gesichert werden. Verlust bedeutet, dass keine neuen
+  Mitarbeiterzertifikate ausgestellt werden koennen.
+</div>
+
+
+<!-- ================================================================
+     5. SIGNATURPROZESS SCHRITT FUER SCHRITT
+================================================================ -->
+<div class="seitenumbruch"></div>
+<h2>5. Signaturprozess Schritt fuer Schritt</h2>
+
+<h3>5.1 FES-Prozess (aktuell, intern, offline)</h3>
+
+<div class="diagramm">Benutzer                  Django                    pyhanko + DB
+   &#9474;                        &#9474;                           &#9474;
+   &#9474;  Klick "Signieren"     &#9474;                           &#9474;
+   &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9490;                           &#9474;
+                            &#9474;  1. User-Zertifikat laden  &#9474;
+                            &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9490;
+                                                          &#9474;
+                                       &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;
+                                       &#9474;  2. PDF-Hash (SHA-256) &#9474;
+                                       &#9474;  3. Mit priv. Schluessel &#9474;
+                                       &#9474;     verschluesseln       &#9474;
+                                       &#9474;  4. Stempel einbetten  &#9474;
+                                       &#9474;  5. Protokoll in DB    &#9474;
+                                       &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;
+                            &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;
+                            &#9474;  6. Signiertes PDF         &#9474;
+   &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;                           &#9474;
+   &#9474;  PDF-Download           &#9474;
+   &#9474;  (sofort, &lt;1 Sekunde)   &#9474;</div>
+
+<h3>5.2 Sichtbarer Signaturstempel im PDF</h3>
+<p>Das signierte PDF enthaelt einen sichtbaren Stempel auf der letzten Seite:</p>
+
+<table class="doku-tabelle">
+  <tr><th>Feld</th><th>Inhalt</th><th>Quelle</th></tr>
+  <tr><td>Name</td><td>Vor- und Nachname des Unterzeichners</td><td>Django User</td></tr>
+  <tr><td>Rolle / Funktion</td><td>Stellenbezeichnung</td><td>HR-Mitarbeiter.stelle</td></tr>
+  <tr><td>Datum + Uhrzeit</td><td>Zeitpunkt der Signatur (UTC)</td><td>Systemzeit</td></tr>
+  <tr><td>Grund</td><td>"Elektronisch signiert von [Name] ([Rolle])"</td><td>Generiert</td></tr>
+  <tr><td>Ort</td><td>"Intranet &ndash; Interne Signatur"</td><td>Konfiguriert</td></tr>
+  <tr><td>Zertifikat-SN</td><td>Seriennummer des Signatur-Zertifikats</td><td>DB</td></tr>
+</table>
+
+
+<!-- ================================================================
+     6. QES BUNDESDRUCKEREI SIGN-ME
+================================================================ -->
+<div class="seitenumbruch"></div>
+<h2>6. Geplante Erweiterung: QES ueber Bundesdruckerei sign-me</h2>
+
+<h3>6.1 Was ist sign-me?</h3>
+<p><strong>sign-me</strong> ist der qualifizierte Signaturservice der
+<strong>Bundesdruckerei GmbH</strong> (zugelassener Vertrauensdiensteanbieter nach eIDAS).
+sign-me stellt qualifizierte Zertifikate aus und erzeugt QES-Signaturen, die in der
+gesamten EU einer handschriftlichen Unterschrift rechtlich gleichgestellt sind.</p>
+
+<p>Offizielle Produktseite: <code>https://www.bundesdruckerei.de/de/sign-me</code></p>
+
+<h3>6.2 QES-Prozess mit sign-me</h3>
+
+<div class="diagramm">Intranet                  DMZ                     Internet
+&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;     &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;     &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+&#9474; Django      &#9474;     &#9474; Gateway   &#9474;     &#9474; api.sign-me.de     &#9474;
+&#9474;             &#9474;     &#9474; Server    &#9474;     &#9474; (Bundesdruckerei)  &#9474;
+&#9474; 1. PDF      &#9474;     &#9474;           &#9474;     &#9474;                   &#9474;
+&#9474;    erzeugen &#9474;     &#9474;           &#9474;     &#9474; Qualifiziertes     &#9474;
+&#9474;             &#9492;&#9472;&#9472;&#9472;&#9472;&#9490; 2. PDF    &#9492;&#9472;&#9472;&#9472;&#9472;&#9490; Zertifikat beim    &#9474;
+&#9474; 4. Signiertes&#9474;     &#9474; weiterleiten&#9474;     &#9474; TSP                &#9474;
+&#9474;    PDF       &#9474;     &#9474;           &#9474;     &#9474;                   &#9474;
+&#9474;             &#9484;&#9472;&#9472;&#9472;&#9472;&#9516; 4. Sign.  &#9484;&#9472;&#9472;&#9472;&#9472;&#9516; 3. QES-Signatur    &#9474;
+&#9474; 5. Protokoll&#9474;     &#9474;    PDF       &#9474;     &#9474;    erstellen       &#9474;
+&#9474;    speichern&#9474;     &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;     &#9474;    (TSA Zeitstempel)&#9474;
+&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;                       &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;</div>
+
+<h3>6.3 sign-me REST API &ndash; Endpunkte</h3>
+
+<table class="doku-tabelle">
+  <tr><th>Methode</th><th>Endpunkt</th><th>Funktion</th><th>Unser Backend-Methode</th></tr>
+  <tr><td>POST</td><td>/oauth/token</td><td>Auth-Token holen</td><td>authentifiziere()</td></tr>
+  <tr><td>POST</td><td>/api/v1/sign</td><td>Signaturauftrag starten</td><td>starte_signatur_job()</td></tr>
+  <tr><td>GET</td><td>/api/v1/sign/{id}</td><td>Job-Status abfragen</td><td>hole_status()</td></tr>
+  <tr><td>GET</td><td>/api/v1/sign/{id}/download</td><td>Signiertes PDF holen</td><td>hole_signiertes_pdf()</td></tr>
+  <tr><td>POST</td><td>/api/v1/verify</td><td>Signatur pruefen</td><td>verifiziere()</td></tr>
+</table>
+
+<h3>6.4 Voraussetzungen fuer sign-me Echtbetrieb</h3>
+<ol>
+  <li><strong>Vertrag</strong> mit der Bundesdruckerei GmbH abschliessen (sign-me Business)</li>
+  <li><strong>API-Key</strong> erhalten und in .env eintragen: <code>SIGNATUR_SIGN_ME_KEY=&lt;key&gt;</code></li>
+  <li><strong>Mitarbeiter-Registrierung</strong>: Jeder Unterzeichner muss einmalig per Video-Ident seine Identitaet gegenueber der Bundesdruckerei nachweisen</li>
+  <li><strong>Gateway konfigurieren</strong> (naechstes Kapitel)</li>
+  <li><strong>Backend wechseln</strong>: <code>SIGNATUR_BACKEND=sign_me</code> in settings.py</li>
+</ol>
+
+<div class="hinweis-box">
+  <strong>Kein Code-Aenderung noetig!</strong> Das sign-me Backend (sign_me.py) ist bereits
+  vollstaendig implementiert. Sobald Vertrag und API-Key vorliegen, genuegt
+  die Aenderung einer einzigen Zeile in der Konfiguration.
+</div>
+
+
+<!-- ================================================================
+     7. GATEWAY-KONZEPT
+================================================================ -->
+<div class="seitenumbruch"></div>
+<h2>7. Gateway-Konzept: Intranet &rarr; Internet (kontrolliert)</h2>
+
+<h3>7.1 Warum ein Gateway?</h3>
+<p>Das Intranet ist aus Sicherheitsgruenden ohne Internetzugang. QES benoetigt jedoch
+die Bundesdruckerei-Server. Ein dedizierter Gateway-Server in der DMZ ist die
+sicherste Loesung: nur ein kontrollierter Punkt hat Internet-Zugang, der Rest bleibt
+vollstaendig isoliert.</p>
+
+<h3>7.2 Netzwerktopologie</h3>
+
+<div class="diagramm">Intranet (10.x.x.x)     DMZ              Internet
+&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;  &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;  &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+Django-Server         Firewall A    Firewall B
+(SIGNATUR_SIGN_ME_URL  &#9474;            &#9474;
+= http://gw.intern:8080)            Gateway       api.sign-me.de
+                      &#9474;  HTTP 8080   Server        HTTPS 443
+Django &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9490; &#9474;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9516;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9490;
+                                    &#9474;
+                         Erlaubte Verbindungen:
+                         Eingehend: nur von Django-IP
+                         Ausgehend: nur api.sign-me.de:443
+                         Protokoll: HTTPS + TLS 1.3</div>
+
+<h3>7.3 Gateway-Konfiguration (settings.py)</h3>
+<div class="code-block"><span class="kommentar"># Entwicklung / Intranet (FES, offline)</span>
+<span class="schluessel">SIGNATUR_BACKEND</span>     = <span class="wert">"intern"</span>
+
+<span class="kommentar"># Produktiv mit sign-me ueber Gateway (QES)</span>
+<span class="schluessel">SIGNATUR_BACKEND</span>     = <span class="wert">"sign_me"</span>
+<span class="schluessel">SIGNATUR_SIGN_ME_URL</span> = <span class="wert">"http://gateway.intern:8080"</span>   <span class="kommentar"># Gateway-Adresse</span>
+<span class="schluessel">SIGNATUR_SIGN_ME_KEY</span> = <span class="wert">"&lt;API-Key Bundesdruckerei&gt;"</span>
+<span class="schluessel">SIGNATUR_SIGN_ME_TIMEOUT</span> = <span class="wert">30</span>   <span class="kommentar"># Sekunden</span></div>
+
+<h3>7.4 Sicherheitsregeln fuer den Gateway</h3>
+<ul>
+  <li>Gateway akzeptiert Verbindungen <strong>nur von der Django-Server-IP</strong></li>
+  <li>Gateway leitet <strong>ausschliesslich</strong> an <code>api.sign-me.de</code> weiter</li>
+  <li>Alle Verbindungen mit TLS 1.3 verschluesselt</li>
+  <li>Keine PDF-Inhalte werden auf dem Gateway gespeichert (nur durchgeleitet)</li>
+  <li>Gateway-Logs werden ins Intranet-SIEM geschrieben</li>
+  <li>Gateway hat keine anderen Dienste oder offenen Ports</li>
+</ul>
+
+
+<!-- ================================================================
+     8. BACKEND-ARCHITEKTUR
+================================================================ -->
+<div class="seitenumbruch"></div>
+<h2>8. Backend-Architektur &ndash; Wechsel ohne Code-Aenderung</h2>
+
+<h3>8.1 Abstrakte Schnittstelle (base.py)</h3>
+<p>Alle Backends implementieren exakt dieselben fuenf Methoden. Diese Methoden
+sind angelehnt an die sign-me REST API &ndash; das macht den Wechsel trivial:</p>
+
+<table class="doku-tabelle">
+  <tr><th>Methode</th><th>sign-me Aequivalent</th><th>Beschreibung</th></tr>
+  <tr><td>authentifiziere(user)</td><td>POST /oauth/token</td><td>Prueft Zertifikat / holt Token</td></tr>
+  <tr><td>starte_signatur_job(...)</td><td>POST /api/v1/sign</td><td>Signaturauftrag starten</td></tr>
+  <tr><td>hole_status(job_id)</td><td>GET /api/v1/sign/{id}</td><td>Status abfragen</td></tr>
+  <tr><td>hole_signiertes_pdf(job_id)</td><td>GET /api/v1/sign/{id}/download</td><td>PDF abholen</td></tr>
+  <tr><td>verifiziere(pdf_bytes)</td><td>POST /api/v1/verify</td><td>Signatur pruefen</td></tr>
+</table>
+
+<h3>8.2 Verwendung in Django-Views</h3>
+<div class="code-block"><span class="kommentar"># In JEDEM View &ndash; unveraendert ob intern oder sign-me:</span>
+<span class="schluessel">from</span> signatur.services <span class="schluessel">import</span> signiere_pdf
+
+<span class="kommentar"># PDF erzeugen (WeasyPrint, wie bisher)</span>
+pdf_bytes = HTML(string=html).write_pdf()
+
+<span class="kommentar"># Signieren &ndash; eine Zeile, backend-unabhaengig:</span>
+signiertes_pdf = signiere_pdf(
+    pdf_bytes,
+    request.user,
+    dokument_name=<span class="wert">"Zeitgutschrift ZG-2026-042"</span>,
+)
+
+<span class="kommentar"># Ausgabe</span>
+<span class="schluessel">return</span> HttpResponse(signiertes_pdf, content_type=<span class="wert">"application/pdf"</span>)</div>
+
+<h3>8.3 Backend-Wechsel</h3>
+<div class="code-block"><span class="kommentar"># Einzige Aenderung fuer QES-Umstieg &ndash; in .env oder settings.py:</span>
+<span class="schluessel">SIGNATUR_BACKEND</span> = <span class="wert">"sign_me"</span>   <span class="kommentar"># war: "intern"</span>
+
+<span class="highlight"># Das ist alles. Kein weiterer Code wird beruehrt.</span></div>
+
+
+<!-- ================================================================
+     9. SICHERHEITSKONZEPT
+================================================================ -->
+<h2>9. Sicherheitskonzept</h2>
+
+<table class="doku-tabelle">
+  <tr><th>Risiko</th><th>Massnahme</th></tr>
+  <tr>
+    <td>Privater Schluessel gestohlen</td>
+    <td>Zertifikat sofort sperren (Admin-UI), Schluessel ist an DB-Zugang gebunden</td>
+  </tr>
+  <tr>
+    <td>Root-CA-Schluessel verloren</td>
+    <td>Regelmaessige verschluesselte Backups; Datei niemals in Git</td>
+  </tr>
+  <tr>
+    <td>PDF nach Signatur veraendert</td>
+    <td>SHA-256 Hash in Signatur eingebettet &ndash; pyhanko erkennt jede Veraenderung</td>
+  </tr>
+  <tr>
+    <td>Fremder signiert im Namen eines Users</td>
+    <td>Login erforderlich; Zertifikat an Django-User-Session gebunden</td>
+  </tr>
+  <tr>
+    <td>Zertifikat abgelaufen</td>
+    <td>Automatische Pruefung bei jedem Signaturversuch; Warnung 30 Tage vorher (geplant)</td>
+  </tr>
+  <tr>
+    <td>Replay-Angriff (altes PDF erneut einreichen)</td>
+    <td>SHA-256 Hash + Zeitstempel im Protokoll; jeder Job hat eindeutige Job-ID</td>
+  </tr>
+</table>
+
+
+<!-- ================================================================
+     10. BETRIEB & ADMINISTRATION
+================================================================ -->
+<div class="seitenumbruch"></div>
+<h2>10. Betrieb &amp; Administration</h2>
+
+<h3>10.1 Management Commands</h3>
+<table class="doku-tabelle">
+  <tr><th>Befehl</th><th>Funktion</th></tr>
+  <tr><td><code>python manage.py erstelle_ca</code></td><td>Root-CA + alle Mitarbeiter-Zertifikate ausstellen</td></tr>
+  <tr><td><code>python manage.py erstelle_ca --nur_ca</code></td><td>Nur Root-CA erstellen</td></tr>
+  <tr><td><code>python manage.py erstelle_ca --user max</code></td><td>Einzelnen User mit Zertifikat versehen</td></tr>
+  <tr><td><code>python manage.py erstelle_ca --gueltig_jahre 3</code></td><td>Zertifikate mit 3 Jahren Gueltigkeit</td></tr>
+</table>
+
+<h3>10.2 Zertifikats-Lebenszyklus</h3>
+<ol>
+  <li><strong>Ausstellen:</strong> Management Command oder Admin-UI</li>
+  <li><strong>Aktiv:</strong> 2 Jahre Gueltigkeit (konfigurierbar)</li>
+  <li><strong>Verlaengerung:</strong> Neues Zertifikat ausstellen, altes laeuft aus</li>
+  <li><strong>Sperren:</strong> Admin-UI oder <code>MitarbeiterZertifikat.status = "gesperrt"</code></li>
+  <li><strong>Mitarbeiter-Austritt:</strong> Zertifikat sperren, kein neues ausstellen</li>
+</ol>
+
+<h3>10.3 URLs im System</h3>
+<table class="doku-tabelle">
+  <tr><th>URL</th><th>Funktion</th><th>Zugang</th></tr>
+  <tr><td>/signatur/</td><td>Dashboard (eigene Signaturen)</td><td>Alle eingeloggten User</td></tr>
+  <tr><td>/signatur/zertifikate/</td><td>Zertifikatsverwaltung</td><td>Staff</td></tr>
+  <tr><td>/signatur/protokoll/{id}/</td><td>Signatur-Detail</td><td>Eigentuemer + Staff</td></tr>
+  <tr><td>/signatur/protokoll/{id}/download/</td><td>Signiertes PDF</td><td>Eigentuemer + Staff</td></tr>
+  <tr><td>/signatur/dokumentation.pdf</td><td>Diese Dokumentation</td><td>Alle eingeloggten User</td></tr>
+</table>
+
+
+<!-- ================================================================
+     11. UPGRADE-PFAD: FES → QES
+================================================================ -->
+<h2>11. Upgrade-Pfad: FES &rarr; QES</h2>
+
+<table class="doku-tabelle">
+  <tr><th>Schritt</th><th>Aufgabe</th><th>Aufwand</th><th>Wer</th></tr>
+  <tr>
+    <td>1</td>
+    <td>Vertrag mit Bundesdruckerei sign-me abschliessen</td>
+    <td>Organisatorisch</td>
+    <td>Geschaeftsfuehrung</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Mitarbeiter per Video-Ident bei sign-me registrieren</td>
+    <td>Ca. 10 min/Person</td>
+    <td>HR + Mitarbeiter</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>Gateway-Server in DMZ aufsetzen</td>
+    <td>0,5 Tage</td>
+    <td>IT</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>API-Key in .env eintragen</td>
+    <td>5 Minuten</td>
+    <td>IT</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>SIGNATUR_BACKEND="sign_me" setzen</td>
+    <td>1 Zeile</td>
+    <td>IT</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>Testlauf + Abnahme</td>
+    <td>1 Tag</td>
+    <td>IT + Fachabteilung</td>
+  </tr>
+</table>
+
+<div class="erfolg-box">
+  <strong>Fazit:</strong> Das System ist heute voll produktiv (FES) und vollstaendig
+  vorbereitet fuer QES. Der Wechsel zur Bundesdruckerei sign-me erfordert
+  <strong>keine Programmieraenderungen</strong> &ndash; nur Vertrag, Registrierung und
+  eine Konfigurationszeile.
+</div>
+
+<div class="fussnote">
+  Dokument generiert: {% now "d.m.Y H:i" %} Uhr &bull;
+  System: {{ backend_name }} Backend &bull;
+  Rechtsbasis: eIDAS-Verordnung (EU) Nr. 910/2014 &bull;
+  Erstellt von: {{ request.user.get_full_name }}
+</div>
+
+</body>
+</html>

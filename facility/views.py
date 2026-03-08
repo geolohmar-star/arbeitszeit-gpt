@@ -3,12 +3,15 @@ import json
 import logging
 from datetime import date, datetime, timedelta
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+
+from config.kommunikation_utils import matrix_nachricht_senden
 
 from .models import (
     KATEGORIE_CHOICES,
@@ -238,6 +241,19 @@ def stoermeldung_erstellen(request):
                 prioritaet=prioritaet,
             )
             logger.info("Stoermeldung %s erstellt von User %s", meldung.pk, request.user)
+            # Matrix-Benachrichtigung an Facility-Team senden (falls konfiguriert)
+            room_id = getattr(settings, "MATRIX_FACILITY_ROOM_ID", "")
+            if room_id:
+                prioritaet_label = dict(Stoermeldung.PRIORITAET_CHOICES).get(
+                    meldung.prioritaet, meldung.prioritaet
+                )
+                matrix_text = (
+                    f"[PRIMA] Neue Stoermeldung #{meldung.pk} | "
+                    f"Raum: {meldung.raumnummer} | "
+                    f"Kategorie: {meldung.get_kategorie_display()} | "
+                    f"Prioritaet: {prioritaet_label}"
+                )
+                matrix_nachricht_senden(room_id, matrix_text)
             # Workflow-Trigger: Meldung in die richtige Team-Queue einreihen
             _starte_facility_workflow(meldung, request.user)
             return redirect("facility:erfolg", pk=meldung.pk)

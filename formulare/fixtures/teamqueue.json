@@ -1,120 +1,120 @@
 [
-{
-  "model": "formulare.teamqueue",
-  "pk": 1,
-  "fields": {
-    "antragstypen": [
-      "aenderung",
-      "zag",
-      "zag_storno"
-    ],
-    "beschreibung": "Bearbeitet genehmigte Antraege fuer Zeiterfassung, Z-AG und Z-AG-Stornierungen.",
-    "kuerzel": "zeit",
-    "name": "Zeiterfassung-Team",
-    "mitglieder": []
+  {
+    "model": "formulare.teamqueue",
+    "pk": 1,
+    "fields": {
+      "antragstypen": [
+        "aenderung",
+        "zag",
+        "zag_storno"
+      ],
+      "beschreibung": "Bearbeitet genehmigte Antraege fuer Zeiterfassung, Z-AG und Z-AG-Stornierungen.",
+      "kuerzel": "zeit",
+      "name": "Zeiterfassung-Team",
+      "mitglieder": []
+    }
+  },
+  {
+    "model": "formulare.teamqueue",
+    "pk": 2,
+    "fields": {
+      "antragstypen": [],
+      "beschreibung": "Reiseantraege und Kosten",
+      "kuerzel": "reise",
+      "name": "Reisemanagement",
+      "mitglieder": []
+    }
+  },
+  {
+    "model": "formulare.teamqueue",
+    "pk": 3,
+    "fields": {
+      "antragstypen": [
+        "zeitgutschrift"
+      ],
+      "beschreibung": "Team Zeitgutschrift",
+      "kuerzel": "gutschrift",
+      "name": "Zeitgutschriften-Team",
+      "mitglieder": []
+    }
+  },
+  {
+    "model": "formulare.teamqueue",
+    "pk": 6,
+    "fields": {
+      "antragstypen": [],
+      "beschreibung": "Facility-Team fuer Sanitaer / Heizung-Stoermeldungen",
+      "kuerzel": "FAC-SAN",
+      "name": "Facility – Sanitaer / Heizung",
+      "mitglieder": []
+    }
+  },
+  {
+    "model": "formulare.teamqueue",
+    "pk": 7,
+    "fields": {
+      "antragstypen": [],
+      "beschreibung": "Facility-Team fuer Schlosser-Stoermeldungen",
+      "kuerzel": "FAC-SCH",
+      "name": "Facility – Schlosser",
+      "mitglieder": []
+    }
+  },
+  {
+    "model": "formulare.teamqueue",
+    "pk": 8,
+    "fields": {
+      "antragstypen": [],
+      "beschreibung": "Facility-Team fuer Schreiner-Stoermeldungen",
+      "kuerzel": "FAC-SRE",
+      "name": "Facility – Schreiner",
+      "mitglieder": []
+    }
+  },
+  {
+    "model": "formulare.teamqueue",
+    "pk": 9,
+    "fields": {
+      "antragstypen": [],
+      "beschreibung": "Facility-Team fuer Maler-Stoermeldungen",
+      "kuerzel": "FAC-MAL",
+      "name": "Facility – Maler",
+      "mitglieder": []
+    }
+  },
+  {
+    "model": "formulare.teamqueue",
+    "pk": 10,
+    "fields": {
+      "antragstypen": [],
+      "beschreibung": "Facility-Team fuer Kategorie elektro",
+      "kuerzel": "FAC-ELK",
+      "name": "Facility - Elektro",
+      "mitglieder": []
+    }
+  },
+  {
+    "model": "formulare.teamqueue",
+    "pk": 11,
+    "fields": {
+      "antragstypen": [
+        "arbeitszeitvereinbarung"
+      ],
+      "beschreibung": "Bearbeitung von Arbeitszeitvereinbarungsantraegen (Ersteinrichtung, Verringerung, Erhoehung, Weiterbewilligung, Beendigung)",
+      "kuerzel": "azv",
+      "name": "Arbeitszeitvereinbarungen",
+      "mitglieder": []
+    }
+  },
+  {
+    "model": "formulare.teamqueue",
+    "pk": 12,
+    "fields": {
+      "antragstypen": [],
+      "beschreibung": "Security-Team: bearbeitet Token-Antraege und verwaltet Zutrittsbadges.",
+      "kuerzel": "sec-token",
+      "name": "Security – Tokenverwaltung",
+      "mitglieder": []
+    }
   }
-},
-{
-  "model": "formulare.teamqueue",
-  "pk": 2,
-  "fields": {
-    "antragstypen": [],
-    "beschreibung": "Reiseantraege und Kosten",
-    "kuerzel": "reise",
-    "name": "Reisemanagement",
-    "mitglieder": []
-  }
-},
-{
-  "model": "formulare.teamqueue",
-  "pk": 3,
-  "fields": {
-    "antragstypen": [
-      "zeitgutschrift"
-    ],
-    "beschreibung": "Team Zeitgutschrift",
-    "kuerzel": "gutschrift",
-    "name": "Zeitgutschriften-Team",
-    "mitglieder": []
-  }
-},
-{
-  "model": "formulare.teamqueue",
-  "pk": 6,
-  "fields": {
-    "antragstypen": [],
-    "beschreibung": "Facility-Team fuer Sanitaer / Heizung-Stoermeldungen",
-    "kuerzel": "FAC-SAN",
-    "name": "Facility â€“ Sanitaer / Heizung",
-    "mitglieder": []
-  }
-},
-{
-  "model": "formulare.teamqueue",
-  "pk": 7,
-  "fields": {
-    "antragstypen": [],
-    "beschreibung": "Facility-Team fuer Schlosser-Stoermeldungen",
-    "kuerzel": "FAC-SCH",
-    "name": "Facility â€“ Schlosser",
-    "mitglieder": []
-  }
-},
-{
-  "model": "formulare.teamqueue",
-  "pk": 8,
-  "fields": {
-    "antragstypen": [],
-    "beschreibung": "Facility-Team fuer Schreiner-Stoermeldungen",
-    "kuerzel": "FAC-SRE",
-    "name": "Facility â€“ Schreiner",
-    "mitglieder": []
-  }
-},
-{
-  "model": "formulare.teamqueue",
-  "pk": 9,
-  "fields": {
-    "antragstypen": [],
-    "beschreibung": "Facility-Team fuer Maler-Stoermeldungen",
-    "kuerzel": "FAC-MAL",
-    "name": "Facility â€“ Maler",
-    "mitglieder": []
-  }
-},
-{
-  "model": "formulare.teamqueue",
-  "pk": 10,
-  "fields": {
-    "antragstypen": [],
-    "beschreibung": "Facility-Team fuer Kategorie elektro",
-    "kuerzel": "FAC-ELK",
-    "name": "Facility - Elektro",
-    "mitglieder": []
-  }
-},
-{
-  "model": "formulare.teamqueue",
-  "pk": 11,
-  "fields": {
-    "antragstypen": [
-      "arbeitszeitvereinbarung"
-    ],
-    "beschreibung": "Bearbeitung von Arbeitszeitvereinbarungsantraegen (Ersteinrichtung, Verringerung, Erhoehung, Weiterbewilligung, Beendigung)",
-    "kuerzel": "azv",
-    "name": "Arbeitszeitvereinbarungen",
-    "mitglieder": []
-  }
-},
-{
-  "model": "formulare.teamqueue",
-  "pk": 12,
-  "fields": {
-    "antragstypen": [],
-    "beschreibung": "Security-Team: bearbeitet Token-Antraege und verwaltet Zutrittsbadges.",
-    "kuerzel": "sec-token",
-    "name": "Security â€“ Tokenverwaltung",
-    "mitglieder": []
-  }
-}
 ]

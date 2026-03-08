@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personalaufnahmebogen</title>
+    {% load static %}
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+    <style>
+        body { background: #f8f9fa; }
+        .bogen-header { background: #1a4d2e; color: white; padding: 1.5rem 2rem; margin-bottom: 2rem; }
+        .abschnitt { background: white; border-radius: 8px; border: 1px solid #dee2e6;
+                     border-top: 3px solid #1a4d2e; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .abschnitt-titel { font-weight: 700; color: #1a4d2e; font-size: 0.85rem;
+                           text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; }
+        .sensibel { border-top-color: #dc2626; }
+        .sensibel .abschnitt-titel { color: #dc2626; }
+        label { font-weight: 500; font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+
+<div class="bogen-header">
+    <h1 class="h4 mb-0 fw-bold">Personalaufnahmebogen</h1>
+    <p class="mb-0 mt-1" style="opacity:0.8; font-size:0.9rem;">
+        Bitte alle Felder vollstaendig ausfuellen. Ihre Daten werden sicher gespeichert.
+    </p>
+</div>
+
+<div class="container" style="max-width:860px;">
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+        {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- Persoenliche Daten -->
+        <div class="abschnitt">
+            <div class="abschnitt-titel">1. Persoenliche Daten</div>
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label>Anrede</label>
+                    {{ form.anrede }}
+                    {% if form.anrede.errors %}<div class="text-danger small">{{ form.anrede.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-5">
+                    <label>Vorname *</label>
+                    {{ form.vorname }}
+                    {% if form.vorname.errors %}<div class="text-danger small">{{ form.vorname.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-5">
+                    <label>Nachname *</label>
+                    {{ form.nachname }}
+                    {% if form.nachname.errors %}<div class="text-danger small">{{ form.nachname.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label>Geburtsname</label>
+                    {{ form.geburtsname }}
+                </div>
+                <div class="col-md-4">
+                    <label>Geburtsdatum *</label>
+                    {{ form.geburtsdatum }}
+                    {% if form.geburtsdatum.errors %}<div class="text-danger small">{{ form.geburtsdatum.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label>Geburtsort *</label>
+                    {{ form.geburtsort }}
+                    {% if form.geburtsort.errors %}<div class="text-danger small">{{ form.geburtsort.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label>Staatsangehoerigkeit</label>
+                    {{ form.staatsangehoerigkeit }}
+                </div>
+                <div class="col-md-4">
+                    <label>Familienstand</label>
+                    {{ form.familienstand }}
+                </div>
+                <div class="col-md-2">
+                    <label>Kinder</label>
+                    {{ form.anzahl_kinder }}
+                </div>
+                <div class="col-md-3">
+                    <label>Konfession</label>
+                    {{ form.konfession }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Adresse -->
+        <div class="abschnitt">
+            <div class="abschnitt-titel">2. Anschrift</div>
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label>Strasse *</label>
+                    {{ form.strasse }}
+                    {% if form.strasse.errors %}<div class="text-danger small">{{ form.strasse.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label>Hausnummer *</label>
+                    {{ form.hausnummer }}
+                    {% if form.hausnummer.errors %}<div class="text-danger small">{{ form.hausnummer.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label>PLZ *</label>
+                    {{ form.plz }}
+                    {% if form.plz.errors %}<div class="text-danger small">{{ form.plz.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-5">
+                    <label>Wohnort *</label>
+                    {{ form.ort }}
+                    {% if form.ort.errors %}<div class="text-danger small">{{ form.ort.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label>Land</label>
+                    {{ form.land }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Kontakt -->
+        <div class="abschnitt">
+            <div class="abschnitt-titel">3. Kontaktdaten</div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label>Telefon privat</label>
+                    {{ form.telefon_privat }}
+                </div>
+                <div class="col-md-4">
+                    <label>Mobil *</label>
+                    {{ form.mobil_privat }}
+                    {% if form.mobil_privat.errors %}<div class="text-danger small">{{ form.mobil_privat.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label>E-Mail privat</label>
+                    {{ form.email_privat }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Notfallkontakt -->
+        <div class="abschnitt">
+            <div class="abschnitt-titel">4. Notfallkontakt</div>
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label>Name</label>
+                    {{ form.notfallkontakt_name }}
+                </div>
+                <div class="col-md-3">
+                    <label>Beziehung</label>
+                    {{ form.notfallkontakt_beziehung }}
+                </div>
+                <div class="col-md-4">
+                    <label>Telefon</label>
+                    {{ form.notfallkontakt_telefon }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Steuer & Sozialversicherung -->
+        <div class="abschnitt sensibel">
+            <div class="abschnitt-titel">5. Steuer &amp; Sozialversicherung</div>
+            <p class="text-muted small mb-3">Diese Angaben werden verschluesselt gespeichert und sind ausschliesslich fuer die Lohnbuchhaltung bestimmt.</p>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label>Steuerklasse</label>
+                    {{ form.steuerklasse }}
+                </div>
+                <div class="col-md-4">
+                    <label>Steuer-ID (11-stellig)</label>
+                    {{ form.steuer_id }}
+                </div>
+                <div class="col-md-5">
+                    <label>Sozialversicherungsnummer</label>
+                    {{ form.sozialversicherungsnummer }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Bankverbindung -->
+        <div class="abschnitt sensibel">
+            <div class="abschnitt-titel">6. Bankverbindung</div>
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label>IBAN</label>
+                    {{ form.iban }}
+                </div>
+                <div class="col-md-3">
+                    <label>BIC</label>
+                    {{ form.bic }}
+                </div>
+                <div class="col-md-4">
+                    <label>Kreditinstitut</label>
+                    {{ form.bank_name }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Krankenversicherung -->
+        <div class="abschnitt">
+            <div class="abschnitt-titel">7. Krankenversicherung</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label>Krankenkasse</label>
+                    {{ form.krankenkasse_name }}
+                </div>
+                <div class="col-md-6">
+                    <label>Versicherungsart</label>
+                    {{ form.krankenversicherungsart }}
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <p class="text-muted small mb-0">Mit * markierte Felder sind Pflichtfelder.</p>
+            <button type="submit" class="btn px-4 py-2 fw-bold"
+                    style="background:#1a4d2e; color:white; font-size:1rem;">
+                Weiter: Dokumente hochladen &rarr;
+            </button>
+        </div>
+    </form>
+</div>
+
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

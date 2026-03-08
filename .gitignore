@@ -1,4 +1,3 @@
-@"
 # Python
 *.pyc
 __pycache__/
@@ -6,9 +5,15 @@ __pycache__/
 *$py.class
 *.so
 .Python
+
+# Virtuelle Umgebung
 env/
 venv/
 ENV/
+env.bak/
+venv.bak/
+
+# Build-Artefakte
 build/
 develop-eggs/
 dist/
@@ -34,17 +39,12 @@ db.sqlite3-shm
 /staticfiles
 *.pot
 
-# Environments
+# Umgebungsvariablen (niemals committen!)
 .env
 .env.*
 .venv
 db_sync.sh
 db_dump_*.json
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 
 # IDEs
 .vscode/
@@ -57,14 +57,16 @@ venv.bak/
 .DS_Store
 Thumbs.db
 
-# Migrations (optional - kommentiere aus wenn du sie committen willst)
-# */migrations/*.py
-# !*/migrations/__init__.py
-
 # Daten-Exports
 *.json
 !requirements.txt
 # Fixtures explizit einschliessen (trotz *.json Ausschluss)
 !*/fixtures/*.json
+
+# Sicherungen
 Sicherungsdateien/
-"@ | Out-File -FilePath .gitignore -Encoding UTF8
+backups/
+docs/
+
+# Privater CA-Schluessel (niemals committen!)
+signatur/ca_root.key.pem

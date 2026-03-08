@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Datenschutz (DSGVO){% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <h2>Datenschutz &amp; DSGVO</h2>
+  <p class="text-muted">
+    Ihre Rechte nach der Datenschutz-Grundverordnung (DSGVO) auf einen Blick.
+  </p>
+
+  <div class="row g-4 mb-4">
+
+    <!-- Art. 15: Auskunftsrecht -->
+    <div class="col-md-6">
+      <div class="card h-100 border-primary">
+        <div class="card-header bg-primary text-white">
+          <strong>Art. 15 DSGVO – Auskunftsrecht</strong>
+        </div>
+        <div class="card-body">
+          <p>
+            Sie haben das Recht zu erfahren, welche personenbezogenen Daten wir ueber Sie gespeichert haben,
+            zu welchem Zweck und wie lange.
+          </p>
+          <p class="mb-0">
+            Die Auskunft wird als PDF generiert und enthaelt alle ueber Sie gespeicherten Datenkategorien
+            mit Anzahl der Eintraege, Zeitraum, Rechtsgrundlage und Speicherfrist.
+          </p>
+        </div>
+        <div class="card-footer">
+          <a href="{% url 'datenschutz:auskunft_pdf' %}" class="btn btn-primary">
+            Meine Daten als PDF herunterladen
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Zertifikat-Status -->
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-header">
+          <strong>Digitale Signatur (eIDAS)</strong>
+        </div>
+        <div class="card-body">
+          <p>
+            Alle PDF-Dokumente aus diesem System werden mit einer
+            Fortgeschrittenen Elektronischen Signatur (FES) nach eIDAS Art. 26 versehen.
+          </p>
+          {% if mitarbeiter %}
+          <table class="table table-sm">
+            <tr><th>Status</th>
+              <td>
+                {% with zert=request.user.mitarbeiterzertifikat %}
+                {% if zert and zert.ist_gueltig %}
+                  <span class="badge bg-success">Aktives Zertifikat vorhanden</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Kein aktives Zertifikat</span>
+                {% endif %}
+                {% endwith %}
+              </td>
+            </tr>
+            <tr><th>Eintrittsdatum</th><td>{{ mitarbeiter.eintrittsdatum|default:"–" }}</td></tr>
+            {% if mitarbeiter.austritt_datum %}
+            <tr><th>Austrittsdatum</th>
+              <td><span class="text-danger">{{ mitarbeiter.austritt_datum }}</span></td>
+            </tr>
+            {% endif %}
+          </table>
+          {% endif %}
+        </div>
+        <div class="card-footer">
+          <a href="{% url 'signatur:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            Zur Signatur-Uebersicht
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Speicherfristen Info -->
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header"><strong>Gesetzliche Speicherfristen</strong></div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Datenkategorie</th>
+                <th>Frist nach Austritt</th>
+                <th>Rechtsgrundlage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Stammdaten, Zeiterfassung, Reisekosten, Vereinbarungen</td>
+                <td><strong>10 Jahre</strong></td>
+                <td>§ 147 AO (steuerrechtlich)</td>
+              </tr>
+              <tr>
+                <td>Digitale Signaturen &amp; Zertifikate</td>
+                <td><strong>10 Jahre</strong></td>
+                <td>eIDAS Art. 40</td>
+              </tr>
+              <tr>
+                <td>Allgemeine Antraege ohne Steuerrelevanz</td>
+                <td><strong>3 Jahre</strong></td>
+                <td>§ 195 BGB</td>
+              </tr>
+              <tr>
+                <td>Zutrittsprotokolle, Raumbuchungen</td>
+                <td><strong>2 Jahre</strong></td>
+                <td>DSGVO Art. 5 (Datensparsamkeit)</td>
+              </tr>
+              <tr>
+                <td>Loeschprotokoll (Nachweis)</td>
+                <td><strong>Dauerhaft</strong></td>
+                <td>DSGVO Art. 5 Abs. 2 (Rechenschaftspflicht) – nur Metadaten</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Loeschprotokolle (nur Staff) -->
+  {% if user.is_staff and protokolle is not None %}
+  <div class="card mt-2">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>Loeschprotokolle</strong>
+      <small class="text-muted">Nur Metadaten – keine personenbezogenen Inhalte</small>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Personalnr.</th>
+            <th>Name (Kuerzel)</th>
+            <th>Austritt</th>
+            <th>Geloescht am</th>
+            <th>Kategorien</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in protokolle %}
+          <tr>
+            <td>{{ p.personalnummer }}</td>
+            <td>{{ p.nachname_kuerzel }}***</td>
+            <td>{{ p.austritt_datum }}</td>
+            <td>{{ p.loeschung_ausgefuehrt_am|date:"d.m.Y H:i" }}</td>
+            <td>{{ p.kategorien|length }} Kategorie(n)</td>
+            <td>
+              <a href="{% url 'datenschutz:protokoll_detail' pk=p.pk %}" class="btn btn-sm btn-outline-secondary">
+                Detail
+              </a>
+              {% if p.protokoll_pdf %}
+              <a href="{% url 'datenschutz:protokoll_pdf' pk=p.pk %}" class="btn btn-sm btn-outline-primary">
+                PDF
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center text-muted py-3">Noch keine Loeschungen durchgefuehrt.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

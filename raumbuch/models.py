@@ -310,6 +310,99 @@ class RaumNetzwerkDaten(models.Model):
         return f"Netzwerk-Daten: {self.raum}"
 
 
+class NetzwerkKomponente(models.Model):
+    """19-Zoll Rack-Komponente in einem IT-Raum."""
+
+    TYP_CHOICES = [
+        ("core_switch", "Core Switch"),
+        ("distribution_switch", "Distribution Switch"),
+        ("access_switch", "Access Switch"),
+        ("patch_panel", "Patch Panel"),
+        ("glasfaser_verteiler", "LWL-Verteiler"),
+        ("firewall", "Firewall / UTM"),
+        ("router", "Router / WAN"),
+        ("server", "Server"),
+        ("nas", "NAS / Storage"),
+        ("ups", "USV / UPS"),
+        ("kvm", "KVM-Switch"),
+        ("accesspoint", "Access Point"),
+        ("sonstiges", "Sonstiges"),
+    ]
+
+    raum = models.ForeignKey(
+        "Raum", on_delete=models.CASCADE, related_name="netzwerk_komponenten"
+    )
+    typ = models.CharField(max_length=30, choices=TYP_CHOICES)
+    bezeichnung = models.CharField(max_length=100)
+    hersteller = models.CharField(max_length=100, blank=True)
+    modell = models.CharField(max_length=100, blank=True)
+    rack_einheit_start = models.IntegerField(
+        null=True, blank=True, verbose_name="Rack-Position (U)"
+    )
+    rack_einheiten = models.IntegerField(default=1, verbose_name="Hoehe (U)")
+    ports_gesamt = models.IntegerField(null=True, blank=True)
+    ports_belegt = models.IntegerField(null=True, blank=True)
+    ip_adresse = models.CharField(max_length=50, blank=True)
+    vlan = models.CharField(max_length=100, blank=True)
+    seriennummer = models.CharField(max_length=100, blank=True)
+    bemerkung = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-rack_einheit_start"]
+        verbose_name = "Netzwerk-Komponente"
+        verbose_name_plural = "Netzwerk-Komponenten"
+
+    def __str__(self):
+        return f"{self.bezeichnung} ({self.raum.raumnummer})"
+
+    @property
+    def auslastung_prozent(self):
+        """Ports-Auslastung in Prozent."""
+        if self.ports_gesamt and self.ports_belegt is not None:
+            return round(self.ports_belegt / self.ports_gesamt * 100)
+        return None
+
+
+class Glasfaserverbindung(models.Model):
+    """Glasfaser-Verbindung zwischen zwei IT-Raeumen (Backbone)."""
+
+    KABEL_CHOICES = [
+        ("om4", "OM4 Multimode (bis 100GbE / 400m)"),
+        ("os2", "OS2 Singlemode (bis 100GbE / 10km)"),
+    ]
+    STECKER_CHOICES = [
+        ("lc_duplex", "LC Duplex"),
+        ("sc_duplex", "SC Duplex"),
+        ("mtp_12", "MTP/MPO 12-faser"),
+        ("mtp_24", "MTP/MPO 24-faser"),
+    ]
+
+    bezeichnung = models.CharField(max_length=100)
+    von_raum = models.ForeignKey(
+        "Raum", on_delete=models.CASCADE, related_name="glasfaser_von"
+    )
+    nach_raum = models.ForeignKey(
+        "Raum", on_delete=models.CASCADE, related_name="glasfaser_nach"
+    )
+    kabel_typ = models.CharField(
+        max_length=10, choices=KABEL_CHOICES, default="om4"
+    )
+    stecker_typ = models.CharField(
+        max_length=10, choices=STECKER_CHOICES, default="lc_duplex"
+    )
+    fasern_anzahl = models.IntegerField(default=12)
+    bandbreite = models.CharField(max_length=50, blank=True, default="10 GbE")
+    laenge_m = models.IntegerField(null=True, blank=True, verbose_name="Laenge (m)")
+    bemerkung = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Glasfaserverbindung"
+        verbose_name_plural = "Glasfaserverbindungen"
+
+    def __str__(self):
+        return f"{self.bezeichnung}: {self.von_raum.raumnummer} -> {self.nach_raum.raumnummer}"
+
+
 class RaumInstallationDaten(models.Model):
     """Installation-Schicht: Wasser, Brandschutz, GLT."""
 
@@ -651,6 +744,11 @@ class Raumbuchung(models.Model):
     )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default="offen"
+    )
+    jitsi_link = models.URLField(
+        blank=True,
+        default="",
+        verbose_name="Jitsi-Meeting-Link",
     )
     teilnehmerzahl = models.IntegerField(null=True, blank=True)
     von = models.TimeField()

@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% load static raumbuch_tags %}
+
+{% block title %}Netzwerkplan – {{ raum.raumnummer }} {{ raum.raumname }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{% url 'raumbuch:raum_detail' raum.pk %}" class="btn btn-sm btn-outline-secondary">
+        &larr; Raum {{ raum.raumnummer }}
+    </a>
+    <div>
+        <h2 class="mb-0">Netzwerkplan &ndash; {{ raum.raumnummer }}</h2>
+        <small class="text-muted">{{ raum.raumname }} &bull; {{ raum.geschoss.gebaeude.bezeichnung }} {{ raum.geschoss.bezeichnung }}</small>
+    </div>
+</div>
+
+<!-- Statistik-Karten -->
+<div class="row g-3 mb-4">
+    <div class="col-auto">
+        <div class="card border-0 bg-dark text-white" style="min-width:160px">
+            <div class="card-body py-2 px-3">
+                <div class="small text-secondary">Komponenten</div>
+                <div class="fs-4 fw-bold">{{ komponenten.count }}</div>
+            </div>
+        </div>
+    </div>
+    {% if gesamt_ports %}
+    <div class="col-auto">
+        <div class="card border-0 bg-dark text-white" style="min-width:160px">
+            <div class="card-body py-2 px-3">
+                <div class="small text-secondary">Ports gesamt</div>
+                <div class="fs-4 fw-bold">{{ gesamt_ports }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-auto">
+        <div class="card border-0 bg-dark text-white" style="min-width:160px">
+            <div class="card-body py-2 px-3">
+                <div class="small text-secondary">Ports belegt</div>
+                <div class="fs-4 fw-bold">{{ belegte_ports }}
+                    <span class="fs-6 text-secondary">/ {{ gesamt_ports }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if glasfaser %}
+    <div class="col-auto">
+        <div class="card border-0 bg-dark text-white" style="min-width:160px">
+            <div class="card-body py-2 px-3">
+                <div class="small text-secondary">Glasfaser-Uplinks</div>
+                <div class="fs-4 fw-bold">{{ glasfaser.count }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-4">
+
+    <!-- ====== Rack-Visualisierung ====== -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-dark text-white d-flex align-items-center gap-2">
+                <span class="fw-bold">19&quot; Rack-Belegung</span>
+                <span class="badge bg-secondary ms-auto">{{ max_he }} HE</span>
+            </div>
+            <div class="card-body p-2" style="background:#1a1a2e; overflow-x:auto">
+                <svg id="rack-svg" xmlns="http://www.w3.org/2000/svg"
+                     width="420" height="{{ max_he|add:2|add:2 }}0"
+                     style="display:block; margin:auto; font-family:monospace">
+                    <!-- wird per JS gerendert -->
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== Komponentenliste ====== -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-dark text-white fw-bold">Komponenten</div>
+            <div class="table-responsive">
+                <table class="table table-sm table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>HE</th>
+                            <th>Bezeichnung</th>
+                            <th>Typ</th>
+                            <th>Modell</th>
+                            <th>IP</th>
+                            <th>Ports</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for k in komponenten %}
+                        <tr>
+                            <td class="text-secondary">
+                                {% if k.rack_einheit_start %}
+                                U{{ k.rack_einheit_start }}
+                                {% if k.rack_einheiten > 1 %}&ndash;U{{ k.rack_einheit_start|add:k.rack_einheiten|add:"-1" }}{% endif %}
+                                {% else %}&ndash;{% endif %}
+                            </td>
+                            <td class="fw-bold">
+                                <span class="rack-komp-badge" style="background:{{ k.typ|typ_farbe }}; display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px"></span>
+                                {{ k.bezeichnung }}
+                            </td>
+                            <td>
+                                <span class="badge" style="background:{{ k.typ|typ_farbe }}">{{ k.get_typ_display }}</span>
+                            </td>
+                            <td class="text-secondary small">{{ k.hersteller }} {{ k.modell|truncatechars:30 }}</td>
+                            <td class="text-info small font-monospace">{{ k.ip_adresse|default:"&ndash;" }}</td>
+                            <td>
+                                {% if k.ports_gesamt %}
+                                <div class="d-flex align-items-center gap-1">
+                                    <span>{{ k.ports_belegt }}/{{ k.ports_gesamt }}</span>
+                                    {% if k.auslastung_prozent %}
+                                    <div class="progress flex-grow-1" style="height:6px; min-width:50px">
+                                        <div class="progress-bar
+                                            {% if k.auslastung_prozent >= 90 %}bg-danger
+                                            {% elif k.auslastung_prozent >= 70 %}bg-warning
+                                            {% else %}bg-success{% endif %}"
+                                            style="width:{{ k.auslastung_prozent }}%"></div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% else %}&ndash;{% endif %}
+                            </td>
+                        </tr>
+                        {% if k.bemerkung %}
+                        <tr class="border-0">
+                            <td colspan="6" class="pt-0 ps-4 text-secondary small fst-italic">
+                                {{ k.bemerkung }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Glasfaser-Topologie -->
+        {% if glasfaser %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-dark text-white fw-bold">Glasfaser-Uplinks (Backbone)</div>
+            <div class="table-responsive">
+                <table class="table table-sm table-dark mb-0">
+                    <thead>
+                        <tr>
+                            <th>Bezeichnung</th>
+                            <th>Ziel</th>
+                            <th>Kabel</th>
+                            <th>Fasern</th>
+                            <th>Bandbreite</th>
+                            <th>Laenge</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for gf in glasfaser %}
+                        <tr>
+                            <td class="fw-bold">{{ gf.bezeichnung }}</td>
+                            <td>
+                                <a href="{% url 'raumbuch:raum_detail' gf.nach_raum.pk %}" class="text-info">
+                                    {{ gf.nach_raum.raumnummer }}
+                                </a>
+                                <span class="text-secondary small"> {{ gf.nach_raum.raumname }}</span>
+                            </td>
+                            <td>
+                                <span class="badge {% if gf.kabel_typ == 'om4' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                                    {{ gf.get_kabel_typ_display|truncatechars:10 }}
+                                </span>
+                            </td>
+                            <td>{{ gf.fasern_anzahl }}F / {{ gf.get_stecker_typ_display }}</td>
+                            <td class="text-success fw-bold">{{ gf.bandbreite }}</td>
+                            <td class="text-secondary">{% if gf.laenge_m %}{{ gf.laenge_m }} m{% else %}&ndash;{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Verbundene Raeume -->
+        {% if verbundene_raeume %}
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-dark text-white fw-bold">
+                Angeschlossene Raeume ({{ verbundene_raeume.count }})
+            </div>
+            <div class="card-body p-0" style="max-height:300px; overflow-y:auto">
+                <table class="table table-sm table-dark table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Raum</th>
+                            <th>Etage</th>
+                            <th>Switch</th>
+                            <th>Ports</th>
+                            <th>VLAN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for nd in verbundene_raeume %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'raumbuch:raum_detail' nd.raum.pk %}" class="text-info text-decoration-none">
+                                    {{ nd.raum.raumnummer }}
+                                </a>
+                            </td>
+                            <td class="text-secondary">{{ nd.raum.geschoss.kuerzel }}</td>
+                            <td class="small font-monospace">{{ nd.switch_name }}</td>
+                            <td>{{ nd.lan_ports_anzahl|default:"&ndash;" }}</td>
+                            <td class="small text-success">{{ nd.vlan|default:"&ndash;" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Rack-Daten als JSON fuer SVG-Renderer -->
+<script>
+const RACK_DATEN = [
+    {% for k in komponenten %}
+    {
+        he_start: {{ k.rack_einheit_start|default:"null" }},
+        he_anzahl: {{ k.rack_einheiten }},
+        bezeichnung: "{{ k.bezeichnung }}",
+        typ: "{{ k.typ }}",
+        typ_label: "{{ k.get_typ_display }}",
+        hersteller: "{{ k.hersteller }}",
+        modell: "{{ k.modell|truncatechars:40 }}",
+        ip: "{{ k.ip_adresse }}",
+        ports_ges: {{ k.ports_gesamt|default:"null" }},
+        ports_bel: {{ k.ports_belegt|default:"null" }},
+        vlan: "{{ k.vlan }}",
+        bemerkung: "{{ k.bemerkung|escapejs }}",
+    },
+    {% endfor %}
+];
+const MAX_HE = {{ max_he }};
+</script>
+<script src="{% static 'js/netzwerkplan_rack.js' %}"></script>
+
+{% endblock %}

@@ -127,3 +127,14 @@ def team_stapel_anzahl(request):
         anzahl = 0
 
     return {"team_stapel_anzahl": anzahl}
+
+
+def hilfe_kontext(request):
+    """Stellt die App-Liste fuer das Hilfe-Modal bereit."""
+    return {
+        "apps_liste": [
+            "arbeitszeit", "formulare", "schichtplan", "hr", "workflow",
+            "facility", "raumbuch", "signatur", "datenschutz", "dokumente",
+            "berechtigungen", "veranstaltungen",
+        ]
+    }
