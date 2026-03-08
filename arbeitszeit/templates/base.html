@@ -1397,9 +1397,7 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
         <div id="cmd-hint">/ oeffnen &nbsp;&middot;&nbsp; Pfeiltasten navigieren &nbsp;&middot;&nbsp; Enter oeffnen &nbsp;&middot;&nbsp; Esc schliessen</div>
     </div>
 </div>
-
 <!-- Nav-Items fuer die Suche als JSON (CSP-sicher via json_script) -->
-{% if user.is_authenticated %}
 {{ cmd_items_json|json_script:"cmd-items-data" }}
 {% endif %}
 
