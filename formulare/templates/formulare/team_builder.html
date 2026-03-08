@@ -20,8 +20,8 @@
                 ← Zurueck zu {{ org.kuerzel }}
             </a>
             {% endif %}
-            <button class="btn btn-success btn-lg" onclick="openTeamModal()">
-                ➕ Neues Team erstellen
+            <button id="btn-open-team-modal" class="btn btn-success btn-lg">
+                Neues Team erstellen
             </button>
             <a href="{% url 'workflow:workflow_editor' %}" class="btn btn-info">
                 ⚙️ Workflow-Editor
@@ -69,11 +69,16 @@
                                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0">👥 {{ team.name }}</h5>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary" onclick="editTeam({{ team.id }})">
-                                            ✏️
+                                        <button class="btn btn-outline-primary"
+                                                data-action="edit-team"
+                                                data-team-id="{{ team.id }}">
+                                            Bearb.
                                         </button>
-                                        <button class="btn btn-outline-danger" onclick="deleteTeam({{ team.id }}, '{{ team.name }}')">
-                                            🗑️
+                                        <button class="btn btn-outline-danger"
+                                                data-action="delete-team"
+                                                data-team-id="{{ team.id }}"
+                                                data-team-name="{{ team.name }}">
+                                            Loeschen
                                         </button>
                                     </div>
                                 </div>
@@ -101,8 +106,11 @@
                                                     <small class="text-muted">{{ mitglied.username }}</small>
                                                 </span>
                                                 <button class="btn btn-sm btn-outline-danger"
-                                                        onclick="removeMember({{ team.id }}, {{ mitglied.id }}, '{{ mitglied.username }}')">
-                                                    ✖️
+                                                        data-action="remove-member"
+                                                        data-team-id="{{ team.id }}"
+                                                        data-user-id="{{ mitglied.id }}"
+                                                        data-username="{{ mitglied.username }}">
+                                                    X
                                                 </button>
                                             </div>
                                             {% endfor %}
@@ -112,8 +120,10 @@
                                     {% endif %}
 
                                     <button class="btn btn-sm btn-outline-success mt-3 w-100"
-                                            onclick="addMemberModal({{ team.id }}, '{{ team.name }}')">
-                                        ➕ Mitglied hinzufuegen
+                                            data-action="add-member"
+                                            data-team-id="{{ team.id }}"
+                                            data-team-name="{{ team.name }}">
+                                        + Mitglied hinzufuegen
                                     </button>
                                 </div>
                             </div>
@@ -162,8 +172,11 @@
                                         </span>
                                         {% if request.user.is_staff %}
                                         <button class="btn btn-sm btn-outline-danger"
-                                                onclick="facilityRemoveMember({{ fteam.id }}, {{ mitglied.id }}, '{{ mitglied.username }}')">
-                                            &#10006;
+                                                data-action="facility-remove-member"
+                                                data-team-id="{{ fteam.id }}"
+                                                data-user-id="{{ mitglied.id }}"
+                                                data-username="{{ mitglied.username }}">
+                                            X
                                         </button>
                                         {% endif %}
                                     </div>
@@ -175,7 +188,9 @@
 
                                 {% if request.user.is_staff %}
                                 <button class="btn btn-sm btn-outline-success mt-3 w-100"
-                                        onclick="facilityAddMemberModal({{ fteam.id }}, '{{ fteam.get_kategorie_display }}')">
+                                        data-action="facility-add-member-modal"
+                                        data-team-id="{{ fteam.id }}"
+                                        data-team-name="{{ fteam.get_kategorie_display }}">
                                     + Mitglied hinzufuegen
                                 </button>
                                 {% endif %}
@@ -270,7 +285,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                <button type="button" class="btn btn-success" onclick="saveTeam()">Speichern</button>
+                <button type="button" id="btn-save-team" class="btn btn-success">Speichern</button>
             </div>
         </div>
     </div>
@@ -293,7 +308,7 @@
                            id="member-search"
                            class="form-control"
                            placeholder="Name, Stelle oder Kuerzel suchen..."
-                           oninput="filterMemberList(this.value)">
+                           >
                 </div>
 
                 <!-- Scrollbare Auswahlliste (wird per JS befuellt) -->
@@ -309,343 +324,15 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                <button type="button" class="btn btn-primary" onclick="saveMember()">Hinzufuegen</button>
+                <button type="button" id="btn-save-member" class="btn btn-primary">Hinzufuegen</button>
             </div>
         </div>
     </div>
 </div>
 
-<script>
-// Alle User als JavaScript-Array (vom Server)
-const ALL_USERS = {{ users_json|safe }};
-</script>
+{% load static %}
+{{ users_json|json_script:"all-users-data" }}
 
-<script>
-// CSRF Token
-const csrftoken = document.querySelector('meta[name="csrf-token"]').content;
-
-// Hilfsfunktion: Checkboxen zuruecksetzen
-function _resetTypCheckboxes() {
-    document.querySelectorAll('.antragstyp-cb').forEach(cb => cb.checked = false);
-}
-
-// Hilfsfunktion: Checkboxen nach Liste setzen
-function _setTypCheckboxes(typen) {
-    _resetTypCheckboxes();
-    (typen || []).forEach(typ => {
-        const cb = document.querySelector(`.antragstyp-cb[value="${typ}"]`);
-        if (cb) cb.checked = true;
-    });
-}
-
-// Hilfsfunktion: Aktuelle Checkbox-Auswahl als Array lesen
-function _getTypCheckboxes() {
-    return Array.from(document.querySelectorAll('.antragstyp-cb:checked')).map(cb => cb.value);
-}
-
-// Team Modal oeffnen (Neu)
-function openTeamModal() {
-    document.getElementById('team-id').value = '';
-    document.getElementById('team-name').value = '';
-    document.getElementById('team-beschreibung').value = '';
-    document.getElementById('teamModalTitle').textContent = 'Neues Team erstellen';
-    _resetTypCheckboxes();
-
-    const modal = new bootstrap.Modal(document.getElementById('teamModal'));
-    modal.show();
-}
-
-// Team bearbeiten
-async function editTeam(teamId) {
-    try {
-        const response = await fetch(`/formulare/team-builder/team/${teamId}/`);
-        const data = await response.json();
-
-        document.getElementById('team-id').value = data.id;
-        document.getElementById('team-name').value = data.name;
-        document.getElementById('team-beschreibung').value = data.beschreibung || '';
-        document.getElementById('teamModalTitle').textContent = 'Team bearbeiten';
-        _setTypCheckboxes(data.antragstypen || []);
-
-        const modal = new bootstrap.Modal(document.getElementById('teamModal'));
-        modal.show();
-    } catch (error) {
-        alert('Fehler beim Laden: ' + error);
-    }
-}
-
-// Team speichern
-async function saveTeam() {
-    const teamId = document.getElementById('team-id').value;
-    const name = document.getElementById('team-name').value;
-    const beschreibung = document.getElementById('team-beschreibung').value;
-    const antragstypen = _getTypCheckboxes();
-
-    if (!name) {
-        alert('Bitte einen Namen eingeben!');
-        return;
-    }
-
-    const url = teamId
-        ? `/formulare/team-builder/team/${teamId}/update/`
-        : '/formulare/team-builder/team/create/';
-
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken
-            },
-            body: JSON.stringify({ name, beschreibung, antragstypen })
-        });
-
-        if (response.ok) {
-            bootstrap.Modal.getInstance(document.getElementById('teamModal')).hide();
-            location.reload();
-        } else {
-            const error = await response.json();
-            alert('Fehler: ' + (error.error || 'Unbekannter Fehler'));
-        }
-    } catch (error) {
-        alert('Fehler beim Speichern: ' + error);
-    }
-}
-
-// Team loeschen
-async function deleteTeam(teamId, teamName) {
-    if (!confirm(`Team "${teamName}" wirklich loeschen?`)) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/formulare/team-builder/team/${teamId}/delete/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrftoken
-            }
-        });
-
-        if (response.ok) {
-            document.getElementById(`team-${teamId}`).remove();
-            location.reload();
-        } else {
-            const data = await response.json().catch(() => ({}));
-            alert('Loeschen nicht moeglich:\n' + (data.error || 'Unbekannter Fehler'));
-        }
-    } catch (error) {
-        alert('Fehler: ' + error);
-    }
-}
-
-// Mitglied hinzufuegen Modal
-let _currentUsers = [];
-
-function renderMemberList(users) {
-    const list = document.getElementById('member-list');
-    if (!users.length) {
-        list.innerHTML = '<p class="text-muted small p-3 mb-0">Keine Ergebnisse.</p>';
-        return;
-    }
-    list.innerHTML = users.map(u => {
-        const stelle = u.stelle || '';
-        const stelleHtml = stelle
-            ? `<small class="text-muted">${stelle}</small>`
-            : `<small class="text-muted fst-italic">keine Stelle</small>`;
-        return `<div class="member-option d-flex align-items-center px-3 py-2 border-bottom"
-                     style="cursor:pointer;"
-                     data-id="${u.id}"
-                     data-name="${u.name}"
-                     data-stelle="${stelle}"
-                     onclick="selectMember(this)">
-                    <div class="flex-grow-1">
-                        <div class="fw-semibold">${u.name}</div>
-                        ${stelleHtml}
-                    </div>
-                    <small class="text-muted ms-2">${u.username}</small>
-                </div>`;
-    }).join('');
-}
-
-function filterMemberList(query) {
-    const q = query.toLowerCase().trim();
-    if (!q) {
-        renderMemberList(_currentUsers);
-        return;
-    }
-    const gefunden = _currentUsers.filter(u => {
-        const suchtext = (u.name + ' ' + u.stelle + ' ' + u.username).toLowerCase();
-        return suchtext.includes(q);
-    });
-    renderMemberList(gefunden);
-    // Auswahl zuruecksetzen wenn gefiltert
-    document.getElementById('member-select').value = '';
-    document.getElementById('member-selected').textContent = 'Noch niemanden ausgewaehlt.';
-}
-
-function selectMember(el) {
-    document.querySelectorAll('.member-option').forEach(e => {
-        e.classList.remove('bg-primary', 'text-white');
-        e.querySelectorAll('small').forEach(s => s.classList.remove('text-white'));
-    });
-    el.classList.add('bg-primary', 'text-white');
-    el.querySelectorAll('small').forEach(s => s.classList.add('text-white'));
-
-    document.getElementById('member-select').value = el.dataset.id;
-    const stelle = el.dataset.stelle;
-    document.getElementById('member-selected').innerHTML =
-        `Ausgewaehlt: <strong>${el.dataset.name}</strong>${stelle ? ' &ndash; ' + stelle : ''}`;
-}
-
-function addMemberModal(teamId, teamName) {
-    document.getElementById('member-team-id').value = teamId;
-    document.getElementById('memberModalTitle').textContent = `Mitglied zu "${teamName}" hinzufuegen`;
-    document.getElementById('member-select').value = '';
-    document.getElementById('member-search').value = '';
-    document.getElementById('member-selected').textContent = 'Noch niemanden ausgewaehlt.';
-
-    _currentUsers = ALL_USERS;
-    renderMemberList(_currentUsers);
-
-    const modal = new bootstrap.Modal(document.getElementById('memberModal'));
-    modal.show();
-
-    document.getElementById('memberModal').addEventListener('shown.bs.modal', () => {
-        document.getElementById('member-search').focus();
-    }, { once: true });
-}
-
-// Mitglied speichern
-async function saveMember() {
-    const teamId = document.getElementById('member-team-id').value;
-    const userId = document.getElementById('member-select').value;
-
-    if (!userId) {
-        alert('Bitte einen User auswaehlen!');
-        return;
-    }
-
-    try {
-        const response = await fetch(`/formulare/team-builder/team/${teamId}/member/add/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken
-            },
-            body: JSON.stringify({ user_id: userId })
-        });
-
-        if (response.ok) {
-            bootstrap.Modal.getInstance(document.getElementById('memberModal')).hide();
-            location.reload();
-        } else {
-            const error = await response.json();
-            alert('Fehler: ' + (error.error || 'Unbekannter Fehler'));
-        }
-    } catch (error) {
-        alert('Fehler: ' + error);
-    }
-}
-
-// Mitglied entfernen
-async function removeMember(teamId, userId, username) {
-    if (!confirm(`User "${username}" aus dem Team entfernen?`)) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/formulare/team-builder/team/${teamId}/member/remove/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken
-            },
-            body: JSON.stringify({ user_id: userId })
-        });
-
-        if (response.ok) {
-            location.reload();
-        } else {
-            alert('Fehler beim Entfernen');
-        }
-    } catch (error) {
-        alert('Fehler: ' + error);
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Facility-Team Member-Management
-// ---------------------------------------------------------------------------
-let currentFacilityTeamId = null;
-
-function facilityAddMemberModal(teamId, teamName) {
-    currentFacilityTeamId = teamId;
-    document.getElementById('facility-modal-teamname').textContent = teamName;
-    document.getElementById('facility-member-search').value = '';
-    renderFacilityUserList('');
-    new bootstrap.Modal(document.getElementById('facilityMemberModal')).show();
-}
-
-function renderFacilityUserList(query) {
-    const container = document.getElementById('facility-member-list');
-    const filtered = ALL_USERS.filter(u =>
-        u.name.toLowerCase().includes(query.toLowerCase()) ||
-        u.username.toLowerCase().includes(query.toLowerCase())
-    );
-    if (filtered.length === 0) {
-        container.innerHTML = '<p class="text-muted p-2">Keine Treffer</p>';
-        return;
-    }
-    container.innerHTML = filtered.map(u => `
-        <div class="d-flex justify-content-between align-items-center border-bottom py-2 px-1">
-            <div>
-                <strong>${u.name}</strong><br>
-                <small class="text-muted">${u.username}${u.stelle ? ' – ' + u.stelle : ''}</small>
-            </div>
-            <button class="btn btn-sm btn-success" onclick="facilityDoAddMember(${u.id})">+</button>
-        </div>
-    `).join('');
-}
-
-document.getElementById('facility-member-search').addEventListener('input', function() {
-    renderFacilityUserList(this.value);
-});
-
-async function facilityDoAddMember(userId) {
-    try {
-        const response = await fetch(`/facility/teams/${currentFacilityTeamId}/mitglied/hinzufuegen/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
-            body: JSON.stringify({ user_id: userId })
-        });
-        const data = await response.json();
-        if (response.ok) {
-            location.reload();
-        } else {
-            alert(data.error || 'Fehler');
-        }
-    } catch (error) {
-        alert('Fehler: ' + error);
-    }
-}
-
-async function facilityRemoveMember(teamId, userId, username) {
-    if (!confirm(`"${username}" aus dem Facility-Team entfernen?`)) return;
-    try {
-        const response = await fetch(`/facility/teams/${teamId}/mitglied/entfernen/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
-            body: JSON.stringify({ user_id: userId })
-        });
-        if (response.ok) {
-            location.reload();
-        } else {
-            alert('Fehler beim Entfernen');
-        }
-    } catch (error) {
-        alert('Fehler: ' + error);
-    }
-}
-</script>
+<script src="{% static 'js/team_builder.js' %}"></script>
 
 {% endblock %}
