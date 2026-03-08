@@ -1,5 +1,73 @@
+import random
+import string
+
 from django.contrib.auth.models import User
 from django.db import models
+from django.utils import timezone
+
+
+class EinladungsCode(models.Model):
+    """5-stelliger Einladungscode fuer Bewerber.
+
+    HR gibt den Code vor Ort an den Bewerber weiter (spaeter per SMS).
+    Ohne gueltigen Code kann kein Bewerbungsbogen ausgefuellt werden.
+    """
+
+    STATUS_VERFUEGBAR = "verfuegbar"
+    STATUS_AUSGEGEBEN = "ausgegeben"
+    STATUS_VERWENDET = "verwendet"
+
+    STATUS_CHOICES = [
+        (STATUS_VERFUEGBAR, "Verfuegbar"),
+        (STATUS_AUSGEGEBEN, "Ausgegeben (noch nicht benutzt)"),
+        (STATUS_VERWENDET, "Verwendet"),
+    ]
+
+    code = models.CharField(max_length=5, unique=True, verbose_name="Code")
+    status = models.CharField(
+        max_length=12, choices=STATUS_CHOICES, default=STATUS_VERFUEGBAR, verbose_name="Status"
+    )
+    ausgegeben_an_name = models.CharField(
+        max_length=100, blank=True, verbose_name="Ausgegeben an (Name)"
+    )
+    ausgegeben_an_telefon = models.CharField(
+        max_length=30, blank=True, verbose_name="Ausgegeben an (Telefon)"
+    )
+    ausgegeben_von = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ausgegebene_codes",
+        verbose_name="Ausgegeben von (HR)",
+    )
+    ausgegeben_am = models.DateTimeField(null=True, blank=True, verbose_name="Ausgegeben am")
+    erstellt_am = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["status", "code"]
+        verbose_name = "Einladungscode"
+        verbose_name_plural = "Einladungscodes"
+
+    def __str__(self):
+        return f"{self.code} ({self.get_status_display()})"
+
+    @classmethod
+    def generiere_batch(cls, anzahl: int = 100) -> int:
+        """Generiert n neue eindeutige 5-stellige Codes (A-Z0-9, ohne O/0/I/1).
+
+        Gibt die Anzahl tatsaechlich erstellter Codes zurueck.
+        """
+        zeichen = [c for c in string.ascii_uppercase + string.digits if c not in "OI01"]
+        erstellt = 0
+        versuche = 0
+        while erstellt < anzahl and versuche < anzahl * 10:
+            versuche += 1
+            code = "".join(random.choices(zeichen, k=5))
+            if not cls.objects.filter(code=code).exists():
+                cls.objects.create(code=code)
+                erstellt += 1
+        return erstellt
 
 
 class Bewerbung(models.Model):
@@ -10,16 +78,27 @@ class Bewerbung(models.Model):
     Bei Ablehnung: Hard-Delete ALLER Daten (DSGVO-konform).
     """
 
-    STATUS_NEU = "neu"
-    STATUS_PRUEFUNG = "pruefung"
-    STATUS_EINGESTELLT = "eingestellt"
+    STATUS_EINGEGANGEN = "eingegangen"
+    STATUS_FAKTENCHECK = "faktencheck"
+    STATUS_GESPRAECH = "gespraech_eingeladen"
+    STATUS_TAUGLICHKEIT = "tauglichkeitstest"
+    STATUS_ZUSAGE = "zusage"
     STATUS_ABGELEHNT = "abgelehnt"
 
     STATUS_CHOICES = [
-        (STATUS_NEU, "Neu eingegangen"),
-        (STATUS_PRUEFUNG, "In Pruefung (HR)"),
-        (STATUS_EINGESTELLT, "Eingestellt"),
+        (STATUS_EINGEGANGEN, "Eingegangen"),
+        (STATUS_FAKTENCHECK, "Faktencheck"),
+        (STATUS_TAUGLICHKEIT, "Tauglichkeitstest"),
+        (STATUS_ZUSAGE, "Zusage erteilt"),
         (STATUS_ABGELEHNT, "Abgelehnt"),
+    ]
+
+    # Status-Reihenfolge fuer Weiterschalten (nur vorwaerts)
+    STATUS_REIHENFOLGE = [
+        STATUS_EINGEGANGEN,
+        STATUS_FAKTENCHECK,
+        STATUS_TAUGLICHKEIT,
+        STATUS_ZUSAGE,
     ]
 
     ANREDE_CHOICES = [
@@ -113,7 +192,17 @@ class Bewerbung(models.Model):
     interne_notiz = models.TextField(blank=True, verbose_name="Interne Notiz (HR)", help_text="Nur fuer HR sichtbar, wird bei Ablehnung mitgeloescht.")
 
     # --- Systemfelder ---
-    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default=STATUS_NEU, verbose_name="Status")
+    einladungscode = models.OneToOneField(
+        EinladungsCode,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bewerbung",
+        verbose_name="Einladungscode",
+    )
+    status = models.CharField(
+        max_length=22, choices=STATUS_CHOICES, default=STATUS_EINGEGANGEN, verbose_name="Status"
+    )
     erstellt_am = models.DateTimeField(auto_now_add=True, verbose_name="Erstellt am")
     geaendert_am = models.DateTimeField(auto_now=True, verbose_name="Geaendert am")
     bearbeitet_von = models.ForeignKey(
@@ -136,6 +225,25 @@ class Bewerbung(models.Model):
     @property
     def vollname(self):
         return f"{self.vorname} {self.nachname}"
+
+    @property
+    def naechster_status(self):
+        """Gibt den naechsten Status in der Reihenfolge zurueck oder None."""
+        try:
+            idx = self.STATUS_REIHENFOLGE.index(self.status)
+            return self.STATUS_REIHENFOLGE[idx + 1]
+        except (ValueError, IndexError):
+            return None
+
+    @property
+    def naechster_status_label(self):
+        labels = dict(self.STATUS_CHOICES)
+        ns = self.naechster_status
+        return labels.get(ns, "") if ns else ""
+
+    @property
+    def ist_abgeschlossen(self):
+        return self.status in (self.STATUS_ZUSAGE, self.STATUS_ABGELEHNT)
 
 
 class BewerbungDokument(models.Model):

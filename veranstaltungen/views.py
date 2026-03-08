@@ -9,6 +9,38 @@ from django.utils import timezone
 
 from hr.models import Abteilung, Bereich, HRMitarbeiter
 from .models import Feier, FeierteilnahmeAnmeldung, FeierteilnahmeGutschrift
+from .context_processors import _filter_nach_sichtbarkeit
+
+
+def _starte_gutschrift_workflow(gutschrift, user):
+    """Startet den Veranstaltungs-Gutschrift-Workflow falls ein aktives Template vorhanden ist."""
+    from workflow.models import WorkflowTemplate, WorkflowInstance
+    from workflow.services import WorkflowEngine
+    from django.contrib.contenttypes.models import ContentType
+
+    template = WorkflowTemplate.objects.filter(
+        trigger_event="veranstaltung_gutschrift_eingereicht",
+        ist_aktiv=True,
+    ).first()
+    if not template:
+        logger.debug("Kein aktives Workflow-Template fuer Gutschrift-Workflow gefunden.")
+        return
+
+    ct = ContentType.objects.get_for_model(gutschrift)
+    bereits_vorhanden = WorkflowInstance.objects.filter(
+        template=template,
+        content_type=ct,
+        object_id=gutschrift.pk,
+        status__in=["laufend", "wartend"],
+    ).exists()
+    if bereits_vorhanden:
+        return
+
+    try:
+        WorkflowEngine().start_workflow(template, gutschrift, user)
+        logger.info("Gutschrift-Workflow gestartet fuer Gutschrift pk=%s", gutschrift.pk)
+    except Exception as exc:
+        logger.error("Fehler beim Starten des Gutschrift-Workflows: %s", exc)
 
 logger = logging.getLogger(__name__)
 
@@ -23,12 +55,27 @@ def _get_aktueller_hrma(request):
         return None
 
 
+def _darf_status_aendern(user):
+    """True fuer Staff, GF, Bereichsleiter und Abteilungsleiter."""
+    if not user.is_authenticated:
+        return False
+    if user.is_staff:
+        return True
+    try:
+        return user.hr_mitarbeiter.rolle in ("gf", "bereichsleiter", "abteilungsleiter")
+    except Exception:
+        return False
+
+
 @login_required
 def uebersicht(request):
     """Liste aller Veranstaltungen mit Filter."""
     qs = Feier.objects.select_related(
         "abteilung", "bereich", "verantwortlicher"
     )
+
+    # Sichtbarkeit nach Abteilung/Bereich einschraenken
+    qs = _filter_nach_sichtbarkeit(qs, request.user)
 
     # Filter
     status_filter = request.GET.get("status", "")
@@ -76,6 +123,7 @@ def detail(request, pk):
         "anmeldungen": anmeldungen,
         "aktueller_hrma": aktueller_hrma,
         "bereits_angemeldet": bereits_angemeldet,
+        "darf_status_aendern": _darf_status_aendern(request.user),
     }
     return render(request, "veranstaltungen/detail.html", context)
 
@@ -274,6 +322,9 @@ def gutschrift_erstellen(request, pk):
         feier.status = "abgeschlossen"
         feier.save()
 
+        # Workflow starten (Zeitgutschriften-Team -> Zeiterfassung-Team)
+        _starte_gutschrift_workflow(gutschrift, request.user)
+
         messages.success(
             request, "Zeitgutschrift-Sammelliste eingereicht."
         )
@@ -317,6 +368,10 @@ def gutschrift_pdf(request, pk):
 def status_aendern(request, pk):
     """HTMX-View: Status einer Veranstaltung schnell aendern."""
     feier = get_object_or_404(Feier, pk=pk)
+
+    if not _darf_status_aendern(request.user):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
 
     if request.method == "POST":
         neuer_status = request.POST.get("status")

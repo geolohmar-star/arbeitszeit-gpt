@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Personalstammdaten – {{ ma.vollname }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 900px;">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'hr:liste' %}">Mitarbeiter</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'hr:detail' ma.pk %}">{{ ma.vollname }}</a></li>
+            <li class="breadcrumb-item active">Personalstammdaten</li>
+        </ol>
+    </nav>
+
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+        {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Personalstammdaten</h2>
+            <p class="text-muted mb-0">{{ ma.vollname }}
+                {% if ma.personalnummer %}
+                <span class="badge bg-secondary ms-1">PNr. {{ ma.personalnummer }}</span>
+                {% endif %}
+            </p>
+        </div>
+        {% if darf_bearbeiten %}
+        <a href="{% url 'hr:stammdaten_bearbeiten' ma.pk %}" class="btn btn-primary btn-sm">
+            Bearbeiten
+        </a>
+        {% endif %}
+    </div>
+
+    {% if not stammdaten %}
+    <div class="alert alert-warning d-flex justify-content-between align-items-center">
+        <span>Noch keine Personalstammdaten hinterlegt.</span>
+        {% if darf_bearbeiten %}
+        <a href="{% url 'hr:stammdaten_bearbeiten' ma.pk %}" class="btn btn-sm btn-warning">
+            Jetzt anlegen
+        </a>
+        {% endif %}
+    </div>
+    {% else %}
+
+    {% with sd=stammdaten %}
+    <div class="row g-3">
+
+        <!-- Persoenliche Daten -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header fw-semibold bg-light">Persoenliche Daten</div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-5 text-muted">Anrede</dt>
+                        <dd class="col-7">{{ sd.get_anrede_display|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Geburtsdatum</dt>
+                        <dd class="col-7">{{ sd.geburtsdatum|date:"d.m.Y"|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Geburtsort</dt>
+                        <dd class="col-7">{{ sd.geburtsort|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Geburtsname</dt>
+                        <dd class="col-7">{{ sd.geburtsname|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Staatsangeh.</dt>
+                        <dd class="col-7">{{ sd.staatsangehoerigkeit|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Familienstand</dt>
+                        <dd class="col-7">{{ sd.get_familienstand_display|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Konfession</dt>
+                        <dd class="col-7">{{ sd.get_konfession_display|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Kinder</dt>
+                        <dd class="col-7">{{ sd.anzahl_kinder }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Adresse & Kontakt -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header fw-semibold bg-light">Adresse &amp; Kontakt</div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-5 text-muted">Strasse / Nr.</dt>
+                        <dd class="col-7">{{ sd.strasse }} {{ sd.hausnummer }}</dd>
+                        <dt class="col-5 text-muted">PLZ / Ort</dt>
+                        <dd class="col-7">{{ sd.plz }} {{ sd.ort }}</dd>
+                        <dt class="col-5 text-muted">Land</dt>
+                        <dd class="col-7">{{ sd.land|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Telefon privat</dt>
+                        <dd class="col-7">{{ sd.telefon_privat|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Mobil privat</dt>
+                        <dd class="col-7">{{ sd.mobil_privat|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">E-Mail privat</dt>
+                        <dd class="col-7">{{ sd.email_privat|default:"–" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Steuer & SV (hochsensibel) -->
+        <div class="col-md-6">
+            <div class="card h-100 border-danger">
+                <div class="card-header fw-semibold bg-danger-subtle text-danger-emphasis">
+                    Steuer &amp; Sozialversicherung
+                    <span class="badge bg-danger ms-1 fw-normal" style="font-size:0.65rem;">VERTRAULICH</span>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-5 text-muted">Steuerklasse</dt>
+                        <dd class="col-7">{{ sd.get_steuerklasse_display|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Steuer-ID</dt>
+                        <dd class="col-7">
+                            {% if sd.steuer_id %}
+                            <code>{{ sd.steuer_id }}</code>
+                            {% else %}–{% endif %}
+                        </dd>
+                        <dt class="col-5 text-muted">SV-Nummer</dt>
+                        <dd class="col-7">
+                            {% if sd.sozialversicherungsnummer %}
+                            <code>{{ sd.sozialversicherungsnummer }}</code>
+                            {% else %}–{% endif %}
+                        </dd>
+                        <dt class="col-5 text-muted">Krankenkasse</dt>
+                        <dd class="col-7">{{ sd.krankenkasse_name|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">KV-Art</dt>
+                        <dd class="col-7">{{ sd.get_krankenversicherungsart_display|default:"–" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bankverbindung (hochsensibel) -->
+        <div class="col-md-6">
+            <div class="card h-100 border-danger">
+                <div class="card-header fw-semibold bg-danger-subtle text-danger-emphasis">
+                    Bankverbindung
+                    <span class="badge bg-danger ms-1 fw-normal" style="font-size:0.65rem;">VERTRAULICH</span>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-5 text-muted">IBAN</dt>
+                        <dd class="col-7">
+                            {% if sd.iban %}
+                            <code>{{ sd.iban }}</code>
+                            {% else %}–{% endif %}
+                        </dd>
+                        <dt class="col-5 text-muted">BIC</dt>
+                        <dd class="col-7">{{ sd.bic|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Kreditinstitut</dt>
+                        <dd class="col-7">{{ sd.bank_name|default:"–" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vertrag -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header fw-semibold bg-light">Vertrag</div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-5 text-muted">Vertragsart</dt>
+                        <dd class="col-7">{{ sd.get_vertragsart_display|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Probezeit bis</dt>
+                        <dd class="col-7">{{ sd.probezeit_bis|date:"d.m.Y"|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Austrittsdatum</dt>
+                        <dd class="col-7">
+                            {% if sd.austrittsdatum %}
+                            <span class="text-danger fw-semibold">{{ sd.austrittsdatum|date:"d.m.Y" }}</span>
+                            {% else %}–{% endif %}
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notfallkontakt -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header fw-semibold bg-light">Notfallkontakt</div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-5 text-muted">Name</dt>
+                        <dd class="col-7">{{ sd.notfallkontakt_name|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Beziehung</dt>
+                        <dd class="col-7">{{ sd.notfallkontakt_beziehung|default:"–" }}</dd>
+                        <dt class="col-5 text-muted">Telefon</dt>
+                        <dd class="col-7">{{ sd.notfallkontakt_telefon|default:"–" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Audit-Info -->
+    <div class="text-muted small mt-3">
+        Angelegt: {{ sd.angelegt_am|date:"d.m.Y H:i" }} Uhr
+        {% if sd.angelegt_von %}– von {{ sd.angelegt_von.get_full_name|default:sd.angelegt_von.username }}{% endif %}
+        &nbsp;|&nbsp; Zuletzt geaendert: {{ sd.geaendert_am|date:"d.m.Y H:i" }} Uhr
+    </div>
+
+    {% endwith %}
+    {% endif %}
+
+</div>
+{% endblock %}

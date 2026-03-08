@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Einladungscodes – Bewerbung{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-1">Einladungscodes</h2>
+            <p class="text-muted mb-0">
+                <span class="badge bg-success me-1">{{ anzahl.verfuegbar }} verfügbar</span>
+                <span class="badge bg-warning text-dark me-1">{{ anzahl.ausgegeben }} ausgegeben</span>
+                <span class="badge bg-secondary me-1">{{ anzahl.verwendet }} verwendet</span>
+            </p>
+        </div>
+        <a href="{% url 'bewerbung:hr_liste' %}" class="btn btn-outline-secondary btn-sm">
+            Zur Bewerbungsliste
+        </a>
+    </div>
+
+    <!-- Filter -->
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        <a href="{% url 'bewerbung:hr_einladungscodes' %}"
+           class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            Alle
+        </a>
+        {% for value, label in status_choices %}
+        <a href="?status={{ value }}"
+           class="btn btn-sm {% if status_filter == value %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            {{ label }}
+        </a>
+        {% endfor %}
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Code</th>
+                    <th>Status</th>
+                    <th>Ausgegeben an</th>
+                    <th>Telefon</th>
+                    <th>Ausgegeben von</th>
+                    <th>Ausgegeben am</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for code in codes %}
+                <tr>
+                    <td>
+                        <code class="fw-bold fs-6 user-select-all">{{ code.code }}</code>
+                    </td>
+                    <td>
+                        {% if code.status == "verfuegbar" %}
+                        <span class="badge bg-success">Verfügbar</span>
+                        {% elif code.status == "ausgegeben" %}
+                        <span class="badge bg-warning text-dark">Ausgegeben</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Verwendet</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ code.ausgegeben_an_name|default:"–" }}</td>
+                    <td>{{ code.ausgegeben_an_telefon|default:"–" }}</td>
+                    <td>{{ code.ausgegeben_von.get_full_name|default:code.ausgegeben_von.username|default:"–" }}</td>
+                    <td>
+                        {% if code.ausgegeben_am %}
+                            {{ code.ausgegeben_am|date:"d.m.Y H:i" }}
+                        {% else %}–{% endif %}
+                    </td>
+                    <td>
+                        {% if code.status == "verfuegbar" %}
+                        <!-- Ausgeben-Formular -->
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#ausgeben-{{ code.pk }}"
+                        >
+                            Ausgeben
+                        </button>
+                        {% elif code.status == "ausgegeben" %}
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="code_pk" value="{{ code.pk }}">
+                            <input type="hidden" name="aktion" value="zurueck">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                    onclick="return confirm('Code wieder freigeben?')">
+                                Freigeben
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if code.status == "verfuegbar" %}
+                <tr class="collapse" id="ausgeben-{{ code.pk }}">
+                    <td colspan="7" class="bg-light">
+                        <form method="post" class="row g-2 align-items-end p-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="code_pk" value="{{ code.pk }}">
+                            <input type="hidden" name="aktion" value="ausgeben">
+                            <div class="col-md-4">
+                                <label class="form-label small mb-1">Name des Bewerbers (optional)</label>
+                                <input type="text" name="ausgegeben_an_name" class="form-control form-control-sm"
+                                       placeholder="Max Mustermann">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small mb-1">Telefon (optional)</label>
+                                <input type="text" name="ausgegeben_an_telefon" class="form-control form-control-sm"
+                                       placeholder="+49 ...">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    Als ausgegeben markieren
+                                </button>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+                {% endif %}
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        Keine Codes gefunden.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

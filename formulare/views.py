@@ -109,7 +109,7 @@ def _starte_workflow_fuer_antrag(trigger_event, content_object, user):
         )
 
 
-def _signiere_pdf_sicher(pdf_bytes, user, dokument_name):
+def _signiere_pdf_sicher(pdf_bytes, user, dokument_name, **meta_kwargs):
     """Signiert ein PDF mit dem konfigurierten Backend (FES/QES).
 
     Gibt das signierte PDF zurueck. Falls kein Zertifikat vorhanden ist
@@ -118,7 +118,7 @@ def _signiere_pdf_sicher(pdf_bytes, user, dokument_name):
     """
     try:
         from signatur.services import signiere_pdf
-        return signiere_pdf(pdf_bytes, user, dokument_name=dokument_name)
+        return signiere_pdf(pdf_bytes, user, dokument_name=dokument_name, **meta_kwargs)
     except Exception as exc:
         logger.warning(
             "PDF-Signatur fehlgeschlagen fuer '%s' (User %s): %s – PDF wird unsigniert ausgeliefert.",
@@ -127,6 +127,169 @@ def _signiere_pdf_sicher(pdf_bytes, user, dokument_name):
             exc,
         )
         return pdf_bytes
+
+
+def _hole_antrag_signatur(content_type_str, object_id):
+    """Gibt das SignaturProtokoll fuer einen Antrag zurueck (oder None)."""
+    try:
+        from signatur.models import SignaturJob
+        job = SignaturJob.objects.filter(
+            content_type=content_type_str,
+            object_id=object_id,
+            status="completed",
+        ).order_by("-erstellt_am").first()
+        return job.protokoll if job else None
+    except Exception:
+        return None
+
+
+def _auto_signiere_antrag(antrag, request, content_type_str, pdf_template, extra_context=None):
+    """Generisches Auto-Signatur-Pattern fuer alle Antragstypen.
+
+    Rendert das PDF-Template, signiert es sofort und legt ein SignaturProtokoll an.
+    Schlaegt still fehl – unterbricht nie die Formular-Einreichung.
+    """
+    try:
+        from weasyprint import HTML
+        from django.template.loader import render_to_string
+        from signatur.services import signiere_pdf
+
+        ctx = {"antrag": antrag, "betreff": antrag.get_betreff()}
+        if extra_context:
+            ctx.update(extra_context)
+
+        html_string = render_to_string(pdf_template, ctx, request=request)
+        pdf = HTML(
+            string=html_string,
+            base_url=request.build_absolute_uri(),
+        ).write_pdf()
+        dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
+        signiere_pdf(
+            pdf,
+            antrag.antragsteller.user,
+            dokument_name=dateiname,
+            content_type=content_type_str,
+            object_id=antrag.pk,
+        )
+        logger.info("Auto-Signatur OK: %s pk=%s", content_type_str, antrag.pk)
+    except Exception as exc:
+        logger.warning(
+            "Auto-Signatur fehlgeschlagen: %s pk=%s – %s",
+            content_type_str,
+            antrag.pk,
+            exc,
+        )
+
+
+def _auto_signiere_aenderungsantrag(antrag, request):
+    """Aenderungsantrag nach Submit auto-signieren."""
+    vereinbarung = _vereinbarung_fuer_mitarbeiter(
+        antrag.antragsteller, antrag.erstellt_am.date()
+    )
+    _auto_signiere_antrag(
+        antrag, request,
+        content_type_str="aenderungzeiterfassung",
+        pdf_template="formulare/pdf/aenderung_zeiterfassung_pdf.html",
+        extra_context={"vereinbarung": vereinbarung},
+    )
+
+
+def _auto_signiere_zag(antrag, request):
+    """ZAG-Antrag nach Submit auto-signieren."""
+    _auto_signiere_antrag(
+        antrag, request,
+        content_type_str="zagantrag",
+        pdf_template="formulare/pdf/zag_pdf.html",
+        extra_context={"zag_daten_mit_tagen": [], "gesamt_tage": 0},
+    )
+
+
+def _auto_signiere_zeitgutschrift(antrag, request):
+    """Zeitgutschrift nach Submit auto-signieren."""
+    import datetime as _dt
+    _auto_signiere_antrag(
+        antrag, request,
+        content_type_str="zeitgutschrift",
+        pdf_template="formulare/pdf/zeitgutschrift_pdf.html",
+        extra_context={
+            "dienstreise": None,
+            "tagebuch_tage": [],
+            "tagebuch_gesamt_min": 0,
+            "tagebuch_gesamt_hmin": "",
+            "now": _dt.datetime.now(),
+        },
+    )
+
+
+def _auto_signiere_dienstreise(antrag, request):
+    """Dienstreise-Antrag nach Submit auto-signieren."""
+    _auto_signiere_antrag(
+        antrag, request,
+        content_type_str="dienstreiseantrag",
+        pdf_template="formulare/pdf/dienstreise_pdf.html",
+        extra_context={
+            "tage": [],
+            "gesamt_min": 0,
+            "gesamt_hmin": "",
+            "reisezeit_gutschrift": None,
+        },
+    )
+
+
+def _auto_signiere_genehmigung(antrag, antrag_typ, request):
+    """Genehmiger signiert den Antrag nach seiner Entscheidung.
+
+    Verwendet request.user als Unterzeichner (nicht den Antragsteller).
+    Schlaegt still fehl.
+    """
+    ct_map = {
+        "aenderung": (
+            "aenderungzeiterfassung",
+            "formulare/pdf/aenderung_zeiterfassung_pdf.html",
+        ),
+        "zag": (
+            "zagantrag",
+            "formulare/pdf/zag_pdf.html",
+        ),
+        "zag_storno": (
+            "zagstorno",
+            "formulare/pdf/zag_storno_pdf.html",
+        ),
+        "zeitgutschrift": (
+            "zeitgutschrift",
+            "formulare/pdf/zeitgutschrift_pdf.html",
+        ),
+    }
+    entry = ct_map.get(antrag_typ)
+    if not entry:
+        return
+    content_type_str, pdf_template = entry
+
+    try:
+        from weasyprint import HTML
+        from django.template.loader import render_to_string
+        from signatur.services import signiere_pdf
+
+        ctx = {"antrag": antrag, "betreff": antrag.get_betreff()}
+        html_string = render_to_string(pdf_template, ctx, request=request)
+        pdf = HTML(
+            string=html_string,
+            base_url=request.build_absolute_uri(),
+        ).write_pdf()
+        dateiname = f"Genehmigung_{antrag.get_betreff().replace(' ', '_')}.pdf"
+        signiere_pdf(
+            pdf,
+            request.user,
+            dokument_name=dateiname,
+            content_type=content_type_str,
+            object_id=antrag.pk,
+        )
+        logger.info(
+            "Genehmiger-Signatur OK: %s pk=%s user=%s",
+            content_type_str, antrag.pk, request.user.username,
+        )
+    except Exception as exc:
+        logger.warning("Genehmiger-Signatur fehlgeschlagen (%s pk=%s): %s", antrag_typ, antrag.pk, exc)
 
 
 @login_required
@@ -406,6 +569,9 @@ def aenderung_zeiterfassung(request):
 
             antrag.save()
 
+            # PDF generieren und sofort mit Antragsteller-Zertifikat signieren
+            _auto_signiere_aenderungsantrag(antrag, request)
+
             # Workflow starten (falls aktives Template vorhanden)
             _starte_workflow_fuer_antrag("aenderung_erstellt", antrag, request.user)
 
@@ -482,6 +648,21 @@ def aenderung_erfolg(request, pk):
                 "soll": soll_text,
             })
 
+    # Signatur des Antragstellers laden (aus Auto-Sign beim Einreichen)
+    from signatur.models import SignaturJob
+    signatur_job = (
+        SignaturJob.objects
+        .filter(
+            content_type="aenderungzeiterfassung",
+            object_id=antrag.pk,
+            status="completed",
+            erstellt_von=antrag.antragsteller.user,
+        )
+        .select_related("protokoll", "protokoll__zertifikat")
+        .first()
+    )
+    antrag_signatur = getattr(signatur_job, "protokoll", None) if signatur_job else None
+
     return render(
         request,
         "formulare/aenderung_erfolg.html",
@@ -492,6 +673,7 @@ def aenderung_erfolg(request, pk):
             "tausch_mit_soll": tausch_mit_soll,
             "team_bearbeiter_task": _get_team_bearbeiter_task(antrag),
             "queue_task": _get_queue_task_aus_request(request, antrag),
+            "antrag_signatur": antrag_signatur,
         },
     )
 
@@ -843,6 +1025,8 @@ def zag_antrag(request):
         # KEINE Zeiterfassungs-Eintraege beim Antragstellen mehr!
         # Werden erst bei Genehmigung erstellt (siehe genehmigung_entscheiden)
 
+        _auto_signiere_zag(antrag, request)
+
         # Workflow starten (falls aktives Template vorhanden)
         _starte_workflow_fuer_antrag("zag_antrag_erstellt", antrag, request.user)
 
@@ -884,6 +1068,7 @@ def zag_erfolg(request, pk):
         "betreff": antrag.get_betreff(),
         "team_bearbeiter_task": _get_team_bearbeiter_task(antrag),
         "queue_task": queue_task,
+        "antrag_signatur": _hole_antrag_signatur("zagantrag", antrag.pk),
     }
     kontext.update(_zag_jahres_kontext(antrag.antragsteller))
     return render(request, "formulare/zag_erfolg.html", kontext)
@@ -1581,6 +1766,9 @@ def genehmigung_entscheiden(request, antrag_typ, pk):
     antrag.bemerkung_bearbeiter = request.POST.get("bemerkung", "").strip()
     antrag.save()
 
+    # Genehmiger signiert den Antrag digital
+    _auto_signiere_genehmigung(antrag, antrag_typ, request)
+
     # Automatische Buchung bei Z-AG Antraegen
     if antrag_typ == "zag" and neue_status == "genehmigt":
         # Z-AG genehmigt → Zeiterfassungs-Eintraege erstellen
@@ -1656,6 +1844,8 @@ def dienstreise_erstellen(request):
             antrag = form.save(commit=False)
             antrag.antragsteller = mitarbeiter
             antrag.save()
+
+            _auto_signiere_dienstreise(antrag, request)
 
             # Workflow automatisch starten (via Signal - siehe signals.py)
 
@@ -2376,6 +2566,8 @@ def zeitgutschrift_antrag(request):
                     dateiname_original=beleg.name,
                 )
 
+            _auto_signiere_zeitgutschrift(antrag, request)
+
             # Workflow starten (falls aktives Template vorhanden)
             _starte_workflow_fuer_antrag("zeitgutschrift_erstellt", antrag, request.user)
 
@@ -2622,7 +2814,10 @@ def zeitgutschrift_erfolg(request, pk):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden("Keine Berechtigung")
 
-    context = {"antrag": antrag}
+    context = {
+        "antrag": antrag,
+        "antrag_signatur": _hole_antrag_signatur("zeitgutschrift", antrag.pk),
+    }
     return render(request, "formulare/zeitgutschrift_erfolg.html", context)
 
 
@@ -3233,6 +3428,7 @@ def dienstreise_detail(request, pk):
             "queue_task": queue_task,
             "tagebuch_eintraege": tagebuch_eintraege,
             "reisezeit_gutschrift": reisezeit_gutschrift,
+            "antrag_signatur": _hole_antrag_signatur("dienstreiseantrag", antrag.pk),
         },
     )
 

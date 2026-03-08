@@ -231,6 +231,50 @@
         {% endif %}
     </div>
 
+    <!-- ---- Highlight: Interne Stellenboerse ---- -->
+    {% if stellenportal_offene_stellen %}
+    <a href="{% url 'stellenportal:liste' %}" class="text-decoration-none d-block mb-4">
+        <div style="
+            background: linear-gradient(135deg, #1a4d2e 0%, #2d7a4f 100%);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            color: white;
+            transition: box-shadow 0.18s;
+            box-shadow: 0 2px 12px rgba(26,77,46,0.18);
+        " onmouseover="this.style.boxShadow='0 6px 24px rgba(26,77,46,0.32)'" onmouseout="this.style.boxShadow='0 2px 12px rgba(26,77,46,0.18)'">
+            <div>
+                <div style="font-size:0.68rem; text-transform:uppercase; letter-spacing:1px; opacity:0.75; font-weight:700; margin-bottom:0.25rem;">
+                    Interne Stellenboerse
+                </div>
+                <div style="font-size:1.05rem; font-weight:700; margin-bottom:0.2rem;">
+                    Wir wachsen &ndash; bewirb dich intern!
+                </div>
+                <div style="font-size:0.83rem; opacity:0.85;">
+                    Offene Stellen werden zuerst intern ausgeschrieben. Alle Mitarbeiter koennen sich bewerben &ndash; ohne Lebensläufe, direkt per Motivationstext.
+                </div>
+            </div>
+            <div style="text-align:center; flex-shrink:0;">
+                <div style="font-size:2.2rem; font-weight:900; line-height:1;">
+                    {{ stellenportal_offene_stellen }}
+                </div>
+                <div style="font-size:0.72rem; opacity:0.8; text-transform:uppercase; letter-spacing:0.5px;">
+                    offene Stelle{{ stellenportal_offene_stellen|pluralize:"n" }}
+                </div>
+                {% if stellenportal_kann_verwalten and stellenportal_neue_bewerbungen %}
+                <div style="margin-top:0.4rem; background:rgba(255,255,255,0.2); border-radius:12px; padding:2px 10px; font-size:0.72rem; font-weight:700;">
+                    {{ stellenportal_neue_bewerbungen }} neu eingegangen
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </a>
+    {% endif %}
+
     <!-- ---- App-Kacheln ---- -->
 
     <!-- Gruppe: Arbeitszeit & Antraege -->
@@ -372,14 +416,45 @@
             </ul>
         </div>
 
-        <!-- Planung / Schichtplan -->
+        <!-- Stellenboerse -->
         <div class="app-tile tile-purple">
             <div class="tile-header">
-                <h2 class="tile-title">Planung</h2>
-                {% if offene_antraege_count %}<span class="tile-badge">{{ offene_antraege_count }}</span>{% endif %}
+                <h2 class="tile-title">Karriere</h2>
+                {% if stellenportal_kann_verwalten and stellenportal_neue_bewerbungen %}
+                    <span class="tile-badge">{{ stellenportal_neue_bewerbungen }}</span>
+                {% endif %}
             </div>
             <ul class="tile-links">
-                <li><a href="{% url 'veranstaltungen:uebersicht' %}">Veranstaltungen</a></li>
+                <li>
+                    <a href="{% url 'stellenportal:liste' %}">
+                        Stellenangebote
+                        {% if stellenportal_offene_stellen %}<span class="link-badge">{{ stellenportal_offene_stellen }}</span>{% endif %}
+                    </a>
+                </li>
+                <li><a href="{% url 'stellenportal:meine_bewerbungen' %}">Meine Bewerbungen</a></li>
+                {% if stellenportal_kann_verwalten %}
+                <li><a href="{% url 'stellenportal:hr_dashboard' %}">Stellenportal verwalten</a></li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Veranstaltungen / Schichtplan -->
+        <div class="app-tile tile-purple">
+            <div class="tile-header">
+                <h2 class="tile-title">Veranstaltungen</h2>
+                {% if veranstaltungen_offen_anzahl %}
+                    <span class="tile-badge">{{ veranstaltungen_offen_anzahl }}</span>
+                {% elif offene_antraege_count %}
+                    <span class="tile-badge">{{ offene_antraege_count }}</span>
+                {% endif %}
+            </div>
+            <ul class="tile-links">
+                <li>
+                    <a href="{% url 'veranstaltungen:uebersicht' %}">
+                        Veranstaltungen
+                        {% if veranstaltungen_offen_anzahl %}<span class="link-badge">{{ veranstaltungen_offen_anzahl }}</span>{% endif %}
+                    </a>
+                </li>
                 {% if hat_schichtplan_zugang %}
                 <li><a href="{% url 'schichtplan:dashboard' %}">Schichtplanung</a></li>
                 <li>

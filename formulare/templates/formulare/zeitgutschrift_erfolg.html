@@ -190,6 +190,8 @@
     </div>
     {% endif %}
 
+    {% include "formulare/partials/_signatur_block.html" %}
+
     <!-- Aktionen -->
     <div class="d-flex gap-2">
         <a href="{% url 'formulare:zeitgutschrift_pdf' antrag.pk %}"

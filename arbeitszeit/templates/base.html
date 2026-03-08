@@ -206,6 +206,20 @@
                         <li><a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_berechnen' %}">Soll-Stunden berechnen</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'hr:organigramm' %}">Organigramm</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Karriere</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'stellenportal:liste' %}">Stellenangebote</a></li>
+                        <li><a class="dropdown-item" href="{% url 'stellenportal:meine_bewerbungen' %}">Meine Bewerbungen</a></li>
+                        {% if stellenportal_kann_verwalten %}
+                        <li>
+                          <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'stellenportal:hr_dashboard' %}">
+                            Stellenportal verwalten
+                            {% if stellenportal_neue_bewerbungen %}
+                              <span class="badge bg-danger rounded-pill">{{ stellenportal_neue_bewerbungen }}</span>
+                            {% endif %}
+                          </a>
+                        </li>
+                        {% endif %}
                     </ul>
                 </li>
 
@@ -262,13 +276,23 @@
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="planungDropdown"
                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Planung
-                        {% if offene_antraege_count > 0 %}
+                        Veranstaltungen
+                        {% if veranstaltungen_offen_anzahl > 0 %}
+                        <span class="badge bg-success rounded-pill ms-1">{{ veranstaltungen_offen_anzahl }}</span>
+                        {% elif offene_antraege_count > 0 %}
                         <span class="badge bg-warning text-dark rounded-pill ms-1">{{ offene_antraege_count }}</span>
                         {% endif %}
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="planungDropdown">
-                        <li><a class="dropdown-item" href="{% url 'veranstaltungen:uebersicht' %}">Veranstaltungen</a></li>
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'veranstaltungen:uebersicht' %}">
+                                Veranstaltungen
+                                {% if veranstaltungen_offen_anzahl > 0 %}
+                                <span class="badge bg-success rounded-pill ms-1">{{ veranstaltungen_offen_anzahl }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
                         {% if hat_schichtplan_zugang %}
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'schichtplan:dashboard' %}">Schichtplanung</a></li>
@@ -300,7 +324,8 @@
                         <li><a class="dropdown-item" href="{% url 'facility:einstellungen' %}">Trend-Einstellungen</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><h6 class="dropdown-header">Personal & Onboarding</h6></li>
-                        <li><a class="dropdown-item" href="{% url 'bewerbung:hr_liste' %}">Bewerbungseingang</a></li>
+                        <li><a class="dropdown-item" href="{% url 'bewerbung:hr_liste' %}">Bewerbungseingang (extern)</a></li>
+                        <li><a class="dropdown-item" href="{% url 'bewerbung:hr_einladungscodes' %}">Einladungscodes</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><h6 class="dropdown-header">Sicherheit & Compliance</h6></li>
                         <li><a class="dropdown-item" href="{% url 'raumbuch:gesamtlog' %}">Audit-Trail</a></li>
@@ -1424,7 +1449,7 @@ var CMD_ITEMS = [
     {l: "Reinigung", u: "{% url 'raumbuch:reinigung' %}", g: "Gebaeude"},
     {l: "Umzugsauftraege", u: "{% url 'raumbuch:umzug_liste' %}", g: "Gebaeude"},
     {% endif %}
-    {l: "Veranstaltungen", u: "{% url 'veranstaltungen:uebersicht' %}", g: "Planung"},
+    {l: "Veranstaltungen", u: "{% url 'veranstaltungen:uebersicht' %}", g: "Veranstaltungen"},
     {% if hat_schichtplan_zugang %}
     {l: "Schichtplanung", u: "{% url 'schichtplan:dashboard' %}", g: "Planung"},
     {l: "Urlaubsgenehmigungen", u: "{% url 'schichtplan:genehmigungen_uebersicht' %}", g: "Planung"},

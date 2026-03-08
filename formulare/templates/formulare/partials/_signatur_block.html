@@ -1,0 +1,39 @@
+<!-- Digitale Signatur des Antragstellers -->
+<div class="card mb-3">
+    <div class="card-header fw-bold d-flex justify-content-between">
+        Digitale Signatur (Antragsteller)
+        {% if antrag_signatur %}
+            <span class="badge bg-success fw-normal">Signiert (FES)</span>
+        {% else %}
+            <span class="badge bg-secondary fw-normal">Nicht signiert</span>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm table-borderless mb-0">
+            {% if antrag_signatur %}
+                <tr>
+                    <td class="text-muted ps-3" style="width:220px">Unterzeichner</td>
+                    <td><strong>{{ antrag_signatur.unterzeichner.get_full_name|default:antrag_signatur.unterzeichner.username }}</strong></td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Signiert am</td>
+                    <td>{{ antrag_signatur.signiert_am|date:"d.m.Y H:i" }} Uhr</td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Zertifikat-SN</td>
+                    <td><code style="font-size:0.8rem;">{{ antrag_signatur.zertifikat.seriennummer }}</code></td>
+                </tr>
+                <tr>
+                    <td class="text-muted ps-3">Dokument-Hash (SHA-256)</td>
+                    <td><code style="font-size:0.75rem; word-break:break-all;">{{ antrag_signatur.hash_sha256 }}</code></td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="2" class="text-muted ps-3 fst-italic py-2">
+                        Kein Zertifikat vorhanden &ndash; Antrag wurde ohne digitale Signatur eingereicht.
+                    </td>
+                </tr>
+            {% endif %}
+        </table>
+    </div>
+</div>

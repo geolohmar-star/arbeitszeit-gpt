@@ -20,6 +20,15 @@
         {% endif %}
     </div>
 
+    <!-- Personalstammdaten-Link (nur fuer HR) -->
+    {% if user.is_staff or user.has_perm("hr.hr_view_stammdaten") %}
+    <div class="mb-3">
+        <a href="{% url 'hr:stammdaten_detail' ma.pk %}" class="btn btn-outline-danger btn-sm">
+            Personalstammdaten (vertraulich)
+        </a>
+    </div>
+    {% endif %}
+
     <!-- Stammdaten -->
     <div class="card mb-3">
         <div class="card-header fw-bold">Stammdaten</div>

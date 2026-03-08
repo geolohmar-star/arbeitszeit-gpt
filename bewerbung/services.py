@@ -1,4 +1,8 @@
-"""Einstellungs-Service: Bewerbung --> HRMitarbeiter + Personalstammdaten.
+"""Services fuer die Bewerbungs-App:
+  - stelle_ein(): Bewerbung -> HRMitarbeiter + Personalstammdaten
+  - lehne_ab(): DSGVO Hard-Delete
+  - erstelle_zusage_docx(): python-docx Zusage-Brief
+  - erstelle_absage_docx(): python-docx Absage-Brief
 
 Wird aufgerufen wenn HR einen Bewerber einstellt.
 Erstellt automatisch: Django-User, HRMitarbeiter, Personalstammdaten.
@@ -134,6 +138,186 @@ def stelle_ein(bewerbung, stelle=None, eintrittsdatum=None, erstellt_von=None):
     logger.info("Einstellung abgeschlossen: Bewerbungsdaten '%s' geloescht (DSGVO).", bewerbung_name)
 
     return hr_ma
+
+
+def erstelle_zusage_docx(bewerbung) -> bytes:
+    """Erstellt einen Zusage-Brief als DOCX und gibt ihn als bytes zurueck."""
+    from io import BytesIO
+    from docx import Document
+    from docx.shared import Pt, Cm
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from django.utils import timezone
+
+    doc = Document()
+
+    # Seitenraender
+    for section in doc.sections:
+        section.top_margin = Cm(2.5)
+        section.bottom_margin = Cm(2)
+        section.left_margin = Cm(2.5)
+        section.right_margin = Cm(2)
+
+    # Absenderzeile
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    run = p.add_run("Personalabteilung – Interne Personalverwaltung")
+    run.font.size = Pt(9)
+    run.font.color.rgb = None
+
+    doc.add_paragraph()
+
+    # Empfaenger
+    anrede_map = {"herr": "Herrn", "frau": "Frau", "divers": "", "keine": ""}
+    anrede = anrede_map.get(bewerbung.anrede, "")
+    empf = doc.add_paragraph()
+    empf.add_run(f"{anrede} {bewerbung.vollname}\n".strip()).bold = True
+    empf.add_run(
+        f"{bewerbung.strasse} {bewerbung.hausnummer}\n"
+        f"{bewerbung.plz} {bewerbung.ort}"
+    )
+
+    doc.add_paragraph()
+
+    # Datum
+    datum_p = doc.add_paragraph()
+    datum_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    datum_p.add_run(timezone.localdate().strftime("%d.%m.%Y"))
+
+    doc.add_paragraph()
+
+    # Betreff
+    betreff = doc.add_paragraph()
+    r = betreff.add_run("Zusage Ihrer Bewerbung")
+    r.bold = True
+    r.font.size = Pt(12)
+
+    doc.add_paragraph()
+
+    # Anredezeile
+    anrede_brief = f"Sehr geehrte{'r' if bewerbung.anrede == 'herr' else ''} {anrede} {bewerbung.nachname}," if anrede else f"Sehr geehrte/r {bewerbung.vollname},"
+    doc.add_paragraph(anrede_brief)
+
+    doc.add_paragraph()
+
+    # Text
+    doc.add_paragraph(
+        "wir freuen uns, Ihnen mitteilen zu koennen, dass wir Ihnen eine Stelle "
+        "in unserem Unternehmen anbieten moechten."
+    )
+
+    # Stellendetails
+    if bewerbung.angestrebte_stelle or bewerbung.geplantes_eintrittsdatum:
+        doc.add_paragraph()
+        tab = doc.add_table(rows=0, cols=2)
+        tab.style = "Table Grid"
+        if bewerbung.angestrebte_stelle:
+            row = tab.add_row().cells
+            row[0].text = "Stelle:"
+            row[1].text = str(bewerbung.angestrebte_stelle)
+        if bewerbung.geplantes_eintrittsdatum:
+            row = tab.add_row().cells
+            row[0].text = "Eintrittsdatum:"
+            row[1].text = bewerbung.geplantes_eintrittsdatum.strftime("%d.%m.%Y")
+        if bewerbung.vertragsart:
+            row = tab.add_row().cells
+            row[0].text = "Vertragsart:"
+            row[1].text = bewerbung.get_vertragsart_display()
+
+    doc.add_paragraph()
+    doc.add_paragraph(
+        "Bitte nehmen Sie zu den weiteren Einstellungsformalitaeten Kontakt "
+        "mit der Personalabteilung auf. Wir benoetigen von Ihnen noch folgende "
+        "Originaldokumente: Personalausweis, Sozialversicherungsnachweis, "
+        "Steuer-ID sowie Ihre Bankverbindung."
+    )
+    doc.add_paragraph()
+    doc.add_paragraph(
+        "Wir freuen uns auf Ihre Mitarbeit und wuenschen Ihnen einen guten Start."
+    )
+    doc.add_paragraph()
+    doc.add_paragraph("Mit freundlichen Gruessen")
+    doc.add_paragraph()
+    doc.add_paragraph()
+    doc.add_paragraph("_________________________________")
+    doc.add_paragraph("Personalabteilung")
+
+    buf = BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+def erstelle_absage_docx(bewerbung) -> bytes:
+    """Erstellt einen Absage-Brief als DOCX und gibt ihn als bytes zurueck."""
+    from io import BytesIO
+    from docx import Document
+    from docx.shared import Pt, Cm
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from django.utils import timezone
+
+    doc = Document()
+    for section in doc.sections:
+        section.top_margin = Cm(2.5)
+        section.bottom_margin = Cm(2)
+        section.left_margin = Cm(2.5)
+        section.right_margin = Cm(2)
+
+    p = doc.add_paragraph()
+    run = p.add_run("Personalabteilung – Interne Personalverwaltung")
+    run.font.size = Pt(9)
+
+    doc.add_paragraph()
+
+    anrede_map = {"herr": "Herrn", "frau": "Frau", "divers": "", "keine": ""}
+    anrede = anrede_map.get(bewerbung.anrede, "")
+    empf = doc.add_paragraph()
+    empf.add_run(f"{anrede} {bewerbung.vollname}\n".strip()).bold = True
+    empf.add_run(
+        f"{bewerbung.strasse} {bewerbung.hausnummer}\n"
+        f"{bewerbung.plz} {bewerbung.ort}"
+    )
+
+    doc.add_paragraph()
+    datum_p = doc.add_paragraph()
+    datum_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    datum_p.add_run(timezone.localdate().strftime("%d.%m.%Y"))
+
+    doc.add_paragraph()
+    betreff = doc.add_paragraph()
+    r = betreff.add_run("Ihre Bewerbung bei uns")
+    r.bold = True
+    r.font.size = Pt(12)
+
+    doc.add_paragraph()
+    anrede_brief = f"Sehr geehrte{'r' if bewerbung.anrede == 'herr' else ''} {anrede} {bewerbung.nachname}," if anrede else f"Sehr geehrte/r {bewerbung.vollname},"
+    doc.add_paragraph(anrede_brief)
+    doc.add_paragraph()
+    doc.add_paragraph(
+        "vielen Dank fuer Ihr Interesse an einer Taetigkeit in unserem Unternehmen "
+        "und die Zeit, die Sie sich fuer den Bewerbungsprozess genommen haben."
+    )
+    doc.add_paragraph()
+    doc.add_paragraph(
+        "Nach sorgfaeltiger Pruefung Ihrer Unterlagen muessen wir Ihnen leider mitteilen, "
+        "dass wir Ihre Bewerbung nicht beruecksichtigen koennen. Diese Entscheidung "
+        "faellt uns nicht leicht und spiegelt nicht Ihre persoenlichen Qualitaeten wider."
+    )
+    doc.add_paragraph()
+    doc.add_paragraph(
+        "Gemaess der Datenschutz-Grundverordnung (DSGVO) werden alle Ihre "
+        "Bewerbungsunterlagen unverzueglich und vollstaendig geloescht."
+    )
+    doc.add_paragraph()
+    doc.add_paragraph("Wir wuenschen Ihnen fuer Ihre weitere berufliche Zukunft alles Gute.")
+    doc.add_paragraph()
+    doc.add_paragraph("Mit freundlichen Gruessen")
+    doc.add_paragraph()
+    doc.add_paragraph()
+    doc.add_paragraph("_________________________________")
+    doc.add_paragraph("Personalabteilung")
+
+    buf = BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
 
 
 @transaction.atomic

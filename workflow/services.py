@@ -476,44 +476,45 @@ class WorkflowEngine:
             content_object = instance.content_object
 
             if instance.template.ist_graph_workflow:
-                # Graph-basiert: Transitions evaluieren
+                # Graph-basiert: Transitions bestimmen naechste Schritte (Liste, kein Retry)
                 naechste_schritte = self.get_next_steps_via_transitions(task, content_object)
+                for schritt in naechste_schritte:
+                    neue_tasks.extend(
+                        self.create_tasks_for_step(instance, schritt, content_object)
+                    )
+                if neue_tasks and naechste_schritte:
+                    instance.aktueller_schritt = naechste_schritte[0]
+                    instance.save()
             else:
-                # Legacy: Linear mit reihenfolge
+                # Legacy: Linear mit Retry-Loop (ueberspringt bedingte Schritte)
                 aktuelle_reihenfolge = task.step.reihenfolge
                 naechste_reihenfolge = aktuelle_reihenfolge + 1
                 naechste_schritte = instance.template.schritte.filter(
                     reihenfolge=naechste_reihenfolge
                 )
+                max_versuche = 10  # Verhindere Endlosschleife
+                versuche = 0
 
-            # Versuche naechste Schritte zu aktivieren (mit Skip-Logik)
-            max_versuche = 10  # Verhindere Endlosschleife
-            versuche = 0
-
-            while naechste_schritte.exists() and not neue_tasks and versuche < max_versuche:
-                # Versuche Tasks fuer naechste Schritte zu erstellen
-                for schritt in naechste_schritte:
-                    neue_tasks.extend(
-                        self.create_tasks_for_step(
-                            task.instance, schritt, task.instance.content_object
+                while naechste_schritte.exists() and not neue_tasks and versuche < max_versuche:
+                    for schritt in naechste_schritte:
+                        neue_tasks.extend(
+                            self.create_tasks_for_step(instance, schritt, content_object)
                         )
-                    )
 
-                if neue_tasks:
-                    # Tasks erfolgreich erstellt → aktuellen Schritt aktualisieren
-                    task.instance.aktueller_schritt = naechste_schritte.first()
-                    task.instance.save()
-                else:
-                    # Keine Tasks erstellt (Schritt uebersprungen) → naechsten Schritt versuchen
-                    naechste_reihenfolge += 1
-                    naechste_schritte = task.instance.template.schritte.filter(
-                        reihenfolge=naechste_reihenfolge
-                    )
+                    if neue_tasks:
+                        instance.aktueller_schritt = naechste_schritte.first()
+                        instance.save()
+                    else:
+                        naechste_reihenfolge += 1
+                        naechste_schritte = instance.template.schritte.filter(
+                            reihenfolge=naechste_reihenfolge
+                        )
 
-                versuche += 1
+                    versuche += 1
 
-            # Falls keine Tasks erstellt wurden und auch keine weiteren Schritte → Workflow abschliessen
-            if not neue_tasks and not naechste_schritte.exists():
+            # Falls keine Tasks erstellt wurden und keine weiteren Schritte → Workflow abschliessen
+            hat_weitere_schritte = bool(naechste_schritte)
+            if not neue_tasks and not hat_weitere_schritte:
                 offene_tasks = task.instance.tasks.filter(
                     status__in=["offen", "in_bearbeitung"]
                 ).count()

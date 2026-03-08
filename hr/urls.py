@@ -10,6 +10,10 @@ urlpatterns = [
     path("organigramm/karten/", views.organigramm_karten, name="organigramm_karten"),
     path("<int:pk>/", views.mitarbeiter_detail, name="detail"),
 
+    # Personalstammdaten (nur HR)
+    path("<int:pk>/stammdaten/", views.stammdaten_detail, name="stammdaten_detail"),
+    path("<int:pk>/stammdaten/bearbeiten/", views.stammdaten_bearbeiten, name="stammdaten_bearbeiten"),
+
     # Stellen-Management
     path("stellen/", views.stellen_uebersicht, name="stellen_uebersicht"),
     path("stellen/neu/", views.stelle_bearbeiten, name="stelle_neu"),

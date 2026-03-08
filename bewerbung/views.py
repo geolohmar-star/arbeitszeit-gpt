@@ -4,12 +4,15 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from .forms import BewerbungDokumentForm, BewerbungForm, HREinstellungForm
-from .models import Bewerbung, BewerbungDokument
-from .services import lehne_ab, stelle_ein
+from .models import Bewerbung, BewerbungDokument, EinladungsCode
+from .services import erstelle_absage_docx, erstelle_zusage_docx, lehne_ab, stelle_ein
 
 logger = logging.getLogger(__name__)
+
+SESSION_CODE_KEY = "bewerbung_einladungscode"
 
 
 def _nur_hr(user):
@@ -17,23 +20,69 @@ def _nur_hr(user):
     return user.is_staff or user.has_perm("hr.hr_view_stammdaten")
 
 
-# ── Bewerber-Seite (kein Login noetig) ─────────────────────────────────────
+# ── Bewerber-Seite (kein Login noetig) ──────────────────────────────────────
+
+def code_eingabe(request):
+    """Einstiegsseite: Bewerber gibt seinen Einladungscode ein."""
+    fehler = None
+
+    if request.method == "POST":
+        code_roh = request.POST.get("code", "").strip().upper()
+        try:
+            einladung = EinladungsCode.objects.get(code=code_roh)
+        except EinladungsCode.DoesNotExist:
+            fehler = "Ungültiger Code. Bitte wenden Sie sich an die Personalabteilung."
+        else:
+            if einladung.status == EinladungsCode.STATUS_VERWENDET:
+                fehler = "Dieser Code wurde bereits verwendet."
+            elif einladung.status != EinladungsCode.STATUS_VERFUEGBAR and \
+                    einladung.status != EinladungsCode.STATUS_AUSGEGEBEN:
+                fehler = "Dieser Code ist nicht mehr gueltig."
+            else:
+                # Code in Session merken, weiterleiten
+                request.session[SESSION_CODE_KEY] = einladung.code
+                return redirect("bewerbung:erfassen")
+
+    return render(request, "bewerbung/code_eingabe.html", {"fehler": fehler})
+
 
 def bewerbung_erfassen(request):
-    """Bewerber fuellt am Intranet-PC den Bogen aus. Kein Login noetig."""
+    """Bewerber fuellt am Intranet-PC den Bogen aus. Einladungscode erforderlich."""
+    code_str = request.session.get(SESSION_CODE_KEY)
+    if not code_str:
+        return redirect("bewerbung:code_eingabe")
+
+    try:
+        einladung = EinladungsCode.objects.get(
+            code=code_str,
+            status__in=[EinladungsCode.STATUS_VERFUEGBAR, EinladungsCode.STATUS_AUSGEGEBEN],
+        )
+    except EinladungsCode.DoesNotExist:
+        # Code ungueltig oder schon verwendet
+        del request.session[SESSION_CODE_KEY]
+        return redirect("bewerbung:code_eingabe")
+
     if request.method == "POST":
         form = BewerbungForm(request.POST)
         if form.is_valid():
-            bewerbung = form.save()
+            bewerbung = form.save(commit=False)
+            bewerbung.einladungscode = einladung
+            bewerbung.save()
+            # Code als verwendet markieren
+            einladung.status = EinladungsCode.STATUS_VERWENDET
+            einladung.save()
+            # Session bereinigen
+            del request.session[SESSION_CODE_KEY]
             return redirect("bewerbung:erfassen_dokumente", pk=bewerbung.pk)
     else:
         form = BewerbungForm()
+
     return render(request, "bewerbung/erfassen.html", {"form": form})
 
 
 def bewerbung_dokumente(request, pk):
     """Schritt 2: Dokumente zur Bewerbung hochladen."""
-    bewerbung = get_object_or_404(Bewerbung, pk=pk, status=Bewerbung.STATUS_NEU)
+    bewerbung = get_object_or_404(Bewerbung, pk=pk, status=Bewerbung.STATUS_EINGEGANGEN)
 
     if request.method == "POST":
         if "fertig" in request.POST:
@@ -46,9 +95,13 @@ def bewerbung_dokumente(request, pk):
                 from utils.virusscanner import scan_datei
                 scan = scan_datei(datei)
                 if not scan.sauber:
-                    messages.error(request, f"Datei abgelehnt: Bedrohung gefunden ({scan.bedrohung}).")
+                    messages.error(
+                        request,
+                        f"Datei abgelehnt: Bedrohung gefunden ({scan.bedrohung}).",
+                    )
                     return render(request, "bewerbung/dokumente.html", {
-                        "bewerbung": bewerbung, "form": form,
+                        "bewerbung": bewerbung,
+                        "form": form,
                         "vorhandene": bewerbung.dokumente.all(),
                     })
             except Exception as exc:
@@ -61,7 +114,8 @@ def bewerbung_dokumente(request, pk):
             except ValueError as exc:
                 messages.error(request, f"Verschluesselung nicht moeglich: {exc}")
                 return render(request, "bewerbung/dokumente.html", {
-                    "bewerbung": bewerbung, "form": form,
+                    "bewerbung": bewerbung,
+                    "form": form,
                     "vorhandene": bewerbung.dokumente.all(),
                 })
 
@@ -90,7 +144,7 @@ def bewerbung_danke(request):
     return render(request, "bewerbung/danke.html")
 
 
-# ── HR-Bereich (Login + HR-Recht) ──────────────────────────────────────────
+# ── HR-Bereich (Login + HR-Recht) ───────────────────────────────────────────
 
 @login_required
 def hr_liste(request):
@@ -99,7 +153,9 @@ def hr_liste(request):
         raise Http404
 
     status_filter = request.GET.get("status", "")
-    bewerbungen = Bewerbung.objects.all()
+    bewerbungen = Bewerbung.objects.select_related(
+        "bearbeitet_von", "angestrebte_stelle", "einladungscode"
+    )
     if status_filter:
         bewerbungen = bewerbungen.filter(status=status_filter)
 
@@ -116,14 +172,10 @@ def hr_detail(request, pk):
     if not _nur_hr(request.user):
         raise Http404
 
-    bewerbung = get_object_or_404(Bewerbung, pk=pk)
-
-    if request.method == "POST" and "pruefung" in request.POST:
-        bewerbung.status = Bewerbung.STATUS_PRUEFUNG
-        bewerbung.bearbeitet_von = request.user
-        bewerbung.save()
-        messages.success(request, "Bewerbung in Pruefung gesetzt.")
-        return redirect("bewerbung:hr_detail", pk=pk)
+    bewerbung = get_object_or_404(
+        Bewerbung.objects.select_related("bearbeitet_von", "angestrebte_stelle", "einladungscode"),
+        pk=pk,
+    )
 
     return render(request, "bewerbung/hr_detail.html", {
         "bewerbung": bewerbung,
@@ -151,6 +203,30 @@ def hr_detail_speichern(request, pk):
 
 
 @login_required
+def hr_status_weiter(request, pk):
+    """Bewerbungsstatus einen Schritt vorwaerts schalten."""
+    if not _nur_hr(request.user):
+        raise Http404
+
+    bewerbung = get_object_or_404(Bewerbung, pk=pk)
+
+    if request.method == "POST":
+        naechster = bewerbung.naechster_status
+        if naechster:
+            bewerbung.status = naechster
+            bewerbung.bearbeitet_von = request.user
+            bewerbung.save()
+            messages.success(
+                request,
+                f"Status geaendert: {bewerbung.get_status_display()}",
+            )
+        else:
+            messages.warning(request, "Kein weiterer Status moeglich.")
+
+    return redirect("bewerbung:hr_detail", pk=pk)
+
+
+@login_required
 def hr_einstellen(request, pk):
     """Stellt den Bewerber ein – loescht Bewerbung, legt HRMitarbeiter an."""
     if not _nur_hr(request.user):
@@ -164,7 +240,7 @@ def hr_einstellen(request, pk):
             messages.success(
                 request,
                 f"{hr_ma.vollname} wurde eingestellt (Personalnummer: {hr_ma.personalnummer}). "
-                f"Bewerbungsdaten wurden DSGVO-konform geloescht.",
+                "Bewerbungsdaten wurden DSGVO-konform geloescht.",
             )
             return redirect("hr:detail", pk=hr_ma.pk)
         except Exception as exc:
@@ -196,6 +272,42 @@ def hr_ablehnen(request, pk):
 
 
 @login_required
+def hr_zusage_docx(request, pk):
+    """Zusage-Brief als DOCX herunterladen."""
+    if not _nur_hr(request.user):
+        raise Http404
+
+    bewerbung = get_object_or_404(Bewerbung, pk=pk)
+
+    docx_bytes = erstelle_zusage_docx(bewerbung)
+    name_safe = f"{bewerbung.nachname}_{bewerbung.vorname}".replace(" ", "_")
+    response = HttpResponse(
+        docx_bytes,
+        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+    response["Content-Disposition"] = f'attachment; filename="Zusage_{name_safe}.docx"'
+    return response
+
+
+@login_required
+def hr_absage_docx(request, pk):
+    """Absage-Brief als DOCX herunterladen."""
+    if not _nur_hr(request.user):
+        raise Http404
+
+    bewerbung = get_object_or_404(Bewerbung, pk=pk)
+
+    docx_bytes = erstelle_absage_docx(bewerbung)
+    name_safe = f"{bewerbung.nachname}_{bewerbung.vorname}".replace(" ", "_")
+    response = HttpResponse(
+        docx_bytes,
+        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+    response["Content-Disposition"] = f'attachment; filename="Absage_{name_safe}.docx"'
+    return response
+
+
+@login_required
 def hr_dokument_download(request, pk, dok_pk):
     """Entschluesselter Download eines Bewerbungsdokuments (nur HR)."""
     if not _nur_hr(request.user):
@@ -215,3 +327,59 @@ def hr_dokument_download(request, pk, dok_pk):
     response = HttpResponse(inhalt, content_type=dok.dateityp)
     response["Content-Disposition"] = f'attachment; filename="{dok.dateiname}"'
     return response
+
+
+@login_required
+def hr_einladungscodes(request):
+    """HR-Uebersicht der Einladungscodes – ausgeben und verwalten."""
+    if not _nur_hr(request.user):
+        raise Http404
+
+    if request.method == "POST":
+        code_pk = request.POST.get("code_pk")
+        aktion = request.POST.get("aktion")
+        try:
+            code = EinladungsCode.objects.get(pk=code_pk)
+        except EinladungsCode.DoesNotExist:
+            messages.error(request, "Code nicht gefunden.")
+            return redirect("bewerbung:hr_einladungscodes")
+
+        if aktion == "ausgeben" and code.status == EinladungsCode.STATUS_VERFUEGBAR:
+            name = request.POST.get("ausgegeben_an_name", "").strip()
+            telefon = request.POST.get("ausgegeben_an_telefon", "").strip()
+            code.status = EinladungsCode.STATUS_AUSGEGEBEN
+            code.ausgegeben_an_name = name
+            code.ausgegeben_an_telefon = telefon
+            code.ausgegeben_von = request.user
+            code.ausgegeben_am = timezone.now()
+            code.save()
+            messages.success(request, f"Code {code.code} als ausgegeben markiert.")
+        elif aktion == "zurueck" and code.status == EinladungsCode.STATUS_AUSGEGEBEN:
+            code.status = EinladungsCode.STATUS_VERFUEGBAR
+            code.ausgegeben_an_name = ""
+            code.ausgegeben_an_telefon = ""
+            code.ausgegeben_von = None
+            code.ausgegeben_am = None
+            code.save()
+            messages.success(request, f"Code {code.code} wieder freigegeben.")
+
+        return redirect("bewerbung:hr_einladungscodes")
+
+    # Anzeige
+    status_filter = request.GET.get("status", "")
+    codes = EinladungsCode.objects.select_related("ausgegeben_von")
+    if status_filter:
+        codes = codes.filter(status=status_filter)
+
+    anzahl = {
+        "verfuegbar": EinladungsCode.objects.filter(status=EinladungsCode.STATUS_VERFUEGBAR).count(),
+        "ausgegeben": EinladungsCode.objects.filter(status=EinladungsCode.STATUS_AUSGEGEBEN).count(),
+        "verwendet": EinladungsCode.objects.filter(status=EinladungsCode.STATUS_VERWENDET).count(),
+    }
+
+    return render(request, "bewerbung/hr_einladungscodes.html", {
+        "codes": codes,
+        "status_filter": status_filter,
+        "status_choices": EinladungsCode.STATUS_CHOICES,
+        "anzahl": anzahl,
+    })

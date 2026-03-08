@@ -10,6 +10,7 @@ from .models import (
     HierarchieSnapshot,
     HRMitarbeiter,
     OrgEinheit,
+    Personalstammdaten,
     Stelle,
 )
 
@@ -2200,3 +2201,72 @@ def kasten_stelle_inhaber(request, pk):
             "aktueller_inhaber": aktueller_inhaber,
         },
     )
+
+
+# ============================================================================
+# PERSONALSTAMMDATEN
+# ============================================================================
+
+
+def _hat_stammdaten_recht(user, aktion="view"):
+    """Prueft ob der User die Stammdaten-Permission hat.
+
+    aktion: 'view' oder 'change'
+    """
+    if not user.is_authenticated:
+        return False
+    if user.is_staff or user.is_superuser:
+        return True
+    perm = f"hr.hr_{aktion}_stammdaten"
+    return user.has_perm(perm)
+
+
+@login_required
+def stammdaten_detail(request, pk):
+    """Zeigt die Personalstammdaten eines Mitarbeiters (nur HR)."""
+    if not _hat_stammdaten_recht(request.user, "view"):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Keine Berechtigung fuer Personalstammdaten.")
+
+    ma = get_object_or_404(HRMitarbeiter, pk=pk)
+    stammdaten = getattr(ma, "stammdaten", None)
+
+    return render(request, "hr/stammdaten_detail.html", {
+        "ma": ma,
+        "stammdaten": stammdaten,
+        "darf_bearbeiten": _hat_stammdaten_recht(request.user, "change"),
+    })
+
+
+@login_required
+def stammdaten_bearbeiten(request, pk):
+    """Bearbeitet oder legt die Personalstammdaten eines Mitarbeiters an."""
+    if not _hat_stammdaten_recht(request.user, "change"):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Keine Berechtigung zum Bearbeiten von Personalstammdaten.")
+
+    from .forms import PersonalstammdatenForm
+
+    ma = get_object_or_404(HRMitarbeiter, pk=pk)
+    stammdaten = getattr(ma, "stammdaten", None)
+
+    if request.method == "POST":
+        form = PersonalstammdatenForm(request.POST, instance=stammdaten)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.mitarbeiter = ma
+            if not stammdaten:
+                obj.angelegt_von = request.user
+            obj.save()
+            messages.success(request, "Personalstammdaten gespeichert.")
+            return redirect("hr:stammdaten_detail", pk=pk)
+        else:
+            messages.error(request, "Bitte Eingaben pruefen.")
+    else:
+        form = PersonalstammdatenForm(instance=stammdaten)
+
+    return render(request, "hr/stammdaten_bearbeiten.html", {
+        "ma": ma,
+        "form": form,
+        "stammdaten": stammdaten,
+    })

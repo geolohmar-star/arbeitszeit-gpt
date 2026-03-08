@@ -95,6 +95,19 @@ class Command(BaseCommand):
 
         self._verteile_zertifikate()
 
+        self.stdout.write("  [LOAD] Bewerbungs-Workflow (TeamQueue + Template) ...")
+        call_command("erstelle_bewerbungs_workflow", verbosity=1)
+        self.stdout.write("  [OK]   Bewerbungs-Workflow abgeschlossen.")
+
+        # Einladungscodes fuer externen Bewerbungsprozess
+        from bewerbung.models import EinladungsCode
+        if not EinladungsCode.objects.exists():
+            self.stdout.write("  [LOAD] Einladungscodes (100 Stueck) ...")
+            call_command("generiere_einladungscodes", verbosity=0)
+            self.stdout.write("  [OK]   Einladungscodes generiert.")
+        else:
+            self.stdout.write("  [SKIP] Einladungscodes – bereits vorhanden.")
+
         self.stdout.write(self.style.SUCCESS("seed_initial_data abgeschlossen."))
 
     def _verteile_zertifikate(self):

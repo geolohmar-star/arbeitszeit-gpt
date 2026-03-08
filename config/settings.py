@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'datenschutz.apps.DatenschutzConfig',
     'dokumente.apps.DokumenteConfig',
     'bewerbung.apps.BewerbungConfig',
+    'stellenportal.apps.StellenportalConfig',
 ]
 
 # Verschluesselung fuer sensible Dokumente (Fernet AES-128)
@@ -117,6 +118,8 @@ TEMPLATES = [
                 'arbeitszeit.context_processors.team_stapel_anzahl',
                 'arbeitszeit.context_processors.hilfe_kontext',
                 'facility.context_processors.facility_context',
+                'stellenportal.context_processors.stellenportal_context',
+                'veranstaltungen.context_processors.veranstaltungen_context',
             ],
         },
     },

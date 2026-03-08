@@ -320,6 +320,40 @@
     }
   },
   {
+    "model": "workflow.workflowtemplate",
+    "pk": 21,
+    "fields": {
+      "name": "Interne Stellenbewerbung",
+      "beschreibung": "Bearbeitungsprozess fuer interne Stellenbewerbungen. Startet automatisch wenn ein Mitarbeiter eine Bewerbung einreicht. Bei Fuehrungsstellen ist zusaetzlich eine Genehmigung durch die GF erforderlich.",
+      "kategorie": "pruefung",
+      "trigger_event": "stellenbewerbung_eingegangen",
+      "ist_aktiv": true,
+      "erstellt_am": "2026-03-08T10:52:54.977Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-03-08T10:52:54.977Z",
+      "version": 1,
+      "edges_data": null,
+      "ist_graph_workflow": true
+    }
+  },
+  {
+    "model": "workflow.workflowtemplate",
+    "pk": 22,
+    "fields": {
+      "name": "Veranstaltungs-Gutschrift",
+      "beschreibung": "Bearbeitungsprozess fuer Zeitgutschrift-Sammellisten aus Veranstaltungen. Startet automatisch wenn eine Gutschrift eingereicht wird. Schritt 1: Zeitgutschriften-Team prueft und genehmigt die Liste. Schritt 2: Zeiterfassung-Team bucht die Gutschriften.",
+      "kategorie": "pruefung",
+      "trigger_event": "veranstaltung_gutschrift_eingereicht",
+      "ist_aktiv": true,
+      "erstellt_am": "2026-03-08T13:15:17.141Z",
+      "erstellt_von": null,
+      "aktualisiert_am": "2026-03-08T13:15:17.141Z",
+      "version": 1,
+      "edges_data": null,
+      "ist_graph_workflow": false
+    }
+  },
+  {
     "model": "workflow.workflowstep",
     "pk": 69,
     "fields": {
@@ -941,6 +975,361 @@
       "eskalation_nach_tagen": 0,
       "eskalation_an_stelle": null,
       "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 105,
+    "fields": {
+      "template": 21,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "Bewerbung pruefen",
+      "beschreibung": "Eingegangene Bewerbung sichten und entscheiden: Kandidat/in zum Gespraech einladen oder Bewerbung absagen.",
+      "aktion_typ": "pruefen",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 13,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 106,
+    "fields": {
+      "template": 21,
+      "reihenfolge": 2,
+      "schritt_typ": "task",
+      "titel": "Vorstellungsgespraech fuehren",
+      "beschreibung": "Vorstellungsgespraech durchfuehren und dokumentieren. Anschliessend Entscheidung: Kandidat/in weiter empfehlen oder absagen.",
+      "aktion_typ": "entscheiden",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 13,
+      "frist_tage": 7,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 107,
+    "fields": {
+      "template": 21,
+      "reihenfolge": 3,
+      "schritt_typ": "task",
+      "titel": "Geschaeftsfuehrung genehmigt",
+      "beschreibung": "Bei Fuehrungsstellen muss die Geschaeftsfuehrung der Besetzung zustimmen. Bitte Bewerbungsunterlagen und Empfehlung der Personalgewinnung sichten.",
+      "aktion_typ": "genehmigen",
+      "zustaendig_rolle": "geschaeftsfuehrung",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 5,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 108,
+    "fields": {
+      "template": 21,
+      "reihenfolge": 4,
+      "schritt_typ": "task",
+      "titel": "Abschlussentscheidung",
+      "beschreibung": "Angebot unterbreiten oder Bewerbung abschliessen. Bewerber ueber das Ergebnis informieren.",
+      "aktion_typ": "informieren",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 13,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 109,
+    "fields": {
+      "template": 21,
+      "reihenfolge": 5,
+      "schritt_typ": "task",
+      "titel": "Bewerber bestaetigt Ergebnis",
+      "beschreibung": "Der Bewerber nimmt Kenntnis vom Ergebnis des Bewerbungsprozesses.",
+      "aktion_typ": "informieren",
+      "zustaendig_rolle": "antragsteller",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": null,
+      "frist_tage": 5,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 110,
+    "fields": {
+      "template": 22,
+      "reihenfolge": 1,
+      "schritt_typ": "task",
+      "titel": "Gutschrift-Liste pruefen",
+      "beschreibung": "Teilnehmerliste der Veranstaltungs-Gutschrift pruefen und genehmigen. Sicherstellen dass alle Teilnehmer korrekt erfasst und bestaetigt sind.",
+      "aktion_typ": "pruefen",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 3,
+      "frist_tage": 3,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowstep",
+    "pk": 111,
+    "fields": {
+      "template": 22,
+      "reihenfolge": 2,
+      "schritt_typ": "task",
+      "titel": "Zeitgutschriften buchen",
+      "beschreibung": "Genehmigte Zeitgutschriften fuer alle Teilnehmer in die Zeiterfassung eintragen. PDF-Sammelliste als Beleg archivieren.",
+      "aktion_typ": "buchen",
+      "zustaendig_rolle": "team_queue",
+      "zustaendig_stelle": null,
+      "zustaendig_org": null,
+      "zustaendig_team": 1,
+      "frist_tage": 5,
+      "ist_parallel": false,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "eskalation_nach_tagen": 0,
+      "eskalation_an_stelle": null,
+      "auto_config": null
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 7,
+    "fields": {
+      "template": 8,
+      "von_schritt": 69,
+      "zu_schritt": 70,
+      "bedingung_typ": "feld_wert",
+      "bedingung_entscheidung": "genehmigt",
+      "bedingung_feld": "Stunden",
+      "bedingung_operator": ">",
+      "bedingung_wert": "10",
+      "bedingung_python_code": "",
+      "label": "mehr wie 10",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 8,
+    "fields": {
+      "template": 8,
+      "von_schritt": 70,
+      "zu_schritt": 71,
+      "bedingung_typ": "immer",
+      "bedingung_entscheidung": "",
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "",
+      "label": "",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 9,
+    "fields": {
+      "template": 8,
+      "von_schritt": 71,
+      "zu_schritt": 72,
+      "bedingung_typ": "immer",
+      "bedingung_entscheidung": "",
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "",
+      "label": "",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 10,
+    "fields": {
+      "template": 8,
+      "von_schritt": 72,
+      "zu_schritt": 73,
+      "bedingung_typ": "immer",
+      "bedingung_entscheidung": "",
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "",
+      "label": "",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 11,
+    "fields": {
+      "template": 8,
+      "von_schritt": 69,
+      "zu_schritt": 71,
+      "bedingung_typ": "immer",
+      "bedingung_entscheidung": "",
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "",
+      "label": "",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 12,
+    "fields": {
+      "template": 21,
+      "von_schritt": 105,
+      "zu_schritt": 106,
+      "bedingung_typ": "immer",
+      "bedingung_entscheidung": null,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "",
+      "label": "weiter",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 13,
+    "fields": {
+      "template": 21,
+      "von_schritt": 106,
+      "zu_schritt": 107,
+      "bedingung_typ": "python",
+      "bedingung_entscheidung": null,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "content_object.ausschreibung.ist_fuehrungsstelle",
+      "label": "Fuehrungsstelle",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 14,
+    "fields": {
+      "template": 21,
+      "von_schritt": 106,
+      "zu_schritt": 108,
+      "bedingung_typ": "python",
+      "bedingung_entscheidung": null,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "not content_object.ausschreibung.ist_fuehrungsstelle",
+      "label": "normale Stelle",
+      "prioritaet": 2
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 15,
+    "fields": {
+      "template": 21,
+      "von_schritt": 107,
+      "zu_schritt": 108,
+      "bedingung_typ": "immer",
+      "bedingung_entscheidung": null,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "",
+      "label": "weiter",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 16,
+    "fields": {
+      "template": 21,
+      "von_schritt": 108,
+      "zu_schritt": 109,
+      "bedingung_typ": "immer",
+      "bedingung_entscheidung": null,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "",
+      "label": "weiter",
+      "prioritaet": 1
+    }
+  },
+  {
+    "model": "workflow.workflowtransition",
+    "pk": 17,
+    "fields": {
+      "template": 21,
+      "von_schritt": 109,
+      "zu_schritt": null,
+      "bedingung_typ": "immer",
+      "bedingung_entscheidung": null,
+      "bedingung_feld": "",
+      "bedingung_operator": "",
+      "bedingung_wert": "",
+      "bedingung_python_code": "",
+      "label": "abgeschlossen",
+      "prioritaet": 1
     }
   }
 ]

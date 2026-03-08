@@ -286,6 +286,10 @@ class FeierteilnahmeGutschrift(models.Model):
     def __str__(self):
         return f"Gutschrift: {self.feier}"
 
+    def get_betreff(self):
+        """Betreffzeile fuer Workflow und Signatur."""
+        return f"Veranstaltungs-Gutschrift – {self.feier.titel} ({self.feier.datum})"
+
     def teilnehmer_bestaetigt(self):
         """Gibt alle bestaetigten Teilnehmer zurueck (kein Vorbereitungsteam)."""
         return self.feier.anmeldungen.filter(

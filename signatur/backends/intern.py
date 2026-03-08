@@ -179,27 +179,36 @@ class InternBackend:
         from pyhanko.pdf_utils.reader import PdfFileReader
         from pyhanko.sign import signers
         from pyhanko.sign.signers.pdf_signer import PdfSignatureMetadata
-        from cryptography.hazmat.primitives.serialization import (
-            load_pem_private_key, Encoding, NoEncryption
-        )
-        from cryptography.x509 import load_pem_x509_certificate
+        from asn1crypto import pem as asn1pem, x509 as asn1x509, keys as asn1keys
+        from pyhanko_certvalidator.registry import SimpleCertificateStore
 
-        # Zertifikat + Schluessel laden
-        cert = load_pem_x509_certificate(zert.zertifikat_pem.encode())
-        privkey = load_pem_private_key(
-            zert.privater_schluessel_pem.encode(), password=None
-        )
+        def _lade_asn1_cert(pem_str):
+            """Laedt ein PEM-Zertifikat als asn1crypto.x509.Certificate."""
+            pem_bytes = pem_str.encode() if isinstance(pem_str, str) else pem_str
+            _, _, der = asn1pem.unarmor(pem_bytes)
+            return asn1x509.Certificate.load(der)
+
+        def _lade_asn1_privkey(pem_str):
+            """Laedt einen privaten Schluessel als asn1crypto.keys.PrivateKeyInfo.
+            pyhanko 0.34 ruft intern signing_key.dump() auf → asn1crypto-Typ benoetigt."""
+            pem_bytes = pem_str.encode() if isinstance(pem_str, str) else pem_str
+            _, _, der = asn1pem.unarmor(pem_bytes)
+            return asn1keys.PrivateKeyInfo.load(der)
+
+        # Zertifikat + Schluessel als asn1crypto laden (pyhanko 0.34 Anforderung)
+        cert = _lade_asn1_cert(zert.zertifikat_pem)
+        privkey = _lade_asn1_privkey(zert.privater_schluessel_pem)
 
         # Root-CA-Kette laden
         from signatur.models import RootCA
         root = RootCA.objects.first()
-        root_cert = load_pem_x509_certificate(root.zertifikat_pem.encode())
+        root_cert = _lade_asn1_cert(root.zertifikat_pem)
 
         # Signer aufbauen
         signer = signers.SimpleSigner(
             signing_cert=cert,
             signing_key=privkey,
-            cert_registry=signers.SimpleCertificateStore.from_certs([root_cert]),
+            cert_registry=SimpleCertificateStore.from_certs([root_cert]),
         )
 
         # PDF einlesen

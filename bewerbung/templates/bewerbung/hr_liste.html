@@ -1,76 +1,83 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Bewerbungen – HR{% endblock %}
+{% block title %}Bewerbungen – HR-Übersicht{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold mb-0">Bewerbungseingang</h2>
-    <span class="badge bg-secondary">{{ bewerbungen|length }} Eintraege</span>
-</div>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Bewerbungen</h2>
+        <a href="{% url 'bewerbung:hr_einladungscodes' %}" class="btn btn-outline-secondary btn-sm">
+            Einladungscodes verwalten
+        </a>
+    </div>
 
-<!-- Statusfilter -->
-<div class="mb-3">
-    <div class="btn-group btn-group-sm" role="group">
-        <a href="?" class="btn {% if not status_filter %}btn-dark{% else %}btn-outline-secondary{% endif %}">Alle</a>
-        {% for code, label in status_choices %}
-        <a href="?status={{ code }}"
-           class="btn {% if status_filter == code %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+    <!-- Status-Filter -->
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        <a href="{% url 'bewerbung:hr_liste' %}"
+           class="btn btn-sm {% if not status_filter %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+            Alle
+        </a>
+        {% for value, label in status_choices %}
+        <a href="?status={{ value }}"
+           class="btn btn-sm {% if status_filter == value %}btn-dark{% else %}btn-outline-secondary{% endif %}">
             {{ label }}
         </a>
         {% endfor %}
     </div>
-</div>
 
-{% if bewerbungen %}
-<div class="table-responsive">
-    <table class="table table-hover align-middle bg-white rounded shadow-sm">
-        <thead class="table-light">
-            <tr>
-                <th>Name</th>
-                <th>Geburtstag</th>
-                <th>Mobil</th>
-                <th>Eingegangen</th>
-                <th>Status</th>
-                <th>Dokumente</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for b in bewerbungen %}
-            <tr>
-                <td class="fw-semibold">{{ b.vollname }}</td>
-                <td>{{ b.geburtsdatum|date:"d.m.Y" }}</td>
-                <td>{{ b.mobil_privat }}</td>
-                <td class="text-muted small">{{ b.erstellt_am|date:"d.m.Y H:i" }}</td>
-                <td>
-                    {% if b.status == "neu" %}
-                        <span class="badge bg-warning text-dark">Neu</span>
-                    {% elif b.status == "pruefung" %}
-                        <span class="badge bg-info text-dark">In Pruefung</span>
-                    {% elif b.status == "gespraech" %}
-                        <span class="badge bg-primary">Gespraech</span>
-                    {% elif b.status == "eingestellt" %}
-                        <span class="badge bg-success">Eingestellt</span>
-                    {% elif b.status == "abgelehnt" %}
-                        <span class="badge bg-danger">Abgelehnt</span>
-                    {% else %}
-                        <span class="badge bg-secondary">{{ b.get_status_display }}</span>
-                    {% endif %}
-                </td>
-                <td class="text-muted small">{{ b.dokumente.count }} Datei(en)</td>
-                <td>
-                    <a href="{% url 'bewerbung:hr_detail' pk=b.pk %}"
-                       class="btn btn-sm btn-outline-dark">Detail</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle bg-white rounded shadow-sm">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Geburtstag</th>
+                    <th>Mobil</th>
+                    <th>Eingegangen</th>
+                    <th>Status</th>
+                    <th>Stelle</th>
+                    <th>Dokumente</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bewerbungen %}
+                <tr>
+                    <td class="fw-semibold">{{ b.vollname }}</td>
+                    <td class="small">{{ b.geburtsdatum|date:"d.m.Y" }}</td>
+                    <td class="small">{{ b.mobil_privat }}</td>
+                    <td class="text-muted small">{{ b.erstellt_am|date:"d.m.Y H:i" }}</td>
+                    <td>
+                        {% if b.status == "eingegangen" %}
+                            <span class="badge bg-info text-dark">Eingegangen</span>
+                        {% elif b.status == "faktencheck" %}
+                            <span class="badge bg-warning text-dark">Faktencheck</span>
+                        {% elif b.status == "tauglichkeitstest" %}
+                            <span class="badge bg-secondary">Tauglichkeitstest</span>
+                        {% elif b.status == "zusage" %}
+                            <span class="badge bg-success">Zusage erteilt</span>
+                        {% elif b.status == "abgelehnt" %}
+                            <span class="badge bg-danger">Abgelehnt</span>
+                        {% else %}
+                            <span class="badge bg-light text-dark">{{ b.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="small">{{ b.angestrebte_stelle|default:"–" }}</td>
+                    <td class="small text-muted">{{ b.dokumente.count }}</td>
+                    <td>
+                        <a href="{% url 'bewerbung:hr_detail' pk=b.pk %}"
+                           class="btn btn-sm btn-outline-dark">Öffnen</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">
+                        Keine Bewerbungen vorhanden{% if status_filter %} für diesen Status{% endif %}.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
-{% else %}
-<div class="alert alert-light border text-center py-5">
-    <p class="text-muted mb-0">Keine Bewerbungen vorhanden{% if status_filter %} fuer diesen Status{% endif %}.</p>
-</div>
-{% endif %}
 {% endblock %}
