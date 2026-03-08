@@ -95,9 +95,16 @@ class Command(BaseCommand):
 
         self._verteile_zertifikate()
 
+        self._repariere_teamqueue_kuerzel()
+
         self.stdout.write("  [LOAD] Bewerbungs-Workflow (TeamQueue + Template) ...")
-        call_command("erstelle_bewerbungs_workflow", verbosity=1)
-        self.stdout.write("  [OK]   Bewerbungs-Workflow abgeschlossen.")
+        try:
+            call_command("erstelle_bewerbungs_workflow", verbosity=1)
+            self.stdout.write("  [OK]   Bewerbungs-Workflow abgeschlossen.")
+        except Exception as exc:
+            self.stdout.write(
+                self.style.WARNING(f"  [WARN] Bewerbungs-Workflow fehlgeschlagen: {exc}")
+            )
 
         # Einladungscodes fuer externen Bewerbungsprozess
         from bewerbung.models import EinladungsCode
@@ -109,6 +116,27 @@ class Command(BaseCommand):
             self.stdout.write("  [SKIP] Einladungscodes – bereits vorhanden.")
 
         self.stdout.write(self.style.SUCCESS("seed_initial_data abgeschlossen."))
+
+    def _repariere_teamqueue_kuerzel(self):
+        """Setzt kuerzel='PG' fuer alle TeamQueue-Eintraege mit leerem Kuerzel.
+
+        Repariert den Datenzustand auf Supabase, falls ein vorheriger Deploy
+        eine TeamQueue ohne Kuerzel angelegt hat (Unique-Constraint-Schutz).
+        """
+        from formulare.models import TeamQueue
+
+        leere = TeamQueue.objects.filter(kuerzel="")
+        count = leere.count()
+        if count == 0:
+            return
+
+        for idx, tq in enumerate(leere):
+            neues_kuerzel = f"PG{idx}" if idx > 0 else "PG"
+            tq.kuerzel = neues_kuerzel
+            tq.save(update_fields=["kuerzel"])
+            self.stdout.write(
+                f"  [FIX]  TeamQueue pk={tq.pk} kuerzel '' -> '{neues_kuerzel}' repariert."
+            )
 
     def _verteile_zertifikate(self):
         """Stellt Mitarbeiter-Zertifikate aus falls CA_ROOT_KEY_B64 gesetzt ist.
