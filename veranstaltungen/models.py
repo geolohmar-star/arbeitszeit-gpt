@@ -286,6 +286,11 @@ class FeierteilnahmeGutschrift(models.Model):
     def __str__(self):
         return f"Gutschrift: {self.feier}"
 
+    @property
+    def antragsteller(self):
+        """Ersteller der Gutschrift – wird vom Workflow-Engine genutzt um Stelle aufzuloesen."""
+        return self.erstellt_von
+
     def get_betreff(self):
         """Betreffzeile fuer Workflow und Signatur."""
         return f"Veranstaltungs-Gutschrift – {self.feier.titel} ({self.feier.datum})"
