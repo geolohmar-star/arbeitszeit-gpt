@@ -20,28 +20,55 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------------------
     def _erstelle_pg_queue(self):
+        from django.db import IntegrityError
         from formulare.models import TeamQueue
         from hr.models import HRMitarbeiter
 
-        queue, created = TeamQueue.objects.get_or_create(
-            name="Personalgewinnung",
-            defaults={"beschreibung": "Bearbeitungsstapel fuer interne Stellenbewerbungen (OrgEinheit PG)"},
+        # Robuste Suche: nach Kuerzel PG, leerem Kuerzel oder Name
+        queue = (
+            TeamQueue.objects.filter(kuerzel="PG").first()
+            or TeamQueue.objects.filter(name="Personalgewinnung").first()
+            or TeamQueue.objects.filter(kuerzel="").filter(
+                beschreibung__icontains="Stellenbewerbung"
+            ).first()
         )
-        if created:
-            # Alle PG-Mitglieder als Mitglieder eintragen
-            pg_user_ids = list(
-                HRMitarbeiter.objects
-                .filter(stelle__org_einheit__kuerzel="PG")
-                .exclude(user__isnull=True)
-                .values_list("user_id", flat=True)
-            )
-            if pg_user_ids:
-                queue.mitglieder.set(pg_user_ids)
-            self.stdout.write(
-                f"  [OK]   TeamQueue 'Personalgewinnung' (pk={queue.pk}) mit {len(pg_user_ids)} Mitgliedern angelegt."
-            )
-        else:
+        if queue is not None:
+            # Kuerzel ggf. auf "PG" korrigieren falls leer
+            if not queue.kuerzel:
+                queue.kuerzel = "PG"
+                queue.save(update_fields=["kuerzel"])
             self.stdout.write(f"  [SKIP] TeamQueue 'Personalgewinnung' bereits vorhanden (pk={queue.pk}).")
+            return queue
+
+        try:
+            queue = TeamQueue.objects.create(
+                name="Personalgewinnung",
+                kuerzel="PG",
+                beschreibung="Bearbeitungsstapel fuer interne Stellenbewerbungen (OrgEinheit PG)",
+            )
+        except IntegrityError:
+            # Fallback: kuerzel-Konflikt durch Race-Condition – nochmals suchen
+            queue = (
+                TeamQueue.objects.filter(kuerzel="PG").first()
+                or TeamQueue.objects.filter(name="Personalgewinnung").first()
+            )
+            if queue is None:
+                raise
+            self.stdout.write(f"  [SKIP] TeamQueue 'Personalgewinnung' (Race-Condition, pk={queue.pk}).")
+            return queue
+
+        # Alle PG-Mitglieder eintragen
+        pg_user_ids = list(
+            HRMitarbeiter.objects
+            .filter(stelle__org_einheit__kuerzel="PG")
+            .exclude(user__isnull=True)
+            .values_list("user_id", flat=True)
+        )
+        if pg_user_ids:
+            queue.mitglieder.set(pg_user_ids)
+        self.stdout.write(
+            f"  [OK]   TeamQueue 'Personalgewinnung' (pk={queue.pk}) mit {len(pg_user_ids)} Mitgliedern angelegt."
+        )
         return queue
 
     def _erstelle_template(self):
@@ -65,7 +92,10 @@ class Command(BaseCommand):
             )
             existing.delete()
 
-        pg_queue = TeamQueue.objects.get(name="Personalgewinnung")
+        pg_queue = (
+            TeamQueue.objects.filter(kuerzel="PG").first()
+            or TeamQueue.objects.filter(name="Personalgewinnung").first()
+        )
 
         template = WorkflowTemplate.objects.create(
             name="Interne Stellenbewerbung",

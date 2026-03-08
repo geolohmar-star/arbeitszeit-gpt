@@ -42,7 +42,7 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Sanitaer / Heizung-Stoermeldungen",
       "kuerzel": "FAC-SAN",
-      "name": "Facility – Sanitaer / Heizung"
+      "name": "Facility ï¿½ Sanitaer / Heizung"
     }
   },
   {
@@ -52,7 +52,7 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Schlosser-Stoermeldungen",
       "kuerzel": "FAC-SCH",
-      "name": "Facility – Schlosser"
+      "name": "Facility ï¿½ Schlosser"
     }
   },
   {
@@ -62,7 +62,7 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Schreiner-Stoermeldungen",
       "kuerzel": "FAC-SRE",
-      "name": "Facility – Schreiner"
+      "name": "Facility ï¿½ Schreiner"
     }
   },
   {
@@ -72,7 +72,7 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Maler-Stoermeldungen",
       "kuerzel": "FAC-MAL",
-      "name": "Facility – Maler"
+      "name": "Facility ï¿½ Maler"
     }
   },
   {
@@ -104,7 +104,7 @@
       "antragstypen": [],
       "beschreibung": "Security-Team: bearbeitet Token-Antraege und verwaltet Zutrittsbadges.",
       "kuerzel": "sec-token",
-      "name": "Security – Tokenverwaltung"
+      "name": "Security ï¿½ Tokenverwaltung"
     }
   },
   {
@@ -113,7 +113,7 @@
     "fields": {
       "antragstypen": [],
       "beschreibung": "Bearbeitungsstapel fuer interne Stellenbewerbungen (OrgEinheit PG)",
-      "kuerzel": "",
+      "kuerzel": "PG",
       "name": "Personalgewinnung"
     }
   }
