@@ -1,3025 +1,3025 @@
 [
-{
-  "model": "hr.orgeinheit",
-  "pk": 1,
-  "fields": {
-    "bezeichnung": "Geschaeftsfuehrung",
-    "ist_reserviert": true,
-    "kuerzel": "GF",
-    "leitende_stelle": null,
-    "uebergeordnet": null
+  {
+    "model": "hr.orgeinheit",
+    "pk": 1,
+    "fields": {
+      "bezeichnung": "Geschaeftsfuehrung",
+      "ist_reserviert": true,
+      "kuerzel": "GF",
+      "leitende_stelle": null,
+      "uebergeordnet": null
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 3,
+    "fields": {
+      "bezeichnung": "Human Resources",
+      "ist_reserviert": true,
+      "kuerzel": "HR",
+      "leitende_stelle": 454,
+      "uebergeordnet": 30
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 4,
+    "fields": {
+      "bezeichnung": "Informationstechnik",
+      "ist_reserviert": true,
+      "kuerzel": "IT",
+      "leitende_stelle": 455,
+      "uebergeordnet": 30
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 5,
+    "fields": {
+      "bezeichnung": "Facility Management",
+      "ist_reserviert": true,
+      "kuerzel": "FM",
+      "leitende_stelle": 456,
+      "uebergeordnet": 30
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 12,
+    "fields": {
+      "bezeichnung": "Softwareentwicklung",
+      "ist_reserviert": false,
+      "kuerzel": "SE",
+      "leitende_stelle": 457,
+      "uebergeordnet": 31
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 13,
+    "fields": {
+      "bezeichnung": "Produktentwicklung",
+      "ist_reserviert": false,
+      "kuerzel": "PR",
+      "leitende_stelle": 457,
+      "uebergeordnet": 31
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 14,
+    "fields": {
+      "bezeichnung": "Daten & Analyse",
+      "ist_reserviert": false,
+      "kuerzel": "DA",
+      "leitende_stelle": 455,
+      "uebergeordnet": 30
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 15,
+    "fields": {
+      "bezeichnung": "IT-Infrastruktur",
+      "ist_reserviert": false,
+      "kuerzel": "II",
+      "leitende_stelle": 455,
+      "uebergeordnet": 4
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 16,
+    "fields": {
+      "bezeichnung": "Einkauf & Logistik",
+      "ist_reserviert": false,
+      "kuerzel": "EL",
+      "leitende_stelle": 456,
+      "uebergeordnet": 30
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 17,
+    "fields": {
+      "bezeichnung": "Qualitaetssicherung",
+      "ist_reserviert": false,
+      "kuerzel": "QS",
+      "leitende_stelle": 457,
+      "uebergeordnet": 31
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 18,
+    "fields": {
+      "bezeichnung": "Controlling",
+      "ist_reserviert": false,
+      "kuerzel": "CO",
+      "leitende_stelle": 453,
+      "uebergeordnet": 30
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 19,
+    "fields": {
+      "bezeichnung": "Buchhaltung",
+      "ist_reserviert": false,
+      "kuerzel": "BH",
+      "leitende_stelle": 453,
+      "uebergeordnet": 30
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 20,
+    "fields": {
+      "bezeichnung": "Lohn & Gehalt",
+      "ist_reserviert": false,
+      "kuerzel": "LG",
+      "leitende_stelle": 453,
+      "uebergeordnet": 3
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 21,
+    "fields": {
+      "bezeichnung": "Personalentwicklung",
+      "ist_reserviert": false,
+      "kuerzel": "PE",
+      "leitende_stelle": 454,
+      "uebergeordnet": 3
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 22,
+    "fields": {
+      "bezeichnung": "Personalgewinnung",
+      "ist_reserviert": false,
+      "kuerzel": "PG",
+      "leitende_stelle": 454,
+      "uebergeordnet": 3
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 23,
+    "fields": {
+      "bezeichnung": "Personalverwaltung",
+      "ist_reserviert": false,
+      "kuerzel": "PV",
+      "leitende_stelle": 454,
+      "uebergeordnet": 3
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 24,
+    "fields": {
+      "bezeichnung": "Marketing",
+      "ist_reserviert": false,
+      "kuerzel": "MK",
+      "leitende_stelle": null,
+      "uebergeordnet": 28
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 25,
+    "fields": {
+      "bezeichnung": "Innendienst",
+      "ist_reserviert": false,
+      "kuerzel": "ID",
+      "leitende_stelle": null,
+      "uebergeordnet": 28
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 26,
+    "fields": {
+      "bezeichnung": "Aussendienst",
+      "ist_reserviert": false,
+      "kuerzel": "AD",
+      "leitende_stelle": null,
+      "uebergeordnet": 28
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 27,
+    "fields": {
+      "bezeichnung": "Zeit & Abrechnung",
+      "ist_reserviert": false,
+      "kuerzel": "ZA",
+      "leitende_stelle": 456,
+      "uebergeordnet": 30
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 28,
+    "fields": {
+      "bezeichnung": "Vertrieb & Marketing",
+      "ist_reserviert": false,
+      "kuerzel": "VM",
+      "leitende_stelle": 458,
+      "uebergeordnet": 1
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 29,
+    "fields": {
+      "bezeichnung": "Technik",
+      "ist_reserviert": false,
+      "kuerzel": "TE",
+      "leitende_stelle": 457,
+      "uebergeordnet": 31
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 30,
+    "fields": {
+      "bezeichnung": "Verwaltung",
+      "ist_reserviert": false,
+      "kuerzel": "VW",
+      "leitende_stelle": null,
+      "uebergeordnet": 1
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 31,
+    "fields": {
+      "bezeichnung": "Produktion & Technik",
+      "ist_reserviert": false,
+      "kuerzel": "PT",
+      "leitende_stelle": null,
+      "uebergeordnet": 1
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 32,
+    "fields": {
+      "bezeichnung": "Kasse",
+      "ist_reserviert": false,
+      "kuerzel": "KA",
+      "leitende_stelle": null,
+      "uebergeordnet": 19
+    }
+  },
+  {
+    "model": "hr.orgeinheit",
+    "pk": 33,
+    "fields": {
+      "bezeichnung": "Security",
+      "ist_reserviert": true,
+      "kuerzel": "SEC",
+      "leitende_stelle": 463,
+      "uebergeordnet": 30
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 309,
+    "fields": {
+      "bezeichnung": "Geschaeftsfuehrung Technik",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "gf_tech",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 1,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 310,
+    "fields": {
+      "bezeichnung": "Geschaeftsfuehrung Verwaltung",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "gf_verw",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 1,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 311,
+    "fields": {
+      "bezeichnung": "Bereichsleiter IT & Entwicklung",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "bl_it",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 4,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 312,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Softwareentwicklung",
+      "delegiert_an": 313,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_se",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 12,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 313,
+    "fields": {
+      "bezeichnung": "Stellvertreter Softwareentwicklung",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_se",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 12,
+      "uebergeordnete_stelle": 312,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 314,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Softwareentwicklung 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_se1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 12,
+      "uebergeordnete_stelle": 312,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 315,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Softwareentwicklung 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_se2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 12,
+      "uebergeordnete_stelle": 312,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 316,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Softwareentwicklung 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_se3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 12,
+      "uebergeordnete_stelle": 312,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 317,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Softwareentwicklung 4",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_se4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 12,
+      "uebergeordnete_stelle": 312,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 318,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Softwareentwicklung 5",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_se5",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 12,
+      "uebergeordnete_stelle": 312,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 319,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Softwareentwicklung 6",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_se6",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 12,
+      "uebergeordnete_stelle": 312,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 320,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Softwareentwicklung 7",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_se7",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 12,
+      "uebergeordnete_stelle": 312,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 321,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Softwareentwicklung 8",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_se8",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 12,
+      "uebergeordnete_stelle": 312,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 322,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Softwareentwicklung 9",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_se9",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 12,
+      "uebergeordnete_stelle": 312,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 323,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Softwareentwicklung 10",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_se10",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 12,
+      "uebergeordnete_stelle": 312,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 324,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Produktentwicklung",
+      "delegiert_an": 325,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_pr",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 13,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 325,
+    "fields": {
+      "bezeichnung": "Stellvertreter Produktentwicklung",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_pr",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 13,
+      "uebergeordnete_stelle": 324,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 326,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Produktentwicklung 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pr1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 13,
+      "uebergeordnete_stelle": 324,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 327,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Produktentwicklung 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pr2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 13,
+      "uebergeordnete_stelle": 324,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 328,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Produktentwicklung 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pr3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 13,
+      "uebergeordnete_stelle": 324,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 329,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Produktentwicklung 4",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pr4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 13,
+      "uebergeordnete_stelle": 324,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 330,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Produktentwicklung 5",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pr5",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 13,
+      "uebergeordnete_stelle": 324,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 331,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Produktentwicklung 6",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pr6",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 13,
+      "uebergeordnete_stelle": 324,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 332,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Produktentwicklung 7",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pr7",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 13,
+      "uebergeordnete_stelle": 324,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 333,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Daten & Analyse",
+      "delegiert_an": 334,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_da",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 14,
+      "uebergeordnete_stelle": 311,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 334,
+    "fields": {
+      "bezeichnung": "Stellvertreter Daten & Analyse",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_da",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 14,
+      "uebergeordnete_stelle": 333,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 335,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Daten & Analyse 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_da1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 14,
+      "uebergeordnete_stelle": 333,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 336,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Daten & Analyse 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_da2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 14,
+      "uebergeordnete_stelle": 333,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 337,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Daten & Analyse 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_da3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 14,
+      "uebergeordnete_stelle": 333,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 338,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Daten & Analyse 4",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_da4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 14,
+      "uebergeordnete_stelle": 333,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 339,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Daten & Analyse 5",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_da5",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 14,
+      "uebergeordnete_stelle": 333,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 340,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter IT-Infrastruktur",
+      "delegiert_an": 341,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_ii",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 15,
+      "uebergeordnete_stelle": 311,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 341,
+    "fields": {
+      "bezeichnung": "Stellvertreter IT-Infrastruktur",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_ii",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 15,
+      "uebergeordnete_stelle": 340,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 342,
+    "fields": {
+      "bezeichnung": "Mitarbeiter IT-Infrastruktur 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ii1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 15,
+      "uebergeordnete_stelle": 340,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 343,
+    "fields": {
+      "bezeichnung": "Mitarbeiter IT-Infrastruktur 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ii2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 15,
+      "uebergeordnete_stelle": 340,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 344,
+    "fields": {
+      "bezeichnung": "Mitarbeiter IT-Infrastruktur 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ii3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 15,
+      "uebergeordnete_stelle": 340,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 345,
+    "fields": {
+      "bezeichnung": "Mitarbeiter IT-Infrastruktur 4",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ii4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 15,
+      "uebergeordnete_stelle": 340,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 346,
+    "fields": {
+      "bezeichnung": "Mitarbeiter IT-Infrastruktur 5",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ii5",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 15,
+      "uebergeordnete_stelle": 340,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 347,
+    "fields": {
+      "bezeichnung": "Mitarbeiter IT-Infrastruktur 6",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ii6",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 15,
+      "uebergeordnete_stelle": 340,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 348,
+    "fields": {
+      "bezeichnung": "Mitarbeiter IT-Infrastruktur 7",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ii7",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 15,
+      "uebergeordnete_stelle": 340,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 349,
+    "fields": {
+      "bezeichnung": "Bereichsleiter Betrieb & Verwaltung",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "bl_bv1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 30,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 350,
+    "fields": {
+      "bezeichnung": "Bereichsleiter Finanzen & Controlling",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "bl_bv2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 30,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 351,
+    "fields": {
+      "bezeichnung": "Bereichsleiter Personal & Organisation",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "bl_bv3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 30,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 352,
+    "fields": {
+      "bezeichnung": "Bereichsleiter Vertrieb & Marketing",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "bl_bv4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 28,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 353,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Facility Management",
+      "delegiert_an": 354,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_fm",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 5,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 354,
+    "fields": {
+      "bezeichnung": "Stellvertreter Facility Management",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_fm",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 5,
+      "uebergeordnete_stelle": 353,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 355,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Facility Management 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_fm1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 5,
+      "uebergeordnete_stelle": 353,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 356,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Facility Management 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_fm2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 5,
+      "uebergeordnete_stelle": 353,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 357,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Facility Management 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_fm3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 5,
+      "uebergeordnete_stelle": 353,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 358,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Facility Management 4",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_fm4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 5,
+      "uebergeordnete_stelle": 353,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 359,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Einkauf & Logistik",
+      "delegiert_an": 360,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_el",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 16,
+      "uebergeordnete_stelle": 349,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 360,
+    "fields": {
+      "bezeichnung": "Stellvertreter Einkauf & Logistik",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_el",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 16,
+      "uebergeordnete_stelle": 359,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 361,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Einkauf & Logistik 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_el1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 16,
+      "uebergeordnete_stelle": 359,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 362,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Einkauf & Logistik 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_el2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 16,
+      "uebergeordnete_stelle": 359,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 363,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Einkauf & Logistik 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_el3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 16,
+      "uebergeordnete_stelle": 359,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 364,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Einkauf & Logistik 4",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_el4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 16,
+      "uebergeordnete_stelle": 359,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 365,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Einkauf & Logistik 5",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_el5",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 16,
+      "uebergeordnete_stelle": 359,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 366,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Einkauf & Logistik 6",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_el6",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 16,
+      "uebergeordnete_stelle": 359,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 367,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Qualitaetssicherung",
+      "delegiert_an": 368,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_qs",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 17,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 368,
+    "fields": {
+      "bezeichnung": "Stellvertreter Qualitaetssicherung",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_qs",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 17,
+      "uebergeordnete_stelle": 367,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 369,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Qualitaetssicherung 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_qs1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 17,
+      "uebergeordnete_stelle": 367,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 370,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Qualitaetssicherung 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_qs2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 17,
+      "uebergeordnete_stelle": 367,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 371,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Qualitaetssicherung 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_qs3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 17,
+      "uebergeordnete_stelle": 367,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 372,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Qualitaetssicherung 4",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_qs4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 17,
+      "uebergeordnete_stelle": 367,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 373,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Controlling",
+      "delegiert_an": 374,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_co",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 18,
+      "uebergeordnete_stelle": 350,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 374,
+    "fields": {
+      "bezeichnung": "Stellvertreter Controlling",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_co",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 18,
+      "uebergeordnete_stelle": 373,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 375,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Controlling 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_co1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 18,
+      "uebergeordnete_stelle": 373,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 376,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Controlling 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_co2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 18,
+      "uebergeordnete_stelle": 373,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 377,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Controlling 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_co3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 18,
+      "uebergeordnete_stelle": 373,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 378,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Buchhaltung",
+      "delegiert_an": 379,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_bh",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 19,
+      "uebergeordnete_stelle": 350,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 379,
+    "fields": {
+      "bezeichnung": "Stellvertreter Buchhaltung",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_bh",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 19,
+      "uebergeordnete_stelle": 378,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 380,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Buchhaltung 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_bh1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 19,
+      "uebergeordnete_stelle": 378,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 381,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Buchhaltung 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_bh2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 19,
+      "uebergeordnete_stelle": 378,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 382,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Buchhaltung 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_bh3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 19,
+      "uebergeordnete_stelle": 378,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 383,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Lohn & Gehalt",
+      "delegiert_an": 384,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_lg",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 20,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 384,
+    "fields": {
+      "bezeichnung": "Stellvertreter Lohn & Gehalt",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_lg",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 20,
+      "uebergeordnete_stelle": 383,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 385,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Lohn & Gehalt 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_lg1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 20,
+      "uebergeordnete_stelle": 383,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 386,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Lohn & Gehalt 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_lg2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 20,
+      "uebergeordnete_stelle": 383,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 387,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Lohn & Gehalt 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_lg3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 20,
+      "uebergeordnete_stelle": 383,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 388,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Personalentwicklung",
+      "delegiert_an": 389,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_pe",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 21,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 389,
+    "fields": {
+      "bezeichnung": "Stellvertreter Personalentwicklung",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_pe",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 21,
+      "uebergeordnete_stelle": 388,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 390,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Personalentwicklung 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pe1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 21,
+      "uebergeordnete_stelle": 388,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 391,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Personalentwicklung 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pe2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 21,
+      "uebergeordnete_stelle": 388,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 392,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Personalentwicklung 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pe3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 21,
+      "uebergeordnete_stelle": 388,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 393,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Personalgewinnung",
+      "delegiert_an": 394,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_pg",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 22,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 394,
+    "fields": {
+      "bezeichnung": "Stellvertreter Personalgewinnung",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_pg",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 22,
+      "uebergeordnete_stelle": 393,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 395,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Personalgewinnung 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pg1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 22,
+      "uebergeordnete_stelle": 393,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 396,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Personalgewinnung 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pg2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 22,
+      "uebergeordnete_stelle": 393,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 397,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Personalverwaltung",
+      "delegiert_an": 398,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_pv",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 23,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 398,
+    "fields": {
+      "bezeichnung": "Stellvertreter Personalverwaltung",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_pv",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 23,
+      "uebergeordnete_stelle": 397,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 399,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Personalverwaltung 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pv1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 23,
+      "uebergeordnete_stelle": 397,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 400,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Personalverwaltung 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pv2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 23,
+      "uebergeordnete_stelle": 397,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 401,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Personalverwaltung 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_pv3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 23,
+      "uebergeordnete_stelle": 397,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 402,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Marketing",
+      "delegiert_an": 403,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_mk",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 24,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 403,
+    "fields": {
+      "bezeichnung": "Stellvertreter Marketing",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_mk",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 24,
+      "uebergeordnete_stelle": 402,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 404,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Marketing 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_mk1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 24,
+      "uebergeordnete_stelle": 402,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 405,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Marketing 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_mk2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 24,
+      "uebergeordnete_stelle": 402,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 406,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Marketing 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_mk3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 24,
+      "uebergeordnete_stelle": 402,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 407,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Marketing 4",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_mk4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 24,
+      "uebergeordnete_stelle": 402,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 408,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Innendienst",
+      "delegiert_an": 409,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_id",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 25,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 409,
+    "fields": {
+      "bezeichnung": "Stellvertreter Innendienst",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_id",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 25,
+      "uebergeordnete_stelle": 408,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 410,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Innendienst 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_id1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 25,
+      "uebergeordnete_stelle": 408,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 411,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Innendienst 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_id2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 25,
+      "uebergeordnete_stelle": 408,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 412,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Innendienst 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_id3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 25,
+      "uebergeordnete_stelle": 408,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 413,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Innendienst 4",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_id4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 25,
+      "uebergeordnete_stelle": 408,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 414,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Innendienst 5",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_id5",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 25,
+      "uebergeordnete_stelle": 408,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 415,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Innendienst 6",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_id6",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 25,
+      "uebergeordnete_stelle": 408,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 416,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Aussendienst",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_ad",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 26,
+      "uebergeordnete_stelle": 352,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 417,
+    "fields": {
+      "bezeichnung": "Stellvertreter Aussendienst",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_ad",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 26,
+      "uebergeordnete_stelle": 416,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 418,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Aussendienst 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ad1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 26,
+      "uebergeordnete_stelle": 416,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 419,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Aussendienst 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ad2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 26,
+      "uebergeordnete_stelle": 416,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 420,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Aussendienst 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ad3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 26,
+      "uebergeordnete_stelle": 416,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 421,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Aussendienst 4",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ad4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 26,
+      "uebergeordnete_stelle": 416,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 422,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Aussendienst 5",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ad5",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 26,
+      "uebergeordnete_stelle": 416,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 423,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Aussendienst 6",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ad6",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 26,
+      "uebergeordnete_stelle": 416,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 424,
+    "fields": {
+      "bezeichnung": "Teamleiter Zeit & Abrechnung",
+      "delegiert_an": 425,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "tl_za",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 27,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 425,
+    "fields": {
+      "bezeichnung": "Stellvertreter Zeit & Abrechnung",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv_za",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 27,
+      "uebergeordnete_stelle": 424,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 426,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Zeit & Abrechnung 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_za1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 27,
+      "uebergeordnete_stelle": 424,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 427,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Zeit & Abrechnung 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_za2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 27,
+      "uebergeordnete_stelle": 424,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 428,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Zeit & Abrechnung 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_za3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 27,
+      "uebergeordnete_stelle": 424,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 429,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Zeit & Abrechnung 4",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_za4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 27,
+      "uebergeordnete_stelle": 424,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 430,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Zeit & Abrechnung 5",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_za5",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 27,
+      "uebergeordnete_stelle": 424,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 431,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Zeit & Abrechnung 6",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_za6",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 27,
+      "uebergeordnete_stelle": 424,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 432,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Zeit & Abrechnung 7",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_za7",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 27,
+      "uebergeordnete_stelle": 424,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 433,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Zeit & Abrechnung 8",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_za8",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 27,
+      "uebergeordnete_stelle": 424,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 434,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Zeit & Abrechnung 9",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_za9",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 27,
+      "uebergeordnete_stelle": 424,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 435,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Zeit & Abrechnung 10",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_za10",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 27,
+      "uebergeordnete_stelle": 424,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 436,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Felix Bauer",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "hr_ma_008",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 437,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Markus Becker",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "hr_ma_004",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 438,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Stefan Becker",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ap_1056",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 439,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Nicole Fuchs",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ap_1020",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 440,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Tim Hoffmann",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "hr_ma_006",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 441,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Leon Klein",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "hr_ma_010",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 442,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Laura Koch",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "hr_ma_007",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 443,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Anna Mitarbeiter",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma001",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 444,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Lisa Mueller",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "hr_ma_001",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 445,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Max Mustermann",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "hr_tl_001",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 446,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Nina Richter",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "hr_ma_009",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 447,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Anna Schmidt",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "hr_stv_001",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 448,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Sarah Schulz",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "hr_ma_005",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 449,
+    "fields": {
+      "bezeichnung": "Assistent/in (Stellvertretung) â€“ Lisa Stellvertreter",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "sv001",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 450,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Julia Wagner",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "hr_ma_003",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 451,
+    "fields": {
+      "bezeichnung": "Mitarbeiter/in â€“ Tom Weber",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "hr_ma_002",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 3,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 452,
+    "fields": {
+      "bezeichnung": "Geschaeftsfuehrer/in",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "gf1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 1,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 453,
+    "fields": {
+      "bezeichnung": "Bereichsleiter/in Finanzen & Controlling",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "bl_finanzen",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 30,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 454,
+    "fields": {
+      "bezeichnung": "Bereichsleiter/in Personal",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "bl_personal",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 30,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 455,
+    "fields": {
+      "bezeichnung": "Bereichsleiter/in IT & Digitalisierung",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "bl_it_digital",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 30,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 456,
+    "fields": {
+      "bezeichnung": "Bereichsleiter/in Administration",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "bl_admin",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 28,
+      "uebergeordnete_stelle": 310,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 457,
+    "fields": {
+      "bezeichnung": "Bereichsleiter/in Produktion & Technik",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "bl_produktion",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 31,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 458,
+    "fields": {
+      "bezeichnung": "Bereichsleiter/in Vertrieb & Marketing",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "bl_vertrieb",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 28,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 459,
+    "fields": {
+      "bezeichnung": "Mitarbeiter Kasse 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_ka1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 32,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 460,
+    "fields": {
+      "bezeichnung": "Teamleiter Kasse",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "tl_ka",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 32,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 461,
+    "fields": {
+      "bezeichnung": "Bereichleiter",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "bl_vw",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 30,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 462,
+    "fields": {
+      "bezeichnung": "Reisemanagement",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "sachbearbeitung",
+      "kuerzel": "ma_el7",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 16,
+      "uebergeordnete_stelle": 359,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 463,
+    "fields": {
+      "bezeichnung": "Abteilungsleiter Security",
+      "delegiert_an": 464,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "leitung",
+      "kuerzel": "al_sec",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 33,
+      "uebergeordnete_stelle": null,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 464,
+    "fields": {
+      "bezeichnung": "Stellvertreter Security",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "stab",
+      "kuerzel": "sv_sec",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 33,
+      "uebergeordnete_stelle": 463,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 465,
+    "fields": {
+      "bezeichnung": "Sicherheitsmitarbeiter/in 1",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_sec1",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 33,
+      "uebergeordnete_stelle": 463,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 466,
+    "fields": {
+      "bezeichnung": "Sicherheitsmitarbeiter/in 2",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_sec2",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 33,
+      "uebergeordnete_stelle": 463,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 467,
+    "fields": {
+      "bezeichnung": "Sicherheitsmitarbeiter/in 3",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_sec3",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 33,
+      "uebergeordnete_stelle": 463,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 468,
+    "fields": {
+      "bezeichnung": "Sicherheitsmitarbeiter/in 4",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "ma_sec4",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 33,
+      "uebergeordnete_stelle": 463,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
+  },
+  {
+    "model": "hr.stelle",
+    "pk": 469,
+    "fields": {
+      "bezeichnung": "Pfoertner/in Security",
+      "delegiert_an": null,
+      "eskalation_nach_tagen": 3,
+      "kategorie": "fachkraft",
+      "kuerzel": "pf_sec",
+      "max_urlaubstage_genehmigung": 0,
+      "org_einheit": 33,
+      "uebergeordnete_stelle": 463,
+      "vertreten_durch": null,
+      "vertretung_bis": null,
+      "vertretung_von": null
+    }
   }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 3,
-  "fields": {
-    "bezeichnung": "Human Resources",
-    "ist_reserviert": true,
-    "kuerzel": "HR",
-    "leitende_stelle": 454,
-    "uebergeordnet": 30
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 4,
-  "fields": {
-    "bezeichnung": "Informationstechnik",
-    "ist_reserviert": true,
-    "kuerzel": "IT",
-    "leitende_stelle": 455,
-    "uebergeordnet": 30
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 5,
-  "fields": {
-    "bezeichnung": "Facility Management",
-    "ist_reserviert": true,
-    "kuerzel": "FM",
-    "leitende_stelle": 456,
-    "uebergeordnet": 30
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 12,
-  "fields": {
-    "bezeichnung": "Softwareentwicklung",
-    "ist_reserviert": false,
-    "kuerzel": "SE",
-    "leitende_stelle": 457,
-    "uebergeordnet": 31
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 13,
-  "fields": {
-    "bezeichnung": "Produktentwicklung",
-    "ist_reserviert": false,
-    "kuerzel": "PR",
-    "leitende_stelle": 457,
-    "uebergeordnet": 31
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 14,
-  "fields": {
-    "bezeichnung": "Daten & Analyse",
-    "ist_reserviert": false,
-    "kuerzel": "DA",
-    "leitende_stelle": 455,
-    "uebergeordnet": 30
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 15,
-  "fields": {
-    "bezeichnung": "IT-Infrastruktur",
-    "ist_reserviert": false,
-    "kuerzel": "II",
-    "leitende_stelle": 455,
-    "uebergeordnet": 4
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 16,
-  "fields": {
-    "bezeichnung": "Einkauf & Logistik",
-    "ist_reserviert": false,
-    "kuerzel": "EL",
-    "leitende_stelle": 456,
-    "uebergeordnet": 30
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 17,
-  "fields": {
-    "bezeichnung": "Qualitaetssicherung",
-    "ist_reserviert": false,
-    "kuerzel": "QS",
-    "leitende_stelle": 457,
-    "uebergeordnet": 31
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 18,
-  "fields": {
-    "bezeichnung": "Controlling",
-    "ist_reserviert": false,
-    "kuerzel": "CO",
-    "leitende_stelle": 453,
-    "uebergeordnet": 30
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 19,
-  "fields": {
-    "bezeichnung": "Buchhaltung",
-    "ist_reserviert": false,
-    "kuerzel": "BH",
-    "leitende_stelle": 453,
-    "uebergeordnet": 30
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 20,
-  "fields": {
-    "bezeichnung": "Lohn & Gehalt",
-    "ist_reserviert": false,
-    "kuerzel": "LG",
-    "leitende_stelle": 453,
-    "uebergeordnet": 3
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 21,
-  "fields": {
-    "bezeichnung": "Personalentwicklung",
-    "ist_reserviert": false,
-    "kuerzel": "PE",
-    "leitende_stelle": 454,
-    "uebergeordnet": 3
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 22,
-  "fields": {
-    "bezeichnung": "Personalgewinnung",
-    "ist_reserviert": false,
-    "kuerzel": "PG",
-    "leitende_stelle": 454,
-    "uebergeordnet": 3
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 23,
-  "fields": {
-    "bezeichnung": "Personalverwaltung",
-    "ist_reserviert": false,
-    "kuerzel": "PV",
-    "leitende_stelle": 454,
-    "uebergeordnet": 3
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 24,
-  "fields": {
-    "bezeichnung": "Marketing",
-    "ist_reserviert": false,
-    "kuerzel": "MK",
-    "leitende_stelle": null,
-    "uebergeordnet": 28
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 25,
-  "fields": {
-    "bezeichnung": "Innendienst",
-    "ist_reserviert": false,
-    "kuerzel": "ID",
-    "leitende_stelle": null,
-    "uebergeordnet": 28
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 26,
-  "fields": {
-    "bezeichnung": "Aussendienst",
-    "ist_reserviert": false,
-    "kuerzel": "AD",
-    "leitende_stelle": null,
-    "uebergeordnet": 28
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 27,
-  "fields": {
-    "bezeichnung": "Zeit & Abrechnung",
-    "ist_reserviert": false,
-    "kuerzel": "ZA",
-    "leitende_stelle": 456,
-    "uebergeordnet": 30
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 28,
-  "fields": {
-    "bezeichnung": "Vertrieb & Marketing",
-    "ist_reserviert": false,
-    "kuerzel": "VM",
-    "leitende_stelle": 458,
-    "uebergeordnet": 1
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 29,
-  "fields": {
-    "bezeichnung": "Technik",
-    "ist_reserviert": false,
-    "kuerzel": "TE",
-    "leitende_stelle": 457,
-    "uebergeordnet": 31
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 30,
-  "fields": {
-    "bezeichnung": "Verwaltung",
-    "ist_reserviert": false,
-    "kuerzel": "VW",
-    "leitende_stelle": null,
-    "uebergeordnet": 1
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 31,
-  "fields": {
-    "bezeichnung": "Produktion & Technik",
-    "ist_reserviert": false,
-    "kuerzel": "PT",
-    "leitende_stelle": null,
-    "uebergeordnet": 1
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 32,
-  "fields": {
-    "bezeichnung": "Kasse",
-    "ist_reserviert": false,
-    "kuerzel": "KA",
-    "leitende_stelle": null,
-    "uebergeordnet": 19
-  }
-},
-{
-  "model": "hr.orgeinheit",
-  "pk": 33,
-  "fields": {
-    "bezeichnung": "Security",
-    "ist_reserviert": true,
-    "kuerzel": "SEC",
-    "leitende_stelle": 463,
-    "uebergeordnet": 30
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 309,
-  "fields": {
-    "bezeichnung": "Geschaeftsfuehrung Technik",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "gf_tech",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 1,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 310,
-  "fields": {
-    "bezeichnung": "Geschaeftsfuehrung Verwaltung",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "gf_verw",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 1,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 311,
-  "fields": {
-    "bezeichnung": "Bereichsleiter IT & Entwicklung",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "bl_it",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 4,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 312,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Softwareentwicklung",
-    "delegiert_an": 313,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_se",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 12,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 313,
-  "fields": {
-    "bezeichnung": "Stellvertreter Softwareentwicklung",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_se",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 12,
-    "uebergeordnete_stelle": 312,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 314,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Softwareentwicklung 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_se1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 12,
-    "uebergeordnete_stelle": 312,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 315,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Softwareentwicklung 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_se2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 12,
-    "uebergeordnete_stelle": 312,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 316,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Softwareentwicklung 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_se3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 12,
-    "uebergeordnete_stelle": 312,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 317,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Softwareentwicklung 4",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_se4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 12,
-    "uebergeordnete_stelle": 312,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 318,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Softwareentwicklung 5",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_se5",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 12,
-    "uebergeordnete_stelle": 312,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 319,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Softwareentwicklung 6",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_se6",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 12,
-    "uebergeordnete_stelle": 312,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 320,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Softwareentwicklung 7",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_se7",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 12,
-    "uebergeordnete_stelle": 312,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 321,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Softwareentwicklung 8",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_se8",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 12,
-    "uebergeordnete_stelle": 312,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 322,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Softwareentwicklung 9",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_se9",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 12,
-    "uebergeordnete_stelle": 312,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 323,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Softwareentwicklung 10",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_se10",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 12,
-    "uebergeordnete_stelle": 312,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 324,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Produktentwicklung",
-    "delegiert_an": 325,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_pr",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 13,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 325,
-  "fields": {
-    "bezeichnung": "Stellvertreter Produktentwicklung",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_pr",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 13,
-    "uebergeordnete_stelle": 324,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 326,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Produktentwicklung 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pr1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 13,
-    "uebergeordnete_stelle": 324,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 327,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Produktentwicklung 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pr2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 13,
-    "uebergeordnete_stelle": 324,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 328,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Produktentwicklung 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pr3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 13,
-    "uebergeordnete_stelle": 324,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 329,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Produktentwicklung 4",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pr4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 13,
-    "uebergeordnete_stelle": 324,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 330,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Produktentwicklung 5",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pr5",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 13,
-    "uebergeordnete_stelle": 324,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 331,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Produktentwicklung 6",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pr6",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 13,
-    "uebergeordnete_stelle": 324,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 332,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Produktentwicklung 7",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pr7",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 13,
-    "uebergeordnete_stelle": 324,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 333,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Daten & Analyse",
-    "delegiert_an": 334,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_da",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 14,
-    "uebergeordnete_stelle": 311,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 334,
-  "fields": {
-    "bezeichnung": "Stellvertreter Daten & Analyse",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_da",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 14,
-    "uebergeordnete_stelle": 333,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 335,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Daten & Analyse 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_da1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 14,
-    "uebergeordnete_stelle": 333,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 336,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Daten & Analyse 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_da2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 14,
-    "uebergeordnete_stelle": 333,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 337,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Daten & Analyse 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_da3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 14,
-    "uebergeordnete_stelle": 333,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 338,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Daten & Analyse 4",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_da4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 14,
-    "uebergeordnete_stelle": 333,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 339,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Daten & Analyse 5",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_da5",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 14,
-    "uebergeordnete_stelle": 333,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 340,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter IT-Infrastruktur",
-    "delegiert_an": 341,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_ii",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 15,
-    "uebergeordnete_stelle": 311,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 341,
-  "fields": {
-    "bezeichnung": "Stellvertreter IT-Infrastruktur",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_ii",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 15,
-    "uebergeordnete_stelle": 340,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 342,
-  "fields": {
-    "bezeichnung": "Mitarbeiter IT-Infrastruktur 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ii1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 15,
-    "uebergeordnete_stelle": 340,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 343,
-  "fields": {
-    "bezeichnung": "Mitarbeiter IT-Infrastruktur 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ii2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 15,
-    "uebergeordnete_stelle": 340,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 344,
-  "fields": {
-    "bezeichnung": "Mitarbeiter IT-Infrastruktur 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ii3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 15,
-    "uebergeordnete_stelle": 340,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 345,
-  "fields": {
-    "bezeichnung": "Mitarbeiter IT-Infrastruktur 4",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ii4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 15,
-    "uebergeordnete_stelle": 340,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 346,
-  "fields": {
-    "bezeichnung": "Mitarbeiter IT-Infrastruktur 5",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ii5",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 15,
-    "uebergeordnete_stelle": 340,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 347,
-  "fields": {
-    "bezeichnung": "Mitarbeiter IT-Infrastruktur 6",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ii6",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 15,
-    "uebergeordnete_stelle": 340,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 348,
-  "fields": {
-    "bezeichnung": "Mitarbeiter IT-Infrastruktur 7",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ii7",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 15,
-    "uebergeordnete_stelle": 340,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 349,
-  "fields": {
-    "bezeichnung": "Bereichsleiter Betrieb & Verwaltung",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "bl_bv1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 30,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 350,
-  "fields": {
-    "bezeichnung": "Bereichsleiter Finanzen & Controlling",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "bl_bv2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 30,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 351,
-  "fields": {
-    "bezeichnung": "Bereichsleiter Personal & Organisation",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "bl_bv3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 30,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 352,
-  "fields": {
-    "bezeichnung": "Bereichsleiter Vertrieb & Marketing",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "bl_bv4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 28,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 353,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Facility Management",
-    "delegiert_an": 354,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_fm",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 5,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 354,
-  "fields": {
-    "bezeichnung": "Stellvertreter Facility Management",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_fm",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 5,
-    "uebergeordnete_stelle": 353,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 355,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Facility Management 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_fm1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 5,
-    "uebergeordnete_stelle": 353,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 356,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Facility Management 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_fm2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 5,
-    "uebergeordnete_stelle": 353,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 357,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Facility Management 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_fm3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 5,
-    "uebergeordnete_stelle": 353,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 358,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Facility Management 4",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_fm4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 5,
-    "uebergeordnete_stelle": 353,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 359,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Einkauf & Logistik",
-    "delegiert_an": 360,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_el",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 16,
-    "uebergeordnete_stelle": 349,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 360,
-  "fields": {
-    "bezeichnung": "Stellvertreter Einkauf & Logistik",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_el",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 16,
-    "uebergeordnete_stelle": 359,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 361,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Einkauf & Logistik 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_el1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 16,
-    "uebergeordnete_stelle": 359,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 362,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Einkauf & Logistik 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_el2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 16,
-    "uebergeordnete_stelle": 359,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 363,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Einkauf & Logistik 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_el3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 16,
-    "uebergeordnete_stelle": 359,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 364,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Einkauf & Logistik 4",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_el4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 16,
-    "uebergeordnete_stelle": 359,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 365,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Einkauf & Logistik 5",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_el5",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 16,
-    "uebergeordnete_stelle": 359,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 366,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Einkauf & Logistik 6",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_el6",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 16,
-    "uebergeordnete_stelle": 359,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 367,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Qualitaetssicherung",
-    "delegiert_an": 368,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_qs",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 17,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 368,
-  "fields": {
-    "bezeichnung": "Stellvertreter Qualitaetssicherung",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_qs",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 17,
-    "uebergeordnete_stelle": 367,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 369,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Qualitaetssicherung 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_qs1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 17,
-    "uebergeordnete_stelle": 367,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 370,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Qualitaetssicherung 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_qs2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 17,
-    "uebergeordnete_stelle": 367,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 371,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Qualitaetssicherung 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_qs3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 17,
-    "uebergeordnete_stelle": 367,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 372,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Qualitaetssicherung 4",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_qs4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 17,
-    "uebergeordnete_stelle": 367,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 373,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Controlling",
-    "delegiert_an": 374,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_co",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 18,
-    "uebergeordnete_stelle": 350,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 374,
-  "fields": {
-    "bezeichnung": "Stellvertreter Controlling",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_co",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 18,
-    "uebergeordnete_stelle": 373,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 375,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Controlling 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_co1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 18,
-    "uebergeordnete_stelle": 373,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 376,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Controlling 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_co2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 18,
-    "uebergeordnete_stelle": 373,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 377,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Controlling 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_co3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 18,
-    "uebergeordnete_stelle": 373,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 378,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Buchhaltung",
-    "delegiert_an": 379,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_bh",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 19,
-    "uebergeordnete_stelle": 350,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 379,
-  "fields": {
-    "bezeichnung": "Stellvertreter Buchhaltung",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_bh",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 19,
-    "uebergeordnete_stelle": 378,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 380,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Buchhaltung 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_bh1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 19,
-    "uebergeordnete_stelle": 378,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 381,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Buchhaltung 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_bh2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 19,
-    "uebergeordnete_stelle": 378,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 382,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Buchhaltung 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_bh3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 19,
-    "uebergeordnete_stelle": 378,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 383,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Lohn & Gehalt",
-    "delegiert_an": 384,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_lg",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 20,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 384,
-  "fields": {
-    "bezeichnung": "Stellvertreter Lohn & Gehalt",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_lg",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 20,
-    "uebergeordnete_stelle": 383,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 385,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Lohn & Gehalt 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_lg1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 20,
-    "uebergeordnete_stelle": 383,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 386,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Lohn & Gehalt 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_lg2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 20,
-    "uebergeordnete_stelle": 383,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 387,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Lohn & Gehalt 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_lg3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 20,
-    "uebergeordnete_stelle": 383,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 388,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Personalentwicklung",
-    "delegiert_an": 389,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_pe",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 21,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 389,
-  "fields": {
-    "bezeichnung": "Stellvertreter Personalentwicklung",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_pe",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 21,
-    "uebergeordnete_stelle": 388,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 390,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Personalentwicklung 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pe1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 21,
-    "uebergeordnete_stelle": 388,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 391,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Personalentwicklung 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pe2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 21,
-    "uebergeordnete_stelle": 388,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 392,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Personalentwicklung 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pe3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 21,
-    "uebergeordnete_stelle": 388,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 393,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Personalgewinnung",
-    "delegiert_an": 394,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_pg",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 22,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 394,
-  "fields": {
-    "bezeichnung": "Stellvertreter Personalgewinnung",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_pg",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 22,
-    "uebergeordnete_stelle": 393,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 395,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Personalgewinnung 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pg1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 22,
-    "uebergeordnete_stelle": 393,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 396,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Personalgewinnung 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pg2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 22,
-    "uebergeordnete_stelle": 393,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 397,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Personalverwaltung",
-    "delegiert_an": 398,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_pv",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 23,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 398,
-  "fields": {
-    "bezeichnung": "Stellvertreter Personalverwaltung",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_pv",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 23,
-    "uebergeordnete_stelle": 397,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 399,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Personalverwaltung 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pv1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 23,
-    "uebergeordnete_stelle": 397,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 400,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Personalverwaltung 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pv2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 23,
-    "uebergeordnete_stelle": 397,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 401,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Personalverwaltung 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_pv3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 23,
-    "uebergeordnete_stelle": 397,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 402,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Marketing",
-    "delegiert_an": 403,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_mk",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 24,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 403,
-  "fields": {
-    "bezeichnung": "Stellvertreter Marketing",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_mk",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 24,
-    "uebergeordnete_stelle": 402,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 404,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Marketing 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_mk1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 24,
-    "uebergeordnete_stelle": 402,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 405,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Marketing 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_mk2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 24,
-    "uebergeordnete_stelle": 402,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 406,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Marketing 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_mk3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 24,
-    "uebergeordnete_stelle": 402,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 407,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Marketing 4",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_mk4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 24,
-    "uebergeordnete_stelle": 402,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 408,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Innendienst",
-    "delegiert_an": 409,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_id",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 25,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 409,
-  "fields": {
-    "bezeichnung": "Stellvertreter Innendienst",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_id",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 25,
-    "uebergeordnete_stelle": 408,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 410,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Innendienst 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_id1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 25,
-    "uebergeordnete_stelle": 408,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 411,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Innendienst 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_id2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 25,
-    "uebergeordnete_stelle": 408,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 412,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Innendienst 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_id3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 25,
-    "uebergeordnete_stelle": 408,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 413,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Innendienst 4",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_id4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 25,
-    "uebergeordnete_stelle": 408,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 414,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Innendienst 5",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_id5",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 25,
-    "uebergeordnete_stelle": 408,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 415,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Innendienst 6",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_id6",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 25,
-    "uebergeordnete_stelle": 408,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 416,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Aussendienst",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_ad",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 26,
-    "uebergeordnete_stelle": 352,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 417,
-  "fields": {
-    "bezeichnung": "Stellvertreter Aussendienst",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_ad",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 26,
-    "uebergeordnete_stelle": 416,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 418,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Aussendienst 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ad1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 26,
-    "uebergeordnete_stelle": 416,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 419,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Aussendienst 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ad2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 26,
-    "uebergeordnete_stelle": 416,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 420,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Aussendienst 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ad3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 26,
-    "uebergeordnete_stelle": 416,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 421,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Aussendienst 4",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ad4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 26,
-    "uebergeordnete_stelle": 416,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 422,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Aussendienst 5",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ad5",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 26,
-    "uebergeordnete_stelle": 416,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 423,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Aussendienst 6",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ad6",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 26,
-    "uebergeordnete_stelle": 416,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 424,
-  "fields": {
-    "bezeichnung": "Teamleiter Zeit & Abrechnung",
-    "delegiert_an": 425,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "tl_za",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 27,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 425,
-  "fields": {
-    "bezeichnung": "Stellvertreter Zeit & Abrechnung",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv_za",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 27,
-    "uebergeordnete_stelle": 424,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 426,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Zeit & Abrechnung 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_za1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 27,
-    "uebergeordnete_stelle": 424,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 427,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Zeit & Abrechnung 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_za2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 27,
-    "uebergeordnete_stelle": 424,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 428,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Zeit & Abrechnung 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_za3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 27,
-    "uebergeordnete_stelle": 424,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 429,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Zeit & Abrechnung 4",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_za4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 27,
-    "uebergeordnete_stelle": 424,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 430,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Zeit & Abrechnung 5",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_za5",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 27,
-    "uebergeordnete_stelle": 424,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 431,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Zeit & Abrechnung 6",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_za6",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 27,
-    "uebergeordnete_stelle": 424,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 432,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Zeit & Abrechnung 7",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_za7",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 27,
-    "uebergeordnete_stelle": 424,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 433,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Zeit & Abrechnung 8",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_za8",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 27,
-    "uebergeordnete_stelle": 424,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 434,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Zeit & Abrechnung 9",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_za9",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 27,
-    "uebergeordnete_stelle": 424,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 435,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Zeit & Abrechnung 10",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_za10",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 27,
-    "uebergeordnete_stelle": 424,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 436,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Felix Bauer",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "hr_ma_008",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 437,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Markus Becker",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "hr_ma_004",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 438,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Stefan Becker",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ap_1056",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 439,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Nicole Fuchs",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ap_1020",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 440,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Tim Hoffmann",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "hr_ma_006",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 441,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Leon Klein",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "hr_ma_010",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 442,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Laura Koch",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "hr_ma_007",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 443,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Anna Mitarbeiter",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma001",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 444,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Lisa Mueller",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "hr_ma_001",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 445,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Max Mustermann",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "hr_tl_001",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 446,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Nina Richter",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "hr_ma_009",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 447,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Anna Schmidt",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "hr_stv_001",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 448,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Sarah Schulz",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "hr_ma_005",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 449,
-  "fields": {
-    "bezeichnung": "Assistent/in (Stellvertretung) – Lisa Stellvertreter",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "sv001",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 450,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Julia Wagner",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "hr_ma_003",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 451,
-  "fields": {
-    "bezeichnung": "Mitarbeiter/in – Tom Weber",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "hr_ma_002",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 3,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 452,
-  "fields": {
-    "bezeichnung": "Geschaeftsfuehrer/in",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "gf1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 1,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 453,
-  "fields": {
-    "bezeichnung": "Bereichsleiter/in Finanzen & Controlling",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "bl_finanzen",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 30,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 454,
-  "fields": {
-    "bezeichnung": "Bereichsleiter/in Personal",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "bl_personal",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 30,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 455,
-  "fields": {
-    "bezeichnung": "Bereichsleiter/in IT & Digitalisierung",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "bl_it_digital",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 30,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 456,
-  "fields": {
-    "bezeichnung": "Bereichsleiter/in Administration",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "bl_admin",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 28,
-    "uebergeordnete_stelle": 310,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 457,
-  "fields": {
-    "bezeichnung": "Bereichsleiter/in Produktion & Technik",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "bl_produktion",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 31,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 458,
-  "fields": {
-    "bezeichnung": "Bereichsleiter/in Vertrieb & Marketing",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "bl_vertrieb",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 28,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 459,
-  "fields": {
-    "bezeichnung": "Mitarbeiter Kasse 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_ka1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 32,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 460,
-  "fields": {
-    "bezeichnung": "Teamleiter Kasse",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "tl_ka",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 32,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 461,
-  "fields": {
-    "bezeichnung": "Bereichleiter",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "bl_vw",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 30,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 462,
-  "fields": {
-    "bezeichnung": "Reisemanagement",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "sachbearbeitung",
-    "kuerzel": "ma_el7",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 16,
-    "uebergeordnete_stelle": 359,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 463,
-  "fields": {
-    "bezeichnung": "Abteilungsleiter Security",
-    "delegiert_an": 464,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "leitung",
-    "kuerzel": "al_sec",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 33,
-    "uebergeordnete_stelle": null,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 464,
-  "fields": {
-    "bezeichnung": "Stellvertreter Security",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "stab",
-    "kuerzel": "sv_sec",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 33,
-    "uebergeordnete_stelle": 463,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 465,
-  "fields": {
-    "bezeichnung": "Sicherheitsmitarbeiter/in 1",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_sec1",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 33,
-    "uebergeordnete_stelle": 463,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 466,
-  "fields": {
-    "bezeichnung": "Sicherheitsmitarbeiter/in 2",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_sec2",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 33,
-    "uebergeordnete_stelle": 463,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 467,
-  "fields": {
-    "bezeichnung": "Sicherheitsmitarbeiter/in 3",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_sec3",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 33,
-    "uebergeordnete_stelle": 463,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 468,
-  "fields": {
-    "bezeichnung": "Sicherheitsmitarbeiter/in 4",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "ma_sec4",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 33,
-    "uebergeordnete_stelle": 463,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-},
-{
-  "model": "hr.stelle",
-  "pk": 469,
-  "fields": {
-    "bezeichnung": "Pfoertner/in Security",
-    "delegiert_an": null,
-    "eskalation_nach_tagen": 3,
-    "kategorie": "fachkraft",
-    "kuerzel": "pf_sec",
-    "max_urlaubstage_genehmigung": 0,
-    "org_einheit": 33,
-    "uebergeordnete_stelle": 463,
-    "vertreten_durch": null,
-    "vertretung_bis": null,
-    "vertretung_von": null
-  }
-}
 ]

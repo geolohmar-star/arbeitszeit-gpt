@@ -10,7 +10,8 @@
       ],
       "beschreibung": "Bearbeitet genehmigte Antraege fuer Zeiterfassung, Z-AG und Z-AG-Stornierungen.",
       "kuerzel": "zeit",
-      "name": "Zeiterfassung-Team"
+      "name": "Zeiterfassung-Team",
+      "mitglieder": []
     }
   },
   {
@@ -20,7 +21,8 @@
       "antragstypen": [],
       "beschreibung": "Reiseantraege und Kosten",
       "kuerzel": "reise",
-      "name": "Reisemanagement"
+      "name": "Reisemanagement",
+      "mitglieder": []
     }
   },
   {
@@ -32,7 +34,8 @@
       ],
       "beschreibung": "Team Zeitgutschrift",
       "kuerzel": "gutschrift",
-      "name": "Zeitgutschriften-Team"
+      "name": "Zeitgutschriften-Team",
+      "mitglieder": []
     }
   },
   {
@@ -42,7 +45,8 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Sanitaer / Heizung-Stoermeldungen",
       "kuerzel": "FAC-SAN",
-      "name": "Facility � Sanitaer / Heizung"
+      "name": "Facility – Sanitaer / Heizung",
+      "mitglieder": []
     }
   },
   {
@@ -52,7 +56,8 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Schlosser-Stoermeldungen",
       "kuerzel": "FAC-SCH",
-      "name": "Facility � Schlosser"
+      "name": "Facility – Schlosser",
+      "mitglieder": []
     }
   },
   {
@@ -62,7 +67,8 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Schreiner-Stoermeldungen",
       "kuerzel": "FAC-SRE",
-      "name": "Facility � Schreiner"
+      "name": "Facility – Schreiner",
+      "mitglieder": []
     }
   },
   {
@@ -72,7 +78,8 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Maler-Stoermeldungen",
       "kuerzel": "FAC-MAL",
-      "name": "Facility � Maler"
+      "name": "Facility – Maler",
+      "mitglieder": []
     }
   },
   {
@@ -82,7 +89,8 @@
       "antragstypen": [],
       "beschreibung": "Facility-Team fuer Kategorie elektro",
       "kuerzel": "FAC-ELK",
-      "name": "Facility - Elektro"
+      "name": "Facility - Elektro",
+      "mitglieder": []
     }
   },
   {
@@ -94,7 +102,8 @@
       ],
       "beschreibung": "Bearbeitung von Arbeitszeitvereinbarungsantraegen (Ersteinrichtung, Verringerung, Erhoehung, Weiterbewilligung, Beendigung)",
       "kuerzel": "azv",
-      "name": "Arbeitszeitvereinbarungen"
+      "name": "Arbeitszeitvereinbarungen",
+      "mitglieder": []
     }
   },
   {
@@ -104,7 +113,8 @@
       "antragstypen": [],
       "beschreibung": "Security-Team: bearbeitet Token-Antraege und verwaltet Zutrittsbadges.",
       "kuerzel": "sec-token",
-      "name": "Security � Tokenverwaltung"
+      "name": "Security – Tokenverwaltung",
+      "mitglieder": []
     }
   },
   {
@@ -113,8 +123,9 @@
     "fields": {
       "antragstypen": [],
       "beschreibung": "Bearbeitungsstapel fuer interne Stellenbewerbungen (OrgEinheit PG)",
-      "kuerzel": "PG",
-      "name": "Personalgewinnung"
+      "kuerzel": "",
+      "name": "Personalgewinnung",
+      "mitglieder": []
     }
   }
 ]
