@@ -5,7 +5,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neue Arbeitszeitvereinbarung</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600&display=swap" rel="stylesheet">
 <style>
 
 /* Sections initial versteckt - wird durch JavaScript gesteuert */
@@ -13,14 +12,14 @@
 #regelmaessig-section {
     display: none;
 }
-body { font-family: 'DM Sans', sans-serif; background: #faf9f6; color: #1f2421; min-height: 100vh;}
+body { font-family: system-ui, -apple-system, sans-serif; background: #faf9f6; color: #1f2421; min-height: 100vh;}
 .header {background: linear-gradient(135deg,#1a4d2e 0%,#2d6a4f 100%);color:white;padding:1.5rem 2rem;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
 .header-content {max-width:1000px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;}
-.logo {font-family:'Fraunces',serif;font-size:1.5rem;font-weight:600;}
+.logo {font-family:Georgia,serif;font-size:1.5rem;font-weight:600;}
 .nav-link {color:white;text-decoration:none;font-weight:500;transition:opacity 0.2s;}
 .nav-link:hover {opacity:0.8;}
 .container {max-width:900px;margin:0 auto;padding:2rem;}
-.page-title {font-family:'Fraunces',serif;font-size:2.5rem;color:#1a4d2e;margin-bottom:0.5rem;}
+.page-title {font-family:Georgia,serif;font-size:2.5rem;color:#1a4d2e;margin-bottom:0.5rem;}
 .page-subtitle {color:#52796f;margin-bottom:2rem;font-size:1.1rem;}
 .form-card {background:white;border-radius:12px;padding:2rem;box-shadow:0 2px 12px rgba(0,0,0,0.08);margin-bottom:1.5rem;}
 .section-title {font-size:1.25rem;font-weight:600;color:#1a4d2e;margin-bottom:1.5rem;padding-bottom:0.75rem;border-bottom:2px solid #d6e4df;}
@@ -34,7 +33,7 @@ body { font-family: 'DM Sans', sans-serif; background: #faf9f6; color: #1f2421; 
 .radio-option input[type="radio"],.checkbox-option input[type="checkbox"] {margin-right:1rem;width:20px;height:20px;accent-color:#1a4d2e;cursor:pointer;}
 .option-content {flex:1;}
 .option-title {font-weight:600;margin-bottom:0.25rem;}
-.input-field {width:100%;padding:0.75rem;border:2px solid #d6e4df;border-radius:8px;font-size:1rem;font-family:'DM Sans',sans-serif;transition:border-color 0.2s;}
+.input-field {width:100%;padding:0.75rem;border:2px solid #d6e4df;border-radius:8px;font-size:1rem;font-family:inherit;transition:border-color 0.2s;}
 .input-field:focus {outline:none;border-color:#1a4d2e;}
 .form-actions {display:flex;gap:1rem;justify-content:flex-end;margin-top:2rem;padding-top:2rem;border-top:2px solid #d6e4df;}
 .btn {padding:0.875rem 2rem;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;}
