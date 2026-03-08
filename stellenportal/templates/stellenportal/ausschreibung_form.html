@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titel }} – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 800px;">
+
+  <a href="{% url 'stellenportal:hr_dashboard' %}" class="btn btn-sm btn-outline-secondary mb-3">
+    &larr; HR-Dashboard
+  </a>
+
+  <div class="card shadow-sm">
+    <div class="card-header fw-semibold">{{ titel }}</div>
+    <div class="card-body">
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-8">
+            <label class="form-label fw-semibold" for="{{ form.titel.id_for_label }}">{{ form.titel.label }}</label>
+            {{ form.titel }}
+            {% if form.titel.errors %}<div class="text-danger small">{{ form.titel.errors }}</div>{% endif %}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" for="{{ form.beschaeftigungsart.id_for_label }}">{{ form.beschaeftigungsart.label }}</label>
+            {{ form.beschaeftigungsart }}
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="{{ form.orgeinheit.id_for_label }}">{{ form.orgeinheit.label }}</label>
+            {{ form.orgeinheit }}
+            {% if form.orgeinheit.errors %}<div class="text-danger small">{{ form.orgeinheit.errors }}</div>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="{{ form.stelle.id_for_label }}">{{ form.stelle.label }}
+              <small class="text-muted fw-normal">(optional)</small>
+            </label>
+            {{ form.stelle }}
+            <div class="form-text">Nur unbesetzte Planstellen werden angezeigt.</div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="{{ form.bewerbungsfrist.id_for_label }}">{{ form.bewerbungsfrist.label }}</label>
+            {{ form.bewerbungsfrist }}
+            <div class="form-text">Leer lassen fuer offenes Ende.</div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold" for="{{ form.status.id_for_label }}">{{ form.status.label }}</label>
+            {{ form.status }}
+          </div>
+          <div class="col-md-3 d-flex align-items-center mt-4">
+            <div class="form-check">
+              {{ form.veroeffentlicht }}
+              <label class="form-check-label fw-semibold" for="{{ form.veroeffentlicht.id_for_label }}">
+                {{ form.veroeffentlicht.label }}
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <hr>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="{{ form.beschreibung.id_for_label }}">
+            {{ form.beschreibung.label }}
+          </label>
+          <div class="form-text mb-1">{{ form.beschreibung.help_text }}</div>
+          {{ form.beschreibung }}
+          {% if form.beschreibung.errors %}<div class="text-danger small">{{ form.beschreibung.errors }}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="{{ form.aufgaben.id_for_label }}">{{ form.aufgaben.label }}</label>
+          <div class="form-text mb-1">{{ form.aufgaben.help_text }}</div>
+          {{ form.aufgaben }}
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold" for="{{ form.anforderungen.id_for_label }}">{{ form.anforderungen.label }}</label>
+          <div class="form-text mb-1">{{ form.anforderungen.help_text }}</div>
+          {{ form.anforderungen }}
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Speichern</button>
+          <a href="{% url 'stellenportal:hr_dashboard' %}" class="btn btn-outline-secondary">Abbrechen</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Stellenportal – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-0">Interne Stellenausschreibungen</h2>
+      <p class="text-muted mb-0">Offene Positionen im Unternehmen – nur fuer Mitarbeiter sichtbar</p>
+    </div>
+    <div>
+      <a href="{% url 'stellenportal:meine_bewerbungen' %}" class="btn btn-outline-secondary me-2">
+        Meine Bewerbungen
+      </a>
+      {% if kann_verwalten %}
+        <a href="{% url 'stellenportal:hr_dashboard' %}" class="btn btn-outline-primary">
+          HR-Dashboard
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if ausschreibungen %}
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+      {% for a in ausschreibungen %}
+        <div class="col">
+          <div class="card h-100 shadow-sm {% if a.pk in eigene_bewerbungen %}border-success{% endif %}">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h5 class="card-title mb-1">{{ a.titel }}</h5>
+                  <span class="text-muted small">{{ a.orgeinheit.bezeichnung }}</span>
+                </div>
+                <span class="badge bg-secondary">{{ a.get_beschaeftigungsart_display }}</span>
+              </div>
+
+              <p class="card-text mt-3">
+                {{ a.beschreibung|truncatewords:40 }}
+              </p>
+
+              {% if a.bewerbungsfrist %}
+                <p class="small text-muted mb-1">
+                  Frist: <strong>{{ a.bewerbungsfrist|date:"d.m.Y" }}</strong>
+                </p>
+              {% endif %}
+            </div>
+            <div class="card-footer bg-transparent d-flex justify-content-between align-items-center">
+              {% if a.pk in eigene_bewerbungen %}
+                <span class="text-success small">
+                  Bereits beworben
+                </span>
+              {% else %}
+                <span class="text-muted small">{{ a.erstellt_am|date:"d.m.Y" }}</span>
+              {% endif %}
+              <a href="{% url 'stellenportal:detail' a.pk %}" class="btn btn-sm btn-primary">
+                Stellenanzeige ansehen
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+  {% else %}
+    <div class="text-center py-5">
+      <p class="text-muted fs-5">Aktuell sind keine Stellen ausgeschrieben.</p>
+      <p class="text-muted small">Schaue spaeter wieder vorbei oder sprich dein HR-Team an.</p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

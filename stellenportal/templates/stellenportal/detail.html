@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}{{ ausschreibung.titel }} – Stellenportal{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 860px;">
+
+  <a href="{% url 'stellenportal:liste' %}" class="btn btn-sm btn-outline-secondary mb-3">
+    &larr; Alle Stellen
+  </a>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Stellenkopf -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <h1 class="h3 mb-1">{{ ausschreibung.titel }}</h1>
+          <p class="text-muted mb-0">
+            {{ ausschreibung.orgeinheit.bezeichnung }}
+            &nbsp;&bull;&nbsp;
+            {{ ausschreibung.get_beschaeftigungsart_display }}
+            {% if ausschreibung.stelle %}
+              &nbsp;&bull;&nbsp; Planstelle: {{ ausschreibung.stelle.kuerzel }}
+            {% endif %}
+          </p>
+        </div>
+        {% if ausschreibung.bewerbungsfrist %}
+          <div class="text-end">
+            <span class="badge bg-warning text-dark fs-6">
+              Frist: {{ ausschreibung.bewerbungsfrist|date:"d.m.Y" }}
+            </span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Stellenbeschreibung -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">Ueber die Stelle</div>
+    <div class="card-body" style="white-space: pre-wrap;">{{ ausschreibung.beschreibung }}</div>
+  </div>
+
+  {% if ausschreibung.aufgaben %}
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">Aufgaben & Verantwortlichkeiten</div>
+      <div class="card-body" style="white-space: pre-wrap;">{{ ausschreibung.aufgaben }}</div>
+    </div>
+  {% endif %}
+
+  {% if ausschreibung.anforderungen %}
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">Anforderungen</div>
+      <div class="card-body" style="white-space: pre-wrap;">{{ ausschreibung.anforderungen }}</div>
+    </div>
+  {% endif %}
+
+  <!-- Bewerbungsbereich -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">Bewerben</div>
+    <div class="card-body">
+
+      {% if eigene_bewerbung %}
+        <div class="alert alert-success mb-0">
+          Du hast dich am {{ eigene_bewerbung.erstellt_am|date:"d.m.Y" }} auf diese Stelle beworben.
+          Status: <strong>{{ eigene_bewerbung.get_status_display }}</strong>
+          <a href="{% url 'stellenportal:meine_bewerbungen' %}" class="ms-2">Meine Bewerbungen ansehen</a>
+        </div>
+
+      {% elif ausschreibung.ist_offen and form %}
+        <p class="text-muted small mb-3">
+          Beschreibe kurz deine Motivation. Neue Qualifikationsnachweise (Zertifikate, Zeugnisse)
+          kannst du separat ueber den sicheren Dokumentenkanal an HR senden.
+        </p>
+        <form method="post" action="{% url 'stellenportal:bewerben' ausschreibung.pk %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="{{ form.motivationstext.id_for_label }}">
+              {{ form.motivationstext.label }}
+            </label>
+            {{ form.motivationstext }}
+            {% if form.motivationstext.errors %}
+              <div class="text-danger small">{{ form.motivationstext.errors }}</div>
+            {% endif %}
+          </div>
+          <button type="submit" class="btn btn-primary">
+            Bewerbung absenden
+          </button>
+        </form>
+
+      {% else %}
+        <p class="text-muted mb-0">Diese Stelle ist nicht mehr offen fuer Bewerbungen.</p>
+      {% endif %}
+
+    </div>
+  </div>
+
+  {% if kann_verwalten %}
+    <div class="d-flex gap-2">
+      <a href="{% url 'stellenportal:ausschreibung_bearbeiten' ausschreibung.pk %}" class="btn btn-outline-secondary btn-sm">
+        Ausschreibung bearbeiten
+      </a>
+      <a href="{% url 'stellenportal:bewerbungen_liste' ausschreibung.pk %}" class="btn btn-outline-primary btn-sm">
+        Bewerbungen ansehen ({{ ausschreibung.bewerbungen_anzahl }})
+      </a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

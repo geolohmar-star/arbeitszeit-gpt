@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Bewerbungen – {{ ausschreibung.titel }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <a href="{% url 'stellenportal:hr_dashboard' %}" class="btn btn-sm btn-outline-secondary mb-3">
+    &larr; HR-Dashboard
+  </a>
+
+  <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="mb-1">{{ ausschreibung.titel }}</h2>
+      <p class="text-muted mb-0">{{ ausschreibung.orgeinheit.bezeichnung }}
+        &bull; {{ ausschreibung.get_beschaeftigungsart_display }}
+        &bull; {{ bewerbungen.count }} Bewerbung{{ bewerbungen.count|pluralize:"en" }}
+      </p>
+    </div>
+    <a href="{% url 'stellenportal:detail' ausschreibung.pk %}" class="btn btn-outline-secondary btn-sm">
+      Stellenanzeige ansehen
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Legende -->
+  <div class="mb-4">
+    <span class="text-muted small me-3">Statusfluss:</span>
+    <span class="badge bg-secondary me-1">Eingegangen</span>
+    <span class="text-muted me-1">&rarr;</span>
+    <span class="badge bg-info text-dark me-1">In Pruefung</span>
+    <span class="text-muted me-1">&rarr;</span>
+    <span class="badge bg-primary me-1">Gespraech</span>
+    <span class="text-muted me-1">&rarr;</span>
+    <span class="badge bg-success me-1">Angebot</span>
+    <span class="text-muted me-1">oder</span>
+    <span class="badge bg-danger">Absage</span>
+  </div>
+
+  {% if bewerbungen %}
+    {% for b in bewerbungen %}
+      <div class="card shadow-sm mb-4 {% if b.status == 'eingegangen' %}border-warning{% endif %}">
+
+        <!-- Kopfzeile -->
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <strong>{{ b.bewerber.get_full_name|default:b.bewerber.username }}</strong>
+            <span class="text-muted small ms-2">@{{ b.bewerber.username }}</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small">{{ b.erstellt_am|date:"d.m.Y H:i" }}</span>
+            <span class="badge bg-{{ b.status_farbe }}">{{ b.get_status_display }}</span>
+          </div>
+        </div>
+
+        <!-- Motivationstext -->
+        <div class="card-body">
+          <h6 class="text-muted small text-uppercase mb-2">Motivationstext</h6>
+          <p style="white-space: pre-wrap;" class="mb-3">{{ b.motivationstext }}</p>
+
+          {% if b.hr_notiz %}
+            <div class="alert alert-light border p-2 mb-0">
+              <span class="text-muted small text-uppercase">HR-Notiz</span><br>
+              {{ b.hr_notiz }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Aktionen -->
+        <div class="card-footer bg-transparent">
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+
+            {% if b.status == "eingegangen" %}
+              <!-- Naechster Schritt: In Pruefung nehmen oder direkt absagen -->
+              <form method="post" action="{% url 'stellenportal:bewerbung_aktion' b.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="aktion" value="in_pruefung">
+                <button type="submit" class="btn btn-sm btn-info text-white">
+                  In Pruefung nehmen
+                </button>
+              </form>
+              <form method="post" action="{% url 'stellenportal:bewerbung_aktion' b.pk %}"
+                    onsubmit="return confirm('Bewerbung wirklich absagen?')">
+                {% csrf_token %}
+                <input type="hidden" name="aktion" value="absagen">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Absagen</button>
+              </form>
+
+            {% elif b.status == "sichtung" %}
+              <!-- Naechster Schritt: Zu Gespraech einladen oder absagen -->
+              <form method="post" action="{% url 'stellenportal:bewerbung_aktion' b.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="aktion" value="gespraech">
+                <button type="submit" class="btn btn-sm btn-primary">
+                  Zu Gespraech einladen
+                </button>
+              </form>
+              <form method="post" action="{% url 'stellenportal:bewerbung_aktion' b.pk %}"
+                    onsubmit="return confirm('Bewerbung wirklich absagen?')">
+                {% csrf_token %}
+                <input type="hidden" name="aktion" value="absagen">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Absagen</button>
+              </form>
+
+            {% elif b.status == "gespraech" %}
+              <!-- Naechster Schritt: Angebot unterbreiten oder absagen -->
+              <form method="post" action="{% url 'stellenportal:bewerbung_aktion' b.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="aktion" value="angebot">
+                <button type="submit" class="btn btn-sm btn-success">
+                  Angebot unterbreiten
+                </button>
+              </form>
+              <form method="post" action="{% url 'stellenportal:bewerbung_aktion' b.pk %}"
+                    onsubmit="return confirm('Bewerbung wirklich absagen?')">
+                {% csrf_token %}
+                <input type="hidden" name="aktion" value="absagen">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Absagen</button>
+              </form>
+
+            {% elif b.status == "angeboten" %}
+              <span class="text-success fw-semibold">Angebot unterbreitet – wartet auf Rueckmeldung des Mitarbeiters</span>
+              <form method="post" action="{% url 'stellenportal:bewerbung_aktion' b.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="aktion" value="absagen">
+                <button type="submit" class="btn btn-sm btn-outline-danger btn-sm"
+                        onclick="return confirm('Angebot zurueckziehen?')">Angebot zurueckziehen</button>
+              </form>
+
+            {% elif b.status == "abgesagt" or b.status == "zurueckgezogen" %}
+              <span class="text-muted">Abgeschlossen</span>
+            {% endif %}
+
+            <!-- Immer: Notiz bearbeiten -->
+            <a href="{% url 'stellenportal:bewerbung_status_setzen' b.pk %}" class="btn btn-sm btn-outline-secondary ms-auto">
+              Notiz bearbeiten
+            </a>
+
+          </div>
+        </div>
+
+      </div>
+    {% endfor %}
+
+  {% else %}
+    <div class="text-center py-5">
+      <p class="text-muted">Noch keine Bewerbungen eingegangen.</p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

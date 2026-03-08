@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}HR-Dashboard Stellenportal – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-0">Stellenportal – HR-Dashboard</h2>
+      <p class="text-muted mb-0">Verwaltung aller Ausschreibungen und Bewerbungseingaenge</p>
+    </div>
+    <a href="{% url 'stellenportal:ausschreibung_erstellen' %}" class="btn btn-success">
+      + Neue Ausschreibung
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Titel</th>
+          <th>Abteilung</th>
+          <th>Art</th>
+          <th>Status</th>
+          <th>Veroeffentlicht</th>
+          <th>Bewerbungen</th>
+          <th>Frist</th>
+          <th>Erstellt</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in ausschreibungen %}
+          <tr>
+            <td>
+              <a href="{% url 'stellenportal:detail' a.pk %}">{{ a.titel }}</a>
+            </td>
+            <td>{{ a.orgeinheit.kuerzel }}</td>
+            <td>{{ a.get_beschaeftigungsart_display }}</td>
+            <td>
+              {% if a.status == "aktiv" %}
+                <span class="badge bg-success">{{ a.get_status_display }}</span>
+              {% elif a.status == "pausiert" %}
+                <span class="badge bg-warning text-dark">{{ a.get_status_display }}</span>
+              {% elif a.status == "besetzt" %}
+                <span class="badge bg-primary">{{ a.get_status_display }}</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ a.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if a.veroeffentlicht %}
+                <span class="text-success">Ja</span>
+              {% else %}
+                <span class="text-muted">Entwurf</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if a.bewerbungen_anzahl > 0 %}
+                <a href="{% url 'stellenportal:bewerbungen_liste' a.pk %}" class="badge bg-primary text-decoration-none">
+                  {{ a.bewerbungen_anzahl }} Bewerbung{{ a.bewerbungen_anzahl|pluralize:"en" }}
+                </a>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if a.bewerbungsfrist %}{{ a.bewerbungsfrist|date:"d.m.Y" }}{% else %}—{% endif %}
+            </td>
+            <td class="text-muted small">{{ a.erstellt_am|date:"d.m.Y" }}</td>
+            <td>
+              <a href="{% url 'stellenportal:ausschreibung_bearbeiten' a.pk %}" class="btn btn-sm btn-outline-secondary">
+                Bearbeiten
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-4">
+              Noch keine Ausschreibungen vorhanden. <a href="{% url 'stellenportal:ausschreibung_erstellen' %}">Erste Ausschreibung anlegen</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}
