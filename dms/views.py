@@ -167,7 +167,13 @@ def dokument_liste(request):
 @login_required
 def dokument_upload(request):
     """Upload eines neuen Dokuments (Klasse 1 oder 2)."""
-    form = DokumentUploadForm(request.POST or None, request.FILES or None)
+    # OrgEinheit des hochladenden Users als Vorauswahl ermitteln
+    user_org_ids = _get_user_orgeinheit_ids(request.user)
+    initial = {}
+    if user_org_ids:
+        initial["eigentuemereinheit"] = next(iter(user_org_ids))
+
+    form = DokumentUploadForm(request.POST or None, request.FILES or None, initial=initial)
 
     if request.method == "POST" and form.is_valid():
         datei = form.cleaned_data["datei"]
