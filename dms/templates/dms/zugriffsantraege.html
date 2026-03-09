@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Zugriffsantraege – DMS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0 fw-bold">Zugriffsantraege – Sensible Dokumente</h4>
+    <a href="{% url 'dms:liste' %}" class="btn btn-outline-secondary btn-sm">Zur Dokumentenliste</a>
+  </div>
+
+  <!-- Offene Antraege -->
+  <h6 class="text-danger fw-bold mb-2">
+    Offene Antraege
+    {% if offene %}<span class="badge bg-danger ms-1">{{ offene|length }}</span>{% endif %}
+  </h6>
+
+  {% if offene %}
+  <div class="table-responsive mb-4">
+    <table class="table table-hover table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Antragsteller</th>
+          <th>Dokument</th>
+          <th>Begruendung</th>
+          <th>Dauer</th>
+          <th>Gestellt am</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in offene %}
+        <tr>
+          <td>
+            <span class="fw-semibold">{{ s.user.get_full_name|default:s.user.username }}</span>
+          </td>
+          <td>
+            <a href="{% url 'dms:detail' s.dokument.pk %}">{{ s.dokument.titel }}</a>
+          </td>
+          <td style="max-width:300px;">
+            <small class="text-muted">{{ s.antrag_grund|truncatechars:120 }}</small>
+          </td>
+          <td>{{ s.get_gewuenschte_dauer_h_display }}</td>
+          <td><small>{{ s.antrag_zeitpunkt|date:"d.m.Y H:i" }}</small></td>
+          <td>
+            <div class="d-flex gap-1">
+              <form method="post" action="{% url 'dms:zugriff_genehmigen' s.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-sm"
+                        onclick="return confirm('Zugriff fuer {{ s.user.get_full_name|default:s.user.username }} genehmigen?')">
+                  Genehmigen
+                </button>
+              </form>
+              <form method="post" action="{% url 'dms:zugriff_ablehnen' s.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm"
+                        onclick="return confirm('Antrag ablehnen?')">
+                  Ablehnen
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-4">Keine offenen Antraege.</p>
+  {% endif %}
+
+  <!-- Aktive Schluessel -->
+  <h6 class="text-success fw-bold mb-2">Aktive Zugriffsschluessel</h6>
+
+  {% if aktive %}
+  <div class="table-responsive mb-4">
+    <table class="table table-hover table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>User</th>
+          <th>Dokument</th>
+          <th>Genehmigt von</th>
+          <th>Gueltig bis</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in aktive %}
+        <tr>
+          <td class="fw-semibold">{{ s.user.get_full_name|default:s.user.username }}</td>
+          <td><a href="{% url 'dms:detail' s.dokument.pk %}">{{ s.dokument.titel }}</a></td>
+          <td><small>{{ s.genehmigt_von.get_full_name|default:s.genehmigt_von.username }}</small></td>
+          <td>
+            <small class="text-success fw-semibold">{{ s.gueltig_bis|date:"d.m.Y H:i" }}</small>
+          </td>
+          <td>
+            <form method="post" action="{% url 'dms:zugriff_widerrufen' s.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-warning btn-sm"
+                      onclick="return confirm('Zugriffsschluessel sofort widerrufen?')">
+                Widerrufen
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-4">Keine aktiven Zugriffsschluessel.</p>
+  {% endif %}
+
+  <!-- Verlauf -->
+  <h6 class="text-secondary fw-bold mb-2">Verlauf (letzte 50)</h6>
+
+  {% if abgelaufen %}
+  <div class="table-responsive">
+    <table class="table table-sm align-middle text-muted">
+      <thead class="table-light">
+        <tr>
+          <th>User</th>
+          <th>Dokument</th>
+          <th>Status</th>
+          <th>Genehmigt/Bearbeitet von</th>
+          <th>Antrag gestellt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in abgelaufen %}
+        <tr>
+          <td>{{ s.user.get_full_name|default:s.user.username }}</td>
+          <td>{{ s.dokument.titel }}</td>
+          <td>
+            {% if s.status == "abgelehnt" %}
+              <span class="badge bg-danger">Abgelehnt</span>
+            {% elif s.status == "widerrufen" %}
+              <span class="badge bg-warning text-dark">Widerrufen</span>
+            {% elif s.status == "abgelaufen" %}
+              <span class="badge bg-secondary">Abgelaufen</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ s.get_status_display }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.genehmigt_von %}{{ s.genehmigt_von.get_full_name|default:s.genehmigt_von.username }}{% else %}–{% endif %}
+          </td>
+          <td><small>{{ s.antrag_zeitpunkt|date:"d.m.Y" }}</small></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted">Kein Verlauf vorhanden.</p>
+  {% endif %}
+
+</div>
+{% endblock %}

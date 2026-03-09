@@ -193,20 +193,124 @@ class Dokument(models.Model):
         return self.klasse == "sensibel"
 
 
+DAUER_OPTIONEN = [
+    (1, "1 Stunde"),
+    (4, "4 Stunden"),
+    (24, "1 Tag"),
+    (72, "3 Tage"),
+]
+
+
+class DokumentZugriffsschluessel(models.Model):
+    """Zeitlich begrenzter Zugriffsschluessel fuer sensible Dokumente (Klasse 2).
+
+    Ablauf:
+    1. User beantragt Zugriff (antrag_zeitpunkt, antrag_grund, gewuenschte_dauer_h)
+    2. Staff genehmigt → genehmigt_von + genehmigt_am + gueltig_bis werden gesetzt
+       Gleichzeitig: guardian assign_perm('dms.view_dokument_sensibel', user, dok)
+    3. User kann im Zeitfenster downloaden (jeder Download → ZugriffsProtokoll)
+    4. Staff kann Zugriff vorzeitig widerrufen → guardian remove_perm
+    5. Nach Ablauf: kein Download mehr moeglich, Protokoll bleibt erhalten
+    """
+
+    STATUS_OFFEN = "offen"
+    STATUS_GENEHMIGT = "genehmigt"
+    STATUS_ABGELEHNT = "abgelehnt"
+    STATUS_WIDERRUFEN = "widerrufen"
+    STATUS_ABGELAUFEN = "abgelaufen"
+
+    STATUS_CHOICES = [
+        (STATUS_OFFEN, "Offen (wartet auf Genehmigung)"),
+        (STATUS_GENEHMIGT, "Genehmigt"),
+        (STATUS_ABGELEHNT, "Abgelehnt"),
+        (STATUS_WIDERRUFEN, "Widerrufen"),
+        (STATUS_ABGELAUFEN, "Abgelaufen"),
+    ]
+
+    antrag_grund = models.TextField(verbose_name="Begruendung des Antrags")
+    antrag_zeitpunkt = models.DateTimeField(
+        auto_now_add=True, verbose_name="Antrag gestellt am"
+    )
+    dokument = models.ForeignKey(
+        Dokument,
+        on_delete=models.CASCADE,
+        related_name="zugriffsschluessel",
+        verbose_name="Dokument",
+    )
+    genehmigt_am = models.DateTimeField(
+        null=True, blank=True, verbose_name="Genehmigt am"
+    )
+    genehmigt_von = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="genehmigte_zugriffsschluessel",
+        verbose_name="Genehmigt von",
+    )
+    gewuenschte_dauer_h = models.PositiveSmallIntegerField(
+        choices=DAUER_OPTIONEN,
+        default=4,
+        verbose_name="Gewuenschte Zugriffsdauer",
+    )
+    gueltig_bis = models.DateTimeField(
+        null=True, blank=True, verbose_name="Gueltig bis"
+    )
+    status = models.CharField(
+        max_length=15,
+        choices=STATUS_CHOICES,
+        default=STATUS_OFFEN,
+        verbose_name="Status",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="dms_zugriffsschluessel",
+        verbose_name="Antragsteller",
+    )
+
+    class Meta:
+        ordering = ["-antrag_zeitpunkt"]
+        verbose_name = "Dokument-Zugriffsschluessel"
+        verbose_name_plural = "Dokument-Zugriffsschluessel"
+
+    def __str__(self):
+        return (
+            f"{self.user.get_full_name() or self.user.username} – "
+            f"{self.dokument.titel} – {self.get_status_display()}"
+        )
+
+    def ist_aktiv(self):
+        """Prueft ob der Schluessel aktuell gueltig ist."""
+        from django.utils import timezone
+        return (
+            self.status == self.STATUS_GENEHMIGT
+            and self.gueltig_bis is not None
+            and self.gueltig_bis > timezone.now()
+        )
+
+    ist_aktiv.boolean = True
+    ist_aktiv.short_description = "Aktiv?"
+
+
 class ZugriffsProtokoll(models.Model):
-    """Unveraenderlicher Audit-Trail fuer Dokument-Downloads.
+    """Unveraenderlicher Audit-Trail fuer alle DMS-Aktionen.
 
     Entspricht DSGVO Art. 5 Abs. 2 – Rechenschaftspflicht.
     Kein update(), kein delete() ueber normale Wege.
     """
 
     aktion = models.CharField(
-        max_length=20,
+        max_length=25,
         choices=[
             ("download", "Download"),
             ("vorschau", "Vorschau"),
             ("erstellt", "Erstellt"),
             ("geaendert", "Geaendert"),
+            ("zugriff_beantragt", "Zugriff beantragt"),
+            ("zugriff_genehmigt", "Zugriff genehmigt"),
+            ("zugriff_abgelehnt", "Zugriff abgelehnt"),
+            ("zugriff_widerrufen", "Zugriff widerrufen"),
         ],
         default="download",
         verbose_name="Aktion",
@@ -220,6 +324,7 @@ class ZugriffsProtokoll(models.Model):
     ip_adresse = models.GenericIPAddressField(
         null=True, blank=True, verbose_name="IP-Adresse"
     )
+    notiz = models.TextField(blank=True, verbose_name="Notiz (z.B. Grund, Dauer)")
     user = models.ForeignKey(
         User,
         null=True,
@@ -237,6 +342,15 @@ class ZugriffsProtokoll(models.Model):
     def __str__(self):
         username = self.user.username if self.user else "unbekannt"
         return f"{username} – {self.aktion} – {self.dokument.titel} ({self.zeitpunkt:%d.%m.%Y %H:%M})"
+
+
+    # DSGVO: kein delete() und kein update() via Manager erzwingen
+    class Manager(models.Manager):
+        def delete(self):
+            raise PermissionError("Audit-Trail darf nicht geloescht werden.")
+
+        def update(self, **kwargs):
+            raise PermissionError("Audit-Trail darf nicht veraendert werden.")
 
 
 class PaperlessImportLog(models.Model):

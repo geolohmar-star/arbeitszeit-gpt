@@ -4,6 +4,7 @@ from .models import (
     Dokument,
     DokumentKategorie,
     DokumentTag,
+    DokumentZugriffsschluessel,
     PaperlessImportLog,
     ZugriffsProtokoll,
 )
@@ -43,6 +44,19 @@ class ZugriffsProtokollAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(DokumentZugriffsschluessel)
+class DokumentZugriffsschluesselAdmin(admin.ModelAdmin):
+    list_display = ["antrag_zeitpunkt", "user", "dokument", "status", "gewuenschte_dauer_h", "ist_aktiv", "gueltig_bis", "genehmigt_von"]
+    list_filter = ["status"]
+    search_fields = ["user__username", "dokument__titel", "antrag_grund"]
+    readonly_fields = ["antrag_zeitpunkt"]
+
+    def ist_aktiv(self, obj):
+        return obj.ist_aktiv()
+    ist_aktiv.boolean = True
+    ist_aktiv.short_description = "Aktiv?"
 
 
 @admin.register(PaperlessImportLog)

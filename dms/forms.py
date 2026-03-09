@@ -1,7 +1,7 @@
-"""DMS-Formulare fuer Upload und Suche."""
+"""DMS-Formulare fuer Upload, Suche und Zugriffsantraege."""
 from django import forms
 
-from .models import Dokument, DokumentKategorie, DokumentTag
+from .models import DAUER_OPTIONEN, Dokument, DokumentKategorie, DokumentTag, DokumentZugriffsschluessel
 
 
 class DokumentUploadForm(forms.ModelForm):
@@ -66,3 +66,26 @@ class DokumentSucheForm(forms.Form):
         empty_label="Alle Tags",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
+
+
+class ZugriffsantragForm(forms.ModelForm):
+    """Formular fuer Zugriffsantrag auf ein sensibles Dokument."""
+
+    class Meta:
+        model = DokumentZugriffsschluessel
+        fields = ["antrag_grund", "gewuenschte_dauer_h"]
+        widgets = {
+            "antrag_grund": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 4,
+                "placeholder": "Bitte begruenden Sie, warum Sie Zugriff auf dieses Dokument benoetigen...",
+            }),
+            "gewuenschte_dauer_h": forms.Select(
+                choices=DAUER_OPTIONEN,
+                attrs={"class": "form-select"},
+            ),
+        }
+        labels = {
+            "antrag_grund": "Begruendung",
+            "gewuenschte_dauer_h": "Zugriffsdauer",
+        }

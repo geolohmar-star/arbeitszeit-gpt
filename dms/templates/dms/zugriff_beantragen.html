@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Zugriff beantragen – {{ dok.titel }}{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:640px;">
+
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'dms:liste' %}">Dokumente</a></li>
+      <li class="breadcrumb-item active">Zugriff beantragen</li>
+    </ol>
+  </nav>
+
+  <div class="card shadow-sm">
+    <div class="card-header" style="background:#dc2626; color:white;">
+      <strong>Gesichertes Dokument – Zugriff erforderlich</strong>
+    </div>
+    <div class="card-body">
+
+      <div class="mb-3 p-3 rounded" style="background:#fef2f2; border:1px solid #fecaca;">
+        <div class="fw-semibold mb-1" style="color:#991b1b;">{{ dok.titel }}</div>
+        <div class="text-muted" style="font-size:0.85rem;">
+          Klasse: <strong>Sensibel (verschluesselt)</strong> &nbsp;|&nbsp;
+          Typ: {{ dok.dateityp }} &nbsp;|&nbsp;
+          Groesse: {{ dok.groesse_lesbar }}
+        </div>
+        {% if dok.beschreibung %}
+        <div class="mt-2 text-muted" style="font-size:0.85rem;">{{ dok.beschreibung }}</div>
+        {% endif %}
+      </div>
+
+      {% if offener_antrag %}
+        <div class="alert alert-warning">
+          <strong>Antrag bereits gestellt.</strong>
+          Ihr Antrag vom {{ offener_antrag.antrag_zeitpunkt|date:"d.m.Y H:i" }} Uhr
+          wartet noch auf Genehmigung. Bitte haben Sie Geduld.
+        </div>
+        <a href="{% url 'dms:liste' %}" class="btn btn-outline-secondary">Zurueck zur Liste</a>
+      {% else %}
+        <p class="text-muted mb-3" style="font-size:0.88rem;">
+          Dieses Dokument ist verschluesselt und erfordert einen zeitlich begrenzten
+          Zugriffsschluessel. Bitte begruenden Sie Ihren Bedarf – ein Berechtigter
+          wird Ihren Antrag pruefen. Jeder Zugriff wird im Audit-Log festgehalten.
+        </p>
+
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold" for="{{ form.antrag_grund.id_for_label }}">
+              {{ form.antrag_grund.label }}
+            </label>
+            {{ form.antrag_grund }}
+            {% if form.antrag_grund.errors %}
+              <div class="text-danger" style="font-size:0.82rem;">{{ form.antrag_grund.errors }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold" for="{{ form.gewuenschte_dauer_h.id_for_label }}">
+              {{ form.gewuenschte_dauer_h.label }}
+            </label>
+            {{ form.gewuenschte_dauer_h }}
+            <div class="form-text">
+              Nach Ablauf wird der Zugriff automatisch entzogen. Eine Verlaengerung erfordert einen neuen Antrag.
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger">
+              Zugriff beantragen
+            </button>
+            <a href="{% url 'dms:liste' %}" class="btn btn-outline-secondary">Abbrechen</a>
+          </div>
+        </form>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <div class="mt-3 p-3 rounded" style="background:#f8fafc; border:1px solid #e2e8f0; font-size:0.78rem; color:#64748b;">
+    <strong>Datenschutzhinweis:</strong> Ihr Antrag, die Genehmigung/Ablehnung und
+    jeder Zugriff auf das Dokument werden unveraenderlich im Audit-Log protokolliert
+    (DSGVO Art.&nbsp;5 Abs.&nbsp;2 – Rechenschaftspflicht).
+  </div>
+
+</div>
+{% endblock %}
