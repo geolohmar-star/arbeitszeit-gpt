@@ -439,11 +439,13 @@ def beitreten_toggle(request, pk):
     else:
         ist_mitglied = True
 
-    return render(
+    response = render(
         request,
         "betriebssport/partials/_beitreten_btn.html",
         {"gruppe": gruppe, "ist_mitglied": ist_mitglied},
     )
+    response["HX-Refresh"] = "true"
+    return response
 
 
 # ---------------------------------------------------------------------------
@@ -477,7 +479,8 @@ def einheit_anlegen(request, pk):
         messages.warning(request, f"Einheit am {einheit.datum} existiert bereits.")
 
     from django.urls import reverse
-    monat_str = f"{einheit.datum.year}-{einheit.datum.month:02d}"
+    teile = datum.split("-")
+    monat_str = f"{teile[0]}-{teile[1]}"
     url = reverse("betriebssport:gruppe_detail", kwargs={"pk": pk})
     return redirect(f"{url}?monat={monat_str}")
 
