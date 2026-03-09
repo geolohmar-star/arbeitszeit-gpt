@@ -1112,23 +1112,32 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                   staerker als das alte Fernet AES-128 der Dokumente-App.
                   Alle Inhalte als <code>BinaryField</code> direkt in PostgreSQL &mdash; kein Dateisystem, kein Railway-Ephemeral-Problem.
                   <br><br>
-                  <strong>Paperless-ngx Integration:</strong> Scanner &rarr; E-Mail &rarr; Paperless OCR (Tesseract) + Auto-Tagging &rarr;
-                  <code>manage.py paperless_import</code> pollt die REST API und importiert neue Dokumente automatisch in PRIMA DMS.
-                  PaperlessImportLog verhindert Duplikate.
+                  <strong>Paperless-ngx Integration (produktiv getestet):</strong>
+                  Canon DR-2580C &rarr; NAPS2 &rarr; consume-Ordner &rarr; Paperless OCR (Tesseract, deu+eng) &rarr;
+                  <code>manage.py paperless_import</code> pollt die REST API und importiert neue Dokumente in PRIMA DMS.
+                  PaperlessImportLog verhindert Duplikate. Duplikat-Schutz und Fehlerprotokoll integriert.
+                  <br><br>
+                  <strong>Cloudflare Tunnel:</strong> Paperless laeuft lokal, ist aber ueber
+                  <code>paperless.georg-klein.com</code> sicher erreichbar &mdash; ohne offene Ports, ohne statische IP.
+                  Cloudflare terminiert TLS, der Tunnel laeuft verschluesselt von innen nach aussen.
+                  Railway (PRIMA Produktion) importiert damit direkt aus dem lokalen Paperless-Server.
                 </div>
                 <div style="font-size:0.78rem; color:#0f766e; background:#ccfbf1; border:1px solid #99f6e4; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
-                  Zugang: Navigation &rarr; Sicherheit &rarr; DMS &ndash; Dokumentenmanagement
+                  DMS: Navigation &rarr; Sicherheit &rarr; DMS &ndash; Dokumentenmanagement &nbsp;|&nbsp;
+                  Paperless: <strong>paperless.georg-klein.com</strong>
                 </div>
                 <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
                   <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">PostgreSQL GIN-Index</span>
                   <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">AES-256-GCM</span>
                   <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">BinaryField (kein FS)</span>
-                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Paperless-ngx Import</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Cloudflare Tunnel</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Canon DR-2580C</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">OCR Tesseract deu+eng</span>
                   <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Audit-Trail</span>
                   <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">2-Klassen-Architektur</span>
                 </div>
                 <div class="mt-3" style="font-size:0.75rem; color:#6b7280; font-style:italic;">
-                  Railway-Env: DMS_VERSCHLUESSEL_KEY setzen (64 Hex-Zeichen). Paperless optional: PAPERLESS_URL + PAPERLESS_TOKEN.
+                  Kein offener Port, keine statische IP noetig &mdash; Cloudflare Tunnel verbindet lokalen Server sicher mit Railway.
                 </div>
               </div>
 
