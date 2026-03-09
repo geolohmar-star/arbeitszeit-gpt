@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}DMS – Dokumente{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:1200px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-0" style="color:#1a4d2e;">Dokumentenmanagement</h1>
+            <p class="text-muted small mb-0">
+                Klasse 1: offen &amp; durchsuchbar &middot;
+                Klasse 2: sensibel &amp; AES-256-GCM verschluesselt
+            </p>
+        </div>
+        <a href="{% url 'dms:upload' %}" class="btn btn-sm"
+           style="background:#1a4d2e; color:white;">
+            + Dokument hochladen
+        </a>
+    </div>
+
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Suchformular -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-3">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    {{ form.q.label_tag }}
+                    {{ form.q }}
+                </div>
+                <div class="col-md-2">
+                    {{ form.klasse.label_tag }}
+                    {{ form.klasse }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.kategorie.label_tag }}
+                    {{ form.kategorie }}
+                </div>
+                <div class="col-md-2">
+                    {{ form.tag.label_tag }}
+                    {{ form.tag }}
+                </div>
+                <div class="col-md-1 d-flex gap-1">
+                    <button type="submit" class="btn btn-sm btn-primary w-100">Suchen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Ergebnisse -->
+    {% if seite.object_list %}
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="background:#f8f9fa; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.4px; color:#6b7280;">
+                    <tr>
+                        <th class="px-4 py-3">Titel / Datei</th>
+                        <th class="py-3">Klasse</th>
+                        <th class="py-3">Kategorie</th>
+                        <th class="py-3">Tags</th>
+                        <th class="py-3">Groesse</th>
+                        <th class="py-3">Erstellt</th>
+                        <th class="py-3">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dok in seite.object_list %}
+                    <tr>
+                        <td class="px-4 py-3">
+                            <div class="fw-semibold" style="font-size:0.9rem;">
+                                <a href="{% url 'dms:detail' dok.pk %}" class="text-decoration-none text-dark">
+                                    {{ dok.titel }}
+                                </a>
+                            </div>
+                            <div class="text-muted" style="font-size:0.78rem;">{{ dok.dateiname }}</div>
+                            {% if dok.beschreibung %}
+                            <div class="text-muted" style="font-size:0.75rem;">{{ dok.beschreibung|truncatechars:80 }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if dok.klasse == "sensibel" %}
+                            <span class="badge bg-danger" style="font-size:0.7rem;">Sensibel</span>
+                            {% else %}
+                            <span class="badge bg-success" style="font-size:0.7rem;">Offen</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:0.85rem;">
+                            {{ dok.kategorie|default:"—" }}
+                        </td>
+                        <td>
+                            {% for tag in dok.tags.all %}
+                            <span class="badge rounded-pill"
+                                  style="background:{{ tag.farbe }}; font-size:0.7rem;">
+                                {{ tag.name }}
+                            </span>
+                            {% empty %}
+                            <span class="text-muted" style="font-size:0.8rem;">—</span>
+                            {% endfor %}
+                        </td>
+                        <td style="font-size:0.85rem; white-space:nowrap;">{{ dok.groesse_lesbar }}</td>
+                        <td style="font-size:0.82rem; color:#6b7280;">
+                            {{ dok.erstellt_am|date:"d.m.Y" }}
+                            {% if dok.erstellt_von %}
+                            <div style="font-size:0.75rem;">{{ dok.erstellt_von.get_full_name|default:dok.erstellt_von.username }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                                <a href="{% url 'dms:vorschau' dok.pk %}"
+                                   target="_blank"
+                                   class="btn btn-sm btn-outline-secondary"
+                                   style="font-size:0.75rem;">Vorschau</a>
+                                <a href="{% url 'dms:download' dok.pk %}"
+                                   class="btn btn-sm btn-outline-primary"
+                                   style="font-size:0.75rem;">Download</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginierung -->
+        {% if seite.has_other_pages %}
+        <div class="card-footer bg-white border-top-0 py-2">
+            <nav>
+                <ul class="pagination pagination-sm mb-0 justify-content-center">
+                    {% if seite.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ seite.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+                            &laquo; Vorherige
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item disabled">
+                        <span class="page-link">
+                            Seite {{ seite.number }} von {{ seite.paginator.num_pages }}
+                        </span>
+                    </li>
+                    {% if seite.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ seite.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+                            Naechste &raquo;
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+    {% else %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <div style="font-size:3rem; opacity:0.2; margin-bottom:1rem;">&#128196;</div>
+            <h5 class="text-muted fw-normal">Keine Dokumente gefunden</h5>
+            <p class="text-muted small">Noch keine Dokumente hochgeladen oder Suchfilter anpassen.</p>
+            <a href="{% url 'dms:upload' %}" class="btn btn-sm mt-2"
+               style="background:#1a4d2e; color:white;">
+                Erstes Dokument hochladen
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Legende -->
+    <div class="row mt-4 g-3">
+        <div class="col-md-6">
+            <div class="p-3 rounded" style="background:#f0fdf4; border:1px solid #bbf7d0; font-size:0.82rem; color:#166534;">
+                <strong>Klasse 1 – Offen:</strong>
+                Betriebsanweisungen, Formulare, Protokolle.
+                PostgreSQL-Volltextsuche aktiv. Unverschluesselt gespeichert.
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="p-3 rounded" style="background:#fff7ed; border:1px solid #fed7aa; font-size:0.82rem; color:#92400e;">
+                <strong>Klasse 2 – Sensibel:</strong>
+                Personalakten, Lohnunterlagen, Zeugnisse.
+                AES-256-GCM verschluesselt. Nur fuer Staff sichtbar. Keine Volltextsuche.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

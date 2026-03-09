@@ -62,6 +62,8 @@ INSTALLED_APPS = [
     'bewerbung.apps.BewerbungConfig',
     'stellenportal.apps.StellenportalConfig',
     'betriebssport.apps.BetriebssportConfig',
+    'django.contrib.postgres',
+    'dms.apps.DmsConfig',
 ]
 
 # Verschluesselung fuer sensible Dokumente (Fernet AES-128)
@@ -72,6 +74,17 @@ DOKUMENT_VERSCHLUESSEL_KEY = os.environ.get("DOKUMENT_VERSCHLUESSEL_KEY", "")
 # Signatur-System
 # ---------------------------------------------------------------------------
 SIGNATUR_BACKEND = os.environ.get("SIGNATUR_BACKEND", "intern")
+
+# ---------------------------------------------------------------------------
+# DMS – Dokumentenmanagementsystem
+# ---------------------------------------------------------------------------
+# AES-256-GCM Schluessel fuer sensible Dokumente (Klasse 2)
+# Generieren: python -c "import os; print(os.urandom(32).hex())"
+DMS_VERSCHLUESSEL_KEY = os.environ.get("DMS_VERSCHLUESSEL_KEY", "")
+
+# Paperless-ngx Integration (optional)
+PAPERLESS_URL = os.environ.get("PAPERLESS_URL", "")
+PAPERLESS_TOKEN = os.environ.get("PAPERLESS_TOKEN", "")
 SIGNATUR_SIGN_ME_URL = os.environ.get("SIGNATUR_SIGN_ME_URL", "https://api.sign-me.de")
 SIGNATUR_SIGN_ME_KEY = os.environ.get("SIGNATUR_SIGN_ME_KEY", "")
 SIGNATUR_SIGN_ME_TIMEOUT = 30

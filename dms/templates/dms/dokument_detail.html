@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}DMS – {{ dok.titel }}{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:900px;">
+
+    <div class="mb-4">
+        <a href="{% url 'dms:liste' %}" class="text-muted text-decoration-none small">&larr; Zurueck zur Liste</a>
+        <div class="d-flex justify-content-between align-items-start mt-2">
+            <div>
+                <h1 class="h3 fw-bold mb-1" style="color:#1a4d2e;">{{ dok.titel }}</h1>
+                <p class="text-muted small mb-0">{{ dok.dateiname }} &middot; {{ dok.groesse_lesbar }}</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'dms:vorschau' dok.pk %}" target="_blank"
+                   class="btn btn-sm btn-outline-secondary">Vorschau</a>
+                <a href="{% url 'dms:download' dok.pk %}"
+                   class="btn btn-sm" style="background:#1a4d2e; color:white;">Download</a>
+            </div>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Metadaten -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold py-2 px-4">Metadaten</div>
+        <div class="card-body px-4 py-3">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase;">Klasse</div>
+                    {% if dok.klasse == "sensibel" %}
+                    <span class="badge bg-danger">Sensibel – AES-256-GCM</span>
+                    {% else %}
+                    <span class="badge bg-success">Offen – Volltext durchsuchbar</span>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase;">Kategorie</div>
+                    <div>{{ dok.kategorie|default:"—" }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase;">Version</div>
+                    <div>{{ dok.version }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase;">Erstellt am</div>
+                    <div>{{ dok.erstellt_am|date:"d.m.Y H:i" }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase;">Erstellt von</div>
+                    <div>{{ dok.erstellt_von.get_full_name|default:dok.erstellt_von.username|default:"—" }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase;">Gueltig bis</div>
+                    <div>{% if dok.gueltig_bis %}{{ dok.gueltig_bis|date:"d.m.Y" }}{% else %}—{% endif %}</div>
+                </div>
+                {% if dok.tags.all %}
+                <div class="col-12">
+                    <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase; margin-bottom:4px;">Tags</div>
+                    {% for tag in dok.tags.all %}
+                    <span class="badge rounded-pill"
+                          style="background:{{ tag.farbe }}; font-size:0.75rem; margin-right:4px;">
+                        {{ tag.name }}
+                    </span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if dok.beschreibung %}
+                <div class="col-12">
+                    <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase;">Beschreibung</div>
+                    <div>{{ dok.beschreibung }}</div>
+                </div>
+                {% endif %}
+                {% if dok.paperless_id %}
+                <div class="col-md-4">
+                    <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase;">Paperless-ID</div>
+                    <div>#{{ dok.paperless_id }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Zugriffsprotokoll (nur Staff) -->
+    {% if request.user.is_staff and zugriffe %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white fw-semibold py-2 px-4">
+            Zugriffsprotokoll
+            <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">{{ zugriffe|length }} Eintraege</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead style="font-size:0.75rem; text-transform:uppercase; color:#6b7280;">
+                    <tr>
+                        <th class="px-4 py-2">Zeitpunkt</th>
+                        <th class="py-2">User</th>
+                        <th class="py-2">Aktion</th>
+                        <th class="py-2">IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for z in zugriffe %}
+                    <tr>
+                        <td class="px-4 py-2" style="font-size:0.82rem;">{{ z.zeitpunkt|date:"d.m.Y H:i" }}</td>
+                        <td style="font-size:0.82rem;">
+                            {{ z.user.get_full_name|default:z.user.username|default:"unbekannt" }}
+                        </td>
+                        <td>
+                            <span class="badge
+                                {% if z.aktion == 'download' %}bg-primary
+                                {% elif z.aktion == 'vorschau' %}bg-info
+                                {% elif z.aktion == 'erstellt' %}bg-success
+                                {% else %}bg-secondary{% endif %}"
+                                style="font-size:0.7rem;">
+                                {{ z.get_aktion_display }}
+                            </span>
+                        </td>
+                        <td style="font-size:0.78rem; color:#9ca3af;">{{ z.ip_adresse|default:"—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

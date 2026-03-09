@@ -338,6 +338,7 @@
                         <li><a class="dropdown-item" href="{% url 'signatur:dokumentation_pdf' %}" target="_blank">Signatur-Doku ↗</a></li>
                         <li><a class="dropdown-item" href="{% url 'datenschutz:dashboard' %}">Datenschutz (DSGVO)</a></li>
                         <li><a class="dropdown-item" href="{% url 'dokumente:liste' %}">Sensible Dokumente</a></li>
+                        <li><a class="dropdown-item" href="{% url 'dms:liste' %}">DMS – Dokumentenmanagement</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank">Django-Admin ↗</a></li>
                     </ul>
@@ -372,6 +373,7 @@
                         <li><h6 class="dropdown-header">{{ user.username }}</h6></li>
                         <li><a class="dropdown-item" href="{% url 'datenschutz:auskunft_pdf' %}">Meine Daten (DSGVO)</a></li>
                         <li><a class="dropdown-item" href="{% url 'dokumente:liste' %}">Meine Dokumente</a></li>
+                        <li><a class="dropdown-item" href="{% url 'dms:liste' %}">DMS – Dokumente</a></li>
                         <li><a class="dropdown-item" href="{% url 'signatur:dashboard' %}">Digitale Signatur</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
@@ -1096,36 +1098,37 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                 </div>
               </div>
 
-              <div style="border:2px solid #64748b; border-top:5px solid #64748b; border-radius:8px; padding:1rem; background:#f8fafc; position:relative;">
-                <div style="position:absolute; top:-1px; right:10px; background:#64748b; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
-                  IN PLANUNG
+              <div style="border:2px solid #0f766e; border-top:5px solid #0f766e; border-radius:8px; padding:1rem; background:#f0fdfa; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#0f766e; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  UMGESETZT
                 </div>
-                <div class="fw-bold mb-2" style="color:#475569; font-size:1rem;">Dokumentenmanagement: PRIMA DMS + Paperless-ngx</div>
-                <div class="text-muted mb-3" style="font-size:0.82rem;">
-                  Hybrides Dokumentenmanagementsystem mit zwei Klassen:
-                  <strong>Offen</strong> (Betriebsanweisungen, Protokolle, Formulare) &mdash;
-                  Volltext durchsuchbar via PostgreSQL tsvector, GIN-Index, deutsche Stemming-Analyse.
-                  <strong>Sensibel</strong> (Personalakten, Zeugnisse, Steuerunterlagen) &mdash;
-                  Fernet AES-128 verschluesselt, nur Metadaten-Suche.
-                  Scan-Workflow ueber vorhandene Etagenscanner: Scanner schickt PDF per E-Mail
-                  an zentrales Postfach &rarr; Paperless-ngx verarbeitet automatisch (OCR via Tesseract,
-                  Auto-Tagging nach Absender/Standort/Etage, Volltext-Index) &rarr;
-                  Webhook an PRIMA &rarr; Dokument erscheint sofort im DMS mit korrekten Berechtigungen.
-                  Kein manuelles Ablegen, kein Ordner-Chaos, standortuebergreifend.
+                <div class="fw-bold mb-2" style="color:#134e4a; font-size:1rem;">Dokumentenmanagement: PRIMA DMS + Paperless-ngx</div>
+                <div style="font-size:0.82rem; color:#134e4a; margin-bottom:0.75rem;">
+                  Hybrides DMS mit zwei Dokumentenklassen:
+                  <br><strong>Klasse 1 – Offen:</strong> Betriebsanweisungen, Protokolle, Formulare.
+                  PostgreSQL GIN-Index auf <code>to_tsvector('german', titel || beschreibung)</code> &mdash; Volltext durchsuchbar mit deutschen Stemming-Regeln.
+                  <br><strong>Klasse 2 – Sensibel:</strong> Personalakten, Zeugnisse, Steuerunterlagen.
+                  AES-256-GCM mit serverseitigem Schluessel (DMS_VERSCHLUESSEL_KEY) &mdash;
+                  staerker als das alte Fernet AES-128 der Dokumente-App.
+                  Alle Inhalte als <code>BinaryField</code> direkt in PostgreSQL &mdash; kein Dateisystem, kein Railway-Ephemeral-Problem.
+                  <br><br>
+                  <strong>Paperless-ngx Integration:</strong> Scanner &rarr; E-Mail &rarr; Paperless OCR (Tesseract) + Auto-Tagging &rarr;
+                  <code>manage.py paperless_import</code> pollt die REST API und importiert neue Dokumente automatisch in PRIMA DMS.
+                  PaperlessImportLog verhindert Duplikate.
                 </div>
-                <div style="font-size:0.78rem; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
-                  Etagenscanner &rarr; E-Mail &rarr; Paperless OCR + Auto-Tag &rarr; Webhook &rarr; PRIMA DMS &rarr; Volltext-Suche
+                <div style="font-size:0.78rem; color:#0f766e; background:#ccfbf1; border:1px solid #99f6e4; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Zugang: Navigation &rarr; Sicherheit &rarr; DMS &ndash; Dokumentenmanagement
                 </div>
                 <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
-                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">PostgreSQL Volltext</span>
-                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">OCR (Tesseract)</span>
-                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Auto-Tagging</span>
-                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">AES-128 sensibel</span>
-                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">E-Mail-Scan-Eingang</span>
-                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Paperless-ngx</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">PostgreSQL GIN-Index</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">AES-256-GCM</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">BinaryField (kein FS)</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Paperless-ngx Import</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Audit-Trail</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">2-Klassen-Architektur</span>
                 </div>
-                <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
-                  Self-hosted, keine Cloud, keine Lizenzkosten &mdash; Etagenscanner werden zum automatischen Dokumenten-Eingang.
+                <div class="mt-3" style="font-size:0.75rem; color:#6b7280; font-style:italic;">
+                  Railway-Env: DMS_VERSCHLUESSEL_KEY setzen (64 Hex-Zeichen). Paperless optional: PAPERLESS_URL + PAPERLESS_TOKEN.
                 </div>
               </div>
 

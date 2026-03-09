@@ -32,6 +32,7 @@ urlpatterns = [
     path('bewerbung/', include('bewerbung.urls', namespace='bewerbung')),
     path('stellenportal/', include('stellenportal.urls', namespace='stellenportal')),
     path('betriebssport/', include('betriebssport.urls', namespace='betriebssport')),
+    path('dms/', include('dms.urls', namespace='dms')),
 ]
 
 # Media-Files (nur in Development)
