@@ -374,6 +374,48 @@ def gruppe_anlegen(request):
     return render(request, "betriebssport/gruppe_anlegen.html", context)
 
 
+@login_required
+def gruppe_bearbeiten(request, pk):
+    """Sportgruppe bearbeiten – nur Verantwortlicher oder Staff."""
+    from decimal import Decimal as _Dec
+    gruppe = get_object_or_404(Sportgruppe, pk=pk)
+    hrma = _get_hrma(request)
+
+    if not (_ist_verantwortlicher(gruppe, hrma) or request.user.is_staff):
+        messages.error(request, "Nur der Verantwortliche darf die Gruppe bearbeiten.")
+        return redirect("betriebssport:gruppe_detail", pk=pk)
+
+    if request.method == "POST":
+        gruppe.name = request.POST.get("name", gruppe.name).strip()
+        gruppe.sportart = request.POST.get("sportart", gruppe.sportart)
+        gruppe.wochentag = int(request.POST.get("wochentag", gruppe.wochentag))
+        gruppe.uhrzeit_von = request.POST.get("uhrzeit_von") or None
+        gruppe.uhrzeit_bis = request.POST.get("uhrzeit_bis") or None
+        gruppe.ort_beschreibung = request.POST.get("ort_beschreibung", "").strip()
+        gruppe.beschreibung = request.POST.get("beschreibung", "").strip()
+        gruppe.status = request.POST.get("status", gruppe.status)
+        standort_pk = request.POST.get("standort") or None
+        gruppe.standort_id = standort_pk
+        try:
+            gruppe.gutschrift_stunden = _Dec(
+                request.POST.get("gutschrift_stunden", "1") or "1"
+            )
+        except Exception:
+            pass
+        gruppe.save()
+        messages.success(request, "Gruppe gespeichert.")
+        return redirect("betriebssport:gruppe_detail", pk=pk)
+
+    context = {
+        "gruppe": gruppe,
+        "sportart_choices": Sportgruppe.SPORTART_CHOICES,
+        "wochentag_choices": Sportgruppe.WOCHENTAG_CHOICES,
+        "status_choices": Sportgruppe.STATUS_CHOICES,
+        "standorte": Standort.objects.order_by("name"),
+    }
+    return render(request, "betriebssport/gruppe_bearbeiten.html", context)
+
+
 # ---------------------------------------------------------------------------
 # Views: Mitgliedschaft (HTMX)
 # ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@ urlpatterns = [
     path("", views.uebersicht, name="uebersicht"),
     path("anlegen/", views.gruppe_anlegen, name="gruppe_anlegen"),
     path("<int:pk>/", views.gruppe_detail, name="gruppe_detail"),
+    path("<int:pk>/bearbeiten/", views.gruppe_bearbeiten, name="gruppe_bearbeiten"),
     path("<int:pk>/beitreten/", views.beitreten_toggle, name="beitreten_toggle"),
     path(
         "<int:pk>/einheit/anlegen/",

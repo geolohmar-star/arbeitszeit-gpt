@@ -27,6 +27,7 @@ class SportgruppeAdmin(admin.ModelAdmin):
     ]
     list_filter = ["sportart", "status", "standort"]
     search_fields = ["name", "verantwortlicher__nachname"]
+    autocomplete_fields = ["standort", "verantwortlicher"]
     inlines = [SportgruppeMitgliedInline]
 
     def get_wochentag_display(self, obj):

@@ -91,12 +91,18 @@
             </div>
         </div>
 
-        <!-- Beitreten / Verlassen -->
-        {% if hrma %}
-        <div id="beitreten-bereich">
-            {% include "betriebssport/partials/_beitreten_btn.html" with gruppe=gruppe ist_mitglied=ist_mitglied %}
+        <!-- Aktionen rechts -->
+        <div class="d-flex flex-column align-items-end gap-2">
+            {% if ist_verantwortlicher %}
+            <a href="{% url 'betriebssport:gruppe_bearbeiten' gruppe.pk %}"
+               class="btn btn-outline-secondary btn-sm">Gruppe bearbeiten</a>
+            {% endif %}
+            {% if hrma %}
+            <div id="beitreten-bereich">
+                {% include "betriebssport/partials/_beitreten_btn.html" with gruppe=gruppe ist_mitglied=ist_mitglied %}
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
     </div>
 
     <!-- Monatsnavigation -->

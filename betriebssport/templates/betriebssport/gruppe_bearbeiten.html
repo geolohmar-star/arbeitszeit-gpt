@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ gruppe.name }} bearbeiten – Betriebssport{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 680px;">
+
+    <div class="mb-4">
+        <a href="{% url 'betriebssport:gruppe_detail' gruppe.pk %}"
+           class="btn btn-outline-secondary btn-sm">&larr; Zur Gruppe</a>
+    </div>
+
+    <h3 class="mb-4">Gruppe bearbeiten</h3>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Name</label>
+            <input type="text" name="name" class="form-control" required
+                   value="{{ gruppe.name }}">
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Sportart</label>
+                <select name="sportart" class="form-select">
+                    {% for wert, label in sportart_choices %}
+                    <option value="{{ wert }}" {% if gruppe.sportart == wert %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Wochentag</label>
+                <select name="wochentag" class="form-select">
+                    {% for wert, label in wochentag_choices %}
+                    <option value="{{ wert }}" {% if gruppe.wochentag == wert %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Uhrzeit von</label>
+                <input type="time" name="uhrzeit_von" class="form-control"
+                       value="{{ gruppe.uhrzeit_von|time:'H:i'|default:'' }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Uhrzeit bis</label>
+                <input type="time" name="uhrzeit_bis" class="form-control"
+                       value="{{ gruppe.uhrzeit_bis|time:'H:i'|default:'' }}">
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Standort</label>
+                <select name="standort" class="form-select">
+                    <option value="">– kein Standort –</option>
+                    {% for s in standorte %}
+                    <option value="{{ s.pk }}"
+                            {% if gruppe.standort_id == s.pk %}selected{% endif %}>
+                        {{ s.name }}{% if s.kuerzel %} ({{ s.kuerzel }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">
+                    Standorte werden im <a href="/admin/raumbuch/standort/" target="_blank">Admin</a> verwaltet.
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Ort / Halle</label>
+                <input type="text" name="ort_beschreibung" class="form-control"
+                       value="{{ gruppe.ort_beschreibung }}"
+                       placeholder="z.B. Turnhalle Hauptgebaeude">
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Gutschrift-Stunden pro Einheit</label>
+                <input type="number" name="gutschrift_stunden" class="form-control"
+                       step="0.5" min="0.5" max="2"
+                       value="{{ gruppe.gutschrift_stunden }}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-semibold">Status</label>
+                <select name="status" class="form-select">
+                    {% for wert, label in status_choices %}
+                    <option value="{{ wert }}" {% if gruppe.status == wert %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold">Beschreibung</label>
+            <textarea name="beschreibung" class="form-control" rows="3">{{ gruppe.beschreibung }}</textarea>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Speichern</button>
+            <a href="{% url 'betriebssport:gruppe_detail' gruppe.pk %}"
+               class="btn btn-outline-secondary">Abbrechen</a>
+        </div>
+    </form>
+
+</div>
+{% endblock %}
