@@ -149,17 +149,60 @@ def erstelle_mitarbeiter_zertifikat(user, gueltig_jahre: int = 2) -> bool:
     ).decode()
     fingerprint = zert.fingerprint(hashes.SHA256()).hex()
 
-    MitarbeiterZertifikat.objects.create(
-        user=user,
-        zertifikat_pem=cert_pem,
-        privater_schluessel_pem=key_pem,
-        seriennummer=str(seriennummer),
-        gueltig_von=datetime.date.today(),
-        gueltig_bis=gueltig_bis_dt.date(),
-        fingerprint_sha256=fingerprint,
-        status="aktiv",
+    # Privaten Schluessel sofort verschluesseln wenn Session-Schluessel verfuegbar
+    from signatur.crypto import (
+        get_session_schluessel,
+        leite_schluessel_ab,
+        verschluessele_privaten_schluessel,
     )
-    logger.info("Signatur-Zertifikat automatisch ausgestellt fuer %s.", user.username)
+    dk_hex = get_session_schluessel()
+    if dk_hex:
+        # Session-Schluessel vorhanden → verschluesselt speichern
+        # Wir brauchen das Passwort um zu verschluesseln, aber wir haben nur den abgeleiteten
+        # Schluessel – daher einmalig mit zufaelligem Salt neu ableiten
+        # BESSER: Schluessel direkt als "Passwort" fuer eine zweite Ableitungsrunde nutzen
+        import os as _os
+        salt = _os.urandom(32)
+        nonce = _os.urandom(12)
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        # Den vorhandenen 32-Byte-Schluessel als Verschluesselungsschluessel direkt nutzen
+        aes_schluessel = bytes.fromhex(dk_hex)
+        aesgcm = AESGCM(aes_schluessel)
+        verschluesselt = aesgcm.encrypt(nonce, key_pem.encode("utf-8"), None)
+        MitarbeiterZertifikat.objects.create(
+            user=user,
+            zertifikat_pem=cert_pem,
+            privater_schluessel_pem="",
+            privater_schluessel_verschluesselt=verschluesselt,
+            schluessel_salt=salt.hex(),
+            schluessel_nonce=nonce.hex(),
+            seriennummer=str(seriennummer),
+            gueltig_von=datetime.date.today(),
+            gueltig_bis=gueltig_bis_dt.date(),
+            fingerprint_sha256=fingerprint,
+            status="aktiv",
+        )
+        logger.info(
+            "Signatur-Zertifikat mit verschluesseltem Schluessel ausgestellt fuer %s.",
+            user.username,
+        )
+    else:
+        # Kein Session-Schluessel (z.B. Management-Command) → Plaintext,
+        # wird beim naechsten Login automatisch verschluesselt
+        MitarbeiterZertifikat.objects.create(
+            user=user,
+            zertifikat_pem=cert_pem,
+            privater_schluessel_pem=key_pem,
+            seriennummer=str(seriennummer),
+            gueltig_von=datetime.date.today(),
+            gueltig_bis=gueltig_bis_dt.date(),
+            fingerprint_sha256=fingerprint,
+            status="aktiv",
+        )
+        logger.info(
+            "Signatur-Zertifikat (Plaintext, wird beim Login migriert) ausgestellt fuer %s.",
+            user.username,
+        )
     return True
 
 

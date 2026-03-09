@@ -199,24 +199,67 @@
         {% endif %}
     </div>
 
-    <!-- Unterschriften -->
-    <table class="sign-table">
-        <tr>
-            <td style="width:45%">
-                <div class="sign-line"></div><br>
-                <span style="font-size:8.5pt;">Datum, Unterschrift Antragsteller</span>
-            </td>
-            <td style="width:10%"></td>
-            <td style="width:45%">
-                <div class="sign-line"></div><br>
-                <span style="font-size:8.5pt;">Datum, Unterschrift Genehmiger</span>
-            </td>
-        </tr>
+    {% if workflow_tasks %}
+    <h3 style="font-size:11pt; border-bottom:2px solid #000; padding-bottom:3px; margin:20px 0 8px 0;">Bearbeitungsverlauf</h3>
+    <table style="width:100%; border-collapse:collapse; font-size:9.5pt; margin-bottom:16px;">
+        <thead>
+            <tr style="background:#f0f0f0;">
+                <th style="padding:4px 8px; border:1px solid #ccc; text-align:left;">Schritt</th>
+                <th style="padding:4px 8px; border:1px solid #ccc; text-align:left;">Bearbeiter</th>
+                <th style="padding:4px 8px; border:1px solid #ccc; text-align:left;">Erledigt am</th>
+                <th style="padding:4px 8px; border:1px solid #ccc; text-align:left;">Entscheidung</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in workflow_tasks %}
+            <tr>
+                <td style="padding:4px 8px; border:1px solid #ccc;">{{ task.step.titel }}</td>
+                <td style="padding:4px 8px; border:1px solid #ccc;">
+                    {% if task.erledigt_von %}{{ task.erledigt_von.get_full_name|default:task.erledigt_von.username }}
+                    {% elif task.claimed_von %}{{ task.claimed_von.get_full_name|default:task.claimed_von.username }}
+                    {% else %}–{% endif %}
+                </td>
+                <td style="padding:4px 8px; border:1px solid #ccc;">
+                    {% if task.erledigt_am %}{{ task.erledigt_am|date:"d.m.Y H:i" }}{% else %}<em>ausstehend</em>{% endif %}
+                </td>
+                <td style="padding:4px 8px; border:1px solid #ccc;">
+                    {% if task.entscheidung %}{{ task.get_entscheidung_display }}
+                    {% elif task.status == "erledigt" %}abgeschlossen
+                    {% else %}–{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
+    {% endif %}
+
+    <div style="border:1px solid #ccc; padding:12px; margin-bottom:16px; font-size:9.5pt;">
+        <strong>Digitale Signaturen</strong>
+        <p style="font-size:9pt; color:#555; margin:4px 0 8px 0;">
+            Dieses Dokument ist elektronisch signiert (FES nach eIDAS).
+            Alle Unterzeichner sind im Signatur-Panel des PDF-Readers sichtbar.
+        </p>
+        <table style="width:100%; border-collapse:collapse;">
+            <tr>
+                <td style="width:50%; padding-right:12px; vertical-align:top;">
+                    <strong>Antragsteller</strong><br>
+                    {{ antrag.antragsteller.vorname }} {{ antrag.antragsteller.nachname }}<br>
+                    <span style="color:#555;">Eingereicht: {{ antrag.erstellt_am|date:"d.m.Y" }}</span>
+                </td>
+                {% for task in workflow_tasks %}{% if task.erledigt_am %}
+                <td style="width:50%; padding-left:12px; vertical-align:top;">
+                    <strong>{{ task.step.titel }}</strong><br>
+                    {% if task.erledigt_von %}{{ task.erledigt_von.get_full_name|default:"–" }}{% else %}–{% endif %}<br>
+                    <span style="color:#555;">{{ task.erledigt_am|date:"d.m.Y" }}</span>
+                </td>
+                {% endif %}{% endfor %}
+            </tr>
+        </table>
+    </div>
 
     <div class="footer">
         Automatisch erstellt am {{ now|date:"d.m.Y" }} um {{ now|date:"H:i" }} Uhr.
-        Dieses Dokument ist maschinell erstellt und benoetigt keine handschriftliche Unterschrift, sofern elektronisch genehmigt.
+        Dieses Dokument ist elektronisch signiert (FES nach eIDAS) – keine handschriftliche Unterschrift erforderlich.
     </div>
 
 </body>

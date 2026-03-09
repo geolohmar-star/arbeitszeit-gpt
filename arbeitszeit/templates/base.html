@@ -574,11 +574,15 @@
               </div>
 
               <div style="border:1px solid #e5e7eb; border-top:3px solid #dc2626; border-radius:8px; padding:1rem;">
-                <div class="fw-bold mb-1" style="color:#dc2626;">Digitale Signatur</div>
+                <div class="fw-bold mb-1" style="color:#dc2626;">Digitale Signatur (FES nach eIDAS)</div>
                 <div class="text-muted" style="font-size:0.82rem;">
                   Automatische Signatur aller erzeugten PDFs (WeasyPrint + pyhanko).
-                  PKCS#12-Zertifikate pro Mitarbeiter, CA-Infrastruktur.
-                  Signatur-Protokoll mit Pruefbarkeit. Systemdokumentation als PDF.
+                  PKCS#12-Zertifikate pro Mitarbeiter, interne Root-CA-Infrastruktur.<br>
+                  <strong>Mehrfachsignatur bei Workflow-PDFs:</strong> Jeder Bearbeitungsschritt
+                  (Antragsteller, Vorgesetzter, Team) hinterlaesst eine eigene kryptografische
+                  Signatur im PDF – inkrementell, unveraenderlich, pruefbar im PDF-Reader.
+                  Signatur-Protokoll, PDF-Pruefseite und CA-Importanleitung fuer Windows GPO
+                  unter <em>Sicherheit &rarr; Digitale Signatur</em>.
                 </div>
               </div>
 
@@ -592,11 +596,17 @@
               </div>
 
               <div style="border:1px solid #e5e7eb; border-top:3px solid #dc2626; border-radius:8px; padding:1rem;">
-                <div class="fw-bold mb-1" style="color:#dc2626;">Sensible Dokumente</div>
+                <div class="fw-bold mb-1" style="color:#dc2626;">Sensible Dokumente &amp; Schluesselverwaltung</div>
                 <div class="text-muted" style="font-size:0.82rem;">
-                  Verschluesselter Dokumentenspeicher (AES-128 Fernet) fuer Zeugnisse,
-                  Abschluesse, Reiseunterlagen. Unveraenderbares Zugriffsprotokoll
-                  mit IP, User, Zeitstempel. Kein Klartext in der Datenbank.
+                  <strong>Dokumente:</strong> AES-128 Fernet fuer Zeugnisse, Abschluesse, Reiseunterlagen.
+                  Kein Klartext in der Datenbank. Unveraenderbares Zugriffsprotokoll mit IP, User, Zeitstempel.<br>
+                  <strong>Private Signatur-Schluessel (neu):</strong> Jeder Mitarbeiter-Schluessel wird mit
+                  <em>PBKDF2-HMAC-SHA256</em> (600.000 Iterationen) aus dem Login-Passwort abgeleitet und
+                  mit <em>AES-256-GCM</em> verschluesselt gespeichert.
+                  Der Entschluesselungsschluessel existiert nur waehrend der aktiven Sitzung im Arbeitsspeicher –
+                  nie auf der Festplatte oder in der Datenbank.<br>
+                  <strong>Einordnung:</strong> Ein gestohlener Datenbank-Dump allein reicht nicht aus, um
+                  Signaturen zu faelschen. Dafuer waere zusaetzlich eine aktive Nutzersitzung notwendig.
                 </div>
               </div>
 
@@ -1242,9 +1252,38 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
 
               <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:0.9rem;">
                 <div class="fw-bold mb-1" style="color:#166534; font-size:0.85rem;">Dokument-Verschluesselung</div>
-                <div style="font-size:0.78rem; color:#374151;">AES-128 Fernet auf App-Ebene. Kein Klartext in der DB, auch nicht fuer DB-Admins lesbar.</div>
+                <div style="font-size:0.78rem; color:#374151;">
+                  AES-128 Fernet fuer sensible Dokumente (Zeugnisse, Abschluesse etc.) – kein Klartext in der DB.
+                </div>
                 <div class="mt-2">
                   <span class="badge" style="background:#16a34a; color:white; font-size:0.65rem;">GUT</span>
+                </div>
+              </div>
+
+              <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:0.9rem;">
+                <div class="fw-bold mb-1" style="color:#166534; font-size:0.85rem;">Private Schluessel: PBKDF2 + AES-256-GCM</div>
+                <div style="font-size:0.78rem; color:#374151;">
+                  <strong>Was ist PBKDF2?</strong> Eine Funktion die aus einem Passwort einen
+                  kryptografischen Schluessel erzeugt – absichtlich langsam (600.000 Rechenschritte),
+                  damit Angreifer keine Millionen Passwoerter pro Sekunde ausprobieren koennen.<br><br>
+                  <strong>Was ist AES-256-GCM?</strong> Der aktuelle Goldstandard fuer symmetrische
+                  Verschluesselung. 256-Bit-Schluessel, gilt als quantencomputer-resistent.
+                  GCM stellt zusaetzlich sicher, dass der verschluesselte Inhalt nicht unbemerkt
+                  veraendert werden kann (Integritaetsschutz).<br><br>
+                  <strong>Wie funktioniert es hier?</strong> Der private Signierschluessel jedes
+                  Mitarbeiters liegt verschluesselt in der Datenbank. Der Entschluesselungsschluessel
+                  wird beim Login aus dem Passwort abgeleitet und nur fuer die Dauer der Sitzung
+                  im Arbeitsspeicher gehalten. Nach dem Logout: weg. Passwort aendern: Schluessel
+                  wird automatisch neu verschluesselt.<br><br>
+                  <strong>Sicherheitseinordnung:</strong><br>
+                  &bull; DB-Dump gestohlen &rarr; nutzlos (verschluesselte Blobs ohne Schluessel)<br>
+                  &bull; Server kompromittiert &rarr; nutzlos ohne aktive Nutzersitzung<br>
+                  &bull; Aktive Sitzung + DB &rarr; Entschluesselung moeglich (Normalbetrieb)<br>
+                  Vergleichbar mit: Signal Messenger, Passwortmanager (1Password, Bitwarden)
+                </div>
+                <div class="mt-2">
+                  <span class="badge" style="background:#16a34a; color:white; font-size:0.65rem;">STARK</span>
+                  <span class="badge ms-1" style="background:#0d6efd; color:white; font-size:0.65rem;">QUANTENRESISTENT</span>
                 </div>
               </div>
 

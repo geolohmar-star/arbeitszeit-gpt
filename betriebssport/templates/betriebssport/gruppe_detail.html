@@ -63,6 +63,10 @@
         font-weight: 600;
         border-top: 2px solid #a0c4d8;
     }
+    @keyframes pulse-badge {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
 </style>
 {% endblock %}
 
@@ -261,6 +265,57 @@
             <p class="text-muted small mb-2">Noch keine Gutschrift fuer diesen Monat.</p>
             <a href="{% url 'betriebssport:gutschrift_monat' gruppe.pk monat|date:'Y-m' %}"
                class="btn btn-outline-primary btn-sm">Gutschrift vorbereiten</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Workflow-Status -->
+    {% if workflow_tasks %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-light fw-semibold">
+            Bearbeitungsstatus – {{ monat|date:"F Y" }}
+            {% if workflow_instanz %}
+            <span class="badge
+                {% if workflow_instanz.status == 'abgeschlossen' %}bg-success
+                {% elif workflow_instanz.status == 'abgebrochen' %}bg-danger
+                {% else %}bg-primary{% endif %} ms-2">
+                {{ workflow_instanz.get_status_display }}
+            </span>
+            {% endif %}
+        </div>
+        <div class="card-body py-3">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                {% for task in workflow_tasks %}
+                <div class="d-flex align-items-center gap-1">
+                    {% if task.status == 'erledigt' %}
+                    <span class="badge bg-success px-2 py-2">
+                        &#10003; {{ task.step.titel }}
+                    </span>
+                    {% elif task.status == 'offen' or task.status == 'in_bearbeitung' %}
+                    <span class="badge bg-primary px-2 py-2" style="animation: pulse-badge 1.5s infinite;">
+                        &#8987; {{ task.step.titel }}
+                        {% if task.zugewiesen_an_team %}
+                        <span class="ms-1 opacity-75">({{ task.zugewiesen_an_team.name }})</span>
+                        {% elif task.zugewiesen_an_stelle %}
+                        <span class="ms-1 opacity-75">({{ task.zugewiesen_an_stelle.bezeichnung }})</span>
+                        {% endif %}
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary px-2 py-2 opacity-50">
+                        &#9711; {{ task.step.titel }}
+                    </span>
+                    {% endif %}
+                    {% if not forloop.last %}
+                    <span class="text-muted">&rsaquo;</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% if workflow_instanz and workflow_instanz.status == 'laufend' %}
+            <p class="text-muted small mb-0 mt-2">
+                Gestartet am {{ workflow_instanz.gestartet_am|date:"d.m.Y H:i" }} Uhr
+            </p>
             {% endif %}
         </div>
     </div>

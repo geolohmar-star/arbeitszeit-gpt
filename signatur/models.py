@@ -38,10 +38,33 @@ class MitarbeiterZertifikat(models.Model):
         related_name="signatur_zertifikat",
     )
     zertifikat_pem = models.TextField(verbose_name="Zertifikat (PEM)")
-    # Privater Schluessel wird verschluesselt gespeichert
+
+    # Privater Schluessel – Plaintext (wird bei erstem Login automatisch geleert)
+    # Dient als Migrations-Feld: leer = Schluessel wurde bereits verschluesselt
     privater_schluessel_pem = models.TextField(
-        verbose_name="Privater Schluessel (PEM, verschluesselt)"
+        verbose_name="Privater Schluessel (PEM, Plaintext – wird migriert)",
+        blank=True,
     )
+
+    # Verschluesselter privater Schluessel (AES-256-GCM + PBKDF2)
+    privater_schluessel_verschluesselt = models.BinaryField(
+        null=True,
+        blank=True,
+        verbose_name="Privater Schluessel (AES-256-GCM verschluesselt)",
+    )
+    # PBKDF2-Salt (hex, 32 Bytes = 64 Zeichen)
+    schluessel_salt = models.CharField(
+        max_length=64,
+        blank=True,
+        verbose_name="Schluessel-Salt (PBKDF2, hex)",
+    )
+    # AES-GCM Nonce (hex, 12 Bytes = 24 Zeichen)
+    schluessel_nonce = models.CharField(
+        max_length=24,
+        blank=True,
+        verbose_name="Schluessel-Nonce (AES-GCM, hex)",
+    )
+
     seriennummer = models.CharField(max_length=100, unique=True)
     ausgestellt_am = models.DateTimeField(auto_now_add=True)
     gueltig_von = models.DateField()
@@ -61,6 +84,11 @@ class MitarbeiterZertifikat(models.Model):
     def ist_gueltig(self):
         from datetime import date
         return self.status == "aktiv" and self.gueltig_von <= date.today() <= self.gueltig_bis
+
+    @property
+    def key_ist_verschluesselt(self) -> bool:
+        """True wenn der private Schluessel mit PBKDF2+AES-256-GCM geschuetzt ist."""
+        return bool(self.schluessel_salt and self.privater_schluessel_verschluesselt)
 
 
 class SignaturJob(models.Model):

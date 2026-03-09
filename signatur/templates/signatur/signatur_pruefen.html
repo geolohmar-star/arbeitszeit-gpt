@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}PDF-Signaturpruefung{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 760px;">
+
+    <div class="mb-3">
+        <a href="{% url 'signatur:dashboard' %}" class="btn btn-outline-secondary btn-sm">&larr; Signatur-Dashboard</a>
+    </div>
+
+    <h3 class="mb-1">PDF-Signaturpruefung</h3>
+    <p class="text-muted small mb-4">Lade eine PDF-Datei hoch um die enthaltenen digitalen Signaturen zu pruefen.</p>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" class="d-flex align-items-end gap-3">
+                {% csrf_token %}
+                <div class="flex-grow-1">
+                    <label class="form-label fw-semibold mb-1">PDF-Datei auswaehlen</label>
+                    <input type="file" name="pdf_datei" accept=".pdf" class="form-control" required>
+                    <div class="form-text">Max. 20 MB &middot; nur PDF-Dateien</div>
+                </div>
+                <button type="submit" class="btn btn-primary">Pruefen</button>
+            </form>
+        </div>
+    </div>
+
+    {% if fehler %}
+    <div class="alert alert-warning">
+        <strong>Hinweis:</strong> {{ fehler }}
+    </div>
+    {% endif %}
+
+    {% if dateiname %}
+    <h5 class="mb-3">Ergebnis fuer: <code>{{ dateiname }}</code></h5>
+
+    {% if signaturen %}
+    {% for sig in signaturen %}
+    <div class="card mb-3 border-{% if sig.unveraendert %}success{% elif sig.unveraendert == False %}danger{% else %}secondary{% endif %}">
+        <div class="card-header d-flex justify-content-between align-items-center
+            bg-{% if sig.unveraendert %}success{% elif sig.unveraendert == False %}danger{% else %}secondary{% endif %} text-white">
+            <strong>Signatur {{ forloop.counter }}</strong>
+            {% if sig.unveraendert %}
+            <span class="badge bg-light text-success fw-semibold">GUELTIG &amp; UNVERAENDERT</span>
+            {% elif sig.unveraendert == False %}
+            <span class="badge bg-light text-danger fw-semibold">DOKUMENT VERAENDERT</span>
+            {% else %}
+            <span class="badge bg-light text-secondary fw-semibold">NICHT GEPRUEFT</span>
+            {% endif %}
+        </div>
+        <div class="card-body py-3">
+            <table class="table table-sm mb-0">
+                <tbody>
+                    <tr>
+                        <th style="width:35%;" class="text-muted fw-normal small">Unterzeichner</th>
+                        <td><strong>{{ sig.unterzeichner }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal small">Zeitstempel</th>
+                        <td>
+                            {% if sig.zeitstempel %}
+                                {{ sig.zeitstempel }}
+                            {% else %}
+                                <span class="text-muted">–</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal small">Aussteller (CA)</th>
+                        <td>{{ sig.aussteller }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted fw-normal small">Zertifikat-Seriennr.</th>
+                        <td><code class="small">{{ sig.seriennummer }}</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="alert alert-light border small mt-3">
+        <strong>Hinweis zur Vertrauenskette:</strong>
+        Signaturen mit unserer internen Root-CA werden hier als geprueft angezeigt.
+        In Adobe Acrobat erscheinen sie als "unbekannt", bis das Root-CA-Zertifikat
+        im Windows-Zertifikatspeicher installiert ist.
+        {% if request.user.is_staff %}
+        <a href="{% url 'signatur:ca_anleitung_pdf' %}">IT-Anleitung als PDF herunterladen</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -78,7 +78,8 @@ SIGNATUR_SIGN_ME_TIMEOUT = 30
 
 AUTHENTICATION_BACKENDS = [
     'axes.backends.AxesStandaloneBackend',
-    'django.contrib.auth.backends.ModelBackend',
+    # Erbt von ModelBackend + verwaltet PBKDF2-Signatur-Schluessel beim Login
+    'signatur.auth_backend.SignaturAuthBackend',
     'guardian.backends.ObjectPermissionBackend',
 ]
 
@@ -93,6 +94,8 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'axes.middleware.AxesMiddleware',
+    # Stellt PBKDF2-Signatur-Schluessel aus Session im Thread-Local bereit
+    'signatur.middleware.SignaturKeyMiddleware',
     'config.middleware.CSPMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

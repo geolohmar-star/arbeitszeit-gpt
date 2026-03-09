@@ -129,6 +129,62 @@ def _signiere_pdf_sicher(pdf_bytes, user, dokument_name, **meta_kwargs):
         return pdf_bytes
 
 
+def _sammle_workflow_unterzeichner(antrag, antragsteller_user):
+    """Gibt geordnete Liste aller Unterzeichner fuer ein Workflow-Antrag-PDF zurueck.
+
+    Reihenfolge: Antragsteller zuerst, dann alle erledigten Workflow-Task-Bearbeiter
+    in Schritt-Reihenfolge. Jeder User nur einmal (Duplikate werden entfernt).
+
+    Verwendung in jedem mehrstufigen Workflow-PDF-View:
+        unterzeichner = _sammle_workflow_unterzeichner(antrag, antrag.antragsteller.user)
+        for i, user in enumerate(unterzeichner):
+            pdf_bytes = _signiere_pdf_sicher(pdf_bytes, user, dateiname)
+    """
+    unterzeichner = []
+    if antragsteller_user:
+        unterzeichner.append(antragsteller_user)
+
+    try:
+        instanz = getattr(antrag, "workflow_instance", None)
+        if instanz:
+            from workflow.models import WorkflowTask
+            erledigte = (
+                WorkflowTask.objects
+                .filter(instance=instanz, status="erledigt")
+                .select_related("erledigt_von", "step")
+                .order_by("step__reihenfolge")
+            )
+            for task in erledigte:
+                if task.erledigt_von and task.erledigt_von not in unterzeichner:
+                    unterzeichner.append(task.erledigt_von)
+    except Exception as exc:
+        logger.warning("Workflow-Unterzeichner konnten nicht ermittelt werden: %s", exc)
+
+    return unterzeichner
+
+
+def _signiere_pdf_alle_unterzeichner(pdf_bytes, unterzeichner, dateiname):
+    """Signiert ein PDF inkrementell fuer jeden Unterzeichner in der Liste.
+
+    Gibt das (mehrfach-)signierte PDF zurueck. Einzelne Signatur-Fehler
+    werden geloggt aber nicht weitergeworfen, damit das PDF immer ausgeliefert wird.
+    """
+    from signatur.services import signiere_pdf
+    for i, user in enumerate(unterzeichner):
+        try:
+            pdf_bytes = signiere_pdf(
+                pdf_bytes,
+                user,
+                dokument_name=dateiname,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Signatur von %s fehlgeschlagen (Unterzeichner %s/%s, Dokument '%s'): %s",
+                user.username, i + 1, len(unterzeichner), dateiname, exc,
+            )
+    return pdf_bytes
+
+
 def _hole_antrag_signatur(content_type_str, object_id):
     """Gibt das SignaturProtokoll fuer einen Antrag zurueck (oder None)."""
     try:
@@ -699,12 +755,23 @@ def aenderung_pdf(request, pk):
         antrag.erstellt_am.date(),
     )
 
+    workflow_tasks = []
+    if antrag.workflow_instance:
+        from workflow.models import WorkflowTask
+        workflow_tasks = list(
+            WorkflowTask.objects
+            .filter(instance=antrag.workflow_instance)
+            .select_related("step", "erledigt_von")
+            .order_by("step__reihenfolge")
+        )
+
     html_string = render_to_string(
         "formulare/pdf/aenderung_zeiterfassung_pdf.html",
         {
             "antrag": antrag,
             "vereinbarung": vereinbarung,
             "betreff": antrag.get_betreff(),
+            "workflow_tasks": workflow_tasks,
         },
         request=request,
     )
@@ -713,7 +780,8 @@ def aenderung_pdf(request, pk):
         base_url=request.build_absolute_uri(),
     ).write_pdf()
     dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
-    pdf = _signiere_pdf_sicher(pdf, request.user, dateiname)
+    unterzeichner = _sammle_workflow_unterzeichner(antrag, antrag.antragsteller.user)
+    pdf = _signiere_pdf_alle_unterzeichner(pdf, unterzeichner, dateiname)
 
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{dateiname}"'
@@ -1117,6 +1185,16 @@ def zag_pdf(request, pk):
         if tage:
             gesamt_tage += tage
 
+    workflow_tasks = []
+    if antrag.workflow_instance:
+        from workflow.models import WorkflowTask
+        workflow_tasks = list(
+            WorkflowTask.objects
+            .filter(instance=antrag.workflow_instance)
+            .select_related("step", "erledigt_von")
+            .order_by("step__reihenfolge")
+        )
+
     html_string = render_to_string(
         "formulare/pdf/zag_pdf.html",
         {
@@ -1124,6 +1202,7 @@ def zag_pdf(request, pk):
             "betreff": antrag.get_betreff(),
             "zag_daten_mit_tagen": zag_daten_mit_tagen,
             "gesamt_tage": gesamt_tage,
+            "workflow_tasks": workflow_tasks,
         },
         request=request,
     )
@@ -1132,7 +1211,8 @@ def zag_pdf(request, pk):
         base_url=request.build_absolute_uri(),
     ).write_pdf()
     dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
-    pdf = _signiere_pdf_sicher(pdf, request.user, dateiname)
+    unterzeichner = _sammle_workflow_unterzeichner(antrag, antrag.antragsteller.user)
+    pdf = _signiere_pdf_alle_unterzeichner(pdf, unterzeichner, dateiname)
 
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{dateiname}"'
@@ -1424,11 +1504,22 @@ def zag_storno_pdf(request, pk):
     if not (ist_antragsteller or ist_staff or ist_genehmiger or ist_team):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden("Keine Berechtigung fuer diesen Antrag.")
+    workflow_tasks = []
+    if antrag.workflow_instance:
+        from workflow.models import WorkflowTask
+        workflow_tasks = list(
+            WorkflowTask.objects
+            .filter(instance=antrag.workflow_instance)
+            .select_related("step", "erledigt_von")
+            .order_by("step__reihenfolge")
+        )
+
     html_string = render_to_string(
         "formulare/pdf/zag_storno_pdf.html",
         {
             "antrag": antrag,
             "betreff": antrag.get_betreff(),
+            "workflow_tasks": workflow_tasks,
         },
         request=request,
     )
@@ -1437,7 +1528,8 @@ def zag_storno_pdf(request, pk):
         base_url=request.build_absolute_uri(),
     ).write_pdf()
     dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
-    pdf = _signiere_pdf_sicher(pdf, request.user, dateiname)
+    unterzeichner = _sammle_workflow_unterzeichner(antrag, antrag.antragsteller.user)
+    pdf = _signiere_pdf_alle_unterzeichner(pdf, unterzeichner, dateiname)
 
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{dateiname}"'
@@ -1515,6 +1607,7 @@ def _get_queue_task_aus_request(request, content_object):
     Gibt den WorkflowTask zurueck oder None.
     """
     from workflow.models import WorkflowTask
+    from django.contrib.contenttypes.models import ContentType
 
     queue_task_pk = request.GET.get("queue_task")
     if not queue_task_pk:
@@ -2924,6 +3017,16 @@ def zeitgutschrift_pdf(request, pk):
         from weasyprint import HTML
         import datetime as dt
 
+        zg_workflow_tasks = []
+        if antrag.workflow_instance:
+            from workflow.models import WorkflowTask
+            zg_workflow_tasks = list(
+                WorkflowTask.objects
+                .filter(instance=antrag.workflow_instance)
+                .select_related("step", "erledigt_von")
+                .order_by("step__reihenfolge")
+            )
+
         html_string = render_to_string(
             "formulare/pdf/zeitgutschrift_pdf.html",
             {
@@ -2932,13 +3035,16 @@ def zeitgutschrift_pdf(request, pk):
                 "tagebuch_tage": tagebuch_tage,
                 "tagebuch_gesamt_min": tagebuch_gesamt_min,
                 "tagebuch_gesamt_hmin": tagebuch_gesamt_hmin,
+                "workflow_tasks": zg_workflow_tasks,
                 "now": dt.datetime.now(),
             },
         )
 
         html = HTML(string=html_string, base_url=request.build_absolute_uri())
         pdf = html.write_pdf()
-        pdf = _signiere_pdf_sicher(pdf, request.user, f"zeitgutschrift_{antrag.id}.pdf")
+        dateiname_zg = f"zeitgutschrift_{antrag.id}.pdf"
+        unterzeichner_zg = _sammle_workflow_unterzeichner(antrag, antrag.antragsteller.user)
+        pdf = _signiere_pdf_alle_unterzeichner(pdf, unterzeichner_zg, dateiname_zg)
 
         response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = (
@@ -3497,6 +3603,16 @@ def dienstreise_pdf(request, pk):
         status__in=["beantragt", "genehmigt", "in_bearbeitung", "erledigt"]
     ).first()
 
+    dr_workflow_tasks = []
+    if antrag.workflow_instance:
+        from workflow.models import WorkflowTask
+        dr_workflow_tasks = list(
+            WorkflowTask.objects
+            .filter(instance=antrag.workflow_instance)
+            .select_related("step", "erledigt_von")
+            .order_by("step__reihenfolge")
+        )
+
     try:
         from weasyprint import HTML
         import datetime as dt
@@ -3509,15 +3625,18 @@ def dienstreise_pdf(request, pk):
                 "gesamt_min": gesamt_min,
                 "gesamt_hmin": gesamt_hmin,
                 "reisezeit_gutschrift": reisezeit_gutschrift,
+                "workflow_tasks": dr_workflow_tasks,
                 "now": dt.datetime.now(),
             },
         )
         html = HTML(string=html_string, base_url=request.build_absolute_uri())
         pdf = html.write_pdf()
-        pdf = _signiere_pdf_sicher(pdf, request.user, f"dienstreise_{antrag.pk}_{antrag.ziel}.pdf")
+        dateiname_dr = f"dienstreise_{antrag.pk}_{antrag.ziel}.pdf"
+        unterzeichner_dr = _sammle_workflow_unterzeichner(antrag, antrag.antragsteller.user)
+        pdf = _signiere_pdf_alle_unterzeichner(pdf, unterzeichner_dr, dateiname_dr)
         response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = (
-            f'inline; filename="dienstreise_{antrag.pk}_{antrag.ziel}.pdf"'
+            f'inline; filename="{dateiname_dr}"'
         )
         return response
     except ImportError:

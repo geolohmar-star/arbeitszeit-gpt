@@ -24,6 +24,13 @@
           <tr><th>Gueltig bis</th><td>{{ zertifikat.gueltig_bis }}</td></tr>
           <tr><th>Fingerprint (SHA-256)</th><td><code style="font-size:0.75rem;">{{ zertifikat.fingerprint_sha256 }}</code></td></tr>
           <tr><th>Ausgestellt am</th><td>{{ zertifikat.ausgestellt_am }}</td></tr>
+          <tr><th>Schluessel-Schutz</th><td>
+            {% if zertifikat.key_ist_verschluesselt %}
+              <span class="badge bg-success">PBKDF2 + AES-256-GCM</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">Plaintext – wird beim naechsten Login migriert</span>
+            {% endif %}
+          </td></tr>
         </table>
       {% else %}
         <div class="alert alert-warning mb-0">
@@ -81,10 +88,21 @@
   </div>
 
   <!-- Links -->
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'signatur:signatur_pruefen' %}" class="btn btn-outline-primary">
+      PDF-Signatur pruefen
+    </a>
     <a href="{% url 'signatur:dokumentation_pdf' %}" target="_blank" class="btn btn-outline-secondary">
       Systemdokumentation (PDF)
     </a>
+    {% if request.user.is_staff %}
+    <a href="{% url 'signatur:ca_anleitung_pdf' %}" class="btn btn-outline-secondary">
+      CA-Importanleitung (PDF)
+    </a>
+    <a href="{% url 'signatur:ca_zertifikat_download' %}" class="btn btn-outline-secondary">
+      ca_root.cer herunterladen
+    </a>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

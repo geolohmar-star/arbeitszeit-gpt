@@ -255,31 +255,65 @@
     </div>
     {% endif %}
 
-    <!-- Genehmigung -->
+    <!-- Bearbeitungsverlauf -->
+    {% if workflow_tasks %}
     <div class="genehmigung-box">
-        <div class="abschnitt-titel">Genehmigung</div>
-        <table style="width:100%">
+        <div class="abschnitt-titel">Bearbeitungsverlauf</div>
+        <table style="width:100%; border-collapse:collapse; font-size:9.5pt;">
+            <thead>
+                <tr style="background:#f0f0f0;">
+                    <th style="padding:4px 8px; border:1px solid #ccc; text-align:left;">Schritt</th>
+                    <th style="padding:4px 8px; border:1px solid #ccc; text-align:left;">Bearbeiter</th>
+                    <th style="padding:4px 8px; border:1px solid #ccc; text-align:left;">Erledigt am</th>
+                    <th style="padding:4px 8px; border:1px solid #ccc; text-align:left;">Entscheidung</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in workflow_tasks %}
+                <tr>
+                    <td style="padding:4px 8px; border:1px solid #ccc;">{{ task.step.titel }}</td>
+                    <td style="padding:4px 8px; border:1px solid #ccc;">
+                        {% if task.erledigt_von %}{{ task.erledigt_von.get_full_name|default:task.erledigt_von.username }}
+                        {% elif task.claimed_von %}{{ task.claimed_von.get_full_name|default:task.claimed_von.username }}
+                        {% else %}–{% endif %}
+                    </td>
+                    <td style="padding:4px 8px; border:1px solid #ccc;">
+                        {% if task.erledigt_am %}{{ task.erledigt_am|date:"d.m.Y H:i" }}
+                        {% else %}<em>ausstehend</em>{% endif %}
+                    </td>
+                    <td style="padding:4px 8px; border:1px solid #ccc;">
+                        {% if task.entscheidung %}{{ task.get_entscheidung_display }}
+                        {% elif task.status == "erledigt" %}abgeschlossen
+                        {% else %}–{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Digitale Signaturen -->
+    <div class="genehmigung-box">
+        <div class="abschnitt-titel">Digitale Signaturen</div>
+        <p style="font-size:9pt; color:#555; margin-bottom:8px;">
+            Dieses Dokument ist elektronisch signiert (FES nach eIDAS).
+            Alle Unterzeichner sind im Signatur-Panel des PDF-Readers sichtbar.
+        </p>
+        <table style="width:100%; border-collapse:collapse; font-size:9.5pt;">
             <tr>
-                <td>
-                    Genehmigt Vorgesetzter:<br>
-                    <div class="genehmigung-zeile">
-                        {% if antrag.bearbeitet_von %}
-                            <strong>{{ antrag.bearbeitet_von.get_full_name|default:antrag.bearbeitet_von.username }}</strong>
-                        {% else %}
-                            &nbsp;
-                        {% endif %}
-                    </div>
+                <td style="width:50%; padding-right:12px; vertical-align:top;">
+                    <strong>Antragsteller</strong><br>
+                    {{ antrag.antragsteller.vorname }} {{ antrag.antragsteller.nachname }}<br>
+                    <span style="color:#555;">Eingereicht: {{ antrag.erstellt_am|date:"d.m.Y" }}</span>
                 </td>
-                <td>
-                    Datum der Genehmigung:<br>
-                    <div class="genehmigung-zeile">
-                        {% if antrag.bearbeitet_am %}
-                            <strong>{{ antrag.bearbeitet_am|date:"d.m.Y" }}</strong>
-                        {% else %}
-                            &nbsp;
-                        {% endif %}
-                    </div>
+                {% for task in workflow_tasks %}{% if task.erledigt_am %}
+                <td style="width:50%; padding-left:12px; vertical-align:top;">
+                    <strong>{{ task.step.titel }}</strong><br>
+                    {% if task.erledigt_von %}{{ task.erledigt_von.get_full_name|default:"–" }}{% else %}–{% endif %}<br>
+                    <span style="color:#555;">{{ task.erledigt_am|date:"d.m.Y" }}</span>
                 </td>
+                {% endif %}{% endfor %}
             </tr>
         </table>
     </div>

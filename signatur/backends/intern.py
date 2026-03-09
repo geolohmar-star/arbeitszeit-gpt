@@ -144,7 +144,7 @@ class InternBackend:
 
             r = PdfFileReader(io.BytesIO(pdf_bytes))
             signaturen = []
-            for sig in validation.list_embedded_signatures(r):
+            for sig in r.embedded_signatures:
                 status = validation.validate_pdf_signature(sig)
                 signaturen.append({
                     "unterzeichner": sig.signer_reported_dt or "Unbekannt",
@@ -195,9 +195,26 @@ class InternBackend:
             _, _, der = asn1pem.unarmor(pem_bytes)
             return asn1keys.PrivateKeyInfo.load(der)
 
+        # Privaten Schluessel entschluesseln (PBKDF2+AES-256-GCM via Session-Schluessel)
+        from signatur.crypto import privaten_schluessel_aus_session
+        privater_schluessel_pem = privaten_schluessel_aus_session(zert)
+
+        if privater_schluessel_pem is None:
+            # Fallback: Plaintext-Feld (Migration noch nicht abgeschlossen)
+            privater_schluessel_pem = zert.privater_schluessel_pem
+            if not privater_schluessel_pem:
+                raise ValueError(
+                    f"Kein entschluesselter privater Schluessel verfuegbar fuer {user.get_full_name()}. "
+                    "Bitte neu einloggen damit der Schluessel entschluesselt werden kann."
+                )
+            logger.warning(
+                "Signatur mit Plaintext-Schluessel fuer %s – Migration ausstehend.",
+                user.username,
+            )
+
         # Zertifikat + Schluessel als asn1crypto laden (pyhanko 0.34 Anforderung)
         cert = _lade_asn1_cert(zert.zertifikat_pem)
-        privkey = _lade_asn1_privkey(zert.privater_schluessel_pem)
+        privkey = _lade_asn1_privkey(privater_schluessel_pem)
 
         # Root-CA-Kette laden
         from signatur.models import RootCA
@@ -215,6 +232,11 @@ class InternBackend:
         reader = PdfFileReader(io.BytesIO(pdf_bytes))
         writer = IncrementalPdfFileWriter(io.BytesIO(pdf_bytes))
 
+        # Anzahl vorhandener Signaturen ermitteln → eindeutigen Feldnamen vergeben
+        vorhandene = len(list(reader.embedded_signatures))
+        feld_nr = vorhandene + 1
+        feld_name = f"Signatur_{feld_nr}"
+
         # Metadaten
         rolle = ""
         try:
@@ -231,21 +253,25 @@ class InternBackend:
             reason += f" ({rolle})"
 
         meta = PdfSignatureMetadata(
-            field_name="Signatur",
+            field_name=feld_name,
             reason=reason,
             location=location,
             contact_info=contact,
         )
 
         # Signaturfeldposition (sichtbarer Stempel)
+        # Jede Signatur bekommt einen eigenen Bereich nebeneinander (je 170pt breit)
         sig_field_spec = None
         if sichtbar:
             total_pages = reader.root["/Pages"]["/Count"]
             zielseite = int(total_pages) - 1 if seite < 0 else min(seite, int(total_pages) - 1)
+            # Stempel nebeneinander: Signatur_1 links, _2 mitte, _3 rechts
+            x_start = 30 + (feld_nr - 1) * 175
+            x_end = x_start + 165
             sig_field_spec = fields.SigFieldSpec(
-                sig_field_name="Signatur",
+                sig_field_name=feld_name,
                 on_page=zielseite,
-                box=(30, 30, 280, 90),
+                box=(x_start, 30, x_end, 90),
             )
             fields.append_signature_field(writer, sig_field_spec)
 

@@ -243,15 +243,15 @@
         <tr>
             <td>{{ task.step.titel }}</td>
             <td>
-                {% if task.bearbeitet_von %}
-                    {{ task.bearbeitet_von.get_full_name|default:task.bearbeitet_von.username }}
+                {% if task.erledigt_von %}
+                    {{ task.erledigt_von.get_full_name|default:task.erledigt_von.username }}
                 {% elif task.claimed_von %}
                     {{ task.claimed_von.get_full_name|default:task.claimed_von.username }}
                 {% else %}–{% endif %}
             </td>
             <td>
-                {% if task.abgeschlossen_am %}
-                    <span class="status-ok">{{ task.abgeschlossen_am|date:"d.m.Y H:i" }}</span>
+                {% if task.erledigt_am %}
+                    <span class="status-ok">{{ task.erledigt_am|date:"d.m.Y H:i" }}</span>
                 {% else %}
                     <span class="status-offen">ausstehend</span>
                 {% endif %}
@@ -284,14 +284,14 @@
             <div class="sig-line">
                 <div class="name">Zeitgutschriften-Team (ZG)</div>
                 <div class="rolle">Fachliche Pruefung</div>
-                {% for task in workflow_tasks %}{% if "ZG" in task.step.titel or "pruefen" in task.step.titel|lower and "ZG" in task.step.titel %}{% if task.abgeschlossen_am %}<div class="sig-done">Geprueft {{ task.abgeschlossen_am|date:"d.m.Y" }}</div>{% endif %}{% endif %}{% endfor %}
+                {% for task in workflow_tasks %}{% if "ZG" in task.step.titel %}{% if task.erledigt_am %}<div class="sig-done">Geprueft {{ task.erledigt_am|date:"d.m.Y" }}{% if task.erledigt_von %} – {{ task.erledigt_von.get_full_name }}{% endif %}</div>{% endif %}{% endif %}{% endfor %}
             </div>
         </div>
         <div class="sig-col">
             <div class="sig-line">
                 <div class="name">Zeiterfassung / ZA-Team</div>
                 <div class="rolle">Buchung in Zeiterfassung</div>
-                {% for task in workflow_tasks %}{% if "ZA" in task.step.titel or "buchen" in task.step.titel|lower %}{% if task.abgeschlossen_am %}<div class="sig-done">Gebucht {{ task.abgeschlossen_am|date:"d.m.Y" }}</div>{% endif %}{% endif %}{% endfor %}
+                {% for task in workflow_tasks %}{% if "ZA" in task.step.titel %}{% if task.erledigt_am %}<div class="sig-done">Gebucht {{ task.erledigt_am|date:"d.m.Y" }}{% if task.erledigt_von %} – {{ task.erledigt_von.get_full_name }}{% endif %}</div>{% endif %}{% endif %}{% endfor %}
             </div>
         </div>
     </div>

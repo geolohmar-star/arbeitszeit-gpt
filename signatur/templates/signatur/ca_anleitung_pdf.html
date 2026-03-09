@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Root-CA Importanleitung – Windows Gruppenrichtlinie</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        font-size: 10pt;
+        margin: 2cm 2.5cm;
+        color: #222;
+    }
+    h1 { font-size: 17pt; margin: 0 0 0.2cm 0; }
+    h2 {
+        font-size: 12pt;
+        margin: 0.9cm 0 0.3cm 0;
+        border-bottom: 2px solid #0d6efd;
+        padding-bottom: 3px;
+        color: #0d4fa8;
+    }
+    h3 { font-size: 10.5pt; margin: 0.5cm 0 0.15cm 0; color: #333; }
+
+    .header-box {
+        border: 1.5px solid #333;
+        padding: 0.4cm 0.6cm;
+        margin-bottom: 0.8cm;
+    }
+    .header-meta { font-size: 8.5pt; color: #666; margin-top: 0.2cm; }
+
+    .hinweis {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-left: 4px solid #ffc107;
+        padding: 0.3cm 0.5cm;
+        margin: 0.4cm 0;
+        font-size: 9.5pt;
+    }
+    .info {
+        background: #e7f1ff;
+        border: 1px solid #b8d0f7;
+        border-left: 4px solid #0d6efd;
+        padding: 0.3cm 0.5cm;
+        margin: 0.4cm 0;
+        font-size: 9.5pt;
+    }
+    .erfolg {
+        background: #eaf7ea;
+        border: 1px solid #4caf50;
+        border-left: 4px solid #4caf50;
+        padding: 0.3cm 0.5cm;
+        margin: 0.4cm 0;
+        font-size: 9.5pt;
+    }
+
+    ol { margin: 0.2cm 0 0.3cm 0; padding-left: 1.3cm; }
+    ol li { margin-bottom: 0.2cm; line-height: 1.5; }
+    ul { margin: 0.1cm 0 0.2cm 0; padding-left: 1.3cm; }
+    ul li { margin-bottom: 0.1cm; }
+
+    code, .pfad {
+        font-family: "Courier New", monospace;
+        font-size: 9pt;
+        background: #f0f0f0;
+        padding: 0.05cm 0.15cm;
+        border-radius: 2px;
+    }
+    .cmd-block {
+        font-family: "Courier New", monospace;
+        font-size: 9pt;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 0.3cm 0.5cm;
+        margin: 0.2cm 0;
+        border-radius: 3px;
+        white-space: pre;
+    }
+
+    .schritt-nr {
+        display: inline-block;
+        width: 1.4em;
+        height: 1.4em;
+        background: #0d6efd;
+        color: white;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 1.4em;
+        font-weight: bold;
+        font-size: 9pt;
+        margin-right: 0.2cm;
+    }
+    .schritt-zeile {
+        margin: 0.35cm 0 0.1cm 0;
+        font-weight: bold;
+        font-size: 10pt;
+    }
+    .schritt-inhalt {
+        margin-left: 1.6cm;
+        font-size: 9.5pt;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0.3cm 0;
+        font-size: 9pt;
+    }
+    th {
+        background: #e8eef8;
+        border: 1px solid #aaa;
+        padding: 0.15cm 0.3cm;
+        text-align: left;
+    }
+    td { border: 1px solid #ccc; padding: 0.15cm 0.3cm; }
+
+    .footer {
+        position: fixed;
+        bottom: 1cm;
+        left: 2.5cm;
+        right: 2.5cm;
+        font-size: 7.5pt;
+        color: #888;
+        border-top: 0.5px solid #ccc;
+        padding-top: 0.15cm;
+        text-align: center;
+    }
+    @page { size: A4; margin: 0; }
+</style>
+</head>
+<body>
+
+<div class="header-box">
+    <h1>Root-CA Importanleitung</h1>
+    <div style="font-size: 13pt; margin: 0.1cm 0;">Windows Gruppenrichtlinie (GPO)</div>
+    <div class="header-meta">
+        Fuer: IT-Administratoren &nbsp;|&nbsp;
+        System: PRIMA Intranet &nbsp;|&nbsp;
+        Zweck: Vertrauenswuerdige interne Zertifizierungsstelle einrichten
+    </div>
+</div>
+
+<!-- Hintergrund -->
+<h2>1. Warum ist dieser Schritt noetig?</h2>
+
+<p>PRIMA verwendet eine <strong>interne Root-Zertifizierungsstelle (Root-CA)</strong>
+um digitale Signaturen auf PDFs zu erzeugen. Mitarbeiter-Zertifikate werden automatisch
+beim Anlegen eines HR-Profils ausgestellt.</p>
+
+<p>Ohne diesen Einrichtungsschritt zeigen Adobe Acrobat und andere PDF-Viewer
+die Signatur als <em>"Signatur unbekannt"</em> oder <em>"Zertifikat nicht vertrauenswuerdig"</em> an,
+weil die Root-CA nicht im Windows-Zertifikatspeicher bekannt ist.</p>
+
+<div class="hinweis">
+    <strong>Ziel:</strong> Nach dieser Anleitung zeigt Adobe Acrobat alle PRIMA-signierten PDFs
+    mit <em>"Alle Signaturen sind gueltig"</em> (gruenes Haekchen).
+</div>
+
+<!-- Zertifikat -->
+<h2>2. Root-CA-Zertifikat herunterladen</h2>
+
+<div class="schritt-zeile"><span class="schritt-nr">1</span>Als Administrator in PRIMA einloggen</div>
+<div class="schritt-inhalt">
+    Navigation: <strong>Signatur &rarr; Dashboard</strong>
+</div>
+
+<div class="schritt-zeile"><span class="schritt-nr">2</span>Zertifikat herunterladen</div>
+<div class="schritt-inhalt">
+    Link: <strong>Signatur &rarr; CA-Zertifikat herunterladen</strong><br>
+    Die Datei <code>ca_root.cer</code> wird heruntergeladen (DER-Format, direkt fuer Windows geeignet).
+</div>
+
+{% if root_ca %}
+<div class="info">
+    <strong>Aktuelle Root-CA:</strong> {{ root_ca.cn|default:"Interne Root CA" }}<br>
+    Fingerprint (SHA-256): <code style="font-size:7.5pt;">{{ root_ca.fingerprint_sha256|default:"nicht verfuegbar" }}</code>
+</div>
+{% endif %}
+
+<!-- GPO -->
+<h2>3. Gruppenrichtlinie einrichten (GPO)</h2>
+
+<div class="hinweis">
+    Voraussetzung: Active Directory-Domaeene vorhanden. Ohne AD: Schritt 4 (manueller Import) verwenden.
+</div>
+
+<div class="schritt-zeile"><span class="schritt-nr">1</span>Gruppenrichtlinienverwaltung oeffnen</div>
+<div class="schritt-inhalt">
+    <div class="cmd-block">Win + R &rarr; gpmc.msc &rarr; Enter</div>
+</div>
+
+<div class="schritt-zeile"><span class="schritt-nr">2</span>Neue GPO erstellen oder vorhandene bearbeiten</div>
+<div class="schritt-inhalt">
+    Rechtsklick auf die gewuenschte OU oder die Domaene &rarr;
+    <strong>"Gruppenrichtlinienobjekt hier erstellen und verknuepfen"</strong><br>
+    Name: <code>PRIMA – Interne Root-CA verteilen</code>
+</div>
+
+<div class="schritt-zeile"><span class="schritt-nr">3</span>GPO bearbeiten</div>
+<div class="schritt-inhalt">
+    Pfad im GPO-Editor:<br>
+    <span class="pfad">Computerkonfiguration
+    &rarr; Windows-Einstellungen
+    &rarr; Sicherheitseinstellungen
+    &rarr; Richtlinien oeffentlicher Schluessel
+    &rarr; Vertrauenswuerdige Stammzertifizierungsstellen</span>
+</div>
+
+<div class="schritt-zeile"><span class="schritt-nr">4</span>Zertifikat importieren</div>
+<div class="schritt-inhalt">
+    Rechtsklick im rechten Fensterbereich &rarr; <strong>Importieren</strong><br>
+    Datei auswaehlen: <code>ca_root.cer</code><br>
+    Speicher bestaetigen: <em>"Alle Zertifikate in folgendem Speicher speichern"</em>
+    &rarr; <strong>Vertrauenswuerdige Stammzertifizierungsstellen</strong>
+</div>
+
+<div class="schritt-zeile"><span class="schritt-nr">5</span>GPO speichern und verknuepfen</div>
+<div class="schritt-inhalt">
+    GPO-Editor schliessen. In der Gruppenrichtlinienverwaltung pruefen:
+    GPO muss mit der richtigen OU oder Domaene verknuepft sein.
+</div>
+
+<div class="schritt-zeile"><span class="schritt-nr">6</span>Richtlinie anwenden</div>
+<div class="schritt-inhalt">
+    Auf einem Testrechner ausfuehren:
+    <div class="cmd-block">gpupdate /force</div>
+    Oder warten auf naechste Anmeldung (GPO wird automatisch alle 90 Minuten aktualisiert).
+</div>
+
+<!-- Manueller Import -->
+<h2>4. Manueller Import (ohne Active Directory)</h2>
+
+<p>Fuer einzelne PCs oder ohne AD-Infrastruktur:</p>
+
+<div class="schritt-zeile"><span class="schritt-nr">1</span>Zertifikat importieren</div>
+<div class="schritt-inhalt">
+    Doppelklick auf <code>ca_root.cer</code> &rarr;
+    <strong>"Zertifikat installieren"</strong> &rarr;
+    <strong>"Lokaler Computer"</strong> (nicht aktueller Benutzer!) &rarr;
+    <strong>"Alle Zertifikate in folgendem Speicher speichern"</strong> &rarr;
+    <strong>Vertrauenswuerdige Stammzertifizierungsstellen</strong> &rarr; Fertig stellen
+</div>
+
+<div class="hinweis">
+    Administratorrechte erforderlich! "Lokaler Computer" gilt fuer alle Benutzer des PCs,
+    "Aktueller Benutzer" nur fuer den angemeldeten Account.
+</div>
+
+<!-- Verifikation -->
+<h2>5. Erfolg pruefen</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:30%;">Tool</th>
+            <th>Pruefen</th>
+            <th style="width:35%;">Erwartetes Ergebnis</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>certmgr.msc</strong></td>
+            <td>Vertrauenswuerdige Stammzertifizierungsstellen &rarr; Zertifikate</td>
+            <td>"Interne Root CA" oder "PRIMA Root CA" muss sichtbar sein</td>
+        </tr>
+        <tr>
+            <td><strong>Adobe Acrobat</strong></td>
+            <td>PRIMA-PDF oeffnen &rarr; Signatur-Panel</td>
+            <td>Gruenes Haekchen: "Alle Signaturen sind gueltig"</td>
+        </tr>
+        <tr>
+            <td><strong>Chrome / Edge</strong></td>
+            <td>Nutzen Windows-Zertifikatspeicher automatisch</td>
+            <td>Kein separater Schritt noetig nach GPO</td>
+        </tr>
+        <tr>
+            <td><strong>Firefox</strong></td>
+            <td>about:config &rarr; <code>security.enterprise_roots.enabled</code></td>
+            <td>Auf <code>true</code> setzen, damit Firefox den Windows-Store nutzt</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="erfolg">
+    <strong>Verifikation in PRIMA:</strong> Unter <em>Signatur &rarr; PDF pruefen</em>
+    kann jede signierte PDF-Datei direkt im Browser validiert werden –
+    unabhaengig vom lokalen Zertifikatspeicher.
+</div>
+
+<!-- Fehlerbehebung -->
+<h2>6. Haeufige Probleme</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:40%;">Symptom</th>
+            <th>Loesung</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Adobe zeigt nach GPO immer noch "unbekannt"</td>
+            <td>Adobe benoetigt Neustart nach Zertifikatsaenderung. Evtl. auch <code>gpupdate /force</code> wiederholen.</td>
+        </tr>
+        <tr>
+            <td>certmgr.msc zeigt kein PRIMA-Zertifikat</td>
+            <td>GPO-Verknuepfung pruefen. Sicherstellen dass "Lokaler Computer" (nicht Benutzer) gewaehlt wurde.</td>
+        </tr>
+        <tr>
+            <td>Firefox zeigt trotz GPO Warnung</td>
+            <td><code>about:config</code> &rarr; <code>security.enterprise_roots.enabled = true</code> setzen.</td>
+        </tr>
+        <tr>
+            <td>Signatur zeigt falschen Namen</td>
+            <td>Zertifikat des Mitarbeiters pruefen: Signatur-Dashboard &rarr; Zertifikat-Liste.</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    PRIMA Intranet &nbsp;|&nbsp;
+    Root-CA Importanleitung (GPO) &nbsp;|&nbsp;
+    Dieses Dokument ist digital signiert und nur als Originalausdruck oder signiertes PDF gueltig.
+</div>
+
+</body>
+</html>

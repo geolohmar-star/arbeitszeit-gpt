@@ -95,6 +95,8 @@
                     Aenderung Zeiterfassung
                     {% elif task.instance.content_type.model == 'zagstorno' %}
                     Z-AG Storno
+                    {% elif task.instance.content_type.model == 'betriebssportgutschrift' %}
+                    Betriebssport-Gutschrift
                     {% else %}
                     {{ task.instance.content_type }}
                     {% endif %}
@@ -363,6 +365,58 @@
                             Details anzeigen
                         </a>
                         <a href="{% url 'formulare:zag_storno_pdf' antrag.pk %}"
+                           class="btn btn-sm btn-outline-danger" target="_blank">
+                            PDF herunterladen
+                        </a>
+                    </div>
+                    {% endwith %}
+
+                <!-- Betriebssport-Gutschrift Details -->
+                {% elif task.instance.content_type.model == 'betriebssportgutschrift' %}
+                    {% with g=task.instance.content_object %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Gruppe:</strong></p>
+                            <p class="mb-0">
+                                {{ g.gruppe.name }}
+                                <span class="text-muted small">({{ g.gruppe.get_sportart_display }})</span>
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Monat:</strong></p>
+                            <p class="mb-0">{{ g.monat|date:"F Y" }}</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Verantwortlicher:</strong></p>
+                            <p class="mb-0">{{ g.gruppe.verantwortlicher.vollname }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Eingereicht am:</strong></p>
+                            <p class="mb-0">
+                                {% if g.eingereicht_am %}
+                                {{ g.eingereicht_am|date:"d.m.Y H:i" }} Uhr
+                                {% else %}–{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Anzahl Einheiten:</strong></p>
+                            <p class="mb-0">{{ g.einheiten.count }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Gutschrift-Stunden/Einheit:</strong></p>
+                            <p class="mb-0">{{ g.gruppe.gutschrift_stunden }} h</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 d-flex gap-2">
+                        <a href="{% url 'betriebssport:gruppe_detail' g.gruppe.pk %}?monat={{ g.monat_str }}"
+                           class="btn btn-sm btn-primary" target="_blank">
+                            Zur Gruppe
+                        </a>
+                        <a href="{% url 'betriebssport:gutschrift_download' g.gruppe.pk g.monat_str %}"
                            class="btn btn-sm btn-outline-danger" target="_blank">
                             PDF herunterladen
                         </a>

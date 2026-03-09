@@ -196,7 +196,7 @@ def _gutschrift_pdf_context(gutschrift):
         if instanz:
             workflow_tasks = list(
                 WorkflowTask.objects.filter(instance=instanz)
-                .select_related("step", "bearbeitet_von", "claimed_von")
+                .select_related("step", "erledigt_von", "claimed_von")
                 .order_by("step__reihenfolge")
             )
     except Exception:
@@ -307,6 +307,26 @@ def gruppe_detail(request, pk):
         gruppe=gruppe, monat=monat
     ).first()
 
+    # Workflow-Status zur Gutschrift laden
+    workflow_tasks = []
+    workflow_instanz = None
+    if gutschrift and gutschrift.status in ("eingereicht", "abgeschlossen", "abgelehnt"):
+        try:
+            from workflow.models import WorkflowInstance, WorkflowTask
+            from django.contrib.contenttypes.models import ContentType
+            ct = ContentType.objects.get_for_model(gutschrift)
+            workflow_instanz = WorkflowInstance.objects.filter(
+                content_type=ct, object_id=gutschrift.pk
+            ).order_by("-gestartet_am").first()
+            if workflow_instanz:
+                workflow_tasks = list(
+                    WorkflowTask.objects.filter(instance=workflow_instanz)
+                    .select_related("step", "zugewiesen_an_team", "zugewiesen_an_stelle")
+                    .order_by("step__reihenfolge")
+                )
+        except Exception:
+            pass
+
     vormonat, naechster_monat = _monat_navigation(monat)
 
     context = {
@@ -323,6 +343,8 @@ def gruppe_detail(request, pk):
         "summen": summen,
         "gutschrift": gutschrift,
         "heute": heute,
+        "workflow_tasks": workflow_tasks,
+        "workflow_instanz": workflow_instanz,
     }
     return render(request, "betriebssport/gruppe_detail.html", context)
 
@@ -679,28 +701,7 @@ def gutschrift_download(request, pk, monat_str):
         f"BS-{gutschrift.pk}_{gruppe.name}_{monat:%Y-%m}.pdf".replace(" ", "_")
     )
 
-    # Vorhandene Signatur suchen
-    try:
-        from signatur.models import SignaturJob
-        job = (
-            SignaturJob.objects.filter(
-                content_type="betriebssportgutschrift",
-                object_id=gutschrift.pk,
-                status="completed",
-            )
-            .select_related("protokoll")
-            .order_by("-erstellt_am")
-            .first()
-        )
-        if job and hasattr(job, "protokoll") and job.protokoll and job.protokoll.signiertes_pdf:
-            pdf_bytes = bytes(job.protokoll.signiertes_pdf)
-            response = HttpResponse(pdf_bytes, content_type="application/pdf")
-            response["Content-Disposition"] = f'attachment; filename="{dateiname}"'
-            return response
-    except Exception as exc:
-        logger.warning("SignaturJob-Lookup fehlgeschlagen: %s", exc)
-
-    # Fallback: WeasyPrint frisch erzeugen
+    # PDF immer frisch mit aktuellem Workflow-Stand erzeugen
     try:
         from weasyprint import HTML
         from django.template.loader import render_to_string
@@ -720,19 +721,47 @@ def gutschrift_download(request, pk, monat_str):
         messages.error(request, "PDF konnte nicht erzeugt werden.")
         return redirect("betriebssport:gruppe_detail", pk=pk)
 
-    # Signatur-Versuch
+    # Alle Unterzeichner ermitteln: Einreicher + erledigte Workflow-Steps
+    unterzeichner = []
+    if gutschrift.erstellt_von and gutschrift.erstellt_von.user:
+        unterzeichner.append(gutschrift.erstellt_von.user)
+
     try:
-        from signatur.services import signiere_pdf
-        user = gutschrift.erstellt_von.user if gutschrift.erstellt_von else request.user
-        pdf_bytes = signiere_pdf(
-            pdf_bytes,
-            user,
-            dokument_name=dateiname,
-            content_type="betriebssportgutschrift",
-            object_id=gutschrift.pk,
-        )
+        from workflow.models import WorkflowInstance, WorkflowTask
+        from django.contrib.contenttypes.models import ContentType
+        ct = ContentType.objects.get_for_model(gutschrift)
+        instanz = WorkflowInstance.objects.filter(
+            content_type=ct, object_id=gutschrift.pk
+        ).order_by("-gestartet_am").first()
+        if instanz:
+            erledigte = (
+                WorkflowTask.objects.filter(instance=instanz, status="erledigt")
+                .select_related("erledigt_von")
+                .order_by("step__reihenfolge")
+            )
+            for task in erledigte:
+                if task.erledigt_von and task.erledigt_von not in unterzeichner:
+                    unterzeichner.append(task.erledigt_von)
     except Exception as exc:
-        logger.warning("Signatur fehlgeschlagen, PDF unsigniert: %s", exc)
+        logger.warning("Workflow-Unterzeichner konnten nicht geladen werden: %s", exc)
+
+    # Inkrementell signieren: jeder Unterzeichner fuegt seine Signatur hinzu
+    from signatur.services import signiere_pdf
+    for i, user in enumerate(unterzeichner):
+        try:
+            # Erste Signatur legt Job an, weitere sind rein inkrementell
+            pdf_bytes = signiere_pdf(
+                pdf_bytes,
+                user,
+                dokument_name=dateiname,
+                content_type="betriebssportgutschrift" if i == 0 else "",
+                object_id=gutschrift.pk if i == 0 else None,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Signatur von %s fehlgeschlagen (Schritt %s): %s",
+                user.username, i + 1, exc,
+            )
 
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{dateiname}"'

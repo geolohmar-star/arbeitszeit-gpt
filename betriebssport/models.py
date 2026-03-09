@@ -269,3 +269,8 @@ class BetriebssportGutschrift(models.Model):
     def get_betreff(self):
         """Betreffzeile fuer Workflow und PDF."""
         return f"Betriebssport – {self.gruppe} – {self.monat:%B %Y}"
+
+    @property
+    def monat_str(self):
+        """Monat als URL-tauglicher String (YYYY-MM)."""
+        return self.monat.strftime("%Y-%m")

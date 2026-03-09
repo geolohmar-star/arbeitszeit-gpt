@@ -535,21 +535,40 @@ def gutschrift_pdf_download(request, pk):
         messages.error(request, "PDF konnte nicht erzeugt werden.")
         return redirect("veranstaltungen:gutschrift_pdf", pk=pk)
 
-    # Signatur-Versuch (still failing ok)
+    # Alle Unterzeichner sammeln: Einreicher + erledigte Workflow-Steps
     try:
         from signatur.services import signiere_pdf
         antragsteller_user = (
             gutschrift.erstellt_von.user if gutschrift.erstellt_von else request.user
         )
-        pdf_bytes = signiere_pdf(
-            pdf_bytes,
-            antragsteller_user,
-            dokument_name=dateiname,
-            content_type="feierteilnahmegutschrift",
-            object_id=gutschrift.pk,
-        )
+        unterzeichner = [antragsteller_user]
+        instanz = getattr(gutschrift, "workflow_instance", None)
+        if instanz:
+            from workflow.models import WorkflowTask
+            for task in (
+                WorkflowTask.objects
+                .filter(instance=instanz, status="erledigt")
+                .select_related("erledigt_von", "step")
+                .order_by("step__reihenfolge")
+            ):
+                if task.erledigt_von and task.erledigt_von not in unterzeichner:
+                    unterzeichner.append(task.erledigt_von)
+        for i, user in enumerate(unterzeichner):
+            try:
+                pdf_bytes = signiere_pdf(
+                    pdf_bytes,
+                    user,
+                    dokument_name=dateiname,
+                    content_type="feierteilnahmegutschrift" if i == 0 else "",
+                    object_id=gutschrift.pk if i == 0 else None,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Signatur von %s fehlgeschlagen (Schritt %s): %s",
+                    user.username, i + 1, exc,
+                )
     except Exception as exc:
-        logger.warning("Signatur fehlgeschlagen, liefere unsigniertes PDF: %s", exc)
+        logger.warning("Signatur-Schleife fehlgeschlagen, liefere unsigniertes PDF: %s", exc)
 
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{dateiname}"'

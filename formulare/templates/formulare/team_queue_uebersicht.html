@@ -158,6 +158,9 @@
                                                             <a href="{% url 'facility:queue' %}" class="btn btn-sm btn-outline-primary">Facility-Queue</a>
                                                         {% elif ct == 'arbeitszeitvereinbarung' %}
                                                             <a href="{% url 'arbeitszeit:admin_vereinbarung_genehmigen' obj.pk %}?naechste=team_queue" class="btn btn-sm btn-outline-primary">Details &amp; Bearbeiten</a>
+                                                        {% elif ct == 'betriebssportgutschrift' %}
+                                                            <a href="{% url 'betriebssport:gruppe_detail' obj.gruppe.pk %}?monat={{ obj.monat_str }}" class="btn btn-sm btn-outline-primary me-1" target="_blank">Zur Gruppe</a>
+                                                            <a href="{% url 'betriebssport:gutschrift_download' obj.gruppe.pk obj.monat_str %}" class="btn btn-sm btn-outline-danger" target="_blank">PDF</a>
                                                         {% endif %}
                                                     </div>
                                                 {% endwith %}

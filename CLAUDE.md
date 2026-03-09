@@ -404,6 +404,67 @@ def neue_zeile(request):
 
 ---
 
+## Digitale Signaturen in Workflow-PDFs (GRUNDSATZ)
+
+**Jedes PDF das aus einem mehrstufigen Workflow-Prozess entsteht, muss mehrere digitale Signaturen tragen – eine pro Bearbeiter in Schritt-Reihenfolge.**
+
+### Pflichtbestandteile jedes Workflow-PDFs
+
+1. **Bearbeitungsverlauf-Tabelle** im Template (`workflow_tasks` im Kontext):
+   - Alle Schritte der Workflow-Instanz
+   - Bearbeiter, Erledigungsdatum, Entscheidung pro Schritt
+
+2. **Digitale Signaturen** im View (inkrementell, eine pro Bearbeiter):
+   - Antragsteller zuerst
+   - Dann alle `erledigt_von`-User aus WorkflowTasks in `step__reihenfolge`
+
+3. **Signatur-Sektion** im PDF-Template:
+   - Zeigt Namen + Datum aller Unterzeichner visuell an
+
+### Standard-Implementierung im View
+
+```python
+# 1. Workflow-Tasks laden
+workflow_tasks = []
+if antrag.workflow_instance:
+    from workflow.models import WorkflowTask
+    workflow_tasks = list(
+        WorkflowTask.objects
+        .filter(instance=antrag.workflow_instance)
+        .select_related("step", "erledigt_von")
+        .order_by("step__reihenfolge")
+    )
+
+# 2. Template-Kontext: workflow_tasks mitgeben
+html_string = render_to_string("...", {"antrag": antrag, "workflow_tasks": workflow_tasks, ...})
+pdf = HTML(...).write_pdf()
+
+# 3. Mehrfach signieren mit Hilfsfunktionen aus formulare/views.py
+unterzeichner = _sammle_workflow_unterzeichner(antrag, antrag.antragsteller.user)
+pdf = _signiere_pdf_alle_unterzeichner(pdf, unterzeichner, dateiname)
+```
+
+### Bestehende Hilfsfunktionen (formulare/views.py)
+
+- `_sammle_workflow_unterzeichner(antrag, antragsteller_user)` → Liste aller Unterzeichner
+- `_signiere_pdf_alle_unterzeichner(pdf_bytes, unterzeichner, dateiname)` → inkrementell signiertes PDF
+
+### Wichtig: Backend-Logik (signatur/backends/intern.py)
+
+Das Backend zaehlt vorhandene Signaturen selbst (`reader.embedded_signatures`)
+und vergibt automatisch eindeutige Feldnamen (`Signatur_1`, `Signatur_2`, ...).
+Stempel werden nebeneinander positioniert. Kein manuelles Zaehlen im View noetig.
+
+### Checklist neues Workflow-PDF
+
+- [ ] `workflow_tasks` in Template-Kontext
+- [ ] Bearbeitungsverlauf-Tabelle im Template
+- [ ] Signatur-Sektion im Template
+- [ ] `_sammle_workflow_unterzeichner` im View
+- [ ] `_signiere_pdf_alle_unterzeichner` statt `_signiere_pdf_sicher`
+
+---
+
 ## Sicherheit
 
 - Niemals `DEBUG = True` in Produktion
