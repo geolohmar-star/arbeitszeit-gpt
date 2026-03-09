@@ -324,6 +324,10 @@ LOGGING = {
 # Alle Werte kommen aus Umgebungsvariablen – leer = Integration deaktiviert.
 # Lokal: in .env eintragen. Railway: in den Service-Variablen setzen.
 
+# BentoPDF: URL des selbst betriebenen BentoPDF-Servers (ohne abschliessendes /)
+# Beispiel: BENTOPDF_URL=https://pdf.georg-klein.com
+BENTOPDF_URL = os.environ.get("BENTOPDF_URL", "")
+
 # Jitsi Meet: Basis-URL des eigenen Jitsi-Servers (ohne abschliessendes /)
 # Beispiel: JITSI_BASE_URL=https://meet.intranet.firma.de
 JITSI_BASE_URL = os.environ.get("JITSI_BASE_URL", "")

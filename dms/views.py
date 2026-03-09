@@ -286,12 +286,14 @@ def dokument_detail(request, pk):
             status=DokumentZugriffsschluessel.STATUS_OFFEN,
         ).first()
 
+    from django.conf import settings as django_settings
     return render(request, "dms/dokument_detail.html", {
         "dok": dok,
         "zugriffe": zugriffe,
         "aktiver_schluessel": aktiver_schluessel,
         "offener_antrag": offener_antrag,
         "darf_zugreifen": _darf_sensibel_zugreifen(request, dok) if dok.klasse == "sensibel" else True,
+        "bentopdf_url": getattr(django_settings, "BENTOPDF_URL", ""),
     })
 
 

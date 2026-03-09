@@ -234,11 +234,13 @@ def cmd_items(request):
 
 
 def hilfe_kontext(request):
-    """Stellt die App-Liste fuer das Hilfe-Modal bereit."""
+    """Stellt die App-Liste und externe Dienst-URLs fuer das Hilfe-Modal bereit."""
+    from django.conf import settings
     return {
         "apps_liste": [
             "arbeitszeit", "formulare", "schichtplan", "hr", "workflow",
             "facility", "raumbuch", "signatur", "datenschutz", "dokumente",
             "berechtigungen", "veranstaltungen",
-        ]
+        ],
+        "bentopdf_url": getattr(settings, "BENTOPDF_URL", ""),
     }

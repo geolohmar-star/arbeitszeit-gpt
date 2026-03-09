@@ -376,6 +376,9 @@
                         <li><a class="dropdown-item" href="{% url 'dokumente:liste' %}">Meine Dokumente</a></li>
                         <li><a class="dropdown-item" href="{% url 'dms:liste' %}">DMS – Dokumente</a></li>
                         <li><a class="dropdown-item" href="{% url 'signatur:dashboard' %}">Digitale Signatur</a></li>
+                        {% if bentopdf_url %}
+                        <li><a class="dropdown-item" href="{{ bentopdf_url }}" target="_blank">PDF-Werkzeuge (BentoPDF) ↗</a></li>
+                        {% endif %}
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <form method="post" action="{% url 'logout' %}">
