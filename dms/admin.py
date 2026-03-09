@@ -25,8 +25,8 @@ class DokumentTagAdmin(admin.ModelAdmin):
 
 @admin.register(Dokument)
 class DokumentAdmin(admin.ModelAdmin):
-    list_display = ["titel", "klasse", "kategorie", "dateiname", "groesse_bytes", "erstellt_am"]
-    list_filter = ["klasse", "kategorie"]
+    list_display = ["titel", "klasse", "kategorie", "eigentuemereinheit", "dateiname", "groesse_bytes", "erstellt_am"]
+    list_filter = ["klasse", "kategorie", "eigentuemereinheit"]
     search_fields = ["titel", "dateiname", "beschreibung"]
     readonly_fields = ["erstellt_am", "paperless_id", "suchvektor"]
     filter_horizontal = ["tags", "sichtbar_fuer"]

@@ -140,6 +140,15 @@ class Dokument(models.Model):
     # ------------------------------------------------------------------
     beschreibung = models.TextField(blank=True, verbose_name="Beschreibung")
     erstellt_am = models.DateTimeField(auto_now_add=True, verbose_name="Erstellt am")
+    eigentuemereinheit = models.ForeignKey(
+        "hr.OrgEinheit",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="dms_dokumente",
+        verbose_name="Eigentuemer-OrgEinheit",
+        help_text="Abteilung die fuer dieses Dokument zustaendig ist.",
+    )
     erstellt_von = models.ForeignKey(
         User,
         null=True,

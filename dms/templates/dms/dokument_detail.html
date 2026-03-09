@@ -84,6 +84,10 @@
                     <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase;">Gueltig bis</div>
                     <div>{% if dok.gueltig_bis %}{{ dok.gueltig_bis|date:"d.m.Y" }}{% else %}—{% endif %}</div>
                 </div>
+                <div class="col-md-4">
+                    <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase;">Abteilung</div>
+                    <div>{{ dok.eigentuemereinheit|default:"—" }}</div>
+                </div>
                 {% if dok.tags.all %}
                 <div class="col-12">
                     <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase; margin-bottom:4px;">Tags</div>

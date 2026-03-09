@@ -50,6 +50,10 @@
                     {{ form.tag.label_tag }}
                     {{ form.tag }}
                 </div>
+                <div class="col-md-2">
+                    {{ form.orgeinheit.label_tag }}
+                    {{ form.orgeinheit }}
+                </div>
                 <div class="col-md-1 d-flex gap-1">
                     <button type="submit" class="btn btn-sm btn-primary w-100">Suchen</button>
                 </div>
@@ -67,6 +71,7 @@
                         <th class="px-4 py-3">Titel / Datei</th>
                         <th class="py-3">Klasse</th>
                         <th class="py-3">Kategorie</th>
+                        <th class="py-3">Abteilung</th>
                         <th class="py-3">Tags</th>
                         <th class="py-3">Groesse</th>
                         <th class="py-3">Erstellt</th>
@@ -96,6 +101,16 @@
                         </td>
                         <td style="font-size:0.85rem;">
                             {{ dok.kategorie|default:"—" }}
+                        </td>
+                        <td style="font-size:0.82rem;">
+                            {% if dok.eigentuemereinheit %}
+                            <span class="badge rounded-pill"
+                                  style="background:#e0f2fe; color:#0369a1; font-size:0.7rem; font-weight:500;">
+                                {{ dok.eigentuemereinheit }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% for tag in dok.tags.all %}

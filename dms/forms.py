@@ -1,6 +1,8 @@
 """DMS-Formulare fuer Upload, Suche und Zugriffsantraege."""
 from django import forms
 
+from hr.models import OrgEinheit
+
 from .models import DAUER_OPTIONEN, Dokument, DokumentKategorie, DokumentTag, DokumentZugriffsschluessel
 
 
@@ -14,11 +16,20 @@ class DokumentUploadForm(forms.ModelForm):
 
     class Meta:
         model = Dokument
-        fields = ["titel", "klasse", "kategorie", "tags", "beschreibung", "gueltig_bis"]
+        fields = [
+            "titel",
+            "klasse",
+            "kategorie",
+            "eigentuemereinheit",
+            "tags",
+            "beschreibung",
+            "gueltig_bis",
+        ]
         widgets = {
             "titel": forms.TextInput(attrs={"class": "form-control"}),
             "klasse": forms.Select(attrs={"class": "form-select"}),
             "kategorie": forms.Select(attrs={"class": "form-select"}),
+            "eigentuemereinheit": forms.Select(attrs={"class": "form-select"}),
             "tags": forms.SelectMultiple(attrs={"class": "form-select", "size": "5"}),
             "beschreibung": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "gueltig_bis": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
@@ -64,6 +75,13 @@ class DokumentSucheForm(forms.Form):
         queryset=DokumentTag.objects.all(),
         label="Tag",
         empty_label="Alle Tags",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    orgeinheit = forms.ModelChoiceField(
+        required=False,
+        queryset=OrgEinheit.objects.all(),
+        label="Abteilung",
+        empty_label="Alle Abteilungen",
         widget=forms.Select(attrs={"class": "form-select"}),
     )
 

@@ -30,6 +30,13 @@
         {% endif %}
       </div>
 
+      {% if dok.eigentuemereinheit %}
+      <div class="alert alert-info py-2 mb-3" style="font-size:0.88rem;">
+        Mitglieder der Abteilung <strong>{{ dok.eigentuemereinheit }}</strong>
+        haben automatischen Zugriff auf dieses Dokument und benoetigen keinen Zugriffsschluessel.
+      </div>
+      {% endif %}
+
       {% if offener_antrag %}
         <div class="alert alert-warning">
           <strong>Antrag bereits gestellt.</strong>

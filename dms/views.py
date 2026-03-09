@@ -22,6 +22,20 @@ logger = logging.getLogger(__name__)
 # Hilfsfunktionen
 # ---------------------------------------------------------------------------
 
+def _get_user_orgeinheit_ids(user):
+    """Gibt die OrgEinheit-IDs zurueck zu denen der User gehoert.
+
+    Kette: user -> hr_mitarbeiter -> stelle -> org_einheit
+    """
+    try:
+        ma = user.hr_mitarbeiter
+        if ma.stelle and ma.stelle.org_einheit_id:
+            return {ma.stelle.org_einheit_id}
+    except Exception:
+        pass
+    return set()
+
+
 def _get_ip(request):
     """Ermittelt die Client-IP."""
     ip = request.META.get("HTTP_X_FORWARDED_FOR")
@@ -54,15 +68,20 @@ def _hat_aktiven_zugriffsschluessel(user, dokument):
 def _darf_sensibel_zugreifen(request, dokument):
     """Gibt True zurueck wenn der User auf ein sensibles Dokument zugreifen darf.
 
-    Staff mit aktivem Zugriffsschluessel ODER Staff ohne Einschraenkung
-    (nur wenn kein Zugriffsschluessel-System noetig, z.B. Admin-Superuser).
-    Normale User brauchen immer einen aktiven Zugriffsschluessel.
+    Reihenfolge der Pruefung:
+    1. Superuser: immer Zugriff
+    2. Mitglied der Eigentuemer-OrgEinheit: direkter Zugriff ohne Schluessel
+    3. Alle anderen (auch staff): nur mit aktivem Zugriffsschluessel
     """
     if not request.user.is_authenticated:
         return False
     # Superuser: immer Zugriff (keine Einschraenkung fuer Sysadmin)
     if request.user.is_superuser:
         return True
+    # Mitglied der Eigentuemer-OrgEinheit: direkter Zugriff ohne Schluessel
+    if dokument.eigentuemereinheit_id:
+        if dokument.eigentuemereinheit_id in _get_user_orgeinheit_ids(request.user):
+            return True
     # Alle anderen (auch staff): nur mit aktivem Zugriffsschluessel
     return _hat_aktiven_zugriffsschluessel(request.user, dokument)
 
@@ -75,17 +94,27 @@ def _darf_sensibel_zugreifen(request, dokument):
 def dokument_liste(request):
     """Listet alle fuer den User sichtbaren Dokumente mit Suche."""
     form = DokumentSucheForm(request.GET or None)
-    qs = Dokument.objects.select_related("kategorie").prefetch_related("tags")
+    qs = Dokument.objects.select_related("kategorie", "eigentuemereinheit").prefetch_related("tags")
 
-    # Sensible Dokumente nur fuer Staff und Superuser sichtbar (Metadaten)
-    if not request.user.is_staff:
-        qs = qs.filter(klasse="offen")
+    # Sensible Dokumente: Sichtbarkeit nach Rolle und OrgEinheit-Zugehoerigkeit
+    if not request.user.is_superuser and not request.user.is_staff:
+        user_org_ids = _get_user_orgeinheit_ids(request.user)
+        if user_org_ids:
+            # Offene Dokumente ODER sensible Dokumente der eigenen Abteilung
+            qs = qs.filter(
+                db_models.Q(klasse="offen")
+                | db_models.Q(klasse="sensibel", eigentuemereinheit_id__in=user_org_ids)
+            )
+        else:
+            # Kein OrgEinheit-Treffer: nur offene Dokumente sichtbar
+            qs = qs.filter(klasse="offen")
 
     if form.is_valid():
         q = form.cleaned_data.get("q")
         klasse = form.cleaned_data.get("klasse")
         kategorie = form.cleaned_data.get("kategorie")
         tag = form.cleaned_data.get("tag")
+        orgeinheit = form.cleaned_data.get("orgeinheit")
 
         if q:
             from django.db import connection
@@ -108,6 +137,8 @@ def dokument_liste(request):
             qs = qs.filter(kategorie=kategorie)
         if tag:
             qs = qs.filter(tags=tag)
+        if orgeinheit:
+            qs = qs.filter(eigentuemereinheit=orgeinheit)
 
     # Pro Dokument: hat der aktuelle User einen aktiven Schluessel?
     aktive_schluessel_ids = set(
