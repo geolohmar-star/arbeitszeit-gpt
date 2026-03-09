@@ -380,7 +380,7 @@
                         <li><a class="dropdown-item" href="{{ bentopdf_url }}" target="_blank">PDF-Werkzeuge (BentoPDF) ↗</a></li>
                         {% endif %}
                         {% if onlyoffice_url %}
-                        <li><a class="dropdown-item" href="{{ onlyoffice_url }}" target="_blank">Office-Suite (OnlyOffice) ↗</a></li>
+                        <li><a class="dropdown-item" href="{% url 'dms:neu' %}">Neues Dokument (OnlyOffice)</a></li>
                         {% endif %}
                         <li><hr class="dropdown-divider"></li>
                         <li>
@@ -1271,35 +1271,42 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                 <div style="position:absolute; top:-1px; right:10px; background:#16a34a; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
                   UMGESETZT
                 </div>
-                <div class="fw-bold mb-2" style="color:#14532d; font-size:1rem;">OnlyOffice – Kollaborative Office-Suite</div>
+                <div class="fw-bold mb-2" style="color:#14532d; font-size:1rem;">OnlyOffice – Office-Suite mit DMS-Integration &amp; Versionskontrolle</div>
                 <div style="font-size:0.82rem; color:#14532d; margin-bottom:0.75rem;">
-                  Selbst betriebener OnlyOffice Document Server &mdash; Word, Excel und PowerPoint-Dokumente
-                  direkt im Browser bearbeiten, ohne Microsoft 365 oder Google Docs.
-                  Mehrere Personen koennen <strong>gleichzeitig in Echtzeit</strong> am selben Dokument arbeiten.
-                  Volle Kompatibilitaet mit .docx, .xlsx, .pptx &mdash; keine Konvertierungsverluste.
+                  Selbst betriebener OnlyOffice Document Server &mdash; vollstaendig in das PRIMA-DMS integriert.
+                  Word- und Excel-Dokumente direkt aus dem DMS heraus bearbeiten, ohne Microsoft 365 oder Google Docs.
+                  Jede Speicherung erzeugt automatisch eine neue <strong>revisionssichere Version</strong> im DMS.
                   <br><br>
-                  <strong>Kurzanleitung:</strong><br>
-                  Benutzermenue &rarr; Office-Suite (OnlyOffice) &rarr; neuer Tab &rarr;
-                  Dokument hochladen oder neu erstellen &rarr; Link teilen fuer gemeinsames Bearbeiten
+                  <strong>Workflow:</strong><br>
+                  DMS &rarr; &bdquo;+ Neu in OnlyOffice&ldquo; oder bestehendes Dokument &rarr; &bdquo;In OnlyOffice bearbeiten&ldquo;
+                  &rarr; Dokument bearbeiten &rarr; &bdquo;Speichern &amp; zurueck&ldquo;
+                  &rarr; PRIMA speichert automatisch neue Version im DMS
+                  <br><br>
+                  <strong>Versionskontrolle:</strong><br>
+                  Jede gespeicherte Version bleibt erhalten &mdash; mit Autor, Zeitstempel und Kommentar.
+                  Staff kann jede aeltere Version wiederherstellen (Restore erzeugt neue Version, ueberschreibt nie).
+                  Vollstaendiger Audit-Trail im Zugriffsprotokoll: wer hat wann welche Version gespeichert.
                   <br><br>
                   <strong>Unterschied zu BentoPDF:</strong>
-                  OnlyOffice verarbeitet Dokumente <em>auf dem eigenen Server</em> (kein externer Cloud-Dienst,
-                  aber Server-seitig). BentoPDF laeuft rein im Browser. Fuer Office-Dokumente ist
-                  Server-seitige Verarbeitung technisch unvermeidbar &mdash; der Server gehoert euch,
-                  die Daten bleiben im Haus.
+                  OnlyOffice verarbeitet Dokumente auf dem eigenen Server (kein externer Cloud-Dienst).
+                  BentoPDF laeuft rein im Browser. Fuer Office-Dokumente unvermeidbar &mdash;
+                  der Server gehoert euch, die Daten bleiben im Haus.
                 </div>
                 <div style="font-size:0.78rem; color:#16a34a; background:#dcfce7; border:1px solid #bbf7d0; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
                   Server: <strong>office.georg-klein.com</strong> &nbsp;|&nbsp;
                   Community Edition &nbsp;|&nbsp;
-                  20 gleichzeitige Verbindungen (Intranet: de facto unbegrenzt)
+                  20 gleichzeitige Verbindungen (Intranet: de facto unbegrenzt) &nbsp;|&nbsp;
+                  JWT-gesichert
                 </div>
                 <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
                   <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Self-hosted Docker</span>
-                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Echtzeit-Kollaboration</span>
-                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">.docx / .xlsx / .pptx</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">DMS-Integration</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Versionskontrolle</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Audit-Trail</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">.docx / .xlsx</span>
                   <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Microsoft 365</span>
                   <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Daten bleiben im Haus</span>
-                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">JWT-gesichert</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Restore auf jede Version</span>
                 </div>
                 <div class="mt-3" style="font-size:0.75rem; color:#6b7280; font-style:italic;">
                   Intern laufen PostgreSQL, RabbitMQ und Redis im selben Container &mdash;
@@ -1327,14 +1334,282 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                 <div style="font-size:0.78rem; color:#64748b; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
                   Mitarbeiter &rarr; PRIMA (einfach) &rarr; SAP (unsichtbar) &rarr; Buchhaltung, Lohn, Compliance
                 </div>
+                <div style="font-size:0.78rem; background:#fefce8; border:1px solid #fde68a; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  <strong style="color:#92400e;">Technische Grundlage bereits vorhanden:</strong>
+                  <span style="color:#78350f;">
+                    Das PRIMA-DMS stellt eine REST-API bereit (&bdquo;DMS API v1&ldquo;) ueber die SAP
+                    Dokumente direkt ins PRIMA-Dokumentenarchiv schreiben und lesen kann &mdash;
+                    per Bearer-Token authentifiziert, vollstaendig auditiert, ohne SAP-Benutzer-Login.
+                    ABAP-Beispielcode und Endpunkt-Referenz unter
+                    <strong>DMS &rarr; API-Dokumentation</strong>.
+                    Die Gegenseite (SAP schickt Buchungsdaten an PRIMA) ist Konzept, noch nicht implementiert.
+                  </span>
+                </div>
                 <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
                   <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#64748b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">SAP RFC / OData</span>
                   <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#64748b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Zeitwirtschaft</span>
                   <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#64748b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Reisekosten</span>
                   <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#64748b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Kein SAP-GUI</span>
+                  <span style="background:#fef9c3; border:1px solid #fde68a; color:#92400e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">DMS REST-API v1 implementiert</span>
                 </div>
                 <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
                   Was SAP kann, soll SAP machen. Was Menschen brauchen, macht PRIMA.
+                </div>
+              </div>
+
+              <!-- Digitale Souveraenitaet -->
+              <div style="border:2px solid #1e40af; border-top:5px solid #1e40af; border-radius:8px; padding:1rem; background:#eff6ff; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#1e40af; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  DIGITALE SOUVERAENITAET
+                </div>
+                <div class="fw-bold mb-2" style="color:#1e3a8a; font-size:1rem;">Warum PRIMA statt Microsoft / SAP / Personio</div>
+                <div style="font-size:0.82rem; color:#1e3a8a; margin-bottom:0.75rem;">
+                  PRIMA ist kein Bastelproject &mdash; es ist ein vollwertiges, selbst betriebenes
+                  Intranet-System mit DMS, Versionskontrolle, Zugriffsschutz, digitalem Audit-Trail
+                  und Office-Integration. Alle Daten bleiben unter eurer Kontrolle, auf euren Servern,
+                  nach euren Regeln.
+                  <br><br>
+                  <strong>Kostenvergleich (50 Mitarbeiter, pro Jahr):</strong>
+                </div>
+                <div style="font-size:0.8rem; margin-bottom:0.75rem;">
+                  <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                      <tr style="background:#dbeafe;">
+                        <th style="padding:5px 8px; text-align:left; color:#1e3a8a; font-size:0.75rem;">Loesung</th>
+                        <th style="padding:5px 8px; text-align:right; color:#1e3a8a; font-size:0.75rem;">Kosten/Jahr</th>
+                        <th style="padding:5px 8px; text-align:left; color:#1e3a8a; font-size:0.75rem;">Datenlage</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style="border-bottom:1px solid #bfdbfe;">
+                        <td style="padding:5px 8px;">Microsoft 365 Business (Office + SharePoint + Teams)</td>
+                        <td style="padding:5px 8px; text-align:right; font-weight:600; color:#dc2626;">~&nbsp;8.400&nbsp;&euro;</td>
+                        <td style="padding:5px 8px; color:#6b7280;">US-Cloud, DSGVO-Grauzone</td>
+                      </tr>
+                      <tr style="border-bottom:1px solid #bfdbfe;">
+                        <td style="padding:5px 8px;">Personio (HR) + Google Workspace (Office)</td>
+                        <td style="padding:5px 8px; text-align:right; font-weight:600; color:#dc2626;">~&nbsp;18.000&nbsp;&euro;</td>
+                        <td style="padding:5px 8px; color:#6b7280;">US-Cloud</td>
+                      </tr>
+                      <tr style="border-bottom:1px solid #bfdbfe;">
+                        <td style="padding:5px 8px;">d.3 DMS + SAP-Anbindung (Einstieg)</td>
+                        <td style="padding:5px 8px; text-align:right; font-weight:600; color:#dc2626;">&gt;&nbsp;30.000&nbsp;&euro;</td>
+                        <td style="padding:5px 8px; color:#6b7280;">Vendor Lock-in</td>
+                      </tr>
+                      <tr style="background:#dcfce7;">
+                        <td style="padding:5px 8px; font-weight:700; color:#166534;">PRIMA (self-hosted)</td>
+                        <td style="padding:5px 8px; text-align:right; font-weight:700; color:#166534;">Entwicklungszeit</td>
+                        <td style="padding:5px 8px; font-weight:600; color:#166534;">eigene Server, volle Kontrolle</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div style="font-size:0.78rem; color:#1e40af; background:#dbeafe; border:1px solid #bfdbfe; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  <strong>Was PRIMA ersetzt:</strong>
+                  Microsoft 365 (Office, SharePoint, Teams) &nbsp;&middot;&nbsp;
+                  Personio (HR, Zeiterfassung) &nbsp;&middot;&nbsp;
+                  Adobe Acrobat (Signaturen) &nbsp;&middot;&nbsp;
+                  d.3 / Alfresco (DMS) &nbsp;&middot;&nbsp;
+                  Zoom / Teams (Videokonferenz via Jitsi)
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#dbeafe; border:1px solid #bfdbfe; color:#1e40af; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Digitale Souveraenitaet</span>
+                  <span style="background:#dbeafe; border:1px solid #bfdbfe; color:#1e40af; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">DSGVO-konform</span>
+                  <span style="background:#dbeafe; border:1px solid #bfdbfe; color:#1e40af; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">BSI IT-Grundschutz</span>
+                  <span style="background:#dbeafe; border:1px solid #bfdbfe; color:#1e40af; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Vendor Lock-in</span>
+                  <span style="background:#dbeafe; border:1px solid #bfdbfe; color:#1e40af; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">alle Daten im Haus</span>
+                  <span style="background:#dbeafe; border:1px solid #bfdbfe; color:#1e40af; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Open Source Stack</span>
+                </div>
+              </div>
+
+              <!-- Datensicherung NAS/SAN -->
+              <div style="border:2px solid #0f172a; border-top:5px solid #0f172a; border-radius:8px; padding:1rem; background:#f8fafc; position:relative; margin-top:1rem;">
+                <div style="position:absolute; top:-1px; right:10px; background:#0f172a; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  BACKUP-KONZEPT
+                </div>
+                <div class="fw-bold mb-2" style="color:#0f172a; font-size:0.92rem;">Datensicherung im NAS/SAN-Umfeld</div>
+                <div style="font-size:0.82rem; color:#374151; line-height:1.65;">
+
+                  <strong>Warum PRIMA hier einen strukturellen Vorteil hat:</strong><br>
+                  PRIMA nutzt kein Dateisystem &mdash; alle Dokumente, Metadaten, Protokolle und Binaerdaten
+                  stecken in <em>einer einzigen PostgreSQL-Datenbank</em>.
+                  Kein separates Dokumentenverzeichnis, kein verteilter Speicher, kein Sync-Problem.
+                  Ein einziger <code>pg_dump</code> sichert den vollstaendigen Systemzustand.
+                  <br><br>
+
+                  <!-- Stufen-Tabelle -->
+                  <div style="overflow-x:auto; margin-bottom:1rem;">
+                    <table style="width:100%; border-collapse:collapse; font-size:0.78rem;">
+                      <thead>
+                        <tr style="background:#0f172a; color:white;">
+                          <th style="padding:6px 10px; text-align:left;">Ausbaustufe</th>
+                          <th style="padding:6px 10px; text-align:left;">Technologie</th>
+                          <th style="padding:6px 10px; text-align:left;">Werkzeug</th>
+                          <th style="padding:6px 10px; text-align:left;">Recovery Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr style="background:#f1f5f9;">
+                          <td style="padding:6px 10px; font-weight:600; color:#0f172a;">Einstieg</td>
+                          <td style="padding:6px 10px;"><strong>TrueNAS Scale</strong> (ZFS, iSCSI)</td>
+                          <td style="padding:6px 10px;"><code>pgBackRest</code> + ZFS-Snapshot</td>
+                          <td style="padding:6px 10px; color:#16a34a;">~30 Min</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px 10px; font-weight:600; color:#0f172a;">Standard</td>
+                          <td style="padding:6px 10px;"><strong>Synology RS-Serie</strong> + <strong>Proxmox Backup Server</strong></td>
+                          <td style="padding:6px 10px;"><code>WAL-G</code> + S3/MinIO</td>
+                          <td style="padding:6px 10px; color:#16a34a;">~10 Min</td>
+                        </tr>
+                        <tr style="background:#f1f5f9;">
+                          <td style="padding:6px 10px; font-weight:600; color:#0f172a;">Professional</td>
+                          <td style="padding:6px 10px;"><strong>NetApp ONTAP</strong> / <strong>Dell EMC PowerStore</strong></td>
+                          <td style="padding:6px 10px;"><code>pgBackRest</code> + Storage-Snapshot</td>
+                          <td style="padding:6px 10px; color:#16a34a;">&lt; 2 Min</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px 10px; font-weight:600; color:#0f172a;">High Availability</td>
+                          <td style="padding:6px 10px;"><strong>Ceph</strong> / <strong>PostgreSQL Streaming Replication</strong></td>
+                          <td style="padding:6px 10px;">WAL-Archivierung + Standby-Server</td>
+                          <td style="padding:6px 10px; color:#16a34a;">&lt; 30 Sek (Failover)</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <strong>Empfohlener Stack fuer Selbstbetrieb (IT-Standard):</strong>
+                  <br><br>
+
+                  <!-- Stack-Karten -->
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem;">
+                    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:0.6rem 0.75rem;">
+                      <div style="font-weight:700; color:#1d4ed8; font-size:0.78rem; margin-bottom:3px;">pgBackRest</div>
+                      <div style="font-size:0.75rem; color:#374151;">
+                        PostgreSQL-nativer Backup-Standard. Inkrementell, komprimiert, verschluesselt.
+                        WAL-Archivierung fuer Point-in-Time-Recovery &mdash; Datenbank auf beliebigen
+                        Zeitpunkt innerhalb des Archivfensters zuruecksetzen.
+                      </div>
+                    </div>
+                    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:0.6rem 0.75rem;">
+                      <div style="font-weight:700; color:#1d4ed8; font-size:0.78rem; margin-bottom:3px;">WAL-G</div>
+                      <div style="font-size:0.75rem; color:#374151;">
+                        Schreibt PostgreSQL WAL-Segmente direkt auf S3-kompatible Ziele (MinIO, Ceph, NetApp S3).
+                        Backup-Overhead nahe null, da parallel zum laufenden Betrieb.
+                        Von Yelp entwickelt, heute Industrie-Standard.
+                      </div>
+                    </div>
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.6rem 0.75rem;">
+                      <div style="font-weight:700; color:#166534; font-size:0.78rem; margin-bottom:3px;">TrueNAS Scale</div>
+                      <div style="font-size:0.75rem; color:#374151;">
+                        Open-Source-NAS auf ZFS-Basis. Snapshots in Millisekunden, Copy-on-Write,
+                        integriertes iSCSI-SAN, S3-Gateway, Replikation auf zweites TrueNAS.
+                        IT-Community-Favorit fuer Heimlabore bis mittleres Rechenzentrum.
+                      </div>
+                    </div>
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.6rem 0.75rem;">
+                      <div style="font-weight:700; color:#166534; font-size:0.78rem; margin-bottom:3px;">Proxmox Backup Server</div>
+                      <div style="font-size:0.75rem; color:#374151;">
+                        Open-Source-Backup fuer VMs und Container, aber auch fuer Daten-Backups nutzbar.
+                        Deduplizierung, Verschluesselung, Web-GUI, Retention-Policies.
+                        Ideal wenn PRIMA in einer VM laeuft.
+                      </div>
+                    </div>
+                    <div style="background:#fefce8; border:1px solid #fde68a; border-radius:6px; padding:0.6rem 0.75rem;">
+                      <div style="font-weight:700; color:#92400e; font-size:0.78rem; margin-bottom:3px;">MinIO</div>
+                      <div style="font-size:0.75rem; color:#374151;">
+                        S3-kompatibler Objektspeicher, laeuft auf eigener Hardware.
+                        WAL-G und pgBackRest sprechen MinIO nativ an &mdash; gleiche API wie AWS S3,
+                        keine Cloud-Abhaengigkeit. Cluster-faehig ab 4 Nodes (Erasure Coding).
+                      </div>
+                    </div>
+                    <div style="background:#fefce8; border:1px solid #fde68a; border-radius:6px; padding:0.6rem 0.75rem;">
+                      <div style="font-weight:700; color:#92400e; font-size:0.78rem; margin-bottom:3px;">Restic + Restic REST Server</div>
+                      <div style="font-size:0.75rem; color:#374151;">
+                        Modernes Backup-Werkzeug: dedupliziert, verschluesselt (AES-256-CTR),
+                        laeuft gegen NAS, S3, SFTP oder lokales Verzeichnis.
+                        Einfachste Option fuer den Einstieg &mdash; ein Binary, kein Daemon.
+                      </div>
+                    </div>
+                  </div>
+
+                  <strong>3-2-1-Regel in der Praxis mit PRIMA:</strong><br><br>
+                  <div style="background:#1e293b; color:#e2e8f0; border-radius:6px; padding:0.85rem 1rem; font-size:0.77rem; font-family:monospace; line-height:1.7; margin-bottom:1rem; overflow-x:auto;">
+3 Kopien:<br>
+&nbsp;&nbsp;[1] Live-PostgreSQL &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ PRIMA laeuft<br>
+&nbsp;&nbsp;[2] TrueNAS Scale NAS &nbsp;&nbsp;&nbsp;&nbsp;→ taeglich, pgBackRest, 30 Tage Retention<br>
+&nbsp;&nbsp;[3] Zweiter Standort / Band →  woechentlich, verschluesselt, 1 Jahr<br>
+<br>
+2 verschiedene Medien:<br>
+&nbsp;&nbsp;NVMe (DB-Server) ≠ HDD/SSD-Pool (TrueNAS)<br>
+<br>
+1 raeumlich getrennte Kopie:<br>
+&nbsp;&nbsp;Anderes Gebaeude, anderer Brandabschnitt, oder<br>
+&nbsp;&nbsp;verschluesselt auf Band im Safe (LTO-8: 12 TB nativ)
+                  </div>
+
+                  <strong>Point-in-Time-Recovery &mdash; was das bedeutet:</strong><br>
+                  Mit WAL-Archivierung kann PRIMA auf jeden beliebigen Zeitpunkt
+                  der letzten N Tage zurueckgesetzt werden &mdash; nicht nur auf den letzten Backup-Punkt.
+                  <em>Beispiel: Ransomware-Angriff Dienstag 14:32 Uhr &rarr; Restore auf Dienstag 14:31 Uhr.
+                  Datenverlust: eine Minute.</em>
+                  <br><br>
+
+                  <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:0.6rem 0.8rem; font-size:0.78rem; color:#991b1b; margin-bottom:0.75rem;">
+                    <strong>BSI CON.3 Pflicht:</strong> Backup ohne dokumentierten Restore-Test
+                    gilt als nicht vorhanden. Mindestens einmal jaehrlich vollstaendigen
+                    Restore auf Testsystem durchfuehren und protokollieren.
+                    PRIMA-Roadmap: Datensicherungs-GUI mit Protokoll und Faelligkeitserinnerung.
+                  </div>
+
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">pgBackRest</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">WAL-G</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">TrueNAS Scale (ZFS)</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">MinIO S3</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Proxmox Backup Server</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Restic</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Point-in-Time-Recovery</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">3-2-1-Regel</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">BSI CON.3</span>
+                </div>
+              </div>
+
+              <!-- Datenhoheit & Selbstbetrieb -->
+              <div style="border:2px solid #1a4d2e; border-top:5px solid #1a4d2e; border-radius:8px; padding:1rem; background:#f0fdf4; position:relative; margin-top:1rem;">
+                <div style="position:absolute; top:-1px; right:10px; background:#1a4d2e; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  GESAMTBEWERTUNG
+                </div>
+                <div class="fw-bold mb-2" style="color:#1a4d2e; font-size:0.92rem;">Datenhoheit &amp; Selbstbetrieb</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem; line-height:1.6;">
+                  PRIMA wurde von Anfang an fuer genau ein Szenario gebaut: <strong>vollstaendig selbst betrieben, ohne Abhaengigkeit von Drittanbietern.</strong>
+                  Kein CDN, keine externen APIs, keine Cloud-Pflicht. Alle Daten bleiben dort wo sie hingehoeren &mdash; im eigenen Haus.
+                  <br><br>
+                  Auf eigener Serverhardware mit lokaler PostgreSQL-Instanz ist PRIMA <strong>produktionsreifer als auf jedem Cloudanbieter</strong>:
+                  die Datenbanklatenz faellt von ~15&nbsp;ms auf unter 1&nbsp;ms, der OnlyOffice-Callback laeuft im eigenen LAN,
+                  kein Container schlaeft ein, und die Rechenleistung ist dediziert statt geteilt.
+                  <br><br>
+                  <strong>Railway und Supabase waren immer nur ein Kompromiss fuer die Entwicklungsphase.</strong>
+                  Das Ziel war immer der eigene Serverraum.
+                  <br><br>
+                  Der einzige echte Aufwand im Selbstbetrieb ist Ops-Disziplin: Backups regelmaessig testen, Sicherheitsupdates einspielen, Monitoring aufsetzen.
+                  Dieselbe Arbeit faellt bei SAP, Personio oder Microsoft&nbsp;365 genauso an &mdash;
+                  dort zahlt man dafuer sechsstellige Jahresbetraege und bekommt im Gegenzug
+                  Daten auf fremden Servern, Vendor&nbsp;Lock-in und Abhaengigkeit von Kuendigungsfristen.
+                  <br><br>
+                  <div style="background:#dcfce7; border:1px solid #86efac; border-radius:6px; padding:0.6rem 0.8rem; font-size:0.78rem; color:#166534;">
+                    <strong>Fazit:</strong> Wer PRIMA auf eigener Hardware betreibt, hat ein vollstaendiges Unternehmenssystem das ihm gehoert,
+                    das er versteht, das er anpassen kann &mdash; und das keine Daten nach aussen traegt.
+                    Das ist keine Bastelarbeit. Das ist Infrastruktur.
+                  </div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Daten bleiben im Haus</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Vendor Lock-in</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein CDN, kein Cloud-Zwang</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">dedizierte Hardware = volle Performance</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Open Source Stack</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">DSGVO Art. 25 by Design</span>
                 </div>
               </div>
 
@@ -1353,19 +1628,26 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                 <h6 class="fw-bold mb-3" style="color:#1a4d2e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Backend</h6>
                 <table class="table table-sm" style="font-size:0.85rem;">
                   <tbody>
-                    <tr><td class="fw-semibold" style="width:45%;">Django</td><td class="text-muted">6.0.2 &mdash; Web-Framework (FBVs)</td></tr>
+                    <tr><td class="fw-semibold" style="width:45%;">Django</td><td class="text-muted">6.0.3 &mdash; Web-Framework (FBVs)</td></tr>
                     <tr><td class="fw-semibold">Python</td><td class="text-muted">3.11+ &mdash; Laufzeitumgebung</td></tr>
-                    <tr><td class="fw-semibold">PostgreSQL</td><td class="text-muted">16 &mdash; Datenbank (Supabase/Docker)</td></tr>
+                    <tr><td class="fw-semibold">PostgreSQL</td><td class="text-muted">16 &mdash; Datenbank (Railway/Docker)</td></tr>
                     <tr><td class="fw-semibold">psycopg2</td><td class="text-muted">2.9.11 &mdash; DB-Adapter</td></tr>
-                    <tr><td class="fw-semibold">django-guardian</td><td class="text-muted">3.2.0 &mdash; Object-Permissions</td></tr>
-                    <tr><td class="fw-semibold">WeasyPrint</td><td class="text-muted">68.1 &mdash; HTML &rarr; PDF-Erzeugung</td></tr>
-                    <tr><td class="fw-semibold">pyhanko</td><td class="text-muted">PDF-Signatur (PKCS#12 / PAdES)</td></tr>
-                    <tr><td class="fw-semibold">cryptography</td><td class="text-muted">44.0.3 &mdash; Fernet AES-128 Dokumentenverschluesselung</td></tr>
-                    <tr><td class="fw-semibold">OR-Tools</td><td class="text-muted">9.15 &mdash; Schichtplan-Optimierung (Google)</td></tr>
-                    <tr><td class="fw-semibold">workalendar</td><td class="text-muted">17.0 &mdash; Feiertagskalender NRW</td></tr>
-                    <tr><td class="fw-semibold">openpyxl</td><td class="text-muted">3.1.5 &mdash; Excel-Import Schichtplan</td></tr>
+                    <tr><td class="fw-semibold">django-guardian</td><td class="text-muted">3.2.0 &mdash; Object-Permissions (DMS, Antraege)</td></tr>
+                    <tr><td class="fw-semibold">django-axes</td><td class="text-muted">7.0.1 &mdash; Brute-Force-Schutz (BSI APP.3.1)</td></tr>
+                    <tr><td class="fw-semibold">WeasyPrint</td><td class="text-muted">68.1 &mdash; HTML &rarr; PDF</td></tr>
+                    <tr><td class="fw-semibold">pyhanko</td><td class="text-muted">0.34.0 &mdash; PDF-Signatur (PKCS#12 / PAdES) inkl. pyhanko-certvalidator</td></tr>
+                    <tr><td class="fw-semibold">cryptography</td><td class="text-muted">46.0.5 &mdash; AES-256-GCM (DMS Klasse 2) + PBKDF2-HMAC-SHA256 (Schluesselverwaltung)</td></tr>
+                    <tr><td class="fw-semibold">PyJWT</td><td class="text-muted">2.9.0 &mdash; JWT fuer OnlyOffice-Integration</td></tr>
+                    <tr><td class="fw-semibold">python-docx</td><td class="text-muted">1.2.0 &mdash; DOCX-Erzeugung (AZV, DMS-Neu)</td></tr>
+                    <tr><td class="fw-semibold">Pillow</td><td class="text-muted">12.1.1 &mdash; Bildverarbeitung (Profilfotos, Thumbnails)</td></tr>
+                    <tr><td class="fw-semibold">pandas</td><td class="text-muted">3.0.0 &mdash; Datenexporte + Excel-Auswertungen</td></tr>
+                    <tr><td class="fw-semibold">OR-Tools / CP-SAT</td><td class="text-muted">9.15 &mdash; Schichtplan-Optimierung (Constraint Programming Solver)</td></tr>
+                    <tr><td class="fw-semibold">workalendar</td><td class="text-muted">17.0 &mdash; Feiertagskalender alle 16 Bundeslaender (je Standort konfigurierbar)</td></tr>
+                    <tr><td class="fw-semibold">openpyxl</td><td class="text-muted">3.1.5 &mdash; Excel-Import + DMS xlsx-Vorlage</td></tr>
+                    <tr><td class="fw-semibold">dj-database-url</td><td class="text-muted">3.1.0 &mdash; DATABASE_URL-Parsing fuer Railway</td></tr>
                     <tr><td class="fw-semibold">Gunicorn</td><td class="text-muted">25.0.3 &mdash; WSGI-Server (Produktion)</td></tr>
                     <tr><td class="fw-semibold">Whitenoise</td><td class="text-muted">6.11 &mdash; Static-File-Serving</td></tr>
+                    <tr><td class="fw-semibold">pip-audit</td><td class="text-muted">2.10.0 &mdash; CVE-Scan bei jedem Deploy (BSI OPS.1.1.3)</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1384,10 +1666,22 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                 <h6 class="fw-bold mt-4 mb-3" style="color:#1a4d2e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Deployment &amp; Infrastruktur</h6>
                 <table class="table table-sm" style="font-size:0.85rem;">
                   <tbody>
-                    <tr><td class="fw-semibold" style="width:45%;">Railway</td><td class="text-muted">App-Hosting (nixpacks, auto-deploy)</td></tr>
-                    <tr><td class="fw-semibold">Supabase</td><td class="text-muted">PostgreSQL-Hosting (Produktion)</td></tr>
-                    <tr><td class="fw-semibold">Docker</td><td class="text-muted">Lokale Entwicklung (PostgreSQL)</td></tr>
+                    <tr><td class="fw-semibold" style="width:45%;">Railway</td><td class="text-muted">App-Hosting (nixpacks, auto-deploy via GitHub)</td></tr>
+                    <tr><td class="fw-semibold">PostgreSQL</td><td class="text-muted">Railway-Datenbank (Produktion)</td></tr>
+                    <tr><td class="fw-semibold">Cloudflare Tunnel</td><td class="text-muted">HTTPS ohne offene Router-Ports (Zero-Trust)</td></tr>
+                    <tr><td class="fw-semibold">Docker</td><td class="text-muted">Lokale Dienste (OnlyOffice, BentoPDF, PostgreSQL)</td></tr>
                     <tr><td class="fw-semibold">GitHub</td><td class="text-muted">Versionskontrolle + CI-Trigger</td></tr>
+                  </tbody>
+                </table>
+
+                <h6 class="fw-bold mt-4 mb-3" style="color:#1a4d2e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Externe Dienste (self-hosted)</h6>
+                <table class="table table-sm" style="font-size:0.85rem;">
+                  <tbody>
+                    <tr><td class="fw-semibold" style="width:45%;">OnlyOffice Community</td><td class="text-muted">Docker &mdash; Office-Editor mit DMS-Integration + JWT</td></tr>
+                    <tr><td class="fw-semibold">BentoPDF</td><td class="text-muted">Docker &mdash; WebAssembly PDF-Toolbox (clientseitig)</td></tr>
+                    <tr><td class="fw-semibold">Jitsi Meet</td><td class="text-muted">Vorbereitet &mdash; Videokonferenz via Raumbuchung</td></tr>
+                    <tr><td class="fw-semibold">Matrix/Element</td><td class="text-muted">Vorbereitet &mdash; Facility-Pings, Chat</td></tr>
+                    <tr><td class="fw-semibold">Paperless-ngx</td><td class="text-muted">Vorbereitet &mdash; Scan-Eingang &rarr; DMS-Import</td></tr>
                   </tbody>
                 </table>
 

@@ -320,6 +320,10 @@ class ZugriffsProtokoll(models.Model):
             ("zugriff_genehmigt", "Zugriff genehmigt"),
             ("zugriff_abgelehnt", "Zugriff abgelehnt"),
             ("zugriff_widerrufen", "Zugriff widerrufen"),
+            ("onlyoffice_bearbeitet", "In OnlyOffice bearbeitet"),
+            ("version_wiederhergestellt", "Version wiederhergestellt"),
+            ("api_upload", "API-Upload (externes System)"),
+            ("api_download", "API-Download (externes System)"),
         ],
         default="download",
         verbose_name="Aktion",
@@ -360,6 +364,109 @@ class ZugriffsProtokoll(models.Model):
 
         def update(self, **kwargs):
             raise PermissionError("Audit-Trail darf nicht veraendert werden.")
+
+
+class DokumentVersion(models.Model):
+    """Versionsverlauf eines DMS-Dokuments.
+
+    Jede Bearbeitung (OnlyOffice-Callback, manueller Upload) erzeugt einen
+    neuen Eintrag. Die aktuelle Version ist immer die mit der hoechsten version_nr.
+    Aeltere Versionen bleiben unveraendert erhalten (Revisionssicherheit).
+    """
+
+    dateiname = models.CharField(max_length=255, verbose_name="Dateiname")
+    dokument = models.ForeignKey(
+        Dokument,
+        on_delete=models.CASCADE,
+        related_name="versionen",
+        verbose_name="Dokument",
+    )
+    erstellt_am = models.DateTimeField(auto_now_add=True, verbose_name="Erstellt am")
+    erstellt_von = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="erstellte_versionen",
+        verbose_name="Erstellt von",
+    )
+    groesse_bytes = models.IntegerField(verbose_name="Dateigroesse (Bytes)")
+    inhalt_roh = models.BinaryField(
+        null=True, blank=True, verbose_name="Inhalt (unkryptiert)"
+    )
+    inhalt_verschluesselt = models.BinaryField(
+        null=True, blank=True, verbose_name="Inhalt (AES-256-GCM)"
+    )
+    kommentar = models.CharField(
+        max_length=300, blank=True, verbose_name="Kommentar"
+    )
+    verschluessel_nonce = models.CharField(
+        max_length=24, blank=True, verbose_name="AES-GCM Nonce (Hex)"
+    )
+    version_nr = models.PositiveIntegerField(verbose_name="Versionsnummer")
+
+    class Meta:
+        ordering = ["-version_nr"]
+        unique_together = [("dokument", "version_nr")]
+        verbose_name = "Dokument-Version"
+        verbose_name_plural = "Dokument-Versionen"
+
+    def __str__(self):
+        return f"{self.dokument.titel} v{self.version_nr} ({self.erstellt_am:%d.%m.%Y})"
+
+    def groesse_lesbar(self):
+        """Gibt die Dateigroesse in lesbarer Form zurueck."""
+        if self.groesse_bytes < 1024:
+            return f"{self.groesse_bytes} B"
+        elif self.groesse_bytes < 1024 * 1024:
+            return f"{self.groesse_bytes / 1024:.1f} KB"
+        return f"{self.groesse_bytes / (1024 * 1024):.1f} MB"
+
+
+class ApiToken(models.Model):
+    """API-Token fuer externe Systeme die auf das DMS zugreifen (SAP, Paperless, etc.).
+
+    Externe Systeme senden den Token im Authorization-Header:
+        Authorization: Bearer <token>
+
+    Jedes System erhaelt einen eigenen Token – so kann der Zugriff einzeln
+    gesperrt, auditiert und erneuert werden ohne andere Systeme zu beeinflussen.
+    """
+
+    aktiv = models.BooleanField(default=True, verbose_name="Aktiv")
+    bezeichnung = models.CharField(max_length=200, verbose_name="Bezeichnung")
+    erlaubte_klassen = models.CharField(
+        max_length=10,
+        choices=[
+            ("offen", "Nur offen (Klasse 1)"),
+            ("beide", "Offen + Sensibel (Klasse 1+2)"),
+        ],
+        default="offen",
+        verbose_name="Erlaubte Dokumentenklassen",
+        help_text="Sensibel nur freischalten wenn das Fremdsystem verschluesselt uebertraegt.",
+    )
+    erstellt_am = models.DateTimeField(auto_now_add=True, verbose_name="Erstellt am")
+    letzte_nutzung = models.DateTimeField(
+        null=True, blank=True, verbose_name="Letzte Nutzung"
+    )
+    system = models.CharField(
+        max_length=100, blank=True, verbose_name="System (z.B. SAP S/4HANA 2023)"
+    )
+    token = models.CharField(max_length=64, unique=True, verbose_name="Token (hex)")
+
+    class Meta:
+        ordering = ["bezeichnung"]
+        verbose_name = "API-Token"
+        verbose_name_plural = "API-Tokens"
+
+    def __str__(self):
+        return f"{self.bezeichnung} ({self.system or 'kein System'})"
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            import secrets
+            self.token = secrets.token_hex(32)
+        super().save(*args, **kwargs)
 
 
 class PaperlessImportLog(models.Model):

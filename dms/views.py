@@ -1,18 +1,21 @@
-"""DMS-Views: Dokumentenliste, Upload, Download, Zugriffsverwaltung."""
+"""DMS-Views: Dokumentenliste, Upload, Download, Zugriffsverwaltung, OnlyOffice-Integration."""
+import json
 import logging
 import mimetypes
 
+from django.conf import settings as django_settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import models as db_models
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from guardian.shortcuts import assign_perm, remove_perm
 
-from .forms import DokumentSucheForm, DokumentUploadForm, ZugriffsantragForm
-from .models import DAUER_OPTIONEN, Dokument, DokumentZugriffsschluessel, ZugriffsProtokoll
+from .forms import DokumentNeuForm, DokumentSucheForm, DokumentUploadForm, ZugriffsantragForm
+from .models import DAUER_OPTIONEN, ApiToken, Dokument, DokumentVersion, DokumentZugriffsschluessel, ZugriffsProtokoll
 from .services import lade_dokument, speichere_dokument
 
 logger = logging.getLogger(__name__)
@@ -203,6 +206,85 @@ def dokument_upload(request):
 
 
 # ---------------------------------------------------------------------------
+# Neues Dokument erstellen (leere Vorlage direkt in OnlyOffice oeffnen)
+# ---------------------------------------------------------------------------
+
+def _erstelle_leere_datei(dateityp: str) -> tuple[bytes, str, str]:
+    """Gibt (inhalt_bytes, dateiname, mime_typ) fuer eine leere Vorlage zurueck.
+
+    Unterstuetzte Typen: docx, xlsx
+    """
+    import io
+
+    if dateityp == "docx":
+        from docx import Document
+        buf = io.BytesIO()
+        Document().save(buf)
+        return buf.getvalue(), "dokument.docx", \
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+    if dateityp == "xlsx":
+        from openpyxl import Workbook
+        buf = io.BytesIO()
+        Workbook().save(buf)
+        return buf.getvalue(), "tabelle.xlsx", \
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    raise ValueError(f"Unbekannter Dateityp: {dateityp}")
+
+
+@login_required
+def dokument_neu(request):
+    """Erstellt ein neues leeres Dokument und oeffnet es sofort in OnlyOffice.
+
+    Ablauf:
+    1. User waehlt Titel, Typ (docx/xlsx) und Klasse
+    2. PRIMA erzeugt leere Vorlage (python-docx / openpyxl)
+    3. Dokument wird als Version 1 in der DB gespeichert
+    4. Weiterleitung zum OnlyOffice-Editor
+    """
+    onlyoffice_url = getattr(django_settings, "ONLYOFFICE_URL", "")
+    if not onlyoffice_url:
+        messages.error(request, "OnlyOffice ist nicht konfiguriert. Bitte zuerst hochladen.")
+        return redirect("dms:upload")
+
+    user_org_ids = _get_user_orgeinheit_ids(request.user)
+    initial = {}
+    if user_org_ids:
+        initial["eigentuemereinheit"] = next(iter(user_org_ids))
+
+    form = DokumentNeuForm(request.POST or None, initial=initial)
+
+    if request.method == "POST" and form.is_valid():
+        dateityp = form.cleaned_data["dateityp_neu"]
+        try:
+            inhalt_bytes, dateiname, mime = _erstelle_leere_datei(dateityp)
+        except Exception as exc:
+            messages.error(request, f"Vorlage konnte nicht erstellt werden: {exc}")
+            return render(request, "dms/dokument_neu.html", {"form": form})
+
+        dok = form.save(commit=False)
+        dok.dateiname = dateiname
+        dok.dateityp = mime
+        dok.groesse_bytes = len(inhalt_bytes)
+        dok.erstellt_von = request.user
+        dok.version = 1
+
+        try:
+            speichere_dokument(dok, inhalt_bytes)
+        except ValueError as exc:
+            messages.error(request, f"Verschluesselung fehlgeschlagen: {exc}")
+            return render(request, "dms/dokument_neu.html", {"form": form})
+
+        dok.save()
+
+        _protokolliere(request, dok, aktion="erstellt", notiz=f"Neues {dateityp.upper()} via OnlyOffice angelegt")
+        return redirect("dms:onlyoffice_editor", pk=dok.pk)
+
+    return render(request, "dms/dokument_neu.html", {"form": form})
+
+
+# ---------------------------------------------------------------------------
 # Download / Vorschau / Detail
 # ---------------------------------------------------------------------------
 
@@ -286,14 +368,25 @@ def dokument_detail(request, pk):
             status=DokumentZugriffsschluessel.STATUS_OFFEN,
         ).first()
 
-    from django.conf import settings as django_settings
+    versionen = dok.versionen.select_related("erstellt_von").order_by("-version_nr")[:20]
+    onlyoffice_typen = {"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        "application/msword", "application/vnd.ms-excel",
+                        "application/vnd.ms-powerpoint",
+                        "application/vnd.oasis.opendocument.text",
+                        "application/vnd.oasis.opendocument.spreadsheet",
+                        "application/vnd.oasis.opendocument.presentation"}
     return render(request, "dms/dokument_detail.html", {
         "dok": dok,
         "zugriffe": zugriffe,
+        "versionen": versionen,
         "aktiver_schluessel": aktiver_schluessel,
         "offener_antrag": offener_antrag,
         "darf_zugreifen": _darf_sensibel_zugreifen(request, dok) if dok.klasse == "sensibel" else True,
         "bentopdf_url": getattr(django_settings, "BENTOPDF_URL", ""),
+        "onlyoffice_url": getattr(django_settings, "ONLYOFFICE_URL", ""),
+        "onlyoffice_unterstuetzt": dok.dateityp in onlyoffice_typen,
     })
 
 
@@ -501,3 +594,383 @@ def zugriff_widerrufen(request, schluessel_pk):
         )
 
     return redirect("dms:zugriffsantraege")
+
+
+# ---------------------------------------------------------------------------
+# OnlyOffice – Editor, Callback, Dokument-Serve, Version-Restore
+# ---------------------------------------------------------------------------
+
+# Dateiendung aus MIME-Typ ermitteln (OnlyOffice benoetigt fileType)
+_MIME_ZU_EXT = {
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":        "xlsx",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+    "application/msword":                                                         "doc",
+    "application/vnd.ms-excel":                                                   "xls",
+    "application/vnd.ms-powerpoint":                                              "ppt",
+    "application/vnd.oasis.opendocument.text":                                   "odt",
+    "application/vnd.oasis.opendocument.spreadsheet":                            "ods",
+    "application/vnd.oasis.opendocument.presentation":                           "odp",
+}
+
+
+def _onlyoffice_jwt(payload: dict) -> str:
+    """Signiert den OnlyOffice-Konfigurations-Payload als HS256-JWT.
+
+    OnlyOffice erwartet den Config-Dict direkt als JWT-Body (kein Wrapper).
+    """
+    import jwt
+    secret = getattr(django_settings, "ONLYOFFICE_JWT_SECRET", "")
+    if not secret:
+        return ""
+    return jwt.encode(payload, secret, algorithm="HS256")
+
+
+@login_required
+def onlyoffice_editor(request, pk):
+    """Oeffnet das OnlyOffice-Editorfenster fuer ein DMS-Dokument.
+
+    Generiert eine JWT-signierte Editor-Konfiguration und gibt die
+    Editor-HTML-Seite zurueck. OnlyOffice laedt das Dokument anschliessend
+    ueber onlyoffice_dokument_laden() vom PRIMA-Server.
+    """
+    dok = get_object_or_404(Dokument, pk=pk)
+
+    if dok.klasse == "sensibel" and not _darf_sensibel_zugreifen(request, dok):
+        messages.error(request, "Kein Zugriffsrecht fuer dieses Dokument.")
+        return redirect("dms:detail", pk=pk)
+
+    onlyoffice_url = getattr(django_settings, "ONLYOFFICE_URL", "")
+    prima_base = getattr(django_settings, "PRIMA_BASE_URL", "").rstrip("/")
+
+    if not onlyoffice_url:
+        messages.error(request, "OnlyOffice ist nicht konfiguriert.")
+        return redirect("dms:detail", pk=pk)
+
+    file_type = _MIME_ZU_EXT.get(dok.dateityp, "docx")
+    # Eindeutiger Key pro Dokument + Version (OnlyOffice-Cache)
+    doc_key = f"prima-{dok.pk}-v{dok.version}"
+
+    config = {
+        "document": {
+            "fileType": file_type,
+            "key":      doc_key,
+            "title":    dok.dateiname,
+            "url":      f"{prima_base}/dms/{dok.pk}/onlyoffice/laden/",
+        },
+        "documentType": _document_type(file_type),
+        "editorConfig": {
+            "callbackUrl": f"{prima_base}/dms/{dok.pk}/onlyoffice/callback/",
+            "lang":        "de",
+            "mode":        "edit",
+            "user": {
+                "id":   str(request.user.pk),
+                "name": request.user.get_full_name() or request.user.username,
+            },
+        },
+    }
+
+    token = _onlyoffice_jwt(config)
+
+    _protokolliere(request, dok, aktion="vorschau", notiz="OnlyOffice-Editor geoeffnet")
+
+    return render(request, "dms/onlyoffice_editor.html", {
+        "dok": dok,
+        "onlyoffice_url": onlyoffice_url,
+        "config_json":    json.dumps(config),
+        "token":          token,
+    })
+
+
+def _document_type(file_type: str) -> str:
+    """Gibt den OnlyOffice documentType zurueck (word/cell/slide)."""
+    if file_type in ("docx", "doc", "odt"):
+        return "word"
+    if file_type in ("xlsx", "xls", "ods"):
+        return "cell"
+    return "slide"
+
+
+def onlyoffice_dokument_laden(request, pk):
+    """Liefert den Dokumentinhalt an den OnlyOffice-Server aus.
+
+    Diese URL wird vom OnlyOffice-Container server-seitig aufgerufen (kein Browser).
+    Kein login_required – Authentifizierung erfolgt ausschliesslich per JWT.
+    Ohne konfigurierten JWT-Secret wird der Zugriff ohne Pruefung erlaubt
+    (nur fuer lokale Entwicklung akzeptabel).
+    """
+    import jwt
+
+    # JWT-Authentifizierung pruefen (wenn Secret konfiguriert)
+    secret = getattr(django_settings, "ONLYOFFICE_JWT_SECRET", "")
+    if secret:
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return HttpResponse("Unauthorized", status=401)
+        token = auth_header[7:]
+        try:
+            jwt.decode(token, secret, algorithms=["HS256"])
+        except jwt.PyJWTError:
+            return HttpResponse("Unauthorized", status=401)
+
+    dok = get_object_or_404(Dokument, pk=pk)
+    try:
+        inhalt = lade_dokument(dok)
+    except Exception as exc:
+        logger.error("OnlyOffice Laden fehlgeschlagen fuer Dokument %s: %s", pk, exc)
+        return HttpResponse("Fehler beim Laden", status=500)
+
+    return HttpResponse(inhalt, content_type=dok.dateityp or "application/octet-stream")
+
+
+@csrf_exempt
+def onlyoffice_callback(request, pk):
+    """Empfaengt die bearbeitete Datei vom OnlyOffice-Server und speichert sie
+    als neue DokumentVersion.
+
+    OnlyOffice ruft diesen Endpoint auf wenn:
+    - status 2: Dokument ist bereit zum Speichern (alle Editoren haben geschlossen)
+    - status 6: Dokument wurde forciert gespeichert
+
+    Referenz: https://api.onlyoffice.com/editors/callback
+    """
+    import urllib.request
+    import jwt
+
+    if request.method != "POST":
+        return JsonResponse({"error": 0})
+
+    try:
+        daten = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": 1})
+
+    # JWT-Verifizierung
+    secret = getattr(django_settings, "ONLYOFFICE_JWT_SECRET", "")
+    if secret:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+            try:
+                jwt.decode(token, secret, algorithms=["HS256"])
+            except jwt.PyJWTError:
+                logger.warning("OnlyOffice Callback: ungueltige JWT fuer Dokument %s", pk)
+                return JsonResponse({"error": 1})
+
+    status = daten.get("status")
+    # Status 2 = bereit zum Speichern, Status 6 = forciert gespeichert
+    if status not in (2, 6):
+        return JsonResponse({"error": 0})
+
+    download_url = daten.get("url")
+    if not download_url:
+        return JsonResponse({"error": 0})
+
+    dok = get_object_or_404(Dokument, pk=pk)
+
+    try:
+        # Datei vom OnlyOffice-Server herunterladen
+        with urllib.request.urlopen(download_url, timeout=30) as resp:
+            neuer_inhalt = resp.read()
+    except Exception as exc:
+        logger.error("OnlyOffice Callback: Download fehlgeschlagen fuer Dok %s: %s", pk, exc)
+        return JsonResponse({"error": 1})
+
+    # Bearbeitenden User ermitteln (aus actions-Array wenn vorhanden)
+    user = None
+    actions = daten.get("actions", [])
+    if actions:
+        user_id_str = str(actions[0].get("userid", ""))
+        try:
+            from django.contrib.auth.models import User
+            user = User.objects.filter(pk=int(user_id_str)).first()
+        except (ValueError, TypeError):
+            pass
+
+    # Naechste Versionsnummer bestimmen
+    letzte_nr = dok.versionen.aggregate(
+        max_nr=db_models.Max("version_nr")
+    )["max_nr"] or dok.version
+    neue_nr = letzte_nr + 1
+
+    # Neue Version speichern (gleiche Verschluesselungslogik wie Hauptdokument)
+    version = DokumentVersion(
+        dokument=dok,
+        version_nr=neue_nr,
+        dateiname=dok.dateiname,
+        groesse_bytes=len(neuer_inhalt),
+        erstellt_von=user,
+        kommentar="via OnlyOffice",
+    )
+    if dok.klasse == "sensibel":
+        from .services import verschluessel_inhalt
+        verschluesselt, nonce_hex = verschluessel_inhalt(neuer_inhalt)
+        version.inhalt_verschluesselt = verschluesselt
+        version.verschluessel_nonce = nonce_hex
+    else:
+        version.inhalt_roh = neuer_inhalt
+    version.save()
+
+    # Hauptdokument aktualisieren (aktueller Inhalt + Versionszaehler)
+    speichere_dokument(dok, neuer_inhalt)
+    dok.version = neue_nr
+    dok.groesse_bytes = len(neuer_inhalt)
+    dok.save(update_fields=["inhalt_roh", "inhalt_verschluesselt",
+                             "verschluessel_nonce", "version", "groesse_bytes"])
+
+    # Protokolleintrag ohne Request-Objekt (Callback kommt vom OnlyOffice-Server)
+    ZugriffsProtokoll.objects.create(
+        dokument=dok,
+        user=user,
+        aktion="onlyoffice_bearbeitet",
+        notiz=f"Version {neue_nr} via OnlyOffice gespeichert",
+    )
+
+    logger.info("OnlyOffice Callback: Dokument %s als Version %s gespeichert", pk, neue_nr)
+    return JsonResponse({"error": 0})
+
+
+@login_required
+def onlyoffice_version_check(request, pk):
+    """Gibt die aktuelle Versionsnummer des Dokuments zurueck (fuer Polling)."""
+    dok = get_object_or_404(Dokument, pk=pk)
+    return JsonResponse({"version": dok.version})
+
+
+@login_required
+def onlyoffice_forcesave(request, pk):
+    """Loest einen Force-Save im OnlyOffice Command Service aus.
+
+    Wird vom 'Speichern & zurueck'-Button im Editor aufgerufen.
+    OnlyOffice speichert das Dokument sofort und schickt danach
+    den normalen Callback (status 6) an onlyoffice_callback().
+    """
+    import urllib.request as urlreq
+    import urllib.parse
+
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "fehler": "Nur POST erlaubt"})
+
+    dok = get_object_or_404(Dokument, pk=pk)
+    onlyoffice_url = getattr(django_settings, "ONLYOFFICE_URL", "").rstrip("/")
+
+    if not onlyoffice_url:
+        return JsonResponse({"ok": False, "fehler": "OnlyOffice nicht konfiguriert"})
+
+    doc_key = f"prima-{dok.pk}-v{dok.version}"
+    payload = json.dumps({"c": "forcesave", "key": doc_key}).encode("utf-8")
+
+    command_url = f"{onlyoffice_url}/coauthoring/CommandService.ashx"
+    req = urlreq.Request(
+        command_url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    # JWT fuer Command Service
+    secret = getattr(django_settings, "ONLYOFFICE_JWT_SECRET", "")
+    if secret:
+        import jwt
+        token = jwt.encode({"c": "forcesave", "key": doc_key}, secret, algorithm="HS256")
+        req.add_header("Authorization", f"Bearer {token}")
+
+    try:
+        with urlreq.urlopen(req, timeout=10) as resp:
+            antwort = json.loads(resp.read())
+        # error 0 = OK, error 4 = kein aktiver Editor (auch OK – Tab bereits zu)
+        if antwort.get("error") in (0, 4):
+            return JsonResponse({"ok": True})
+        return JsonResponse({"ok": False, "fehler": f"OnlyOffice Fehlercode {antwort.get('error')}"})
+    except Exception as exc:
+        logger.error("Force-Save fehlgeschlagen fuer Dokument %s: %s", pk, exc)
+        return JsonResponse({"ok": False, "fehler": str(exc)})
+
+
+@login_required
+def version_restore(request, pk, version_nr):
+    """Stellt eine aeltere DokumentVersion als aktuellen Inhalt wieder her.
+
+    Erzeugt dabei eine neue Version mit dem alten Inhalt (kein Ueberschreiben).
+    Nur Staff oder Mitglied der Eigentuemer-OrgEinheit darf wiederherstellen.
+    """
+    dok = get_object_or_404(Dokument, pk=pk)
+
+    # Berechtigung: Staff oder OrgEinheit-Mitglied
+    ist_berechtigt = (
+        request.user.is_staff
+        or request.user.is_superuser
+        or (dok.eigentuemereinheit_id and
+            dok.eigentuemereinheit_id in _get_user_orgeinheit_ids(request.user))
+    )
+    if not ist_berechtigt:
+        messages.error(request, "Keine Berechtigung zum Wiederherstellen von Versionen.")
+        return redirect("dms:detail", pk=pk)
+
+    alte_version = get_object_or_404(DokumentVersion, dokument=dok, version_nr=version_nr)
+
+    if request.method == "POST":
+        # Inhalt der alten Version lesen
+        if dok.klasse == "sensibel":
+            from .services import entschluessel_inhalt
+            inhalt = entschluessel_inhalt(
+                bytes(alte_version.inhalt_verschluesselt),
+                alte_version.verschluessel_nonce,
+            )
+        else:
+            inhalt = bytes(alte_version.inhalt_roh)
+
+        # Neue Version erzeugen (Restore = neue Version, nicht Ueberschreiben)
+        letzte_nr = dok.versionen.aggregate(
+            max_nr=db_models.Max("version_nr")
+        )["max_nr"] or dok.version
+        neue_nr = letzte_nr + 1
+
+        neue_version = DokumentVersion(
+            dokument=dok,
+            version_nr=neue_nr,
+            dateiname=alte_version.dateiname,
+            groesse_bytes=len(inhalt),
+            erstellt_von=request.user,
+            kommentar=f"Wiederhergestellt aus Version {version_nr}",
+        )
+        if dok.klasse == "sensibel":
+            from .services import verschluessel_inhalt
+            verschluesselt, nonce_hex = verschluessel_inhalt(inhalt)
+            neue_version.inhalt_verschluesselt = verschluesselt
+            neue_version.verschluessel_nonce = nonce_hex
+        else:
+            neue_version.inhalt_roh = inhalt
+        neue_version.save()
+
+        # Hauptdokument aktualisieren
+        speichere_dokument(dok, inhalt)
+        dok.version = neue_nr
+        dok.groesse_bytes = len(inhalt)
+        dok.save(update_fields=["inhalt_roh", "inhalt_verschluesselt",
+                                 "verschluessel_nonce", "version", "groesse_bytes"])
+
+        _protokolliere(
+            request, dok, aktion="version_wiederhergestellt",
+            notiz=f"Version {version_nr} wiederhergestellt als Version {neue_nr}",
+        )
+
+        messages.success(
+            request,
+            f'Version {version_nr} von "{dok.titel}" wurde als Version {neue_nr} wiederhergestellt.'
+        )
+
+    return redirect("dms:detail", pk=pk)
+
+
+@login_required
+def api_dokumentation(request):
+    """Zeigt die API-Dokumentation fuer externe Systeme (SAP, Paperless, etc.)."""
+    from django.conf import settings as conf_settings
+    basis_url = getattr(conf_settings, "PRIMA_BASE_URL", request.build_absolute_uri("/").rstrip("/"))
+    api_tokens = ApiToken.objects.all() if request.user.is_staff else ApiToken.objects.none()
+    return render(request, "dms/api_dokumentation.html", {
+        "basis_url": basis_url,
+        "api_tokens": api_tokens,
+        "api_version": "1.0",
+    })

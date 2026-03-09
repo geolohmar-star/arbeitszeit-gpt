@@ -86,6 +86,36 @@ class DokumentSucheForm(forms.Form):
     )
 
 
+class DokumentNeuForm(forms.ModelForm):
+    """Formular fuer die Erstellung eines neuen leeren Dokuments via OnlyOffice."""
+
+    DATEITYP_CHOICES = [
+        ("docx", "Word-Dokument (.docx)"),
+        ("xlsx", "Excel-Tabelle (.xlsx)"),
+    ]
+
+    dateityp_neu = forms.ChoiceField(
+        choices=DATEITYP_CHOICES,
+        label="Dokumenttyp",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    class Meta:
+        model = Dokument
+        fields = ["titel", "klasse", "kategorie", "eigentuemereinheit", "beschreibung"]
+        widgets = {
+            "titel": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "z.B. Besprechungsprotokoll 2026-03",
+                "autofocus": True,
+            }),
+            "klasse": forms.Select(attrs={"class": "form-select"}),
+            "kategorie": forms.Select(attrs={"class": "form-select"}),
+            "eigentuemereinheit": forms.Select(attrs={"class": "form-select"}),
+            "beschreibung": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+        }
+
+
 class ZugriffsantragForm(forms.ModelForm):
     """Formular fuer Zugriffsantrag auf ein sensibles Dokument."""
 

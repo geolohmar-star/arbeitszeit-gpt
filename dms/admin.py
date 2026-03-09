@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import (
+    ApiToken,
     Dokument,
     DokumentKategorie,
     DokumentTag,
@@ -57,6 +58,18 @@ class DokumentZugriffsschluesselAdmin(admin.ModelAdmin):
         return obj.ist_aktiv()
     ist_aktiv.boolean = True
     ist_aktiv.short_description = "Aktiv?"
+
+
+@admin.register(ApiToken)
+class ApiTokenAdmin(admin.ModelAdmin):
+    list_display = ["bezeichnung", "system", "erlaubte_klassen", "aktiv", "erstellt_am", "letzte_nutzung"]
+    list_filter = ["aktiv", "erlaubte_klassen"]
+    search_fields = ["bezeichnung", "system"]
+    readonly_fields = ["erstellt_am", "letzte_nutzung", "token"]
+
+    def save_model(self, request, obj, form, change):
+        """Token wird automatisch generiert wenn noch keiner gesetzt ist."""
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(PaperlessImportLog)

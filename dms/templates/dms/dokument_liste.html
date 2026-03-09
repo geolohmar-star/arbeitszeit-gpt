@@ -13,10 +13,17 @@
                 Klasse 2: sensibel &amp; AES-256-GCM verschluesselt
             </p>
         </div>
-        <a href="{% url 'dms:upload' %}" class="btn btn-sm"
-           style="background:#1a4d2e; color:white;">
-            + Dokument hochladen
-        </a>
+        <div class="d-flex gap-2">
+            {% if onlyoffice_url %}
+            <a href="{% url 'dms:neu' %}" class="btn btn-sm btn-outline-success">
+                + Neu in OnlyOffice
+            </a>
+            {% endif %}
+            <a href="{% url 'dms:upload' %}" class="btn btn-sm"
+               style="background:#1a4d2e; color:white;">
+                + Dokument hochladen
+            </a>
+        </div>
     </div>
 
     {% if messages %}

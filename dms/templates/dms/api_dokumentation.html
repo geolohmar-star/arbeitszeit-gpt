@@ -1,0 +1,460 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}DMS API-Dokumentation v{{ api_version }}{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:960px;">
+
+  <!-- Header -->
+  <div class="mb-4">
+    <a href="{% url 'dms:liste' %}" class="text-muted text-decoration-none small">&larr; Zurueck zum DMS</a>
+    <div class="d-flex justify-content-between align-items-end mt-2 flex-wrap gap-2">
+      <div>
+        <h1 class="h3 fw-bold mb-1" style="color:#1a4d2e;">PRIMA DMS &mdash; REST API</h1>
+        <p class="text-muted small mb-0">Version {{ api_version }} &middot; Schnittstelle fuer externe Systeme (SAP, Paperless-ngx, etc.)</p>
+      </div>
+      <span class="badge" style="background:#1a4d2e; font-size:0.75rem; padding:6px 12px;">API v{{ api_version }}</span>
+    </div>
+  </div>
+
+  <!-- Inhaltsverzeichnis -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white fw-semibold py-2 px-4">Inhaltsverzeichnis</div>
+    <div class="card-body px-4 py-3">
+      <ol class="mb-0" style="font-size:0.88rem;">
+        <li><a href="#authentifizierung" class="text-decoration-none" style="color:#1a4d2e;">Authentifizierung</a></li>
+        <li><a href="#basis-url" class="text-decoration-none" style="color:#1a4d2e;">Basis-URL &amp; Format</a></li>
+        <li><a href="#endpunkte" class="text-decoration-none" style="color:#1a4d2e;">Endpunkt-Referenz</a></li>
+        <li><a href="#fehlercodes" class="text-decoration-none" style="color:#1a4d2e;">Fehlercodes</a></li>
+        <li><a href="#curl-beispiele" class="text-decoration-none" style="color:#1a4d2e;">cURL-Beispiele</a></li>
+        <li><a href="#abap-beispiel" class="text-decoration-none" style="color:#1a4d2e;">SAP ABAP-Beispiel</a></li>
+        <li><a href="#sicherheit" class="text-decoration-none" style="color:#1a4d2e;">Sicherheitshinweise</a></li>
+        {% if api_tokens %}<li><a href="#tokens" class="text-decoration-none" style="color:#1a4d2e;">Aktive API-Tokens (Staff)</a></li>{% endif %}
+      </ol>
+    </div>
+  </div>
+
+  <!-- 1. Authentifizierung -->
+  <div class="card border-0 shadow-sm mb-4" id="authentifizierung">
+    <div class="card-header bg-white fw-semibold py-2 px-4">1. Authentifizierung</div>
+    <div class="card-body px-4 py-3" style="font-size:0.88rem;">
+      <p>Alle API-Anfragen benoetigen einen gueltigen <strong>Bearer-Token</strong> im HTTP-Header:</p>
+      <pre style="background:#1e293b; color:#e2e8f0; border-radius:6px; padding:1rem; font-size:0.82rem; overflow-x:auto;">Authorization: Bearer &lt;64-stelliger-Hex-Token&gt;</pre>
+      <p class="mt-3 mb-1">Tokens werden im PRIMA-Adminbereich unter <strong>DMS &rarr; API-Tokens</strong> verwaltet. Jedes externe System erhaelt einen eigenen Token:</p>
+      <ul class="mb-2">
+        <li>SAP ERP-System &rarr; eigener Token mit Berechtigung &bdquo;Nur offen&ldquo;</li>
+        <li>Paperless-ngx &rarr; eigener Token fuer Scan-Imports</li>
+        <li>Backup-System &rarr; eigener Token, jederzeit einzeln sperrbar</li>
+      </ul>
+      <p class="mb-0 text-muted">Token werden niemals im URL-Parameter &uuml;bertragen &mdash; ausschlie&szlig;lich per HTTP-Header. Alle API-Anfragen sollten ausschlie&szlig;lich &uuml;ber HTTPS erfolgen.</p>
+    </div>
+  </div>
+
+  <!-- 2. Basis-URL -->
+  <div class="card border-0 shadow-sm mb-4" id="basis-url">
+    <div class="card-header bg-white fw-semibold py-2 px-4">2. Basis-URL &amp; Format</div>
+    <div class="card-body px-4 py-3" style="font-size:0.88rem;">
+      <table class="table table-sm mb-3">
+        <tbody>
+          <tr>
+            <td class="fw-semibold" style="width:180px;">Basis-URL</td>
+            <td><code>{{ basis_url }}/dms/api/v1/</code></td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Antwortformat</td>
+            <td><code>application/json</code> (UTF-8)</td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Upload-Format</td>
+            <td><code>multipart/form-data</code></td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Datum/Uhrzeit</td>
+            <td>ISO 8601 mit Zeitzone, z.B. <code>2026-03-09T14:30:00+01:00</code></td>
+          </tr>
+          <tr>
+            <td class="fw-semibold">Zeichensatz</td>
+            <td>UTF-8 durchgehend</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="alert alert-info py-2 mb-0" style="font-size:0.82rem;">
+        <strong>Hinweis:</strong> Die API ist <em>zustandslos</em> &mdash; jede Anfrage muss den Authorization-Header enthalten. Cookies werden nicht ausgewertet.
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Endpunkt-Referenz -->
+  <div class="card border-0 shadow-sm mb-4" id="endpunkte">
+    <div class="card-header bg-white fw-semibold py-2 px-4">3. Endpunkt-Referenz</div>
+    <div class="card-body px-4 py-3" style="font-size:0.88rem;">
+
+      <!-- Health -->
+      <div class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-success">GET</span>
+          <code>/dms/api/v1/health/</code>
+        </div>
+        <p class="text-muted mb-1">Verbindungstest. Gibt an ob der Server erreichbar ist und welches System sich authentifiziert hat.</p>
+        <strong>Antwort 200:</strong>
+        <pre style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.75rem; font-size:0.8rem;">{
+  "status": "ok",
+  "api_version": "1.0",
+  "system": "SAP S/4HANA 2023",
+  "zeitpunkt": "2026-03-09T14:30:00.123456+01:00"
+}</pre>
+      </div>
+
+      <!-- Kategorien -->
+      <div class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-success">GET</span>
+          <code>/dms/api/v1/kategorien/</code>
+        </div>
+        <p class="text-muted mb-1">Alle Dokumentkategorien abrufen. Wird benoetigt um beim Upload die richtige <code>kategorie</code>-ID zu setzen.</p>
+        <strong>Antwort 200:</strong>
+        <pre style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.75rem; font-size:0.8rem;">{
+  "kategorien": [
+    { "id": 1, "name": "Betriebsanweisungen", "pfad": "Betriebsanweisungen", "klasse": "offen", "elternkategorie_id": null },
+    { "id": 2, "name": "Sicherheit",          "pfad": "Betriebsanweisungen > Sicherheit", "klasse": "offen", "elternkategorie_id": 1 }
+  ]
+}</pre>
+      </div>
+
+      <!-- Dokumentenliste -->
+      <div class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-success">GET</span>
+          <code>/dms/api/v1/dokumente/</code>
+        </div>
+        <p class="text-muted mb-2">Dokumentenliste abrufen. Unterst&uuml;tzt Filter und Paginierung.</p>
+        <strong>Query-Parameter:</strong>
+        <table class="table table-sm table-bordered mb-2">
+          <thead style="font-size:0.78rem; text-transform:uppercase; color:#6b7280;">
+            <tr><th>Parameter</th><th>Typ</th><th>Standard</th><th>Beschreibung</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>klasse</code></td><td>string</td><td>—</td><td>Filtert auf <code>offen</code> oder <code>sensibel</code></td></tr>
+            <tr><td><code>kategorie</code></td><td>integer</td><td>—</td><td>Kategorie-ID aus <code>/kategorien/</code></td></tr>
+            <tr><td><code>suche</code></td><td>string</td><td>—</td><td>Freitext in Titel + Dateiname</td></tr>
+            <tr><td><code>limit</code></td><td>integer</td><td>50</td><td>Ergebnisse pro Seite (max. 200)</td></tr>
+            <tr><td><code>offset</code></td><td>integer</td><td>0</td><td>Offset f&uuml;r Paginierung</td></tr>
+          </tbody>
+        </table>
+        <strong>Antwort 200:</strong>
+        <pre style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.75rem; font-size:0.8rem;">{
+  "gesamt": 142,
+  "limit": 50,
+  "offset": 0,
+  "dokumente": [
+    {
+      "id": 17,
+      "titel": "Betriebsanweisung Brandschutz 2026",
+      "dateiname": "brandschutz_2026.pdf",
+      "dateityp": "application/pdf",
+      "groesse_bytes": 204800,
+      "klasse": "offen",
+      "version": 3,
+      "kategorie": "Betriebsanweisungen > Sicherheit",
+      "kategorie_id": 2,
+      "beschreibung": "",
+      "gueltig_bis": "2027-12-31",
+      "erstellt_am": "2026-03-01T09:15:00+01:00",
+      "paperless_id": null,
+      "tags": ["Brandschutz", "Pflichtunterweisung"]
+    }
+  ]
+}</pre>
+      </div>
+
+      <!-- Upload -->
+      <div class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-primary">POST</span>
+          <code>/dms/api/v1/dokumente/</code>
+        </div>
+        <p class="text-muted mb-2">Neues Dokument hochladen (<code>multipart/form-data</code>).</p>
+        <strong>Formular-Felder:</strong>
+        <table class="table table-sm table-bordered mb-2">
+          <thead style="font-size:0.78rem; text-transform:uppercase; color:#6b7280;">
+            <tr><th>Feld</th><th>Pflicht</th><th>Typ</th><th>Beschreibung</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>datei</code></td><td><span class="badge bg-danger">Ja</span></td><td>File</td><td>Dateiinhalt (beliebiger Typ)</td></tr>
+            <tr><td><code>titel</code></td><td><span class="badge bg-danger">Ja</span></td><td>string</td><td>Dokumententitel im DMS</td></tr>
+            <tr><td><code>klasse</code></td><td>Nein</td><td>string</td><td><code>offen</code> (Standard) oder <code>sensibel</code></td></tr>
+            <tr><td><code>kategorie</code></td><td>Nein</td><td>integer</td><td>Kategorie-ID</td></tr>
+            <tr><td><code>beschreibung</code></td><td>Nein</td><td>string</td><td>Freitext-Beschreibung</td></tr>
+            <tr><td><code>gueltig_bis</code></td><td>Nein</td><td>date</td><td>ISO 8601, z.B. <code>2027-12-31</code></td></tr>
+            <tr><td><code>kommentar</code></td><td>Nein</td><td>string</td><td>Versionskommentar</td></tr>
+          </tbody>
+        </table>
+        <p class="mb-1"><strong>Antwort 201:</strong> Metadaten des erstellten Dokuments (gleiche Struktur wie Dokumentenliste).</p>
+        <p class="mb-0 text-muted">Jeder Upload wird im Audit-Trail als <code>api_upload</code> mit Token-Bezeichnung protokolliert.</p>
+      </div>
+
+      <!-- Detail -->
+      <div class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-success">GET</span>
+          <code>/dms/api/v1/dokumente/&lt;id&gt;/</code>
+        </div>
+        <p class="text-muted mb-1">Metadaten eines einzelnen Dokuments inkl. Versionsverlauf.</p>
+        <strong>Antwort 200:</strong> Wie Dokumentenliste + Feld <code>"versionen": [{"version_nr": 3, "erstellt_am": "...", "groesse_bytes": 204800, "kommentar": "..."}]</code>
+      </div>
+
+      <!-- Download -->
+      <div class="mb-4">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-success">GET</span>
+          <code>/dms/api/v1/dokumente/&lt;id&gt;/inhalt/</code>
+        </div>
+        <p class="text-muted mb-1">Rohen Dateiinhalt als Bin&auml;r-Download. Content-Type entspricht dem MIME-Typ des Dokuments.</p>
+        <strong>Antwort-Header:</strong>
+        <pre style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.75rem; font-size:0.8rem;">Content-Type: application/pdf
+Content-Disposition: attachment; filename="brandschutz_2026.pdf"
+X-PRIMA-Dokument-ID: 17
+X-PRIMA-Version: 3</pre>
+      </div>
+
+      <!-- Neue Version -->
+      <div class="mb-0">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-primary">POST</span>
+          <code>/dms/api/v1/dokumente/&lt;id&gt;/version/</code>
+        </div>
+        <p class="text-muted mb-1">Neue Version eines bestehenden Dokuments hochladen. Felder: <code>datei</code> (Pflicht) + <code>kommentar</code> (optional).</p>
+        <strong>Antwort 201:</strong>
+        <pre style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.75rem; font-size:0.8rem;">{ "dokument_id": 17, "neue_version": 4 }</pre>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 4. Fehlercodes -->
+  <div class="card border-0 shadow-sm mb-4" id="fehlercodes">
+    <div class="card-header bg-white fw-semibold py-2 px-4">4. Fehlercodes</div>
+    <div class="card-body px-4 py-3" style="font-size:0.88rem;">
+      <p class="mb-2">Fehlerantworten folgen immer dem Format: <code>{"fehler": "...", "code": "FEHLERCODE"}</code></p>
+      <table class="table table-sm table-bordered mb-0">
+        <thead style="font-size:0.78rem; text-transform:uppercase; color:#6b7280;">
+          <tr><th>HTTP-Status</th><th>Code</th><th>Bedeutung</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>401</td><td><code>UNAUTHORIZED</code></td><td>Token fehlt oder ungueltig</td></tr>
+          <tr><td>403</td><td><code>FORBIDDEN</code></td><td>Token hat keine Berechtigung fuer diese Aktion (z.B. sensible Dokumente)</td></tr>
+          <tr><td>404</td><td><code>NOT_FOUND</code></td><td>Dokument oder Kategorie nicht gefunden</td></tr>
+          <tr><td>400</td><td><code>BAD_REQUEST</code></td><td>Pflichtfeld fehlt oder ungueltige Parameter</td></tr>
+          <tr><td>405</td><td><code>Method Not Allowed</code></td><td>HTTP-Methode wird fuer diesen Endpunkt nicht unterstuetzt</td></tr>
+          <tr><td>500</td><td>—</td><td>Serverseitiger Fehler (im PRIMA-Log protokolliert)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5. cURL-Beispiele -->
+  <div class="card border-0 shadow-sm mb-4" id="curl-beispiele">
+    <div class="card-header bg-white fw-semibold py-2 px-4">5. cURL-Beispiele</div>
+    <div class="card-body px-4 py-3" style="font-size:0.88rem;">
+
+      <p class="fw-semibold mb-1">Verbindungstest:</p>
+      <pre style="background:#1e293b; color:#e2e8f0; border-radius:6px; padding:1rem; font-size:0.8rem; overflow-x:auto;">curl -s \
+  -H "Authorization: Bearer &lt;TOKEN&gt;" \
+  {{ basis_url }}/dms/api/v1/health/</pre>
+
+      <p class="fw-semibold mb-1 mt-3">Dokument hochladen:</p>
+      <pre style="background:#1e293b; color:#e2e8f0; border-radius:6px; padding:1rem; font-size:0.8rem; overflow-x:auto;">curl -s -X POST \
+  -H "Authorization: Bearer &lt;TOKEN&gt;" \
+  -F "datei=@/pfad/zum/dokument.pdf" \
+  -F "titel=Lieferschein 2026-0042" \
+  -F "klasse=offen" \
+  -F "kategorie=3" \
+  -F "beschreibung=Import aus SAP MM" \
+  {{ basis_url }}/dms/api/v1/dokumente/</pre>
+
+      <p class="fw-semibold mb-1 mt-3">Dokumentliste abrufen (gefiltert):</p>
+      <pre style="background:#1e293b; color:#e2e8f0; border-radius:6px; padding:1rem; font-size:0.8rem; overflow-x:auto;">curl -s \
+  -H "Authorization: Bearer &lt;TOKEN&gt;" \
+  "{{ basis_url }}/dms/api/v1/dokumente/?klasse=offen&amp;suche=Lieferschein&amp;limit=10"</pre>
+
+      <p class="fw-semibold mb-1 mt-3">Dateiinhalt herunterladen:</p>
+      <pre style="background:#1e293b; color:#e2e8f0; border-radius:6px; padding:1rem; font-size:0.8rem; overflow-x:auto;">curl -s \
+  -H "Authorization: Bearer &lt;TOKEN&gt;" \
+  -o ausgabe.pdf \
+  {{ basis_url }}/dms/api/v1/dokumente/17/inhalt/</pre>
+
+    </div>
+  </div>
+
+  <!-- 6. SAP ABAP-Beispiel -->
+  <div class="card border-0 shadow-sm mb-4" id="abap-beispiel">
+    <div class="card-header bg-white fw-semibold py-2 px-4">6. SAP ABAP-Beispiel</div>
+    <div class="card-body px-4 py-3" style="font-size:0.88rem;">
+      <p class="mb-2">Der folgende ABAP-Code nutzt <code>CL_HTTP_CLIENT</code> um ein Dokument aus SAP ins PRIMA-DMS zu uebertragen.
+      Voraussetzung: PRIMA-Server ist als HTTP-Destination in SAP SM59 eingetragen.</p>
+      <p class="text-muted mb-3" style="font-size:0.82rem;">
+        SM59 &rarr; Neue RFC-Destination &rarr; Typ G (HTTP-Verbindung zu externem Server) &rarr;
+        Host: <code>{{ basis_url|slice:"7:" }}</code>, Pfad-Prefix: <code>/dms/api/v1/</code>
+      </p>
+
+      <pre style="background:#1e293b; color:#e2e8f0; border-radius:6px; padding:1rem; font-size:0.78rem; overflow-x:auto; line-height:1.6;">REPORT z_prima_dms_upload.
+
+* Konfiguration
+CONSTANTS: c_destination TYPE rfcdest VALUE 'PRIMA_DMS',
+           c_token       TYPE string   VALUE '&lt;64-STELLIGER-HEX-TOKEN&gt;'.
+
+* Dateiinhalt (Beispiel: internes Byte-Feld)
+DATA: lv_inhalt   TYPE xstring,
+      lv_dateiname TYPE string VALUE 'lieferschein_0042.pdf',
+      lv_titel     TYPE string VALUE 'Lieferschein 2026-0042'.
+
+* HTTP-Client erzeugen
+DATA: lo_client   TYPE REF TO if_http_client,
+      lv_subrc    TYPE sy-subrc.
+
+cl_http_client=>create_by_destination(
+  EXPORTING destination = c_destination
+  IMPORTING client      = lo_client
+  EXCEPTIONS OTHERS     = 4 ).
+
+IF sy-subrc &lt;&gt; 0.
+  MESSAGE 'HTTP-Client konnte nicht erstellt werden' TYPE 'E'.
+  RETURN.
+ENDIF.
+
+* Methode und Pfad setzen
+lo_client-&gt;request-&gt;set_method( 'POST' ).
+lo_client-&gt;request-&gt;set_header_field(
+  name  = 'Authorization'
+  value = |Bearer { c_token }| ).
+
+* Multipart-Body aufbauen
+DATA: lo_entity TYPE REF TO if_http_entity.
+lo_client-&gt;request-&gt;if_http_entity~set_content_type(
+  'multipart/form-data; boundary=prima_boundary' ).
+
+lo_entity = lo_client-&gt;request-&gt;get_form_field( 'titel' ).
+lo_entity-&gt;set_cdata( lv_titel ).
+
+lo_entity = lo_client-&gt;request-&gt;get_form_field( 'klasse' ).
+lo_entity-&gt;set_cdata( 'offen' ).
+
+lo_entity = lo_client-&gt;request-&gt;get_form_field( 'datei' ).
+lo_entity-&gt;set_data( lv_inhalt ).
+lo_entity-&gt;set_content_type( 'application/pdf' ).
+lo_entity-&gt;set_header_field(
+  name  = 'Content-Disposition'
+  value = |form-data; name="datei"; filename="{ lv_dateiname }"| ).
+
+* Anfrage senden
+lo_client-&gt;send(
+  EXCEPTIONS http_communication_failure = 1 OTHERS = 2 ).
+
+IF sy-subrc &lt;&gt; 0.
+  MESSAGE 'Fehler beim Senden der Anfrage' TYPE 'E'.
+  RETURN.
+ENDIF.
+
+* Antwort empfangen
+lo_client-&gt;receive(
+  EXCEPTIONS http_communication_failure = 1 OTHERS = 2 ).
+
+DATA: lv_status   TYPE i,
+      lv_antwort  TYPE string.
+lo_client-&gt;response-&gt;get_status( IMPORTING code = lv_status ).
+lv_antwort = lo_client-&gt;response-&gt;get_cdata( ).
+
+IF lv_status = 201.
+  MESSAGE |Dokument erfolgreich hochgeladen: { lv_antwort }| TYPE 'S'.
+ELSE.
+  MESSAGE |Fehler { lv_status }: { lv_antwort }| TYPE 'E'.
+ENDIF.
+
+lo_client-&gt;close( ).</pre>
+
+      <div class="alert alert-info py-2 mt-3 mb-0" style="font-size:0.82rem;">
+        <strong>Hinweis fuer SAP-Integration Suite (CPI):</strong> Bei Verwendung von SAP Integration Suite (frueherer SAP HCI/CPI)
+        kann die HTTP-Kommunikation ueber einen iFlow mit HTTP-Adapter abgebildet werden.
+        Der Bearer-Token wird als Header-Property konfiguriert. Kontaktiere den PRIMA-Administrator fuer den Token.
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Sicherheitshinweise -->
+  <div class="card border-0 shadow-sm mb-4" id="sicherheit">
+    <div class="card-header bg-white fw-semibold py-2 px-4">7. Sicherheitshinweise</div>
+    <div class="card-body px-4 py-3" style="font-size:0.88rem;">
+      <ul class="mb-0">
+        <li class="mb-2"><strong>HTTPS erzwingen:</strong> Alle API-Anfragen m&uuml;ssen &uuml;ber HTTPS laufen.
+          Im Intranet-Betrieb &uuml;ber interne CA mit Nginx als TLS-Termination.</li>
+        <li class="mb-2"><strong>Token schmal halten:</strong> Jedes System erh&auml;lt nur die minimal notwendigen Berechtigungen.
+          SAP MM ben&ouml;tigt nur <em>Nur offen</em>, niemals <em>Offen + Sensibel</em>.</li>
+        <li class="mb-2"><strong>Token-Rotation:</strong> Tokens sollten regelm&auml;&szlig;ig erneuert werden.
+          Im Admin alten Token deaktivieren &rarr; neuen Token erstellen &rarr; im SAP hinterlegen.</li>
+        <li class="mb-2"><strong>Audit-Trail:</strong> Jeder API-Zugriff (Upload und Download) wird im ZugriffsProtokoll
+          mit Token-Bezeichnung und IP-Adresse protokolliert. Nicht l&ouml;schbar (DSGVO Art. 5 Abs. 2).</li>
+        <li class="mb-2"><strong>Sensible Dokumente:</strong> Klasse-2-Dokumente (Personalakten etc.) sind standardm&auml;&szlig;ig
+          f&uuml;r API-Tokens gesperrt. Zugriff nur nach expliziter Freigabe durch PRIMA-Administrator.</li>
+        <li class="mb-0"><strong>Netzwerk-Ebene:</strong> Im Selbstbetrieb zus&auml;tzlich Firewall-Regel:
+          API-Endpunkte nur aus dem SAP-Applikationsserver-Subnetz erreichbar.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 8. Aktive Tokens (Staff only) -->
+  {% if api_tokens %}
+  <div class="card border-0 shadow-sm mb-4" id="tokens">
+    <div class="card-header bg-white fw-semibold py-2 px-4">
+      8. Aktive API-Tokens
+      <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">nur Staff</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead style="font-size:0.75rem; text-transform:uppercase; color:#6b7280;">
+          <tr>
+            <th class="px-4 py-2">Bezeichnung</th>
+            <th>System</th>
+            <th>Klassen</th>
+            <th>Aktiv</th>
+            <th>Letzte Nutzung</th>
+            <th>Erstellt</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for tok in api_tokens %}
+          <tr>
+            <td class="px-4 py-2 fw-semibold" style="font-size:0.85rem;">{{ tok.bezeichnung }}</td>
+            <td style="font-size:0.82rem;">{{ tok.system|default:"—" }}</td>
+            <td>
+              {% if tok.erlaubte_klassen == "beide" %}
+                <span class="badge bg-warning text-dark">Offen + Sensibel</span>
+              {% else %}
+                <span class="badge bg-success">Nur offen</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if tok.aktiv %}
+                <span class="badge bg-success">Aktiv</span>
+              {% else %}
+                <span class="badge bg-danger">Gesperrt</span>
+              {% endif %}
+            </td>
+            <td style="font-size:0.82rem;">{{ tok.letzte_nutzung|date:"d.m.Y H:i"|default:"Noch nie" }}</td>
+            <td style="font-size:0.82rem;">{{ tok.erstellt_am|date:"d.m.Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="px-4 py-3 text-muted">Noch keine API-Tokens angelegt.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer bg-white py-2 px-4" style="font-size:0.8rem; color:#6b7280;">
+      Token-Werte werden aus Sicherheitsgr&uuml;nden hier nicht angezeigt.
+      Zum Kopieren eines Tokens: Django-Admin &rarr; DMS &rarr; API-Tokens.
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

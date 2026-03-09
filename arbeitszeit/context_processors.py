@@ -141,6 +141,8 @@ def cmd_items(request):
 
     u = request.user
 
+    from django.conf import settings
+
     def url(name, *args):
         from django.urls import reverse, NoReverseMatch
         try:
@@ -181,7 +183,18 @@ def cmd_items(request):
         {"l": "Veranstaltungen",             "u": url("veranstaltungen:uebersicht"),                    "g": "Veranstaltungen"},
         {"l": "Meine Daten (DSGVO-Auskunft)","u": url("datenschutz:auskunft_pdf"),                     "g": "Konto"},
         {"l": "Digitale Signatur",           "u": url("signatur:dashboard"),                            "g": "Konto"},
+        {"l": "DMS – Dokumente",             "u": url("dms:liste"),                                     "g": "Dokumente"},
     ]
+
+    # BentoPDF: direkter Link zur Toolbox (sinnvoll als externer Aufruf)
+    bentopdf_url = getattr(settings, "BENTOPDF_URL", "")
+    if bentopdf_url:
+        items.append({"l": "PDF-Werkzeuge (BentoPDF)", "u": bentopdf_url, "g": "Dienste"})
+
+    # OnlyOffice: Einstieg immer ueber DMS, nie direkt zum Server
+    if getattr(settings, "ONLYOFFICE_URL", ""):
+        items.append({"l": "Neues Dokument (OnlyOffice)", "u": url("dms:neu"),  "g": "Dokumente"})
+        items.append({"l": "Dokumente bearbeiten",        "u": url("dms:liste"), "g": "Dokumente"})
 
     if hat_genehmiger:
         items.append({"l": "Genehmigungen", "u": url("formulare:genehmigung_uebersicht"), "g": "Aufgaben"})
@@ -240,7 +253,8 @@ def hilfe_kontext(request):
         "apps_liste": [
             "arbeitszeit", "formulare", "schichtplan", "hr", "workflow",
             "facility", "raumbuch", "signatur", "datenschutz", "dokumente",
-            "berechtigungen", "veranstaltungen",
+            "dms", "berechtigungen", "veranstaltungen", "bewerbung",
+            "stellenportal", "betriebssport",
         ],
         "bentopdf_url": getattr(settings, "BENTOPDF_URL", ""),
         "onlyoffice_url": getattr(settings, "ONLYOFFICE_URL", ""),

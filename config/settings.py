@@ -23,6 +23,7 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
+    'host.docker.internal',
     '.onrender.com',
     'arbeitszeit-gpt.up.railway.app',
     '.railway.app',
@@ -331,6 +332,12 @@ BENTOPDF_URL = os.environ.get("BENTOPDF_URL", "")
 # OnlyOffice: URL des selbst betriebenen Document Servers (ohne abschliessendes /)
 # Beispiel: ONLYOFFICE_URL=https://office.georg-klein.com
 ONLYOFFICE_URL = os.environ.get("ONLYOFFICE_URL", "")
+# JWT-Secret muss mit dem JWT_SECRET im OnlyOffice docker-compose.yml uebereinstimmen
+ONLYOFFICE_JWT_SECRET = os.environ.get("ONLYOFFICE_JWT_SECRET", "")
+# Basis-URL unter der PRIMA vom OnlyOffice-Container erreichbar ist
+# Lokal: host.docker.internal:8000 (Docker Desktop Windows/Mac)
+# Produktion: oeffentliche PRIMA-URL
+PRIMA_BASE_URL = os.environ.get("PRIMA_BASE_URL", "http://host.docker.internal:8000")
 
 # Jitsi Meet: Basis-URL des eigenen Jitsi-Servers (ohne abschliessendes /)
 # Beispiel: JITSI_BASE_URL=https://meet.intranet.firma.de

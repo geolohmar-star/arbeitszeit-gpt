@@ -28,6 +28,10 @@
                   <a href="{{ bentopdf_url }}" target="_blank"
                      class="btn btn-sm btn-outline-primary" title="PDF in BentoPDF bearbeiten">PDF-Werkzeuge</a>
                   {% endif %}
+                  {% if onlyoffice_url and onlyoffice_unterstuetzt %}
+                  <a href="{% url 'dms:onlyoffice_editor' dok.pk %}"
+                     class="btn btn-sm btn-outline-success" title="In OnlyOffice bearbeiten">In OnlyOffice bearbeiten</a>
+                  {% endif %}
                 {% elif offener_antrag %}
                   <span class="badge bg-warning text-dark">Antrag wartet auf Genehmigung</span>
                 {% else %}
@@ -42,6 +46,10 @@
                 {% if bentopdf_url and dok.dateityp == "application/pdf" %}
                 <a href="{{ bentopdf_url }}" target="_blank"
                    class="btn btn-sm btn-outline-primary" title="PDF in BentoPDF bearbeiten">PDF-Werkzeuge</a>
+                {% endif %}
+                {% if onlyoffice_url and onlyoffice_unterstuetzt %}
+                <a href="{% url 'dms:onlyoffice_editor' dok.pk %}"
+                   class="btn btn-sm btn-outline-success" title="In OnlyOffice bearbeiten">In OnlyOffice bearbeiten</a>
                 {% endif %}
               {% endif %}
             </div>
@@ -122,6 +130,65 @@
             </div>
         </div>
     </div>
+
+    <!-- Versionsverlauf -->
+    {% if versionen %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold py-2 px-4">
+            Versionsverlauf
+            <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">{{ versionen|length }} Versionen</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead style="font-size:0.75rem; text-transform:uppercase; color:#6b7280;">
+                    <tr>
+                        <th class="px-4 py-2">Version</th>
+                        <th class="py-2">Datum</th>
+                        <th class="py-2">Erstellt von</th>
+                        <th class="py-2">Groesse</th>
+                        <th class="py-2">Kommentar</th>
+                        {% if request.user.is_staff or request.user.is_superuser %}
+                        <th class="py-2"></th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for v in versionen %}
+                    <tr {% if forloop.first %}style="background:#f0fdf4;"{% endif %}>
+                        <td class="px-4 py-2">
+                            <span class="badge {% if forloop.first %}bg-success{% else %}bg-secondary{% endif %}">
+                                v{{ v.version_nr }}
+                            </span>
+                            {% if forloop.first %}<small class="text-muted ms-1">aktuell</small>{% endif %}
+                        </td>
+                        <td style="font-size:0.82rem;">{{ v.erstellt_am|date:"d.m.Y H:i" }}</td>
+                        <td style="font-size:0.82rem;">
+                            {% if v.erstellt_von %}{{ v.erstellt_von.get_full_name|default:v.erstellt_von.username }}{% else %}System{% endif %}
+                        </td>
+                        <td style="font-size:0.82rem;">{{ v.groesse_lesbar }}</td>
+                        <td style="font-size:0.78rem; color:#6b7280;">{{ v.kommentar|default:"—" }}</td>
+                        {% if request.user.is_staff or request.user.is_superuser %}
+                        <td>
+                            {% if not forloop.first %}
+                            <form method="post" action="{% url 'dms:version_restore' dok.pk v.version_nr %}"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Version {{ v.version_nr }} wiederherstellen?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-xs btn-outline-warning"
+                                        style="font-size:0.72rem; padding:2px 8px;">
+                                    Wiederherstellen
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Zugriffsprotokoll (nur Staff) -->
     {% if request.user.is_staff and zugriffe %}

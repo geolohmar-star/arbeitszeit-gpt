@@ -2501,6 +2501,66 @@ def admin_vereinbarung_loeschen(request, pk):
 
 
 @login_required
+def _im_dms_ablegen(inhalt_bytes, dateiname, mime, titel, beschreibung, erstellt_von, vereinbarung):
+    """Speichert ein generiertes Dokument automatisch im DMS (Klasse 2 – sensibel).
+
+    Legt bei Bedarf eine Kategorie 'Personalverwaltung > Arbeitszeitvereinbarungen'
+    an. Gibt das gespeicherte Dokument-Objekt zurueck oder None bei Fehler.
+    """
+    try:
+        from dms.models import Dokument, DokumentKategorie
+        from dms.services import speichere_dokument
+
+        # Kategorie sicherstellen
+        eltern, _ = DokumentKategorie.objects.get_or_create(
+            name="Personalverwaltung",
+            elternkategorie=None,
+            defaults={"klasse": "sensibel", "sortierung": 10},
+        )
+        kategorie, _ = DokumentKategorie.objects.get_or_create(
+            name="Arbeitszeitvereinbarungen",
+            elternkategorie=eltern,
+            defaults={"klasse": "sensibel", "sortierung": 1},
+        )
+
+        # OrgEinheit des Mitarbeiters als Eigentuemer
+        eigentuemereinheit = None
+        try:
+            stelle = vereinbarung.mitarbeiter.stelle
+            if stelle and stelle.org_einheit_id:
+                from hr.models import OrgEinheit
+                eigentuemereinheit = OrgEinheit.objects.filter(pk=stelle.org_einheit_id).first()
+        except Exception:
+            pass
+
+        dok = Dokument(
+            titel=titel,
+            dateiname=dateiname,
+            dateityp=mime,
+            groesse_bytes=len(inhalt_bytes),
+            klasse="sensibel",
+            kategorie=kategorie,
+            eigentuemereinheit=eigentuemereinheit,
+            erstellt_von=erstellt_von,
+            beschreibung=beschreibung,
+            version=1,
+        )
+        speichere_dokument(dok, inhalt_bytes)
+        dok.save()
+
+        from dms.models import ZugriffsProtokoll
+        ZugriffsProtokoll.objects.create(
+            dokument=dok,
+            user=erstellt_von,
+            aktion="erstellt",
+            notiz=f"Automatisch erzeugt aus Arbeitszeitvereinbarung #{vereinbarung.pk}",
+        )
+        return dok
+    except Exception as exc:
+        logger.warning("DMS-Ablage fehlgeschlagen fuer AZV %s: %s", vereinbarung.pk, exc)
+        return None
+
+
 def admin_vereinbarung_docx_export(request, pk):
     """Generiert ein DOCX-Dokument mit Wochen-Gruppierung."""
     try:
@@ -2642,15 +2702,37 @@ def admin_vereinbarung_docx_export(request, pk):
     
     file_stream = io.BytesIO()
     doc.save(file_stream)
-    file_stream.seek(0)
-    
-    response = HttpResponse(
-        file_stream.read(),
-        content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    )
+    docx_bytes = file_stream.getvalue()
     filename = f"Arbeitszeit_{vereinbarung.mitarbeiter.nachname}_{vereinbarung.pk}.docx"
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    return response
+    mime_docx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+    # Im DMS ablegen und direkt in OnlyOffice oeffnen
+    dok = _im_dms_ablegen(
+        inhalt_bytes=docx_bytes,
+        dateiname=filename,
+        mime=mime_docx,
+        titel=(
+            f"AZV {vereinbarung.get_antragsart_display()} – "
+            f"{vereinbarung.mitarbeiter.vollname} "
+            f"(v{vereinbarung.versionsnummer}, {vereinbarung.gueltig_ab.strftime('%d.%m.%Y')})"
+        ),
+        beschreibung=(
+            f"Automatisch erzeugt beim DOCX-Export. "
+            f"Status: {vereinbarung.get_status_display()}. "
+            f"Genehmigt von: {vereinbarung.genehmigt_von.get_full_name() if vereinbarung.genehmigt_von else '—'}."
+        ),
+        erstellt_von=request.user,
+        vereinbarung=vereinbarung,
+    )
+
+    if dok:
+        from django.conf import settings as django_settings
+        if getattr(django_settings, "ONLYOFFICE_URL", ""):
+            return redirect("dms:onlyoffice_editor", pk=dok.pk)
+        return redirect("dms:detail", pk=dok.pk)
+
+    messages.error(request, "DMS-Ablage fehlgeschlagen. Bitte Logs pruefen.")
+    return redirect("arbeitszeit:admin_vereinbarung_genehmigen", pk=pk)
 
 
 @login_required
@@ -2701,9 +2783,31 @@ def admin_vereinbarung_pdf_export(request, pk):
     filename = f"Arbeitszeit_{vereinbarung.mitarbeiter.nachname}_{vereinbarung.pk}.pdf"
     pdf = _signiere_pdf_sicher(pdf, request.user, filename)
 
-    response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    return response
+    # Im DMS ablegen und zur Detailseite weiterleiten (PDF nicht in OnlyOffice editierbar)
+    dok = _im_dms_ablegen(
+        inhalt_bytes=pdf,
+        dateiname=filename,
+        mime="application/pdf",
+        titel=(
+            f"AZV {vereinbarung.get_antragsart_display()} – "
+            f"{vereinbarung.mitarbeiter.vollname} "
+            f"(v{vereinbarung.versionsnummer}, {vereinbarung.gueltig_ab.strftime('%d.%m.%Y')}) – PDF"
+        ),
+        beschreibung=(
+            f"Automatisch erzeugt, digital signiert. "
+            f"Status: {vereinbarung.get_status_display()}. "
+            f"Genehmigt von: {vereinbarung.genehmigt_von.get_full_name() if vereinbarung.genehmigt_von else '—'}."
+        ),
+        erstellt_von=request.user,
+        vereinbarung=vereinbarung,
+    )
+
+    if dok:
+        messages.success(request, f'PDF wurde im DMS abgelegt: "{dok.titel}"')
+        return redirect("dms:detail", pk=dok.pk)
+
+    messages.error(request, "DMS-Ablage fehlgeschlagen. Bitte Logs pruefen.")
+    return redirect("arbeitszeit:admin_vereinbarung_genehmigen", pk=pk)
 
 
 @login_required

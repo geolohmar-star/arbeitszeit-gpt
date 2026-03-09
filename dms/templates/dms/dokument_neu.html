@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}DMS – Neues Dokument{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:640px;">
+
+    <div class="mb-4">
+        <a href="{% url 'dms:liste' %}" class="text-muted text-decoration-none small">&larr; Zurueck zur Liste</a>
+        <h1 class="h3 fw-bold mt-2 mb-0" style="color:#1a4d2e;">Neues Dokument erstellen</h1>
+        <p class="text-muted small mt-1">
+            Leere Vorlage wird angelegt und sofort in OnlyOffice geoeffnet.
+            Beim Schliessen des Editors wird das Dokument automatisch gespeichert.
+        </p>
+    </div>
+
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Titel <span class="text-danger">*</span></label>
+                    {{ form.titel }}
+                    {% if form.titel.errors %}
+                    <div class="text-danger small mt-1">{{ form.titel.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Dokumenttyp <span class="text-danger">*</span></label>
+                    {{ form.dateityp_neu }}
+                    <div class="form-text">
+                        Word (.docx) oder Excel (.xlsx) – wird direkt in OnlyOffice bearbeitet.
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Klasse</label>
+                        {{ form.klasse }}
+                        <div class="form-text">Sensibel = AES-256 verschluesselt</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Kategorie</label>
+                        {{ form.kategorie }}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Abteilung (Eigentuemer)</label>
+                    {{ form.eigentuemereinheit }}
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Beschreibung</label>
+                    {{ form.beschreibung }}
+                </div>
+
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="{% url 'dms:liste' %}" class="btn btn-outline-secondary">Abbrechen</a>
+                    <button type="submit" class="btn btn-success fw-semibold">
+                        Erstellen &amp; in OnlyOffice oeffnen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

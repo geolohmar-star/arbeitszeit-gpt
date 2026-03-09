@@ -1,0 +1,104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ dok.titel }} – OnlyOffice</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: #444; }
+        #topbar {
+            display: flex; align-items: center; gap: 12px;
+            padding: 6px 16px;
+            background: #1a4d2e; color: white;
+            font-family: system-ui, sans-serif; font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        #topbar a { color: #a7f3d0; text-decoration: none; }
+        #topbar a:hover { text-decoration: underline; }
+        #topbar .titel { font-weight: 600; color: white; }
+        #topbar .hinweis { color: #d1fae5; font-size: 0.75rem; margin-left: auto; }
+        #btn-speichern {
+            background: #16a34a; color: white; border: none;
+            padding: 4px 14px; border-radius: 4px; font-size: 0.82rem;
+            cursor: pointer; font-weight: 600;
+        }
+        #btn-speichern:hover { background: #15803d; }
+        #btn-speichern:disabled { background: #6b7280; cursor: not-allowed; }
+        #editor { flex: 1; width: 100%; border: none; }
+    </style>
+</head>
+<body>
+    <div id="topbar">
+        <a href="{% url 'dms:detail' dok.pk %}">&larr; Zurueck zum Dokument</a>
+        <span style="color:#6ee7b7;">|</span>
+        <span class="titel">{{ dok.titel }}</span>
+        <span class="hinweis">Version {{ dok.version }}</span>
+        <button id="btn-speichern" onclick="speichernUndZurueck()">Speichern &amp; zurueck</button>
+    </div>
+    <div id="editor"></div>
+
+    <script src="{{ onlyoffice_url }}/web-apps/apps/api/documents/api.js"></script>
+    <script>
+        var config = {{ config_json|safe }};
+        {% if token %}
+        config.token = "{{ token }}";
+        {% endif %}
+        config.height = "100%";
+        config.width  = "100%";
+
+        var docEditor = new DocsAPI.DocEditor("editor", config);
+
+        var aktuelleVersion = {{ dok.version }};
+
+        function speichernUndZurueck() {
+            var btn = document.getElementById("btn-speichern");
+            btn.disabled = true;
+            btn.textContent = "Wird gespeichert...";
+
+            fetch("{% url 'dms:onlyoffice_forcesave' dok.pk %}", {
+                method: "POST",
+                headers: {"X-CSRFToken": "{{ csrf_token }}"},
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.ok) {
+                    btn.textContent = "Warte auf Speicherung...";
+                    // Pollen bis PRIMA die neue Version empfangen hat
+                    warteAufNeueVersion(0);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = "Speichern & zurueck";
+                    alert("Speichern fehlgeschlagen: " + (data.fehler || "unbekannt"));
+                }
+            })
+            .catch(function() {
+                btn.disabled = false;
+                btn.textContent = "Speichern & zurueck";
+                alert("Verbindungsfehler beim Speichern.");
+            });
+        }
+
+        function warteAufNeueVersion(versuch) {
+            if (versuch > 20) {
+                // Nach 10 Sekunden trotzdem weiterleiten
+                window.location.href = "{% url 'dms:detail' dok.pk %}";
+                return;
+            }
+            fetch("{% url 'dms:onlyoffice_version_check' dok.pk %}")
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.version > aktuelleVersion) {
+                    window.location.href = "{% url 'dms:detail' dok.pk %}";
+                } else {
+                    setTimeout(function() { warteAufNeueVersion(versuch + 1); }, 500);
+                }
+            })
+            .catch(function() {
+                setTimeout(function() { warteAufNeueVersion(versuch + 1); }, 500);
+            });
+        }
+    </script>
+</body>
+</html>
