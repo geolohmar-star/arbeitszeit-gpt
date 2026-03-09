@@ -379,6 +379,9 @@
                         {% if bentopdf_url %}
                         <li><a class="dropdown-item" href="{{ bentopdf_url }}" target="_blank">PDF-Werkzeuge (BentoPDF) ↗</a></li>
                         {% endif %}
+                        {% if onlyoffice_url %}
+                        <li><a class="dropdown-item" href="{{ onlyoffice_url }}" target="_blank">Office-Suite (OnlyOffice) ↗</a></li>
+                        {% endif %}
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <form method="post" action="{% url 'logout' %}">
@@ -1261,6 +1264,46 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                 <div class="mt-3" style="font-size:0.75rem; color:#6b7280; font-style:italic;">
                   Erreichbar ueber: Benutzermenue &rarr; PDF-Werkzeuge (BentoPDF) &rarr; neuer Tab &nbsp;|&nbsp;
                   oder direkt: <strong>pdf.georg-klein.com</strong>
+                </div>
+              </div>
+
+              <div style="border:2px solid #16a34a; border-top:5px solid #16a34a; border-radius:8px; padding:1rem; background:#f0fdf4; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#16a34a; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  UMGESETZT
+                </div>
+                <div class="fw-bold mb-2" style="color:#14532d; font-size:1rem;">OnlyOffice – Kollaborative Office-Suite</div>
+                <div style="font-size:0.82rem; color:#14532d; margin-bottom:0.75rem;">
+                  Selbst betriebener OnlyOffice Document Server &mdash; Word, Excel und PowerPoint-Dokumente
+                  direkt im Browser bearbeiten, ohne Microsoft 365 oder Google Docs.
+                  Mehrere Personen koennen <strong>gleichzeitig in Echtzeit</strong> am selben Dokument arbeiten.
+                  Volle Kompatibilitaet mit .docx, .xlsx, .pptx &mdash; keine Konvertierungsverluste.
+                  <br><br>
+                  <strong>Kurzanleitung:</strong><br>
+                  Benutzermenue &rarr; Office-Suite (OnlyOffice) &rarr; neuer Tab &rarr;
+                  Dokument hochladen oder neu erstellen &rarr; Link teilen fuer gemeinsames Bearbeiten
+                  <br><br>
+                  <strong>Unterschied zu BentoPDF:</strong>
+                  OnlyOffice verarbeitet Dokumente <em>auf dem eigenen Server</em> (kein externer Cloud-Dienst,
+                  aber Server-seitig). BentoPDF laeuft rein im Browser. Fuer Office-Dokumente ist
+                  Server-seitige Verarbeitung technisch unvermeidbar &mdash; der Server gehoert euch,
+                  die Daten bleiben im Haus.
+                </div>
+                <div style="font-size:0.78rem; color:#16a34a; background:#dcfce7; border:1px solid #bbf7d0; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Server: <strong>office.georg-klein.com</strong> &nbsp;|&nbsp;
+                  Community Edition &nbsp;|&nbsp;
+                  20 gleichzeitige Verbindungen (Intranet: de facto unbegrenzt)
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Self-hosted Docker</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Echtzeit-Kollaboration</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">.docx / .xlsx / .pptx</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Microsoft 365</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Daten bleiben im Haus</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">JWT-gesichert</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#6b7280; font-style:italic;">
+                  Intern laufen PostgreSQL, RabbitMQ und Redis im selben Container &mdash;
+                  keine externen Abhaengigkeiten, startet in ca. 90 Sekunden.
                 </div>
               </div>
 

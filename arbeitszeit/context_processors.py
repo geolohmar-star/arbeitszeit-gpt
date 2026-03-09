@@ -243,4 +243,5 @@ def hilfe_kontext(request):
             "berechtigungen", "veranstaltungen",
         ],
         "bentopdf_url": getattr(settings, "BENTOPDF_URL", ""),
+        "onlyoffice_url": getattr(settings, "ONLYOFFICE_URL", ""),
     }

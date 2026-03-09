@@ -328,6 +328,10 @@ LOGGING = {
 # Beispiel: BENTOPDF_URL=https://pdf.georg-klein.com
 BENTOPDF_URL = os.environ.get("BENTOPDF_URL", "")
 
+# OnlyOffice: URL des selbst betriebenen Document Servers (ohne abschliessendes /)
+# Beispiel: ONLYOFFICE_URL=https://office.georg-klein.com
+ONLYOFFICE_URL = os.environ.get("ONLYOFFICE_URL", "")
+
 # Jitsi Meet: Basis-URL des eigenen Jitsi-Servers (ohne abschliessendes /)
 # Beispiel: JITSI_BASE_URL=https://meet.intranet.firma.de
 JITSI_BASE_URL = os.environ.get("JITSI_BASE_URL", "")
