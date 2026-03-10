@@ -369,9 +369,10 @@ def dokument_detail(request, pk):
     """Detailansicht eines Dokuments mit Metadaten und Zugriffsprotokoll."""
     dok = get_object_or_404(Dokument, pk=pk)
 
-    # Sensible: Metadaten sichtbar, aber Zugriffsstatus anzeigen
-    if dok.klasse == "sensibel" and not request.user.is_staff:
-        messages.error(request, "Keine Berechtigung.")
+    # Sensible Dokumente: Zugriff nur fuer berechtigte User
+    # (Superuser, OrgEinheit-Mitglied, sichtbar_fuer, aktiver Zugriffsschluessel)
+    if dok.klasse == "sensibel" and not _darf_sensibel_zugreifen(request, dok):
+        messages.error(request, "Kein Zugriffsrecht fuer dieses Dokument.")
         return redirect("dms:liste")
 
     zugriffe = dok.zugriffe.select_related("user").order_by("-zeitpunkt")[:20]
