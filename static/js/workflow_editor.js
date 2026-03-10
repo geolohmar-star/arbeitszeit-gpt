@@ -487,7 +487,8 @@ async function showLoadDialog() {
 }
 
 // Template vom Server laden und visualisieren
-async function loadTemplate(templateId) {
+// silent=true unterdrueckt den Alert (fuer Autoload beim Seitenstart)
+async function loadTemplate(templateId, silent) {
     try {
         var response = await fetch('/workflow/editor/load/' + templateId + '/');
         var data = await response.json();
@@ -586,7 +587,9 @@ async function loadTemplate(templateId) {
 
         setTimeout(function() { network.fit(); }, 100);
 
-        alert('Template "' + data.template.name + '" erfolgreich geladen!');
+        if (!silent) {
+            alert('Template "' + data.template.name + '" erfolgreich geladen!');
+        }
     } catch (error) {
         alert('Fehler beim Laden: ' + error.message);
     }
@@ -747,6 +750,16 @@ function toggleTriggerCustom() {
 document.addEventListener('DOMContentLoaded', function() {
     init();
     loadTeamQueues();
+
+    // Autoload: URL-Parameter ?load=<id> direkt laden
+    var autoloadEl = document.getElementById('autoload-template-id');
+    if (autoloadEl) {
+        var autoloadId = JSON.parse(autoloadEl.textContent);
+        if (autoloadId) {
+            // Kurzer Timeout damit vis.js vollstaendig gerendert ist
+            setTimeout(function() { loadTemplate(autoloadId, true); }, 200);
+        }
+    }
 
     // Toolbar-Buttons
     var btnLoad = document.getElementById('btn-load-dialog');

@@ -403,6 +403,7 @@
 <!-- vis.js Library (lokal fuer Offline-Betrieb) -->
 {% load static %}
 <script src="{% static 'js/vis-network.min.js' %}"></script>
+{{ autoload_id|json_script:"autoload-template-id" }}
 <script src="{% static 'js/workflow_editor.js' %}"></script>
 
 

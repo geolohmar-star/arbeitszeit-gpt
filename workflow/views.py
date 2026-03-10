@@ -222,8 +222,14 @@ def workflow_editor(request):
     """Visueller Workflow-Editor mit vis.js.
 
     Ermoeglicht das grafische Erstellen von Workflow-Templates.
+    GET ?load=<template_id> laedt das Template direkt beim Oeffnen.
     """
-    return render(request, "workflow/workflow_editor.html")
+    autoload_id = None
+    load_param = request.GET.get("load")
+    if load_param and load_param.isdigit():
+        autoload_id = int(load_param)
+
+    return render(request, "workflow/workflow_editor.html", {"autoload_id": autoload_id})
 
 
 @login_required
@@ -577,7 +583,7 @@ def prozesszentrale(request):
 
     # Templates
     templates_aktiv = WorkflowTemplate.objects.filter(ist_aktiv=True).annotate(
-        instanzen_anzahl=Count("instances")
+        instanzen_anzahl=Count("instanzen")
     ).order_by("kategorie", "name")
     templates_inaktiv = WorkflowTemplate.objects.filter(ist_aktiv=False).order_by("name")
 
