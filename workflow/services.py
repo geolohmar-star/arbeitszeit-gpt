@@ -270,6 +270,9 @@ class WorkflowEngine:
         elif step.aktion_typ == "python_code":
             self._execute_python_code(step, instance, content_object)
 
+        elif step.aktion_typ == "verteilen":
+            self._verteilen(step, instance, content_object)
+
     def _send_notification(self, step, instance, content_object):
         """Sendet Benachrichtigung an User/Team.
 
@@ -648,6 +651,209 @@ class WorkflowEngine:
             ebenen += 1
 
         return None
+
+    def _interpoliere(self, text, instance, content_object):
+        """Ersetzt Platzhalter in Nachrichtentext durch echte Werte.
+
+        Verfuegbare Platzhalter:
+            {{template_name}}       Name des Workflow-Templates
+            {{datum}}               Heutiges Datum (TT.MM.JJJJ)
+            {{antragsteller_name}}  Vollstaendiger Name des Antragstellers
+            {{antragsteller_email}} E-Mail-Adresse des Antragstellers
+            {{status}}              Aktueller Status des verknuepften Objekts
+            {{objekt}}              String-Darstellung des verknuepften Objekts
+
+        Args:
+            text: Text mit Platzhaltern
+            instance: WorkflowInstance
+            content_object: Verknuepftes Objekt
+
+        Returns:
+            str: Text mit aufgeloesten Platzhaltern
+        """
+        werte = {
+            "{{template_name}}": instance.template.name,
+            "{{datum}}": timezone.now().strftime("%d.%m.%Y"),
+            "{{status}}": str(getattr(content_object, "status", "")),
+            "{{objekt}}": str(content_object) if content_object else "",
+        }
+
+        # Antragsteller ermitteln
+        antragsteller = None
+        if content_object:
+            if hasattr(content_object, "antragsteller"):
+                antragsteller = content_object.antragsteller
+            elif (
+                hasattr(content_object, "mitarbeiter")
+                and hasattr(content_object.mitarbeiter, "user")
+            ):
+                antragsteller = content_object.mitarbeiter.user
+
+        if antragsteller:
+            werte["{{antragsteller_name}}"] = (
+                antragsteller.get_full_name() or antragsteller.username
+            )
+            werte["{{antragsteller_email}}"] = antragsteller.email or ""
+        else:
+            werte["{{antragsteller_name}}"] = ""
+            werte["{{antragsteller_email}}"] = ""
+
+        for platzhalter, wert in werte.items():
+            text = text.replace(platzhalter, wert)
+        return text
+
+    def _verteilen(self, step, instance, content_object):
+        """Verteiler-Aktion: sendet Nachrichten ueber mehrere Kanaele.
+
+        Liest auto_config["kanaele"] und ruft fuer jeden Eintrag den
+        passenden Kanal-Handler auf.
+
+        Unterstuetzte Kanaele:
+            email   → Django send_mail (via Mailpit oder Stalwart)
+            matrix  → Matrix-Bot (falls konfiguriert)
+            intern  → Protokoll-Eintrag (kuenftig: PRIMA-Benachrichtigung)
+
+        auto_config-Beispiel:
+        {
+            "kanaele": [
+                {
+                    "typ": "email",
+                    "empfaenger": "{{antragsteller_email}}",
+                    "betreff": "Prozess {{template_name}} abgeschlossen",
+                    "text": "Sehr geehrte/r {{antragsteller_name}}, ..."
+                },
+                {
+                    "typ": "matrix",
+                    "nachricht": "Prozess {{template_name}} abgeschlossen."
+                },
+                {
+                    "typ": "intern",
+                    "nachricht": "Ihr Antrag wurde bearbeitet."
+                }
+            ]
+        }
+        """
+        config = step.auto_config or {}
+        kanaele = config.get("kanaele", [])
+
+        for kanal in kanaele:
+            typ = kanal.get("typ", "")
+            try:
+                if typ == "email":
+                    self._verteilen_email(kanal, instance, content_object)
+                elif typ == "matrix":
+                    self._verteilen_matrix(kanal, instance, content_object)
+                elif typ == "intern":
+                    self._verteilen_intern(kanal, instance, content_object)
+                else:
+                    logger.warning(
+                        "Unbekannter Verteiler-Kanal '%s' in Schritt %s",
+                        typ, step.pk,
+                    )
+            except Exception as exc:
+                logger.error(
+                    "Verteiler-Kanal '%s' fehlgeschlagen in Schritt %s: %s",
+                    typ, step.pk, exc,
+                )
+
+    def _verteilen_email(self, kanal, instance, content_object):
+        """Sendet eine E-Mail ueber den konfigurierten SMTP-Server (Mailpit)."""
+        from django.core.mail import send_mail
+        from django.conf import settings as django_settings
+
+        empfaenger_raw = self._interpoliere(
+            kanal.get("empfaenger", ""), instance, content_object
+        )
+        betreff = self._interpoliere(
+            kanal.get("betreff", "Workflow-Benachrichtigung"), instance, content_object
+        )
+        text = self._interpoliere(
+            kanal.get("text", ""), instance, content_object
+        )
+        absender = getattr(django_settings, "DEFAULT_FROM_EMAIL", "prima@prima.intern")
+
+        # Mehrere Empfaenger durch Komma trennen
+        empfaenger_liste = [
+            e.strip() for e in empfaenger_raw.split(",") if e.strip()
+        ]
+        if not empfaenger_liste:
+            logger.warning(
+                "Verteiler E-Mail: kein Empfaenger konfiguriert (Instanz %s)", instance.pk
+            )
+            return
+
+        send_mail(
+            subject=betreff,
+            message=text,
+            from_email=absender,
+            recipient_list=empfaenger_liste,
+            fail_silently=False,
+        )
+        logger.info(
+            "Verteiler E-Mail gesendet an %s: %s (Instanz %s)",
+            empfaenger_liste, betreff, instance.pk,
+        )
+
+    def _verteilen_matrix(self, kanal, instance, content_object):
+        """Sendet eine Matrix-Nachricht (nutzt bestehende Matrix-Integration)."""
+        from django.conf import settings as django_settings
+
+        nachricht = self._interpoliere(
+            kanal.get("nachricht", ""), instance, content_object
+        )
+        raum_id = kanal.get("raum_id", "")
+
+        # Fallback auf konfigurierten Facility-Raum
+        if not raum_id:
+            raum_id = getattr(django_settings, "MATRIX_FACILITY_ROOM_ID", "")
+
+        if not raum_id:
+            logger.warning(
+                "Verteiler Matrix: kein Raum konfiguriert (Instanz %s)", instance.pk
+            )
+            return
+
+        bot_token = getattr(django_settings, "MATRIX_BOT_TOKEN", "")
+        homeserver = getattr(django_settings, "MATRIX_HOMESERVER_URL", "")
+        if not bot_token or not homeserver:
+            logger.warning(
+                "Verteiler Matrix: MATRIX_BOT_TOKEN oder MATRIX_HOMESERVER_URL fehlen"
+            )
+            return
+
+        import urllib.request
+        import json as jsonlib
+
+        url = f"{homeserver}/_matrix/client/v3/rooms/{raum_id}/send/m.room.message"
+        payload = jsonlib.dumps({"msgtype": "m.text", "body": nachricht}).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {bot_token}",
+                "Content-Type": "application/json",
+            },
+            method="PUT",
+        )
+        with urllib.request.urlopen(req, timeout=10):
+            pass
+        logger.info(
+            "Verteiler Matrix-Nachricht gesendet an %s (Instanz %s)", raum_id, instance.pk
+        )
+
+    def _verteilen_intern(self, kanal, instance, content_object):
+        """Interne PRIMA-Benachrichtigung – wird als Protokoll-Eintrag geloggt.
+
+        Kuenftige Erweiterung: dediziertes Benachrichtigungsmodell oder
+        WorkflowTask mit status='erledigt' fuer den Antragsteller.
+        """
+        nachricht = self._interpoliere(
+            kanal.get("nachricht", ""), instance, content_object
+        )
+        logger.info(
+            "Verteiler Intern: '%s' (Instanz %s, Template '%s')",
+            nachricht, instance.pk, instance.template.name,
+        )
 
     def _should_activate_step(self, step, content_object):
         """Prueft ob ein Workflow-Schritt aktiviert werden soll.

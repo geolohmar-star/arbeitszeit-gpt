@@ -69,6 +69,7 @@
                 <span class="badge bg-info ms-1">◆ Pruefung</span>
                 <span class="badge bg-warning text-dark ms-1">◆ Information</span>
                 <span class="badge bg-success ms-1">◆ Bearbeitung</span>
+                <span class="badge ms-1" style="background:#fd7e14;">◆ Verteilen (auto)</span>
                 <br>
                 <strong>Bedienung:</strong>
                 • <strong>➕ Schritt</strong> → Klick auf Canvas um neuen Schritt zu erstellen
@@ -118,6 +119,7 @@
                                 <option value="informieren">Informieren</option>
                                 <option value="bearbeiten">Bearbeiten</option>
                                 <option value="freigeben">Freigeben</option>
+                                <option value="verteilen">Verteilen (Postbote)</option>
                             </select>
                         </div>
 
@@ -145,6 +147,72 @@
                             </select>
                             <small class="text-muted">Nur vorhandene Team-Queues koennen ausgewaehlt werden</small>
                         </div>
+                    </div>
+
+                    <!-- Verteiler-Konfiguration (nur bei aktion=verteilen sichtbar) -->
+                    <div id="verteiler-config-row" style="display: none;">
+                        <div class="alert alert-warning py-2 mb-2">
+                            <strong>Postbote:</strong> Dieser Schritt laeuft automatisch – kein User-Task.
+                            Nachrichten werden an die konfigurierten Kanaele gesendet.
+                        </div>
+                        <div id="verteiler-kanaele-liste">
+                            <!-- Dynamisch befuellt -->
+                        </div>
+                        <button type="button" id="btn-kanal-hinzufuegen" class="btn btn-outline-secondary btn-sm mt-1">
+                            + Kanal hinzufuegen
+                        </button>
+
+                        <!-- Kanal-Vorlage (versteckt, wird per JS geklont) -->
+                        <template id="kanal-vorlage">
+                            <div class="card mb-2 kanal-eintrag">
+                                <div class="card-body py-2 px-3">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <select class="form-select form-select-sm kanal-typ" style="max-width:160px;">
+                                            <option value="email">E-Mail</option>
+                                            <option value="matrix">Matrix</option>
+                                            <option value="intern">Intern (Log)</option>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-danger btn-sm ms-auto kanal-loeschen">
+                                            Entfernen
+                                        </button>
+                                    </div>
+                                    <div class="kanal-felder-email">
+                                        <div class="mb-1">
+                                            <input type="text" class="form-control form-control-sm kanal-email-empfaenger"
+                                                   placeholder="empfaenger@example.com (kommagetrennt)">
+                                        </div>
+                                        <div class="mb-1">
+                                            <input type="text" class="form-control form-control-sm kanal-email-betreff"
+                                                   placeholder="Betreff – z.B. Prozess {{template_name}} abgeschlossen">
+                                        </div>
+                                        <div>
+                                            <textarea class="form-control form-control-sm kanal-email-nachricht" rows="2"
+                                                      placeholder="Nachricht – Platzhalter: {{antragsteller_name}}, {{datum}}, {{status}}, {{objekt}}"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="kanal-felder-matrix" style="display:none;">
+                                        <div class="mb-1">
+                                            <input type="text" class="form-control form-control-sm kanal-matrix-room"
+                                                   placeholder="Room-ID (leer = Standard-Facility-Raum)">
+                                        </div>
+                                        <div>
+                                            <textarea class="form-control form-control-sm kanal-matrix-nachricht" rows="2"
+                                                      placeholder="Nachricht – Platzhalter: {{antragsteller_name}}, {{datum}}, {{status}}"></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="kanal-felder-intern" style="display:none;">
+                                        <input type="text" class="form-control form-control-sm kanal-intern-nachricht"
+                                               placeholder="Log-Nachricht – Platzhalter: {{template_name}}, {{datum}}">
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <small class="text-muted d-block mt-1">
+                            Verfuegbare Platzhalter:
+                            <code>{{template_name}}</code>, <code>{{antragsteller_name}}</code>,
+                            <code>{{antragsteller_email}}</code>, <code>{{datum}}</code>,
+                            <code>{{status}}</code>, <code>{{objekt}}</code>
+                        </small>
                     </div>
 
                     <div class="row">

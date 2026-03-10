@@ -23,7 +23,8 @@ var aktionColors = {
     'pruefen': '#66d9ef',
     'informieren': '#ffe066',
     'bearbeiten': '#66cc99',
-    'freigeben': '#b3b3b3'
+    'freigeben': '#b3b3b3',
+    'verteilen': '#fd7e14'
 };
 
 // Netzwerk initialisieren
@@ -124,13 +125,37 @@ function createNewSchritt(position) {
     document.getElementById('schritt-parallel').checked = false;
     document.getElementById('schritt-eskalation').value = '0';
 
-    toggleTeamDropdown();
+    // Verteiler-Panel leeren
+    document.getElementById('verteiler-kanaele-liste').innerHTML = '';
+
+    toggleAktionFelder();
 
     document.getElementById('schritt-loeschen-btn').style.display = 'none';
     document.getElementById('schrittModalTitle').textContent = 'Neuen Schritt erstellen';
 
     var modal = new bootstrap.Modal(document.getElementById('schrittModal'));
     modal.show();
+}
+
+// Verteiler-Kanaele aus dem DOM auslesen
+function leseVerteilerKanaele() {
+    var kanaele = [];
+    document.querySelectorAll('#verteiler-kanaele-liste .kanal-eintrag').forEach(function(el) {
+        var typ = el.querySelector('.kanal-typ').value;
+        var kanal = { typ: typ };
+        if (typ === 'email') {
+            kanal.empfaenger = el.querySelector('.kanal-email-empfaenger').value;
+            kanal.betreff = el.querySelector('.kanal-email-betreff').value;
+            kanal.nachricht = el.querySelector('.kanal-email-nachricht').value;
+        } else if (typ === 'matrix') {
+            kanal.room_id = el.querySelector('.kanal-matrix-room').value;
+            kanal.nachricht = el.querySelector('.kanal-matrix-nachricht').value;
+        } else if (typ === 'intern') {
+            kanal.nachricht = el.querySelector('.kanal-intern-nachricht').value;
+        }
+        kanaele.push(kanal);
+    });
+    return kanaele;
 }
 
 // Schritt speichern
@@ -144,22 +169,29 @@ function saveSchritt() {
     var frist = parseInt(document.getElementById('schritt-frist').value);
     var parallel = document.getElementById('schritt-parallel').checked;
     var eskalation = parseInt(document.getElementById('schritt-eskalation').value);
+    var verteilerKanaele = aktion === 'verteilen' ? leseVerteilerKanaele() : [];
 
     if (!titel) { alert('Bitte einen Titel eingeben!'); return; }
 
-    if (rolle === 'team_queue' && !teamId) {
+    if (aktion !== 'verteilen' && rolle === 'team_queue' && !teamId) {
         alert('Bitte ein Team auswaehlen!');
         return;
     }
 
     var color = aktionColors[aktion] || '#6c757d';
 
-    var displayRolle = rolle;
+    var displayRolle = aktion === 'verteilen' ? 'auto' : rolle;
     if (rolle === 'team_queue' && teamId) {
         var teamSelect = document.getElementById('schritt-team');
         var teamOption = teamSelect.options[teamSelect.selectedIndex];
         displayRolle = 'Team: ' + teamOption.text;
     }
+
+    var nodeData = {
+        titel: titel, beschreibung: beschreibung, aktion: aktion,
+        rolle: rolle, teamId: teamId, frist: frist, parallel: parallel,
+        eskalation: eskalation, verteilerKanaele: verteilerKanaele
+    };
 
     if (id) {
         nodes.update({
@@ -171,12 +203,12 @@ function saveSchritt() {
                 border: color,
                 highlight: { background: color, border: color }
             },
-            data: { titel: titel, beschreibung: beschreibung, aktion: aktion, rolle: rolle, teamId: teamId, frist: frist, parallel: parallel, eskalation: eskalation }
+            data: nodeData
         });
 
         var idx = schritte.findIndex(function(s) { return s.id === id; });
         if (idx >= 0) {
-            schritte[idx] = { id: id, titel: titel, beschreibung: beschreibung, aktion: aktion, rolle: rolle, teamId: teamId, frist: frist, parallel: parallel, eskalation: eskalation };
+            schritte[idx] = Object.assign({ id: id }, nodeData);
         }
     } else {
         var nodeId = 'node_' + (nextNodeId++);
@@ -189,13 +221,21 @@ function saveSchritt() {
                 border: color,
                 highlight: { background: color, border: color }
             },
-            data: { titel: titel, beschreibung: beschreibung, aktion: aktion, rolle: rolle, teamId: teamId, frist: frist, parallel: parallel, eskalation: eskalation }
+            data: nodeData
         });
 
-        schritte.push({ id: nodeId, titel: titel, beschreibung: beschreibung, aktion: aktion, rolle: rolle, teamId: teamId, frist: frist, parallel: parallel, eskalation: eskalation });
+        schritte.push(Object.assign({ id: nodeId }, nodeData));
     }
 
     bootstrap.Modal.getInstance(document.getElementById('schrittModal')).hide();
+}
+
+// Verteiler-Kanaele ins DOM schreiben (beim Bearbeiten / Laden)
+function setzeVerteilerKanaele(kanaele) {
+    var liste = document.getElementById('verteiler-kanaele-liste');
+    liste.innerHTML = '';
+    if (!kanaele || kanaele.length === 0) { return; }
+    kanaele.forEach(function(kanal) { fuegeKanalHinzu(kanal); });
 }
 
 // Schritt bearbeiten
@@ -216,7 +256,10 @@ function editSchritt(nodeId) {
     document.getElementById('schritt-parallel').checked = data.parallel || false;
     document.getElementById('schritt-eskalation').value = data.eskalation || 0;
 
-    toggleTeamDropdown();
+    // Verteiler-Kanaele wiederherstellen
+    setzeVerteilerKanaele(data.verteilerKanaele || []);
+
+    toggleAktionFelder();
 
     document.getElementById('schritt-loeschen-btn').style.display = 'block';
     document.getElementById('schrittModalTitle').textContent = 'Schritt bearbeiten';
@@ -540,7 +583,8 @@ async function loadTemplate(templateId, silent) {
                 frist: nodeData.frist,
                 parallel: nodeData.parallel,
                 eskalation: nodeData.eskalation,
-                reihenfolge: nodeData.reihenfolge
+                reihenfolge: nodeData.reihenfolge,
+                verteilerKanaele: nodeData.verteilerKanaele || []
             });
         });
 
@@ -697,19 +741,79 @@ function deleteEdgeFromModal() {
     }
 }
 
-// Team-Queue Dropdown ein/ausblenden
-function toggleTeamDropdown() {
+// Felder abhaengig von Aktionstyp ein/ausblenden
+function toggleAktionFelder() {
+    var aktion = document.getElementById('schritt-aktion').value;
     var rolle = document.getElementById('schritt-rolle').value;
     var teamRow = document.getElementById('team-row');
+    var verteilerRow = document.getElementById('verteiler-config-row');
+    var rolleRow = document.getElementById('schritt-rolle').closest('.col-md-6');
 
-    if (rolle === 'team_queue') {
-        teamRow.style.display = 'block';
-        document.getElementById('schritt-team').required = true;
-    } else {
+    var istVerteilen = aktion === 'verteilen';
+
+    // Rolle + Team nur bei normalen Aktionen anzeigen
+    rolleRow.style.display = istVerteilen ? 'none' : '';
+
+    if (istVerteilen) {
         teamRow.style.display = 'none';
         document.getElementById('schritt-team').required = false;
-        document.getElementById('schritt-team').value = '';
+        verteilerRow.style.display = 'block';
+    } else {
+        verteilerRow.style.display = 'none';
+        if (rolle === 'team_queue') {
+            teamRow.style.display = 'block';
+            document.getElementById('schritt-team').required = true;
+        } else {
+            teamRow.style.display = 'none';
+            document.getElementById('schritt-team').required = false;
+            document.getElementById('schritt-team').value = '';
+        }
     }
+}
+
+// Rueckwaertskompatibilitaet (wird von rolleSelect.change aufgerufen)
+function toggleTeamDropdown() { toggleAktionFelder(); }
+
+// Neuen Kanal-Eintrag hinzufuegen (optional mit Vorbelegung)
+function fuegeKanalHinzu(vorbelegung) {
+    var vorlage = document.getElementById('kanal-vorlage');
+    var klon = vorlage.content.cloneNode(true);
+    var eintrag = klon.querySelector('.kanal-eintrag');
+
+    if (vorbelegung) {
+        eintrag.querySelector('.kanal-typ').value = vorbelegung.typ || 'email';
+        if (vorbelegung.typ === 'email') {
+            eintrag.querySelector('.kanal-email-empfaenger').value = vorbelegung.empfaenger || '';
+            eintrag.querySelector('.kanal-email-betreff').value = vorbelegung.betreff || '';
+            eintrag.querySelector('.kanal-email-nachricht').value = vorbelegung.nachricht || '';
+        } else if (vorbelegung.typ === 'matrix') {
+            eintrag.querySelector('.kanal-matrix-room').value = vorbelegung.room_id || '';
+            eintrag.querySelector('.kanal-matrix-nachricht').value = vorbelegung.nachricht || '';
+        } else if (vorbelegung.typ === 'intern') {
+            eintrag.querySelector('.kanal-intern-nachricht').value = vorbelegung.nachricht || '';
+        }
+    }
+
+    // Kanal-Typ-Toggle verdrahten
+    var typSelect = eintrag.querySelector('.kanal-typ');
+    toggleKanalFelder(eintrag, typSelect.value);
+    typSelect.addEventListener('change', function() {
+        toggleKanalFelder(eintrag, this.value);
+    });
+
+    // Loeschen-Button verdrahten
+    eintrag.querySelector('.kanal-loeschen').addEventListener('click', function() {
+        eintrag.remove();
+    });
+
+    document.getElementById('verteiler-kanaele-liste').appendChild(eintrag);
+}
+
+// Kanal-Felder je nach Typ ein/ausblenden
+function toggleKanalFelder(eintrag, typ) {
+    eintrag.querySelector('.kanal-felder-email').style.display = typ === 'email' ? '' : 'none';
+    eintrag.querySelector('.kanal-felder-matrix').style.display = typ === 'matrix' ? '' : 'none';
+    eintrag.querySelector('.kanal-felder-intern').style.display = typ === 'intern' ? '' : 'none';
 }
 
 async function loadTeamQueues() {
@@ -813,8 +917,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btnSaveEdge) { btnSaveEdge.addEventListener('click', saveEdgeConfig); }
 
     // Selects
+    var aktionSelect = document.getElementById('schritt-aktion');
+    if (aktionSelect) { aktionSelect.addEventListener('change', toggleAktionFelder); }
+
     var rolleSelect = document.getElementById('schritt-rolle');
-    if (rolleSelect) { rolleSelect.addEventListener('change', toggleTeamDropdown); }
+    if (rolleSelect) { rolleSelect.addEventListener('change', toggleAktionFelder); }
+
+    // Kanal hinzufuegen Button
+    var btnKanal = document.getElementById('btn-kanal-hinzufuegen');
+    if (btnKanal) { btnKanal.addEventListener('click', function() { fuegeKanalHinzu(); }); }
 
     var edgeBedingungTyp = document.getElementById('edge-bedingung-typ');
     if (edgeBedingungTyp) { edgeBedingungTyp.addEventListener('change', updateEdgeBedingungFelder); }

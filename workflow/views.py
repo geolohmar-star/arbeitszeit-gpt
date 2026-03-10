@@ -275,6 +275,12 @@ def workflow_editor_load(request, template_id):
             "parallel": step.ist_parallel,
             "eskalation": step.eskalation_nach_tagen,
             "reihenfolge": step.reihenfolge,
+            # Verteiler-Kanaele aus auto_config (leer wenn kein Verteiler-Schritt)
+            "verteilerKanaele": (
+                step.auto_config.get("kanaele", [])
+                if step.aktion_typ == "verteilen" and step.auto_config
+                else []
+            ),
         })
 
     # Verbindungen
@@ -419,12 +425,23 @@ def workflow_editor_save(request):
                         status=400
                     )
 
+            # Verteilen-Schritte laufen automatisch (kein User-Task noetig)
+            aktion = schritt_data.get("aktion", "genehmigen")
+            if aktion == "verteilen":
+                schritt_typ = "auto"
+                auto_config = {"kanaele": schritt_data.get("verteilerKanaele", [])}
+            else:
+                schritt_typ = "manuell"
+                auto_config = {}
+
             step = WorkflowStep.objects.create(
                 template=template,
                 reihenfolge=schritt_data.get("reihenfolge", 1),
                 titel=schritt_data.get("titel", "Unbenannt"),
                 beschreibung=schritt_data.get("beschreibung", ""),
-                aktion_typ=schritt_data.get("aktion", "genehmigen"),
+                aktion_typ=aktion,
+                schritt_typ=schritt_typ,
+                auto_config=auto_config,
                 zustaendig_rolle=schritt_data.get("rolle", "direkte_fuehrungskraft"),
                 zustaendig_team=zustaendig_team,
                 frist_tage=schritt_data.get("frist", 3),

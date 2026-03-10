@@ -140,6 +140,7 @@ class WorkflowStep(models.Model):
     AKTION_EMAIL = "email"
     AKTION_WEBHOOK = "webhook"
     AKTION_PYTHON_CODE = "python_code"
+    AKTION_VERTEILEN = "verteilen"
 
     AKTION_CHOICES = [
         (AKTION_GENEHMIGEN, "Genehmigen"),
@@ -151,6 +152,7 @@ class WorkflowStep(models.Model):
         (AKTION_EMAIL, "Email senden"),
         (AKTION_WEBHOOK, "Webhook aufrufen"),
         (AKTION_PYTHON_CODE, "Python-Code ausfuehren"),
+        (AKTION_VERTEILEN, "Verteilen (Postbote)"),
     ]
 
     ROLLE_DIREKTER_VORGESETZTER = "direkter_vorgesetzter"
