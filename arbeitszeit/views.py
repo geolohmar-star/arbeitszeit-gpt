@@ -2500,7 +2500,6 @@ def admin_vereinbarung_loeschen(request, pk):
     return redirect('arbeitszeit:admin_vereinbarungen')
 
 
-@login_required
 def _im_dms_ablegen(inhalt_bytes, dateiname, mime, titel, beschreibung, erstellt_von, vereinbarung):
     """Speichert ein generiertes Dokument automatisch im DMS (Klasse 2 – sensibel).
 
