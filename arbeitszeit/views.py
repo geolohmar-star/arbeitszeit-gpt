@@ -2249,7 +2249,11 @@ def admin_dashboard(request):
         hasattr(request.user, 'mitarbeiter')
         and request.user.mitarbeiter.rolle == 'sachbearbeiter'
     )
-    if not (request.user.is_staff or is_sachbearbeiter):
+    from formulare.models import TeamQueue
+    ist_azv_mitglied = TeamQueue.objects.filter(
+        kuerzel='azv', mitglieder=request.user
+    ).exists()
+    if not (request.user.is_staff or is_sachbearbeiter or ist_azv_mitglied):
         messages.error(request, "Sie haben keine Berechtigung fuer diese Seite.")
         return redirect('arbeitszeit:dashboard')
     
@@ -2281,7 +2285,11 @@ def admin_vereinbarungen_genehmigen(request):
         hasattr(request.user, 'mitarbeiter')
         and request.user.mitarbeiter.rolle == 'sachbearbeiter'
     )
-    if not (request.user.is_staff or is_sachbearbeiter):
+    from formulare.models import TeamQueue
+    ist_azv_mitglied = TeamQueue.objects.filter(
+        kuerzel='azv', mitglieder=request.user
+    ).exists()
+    if not (request.user.is_staff or is_sachbearbeiter or ist_azv_mitglied):
         return redirect('arbeitszeit:dashboard')
 
     from .filters import ArbeitszeitvereinbarungFilter
