@@ -11,5 +11,17 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  # Interner SMTP-Testserver (Mailpit, MIT-Lizenz)
+  # Alle von PRIMA gesendeten E-Mails landen hier zur Ansicht -- nichts
+  # verlässt das Intranet. Web-UI: http://localhost:8025
+  # SMTP für Django: localhost:1025 (konfiguriert in settings.py)
+  # Upgrade-Pfad → Stalwart Mail Server (AGPL-3.0): nur EMAIL_HOST anpassen.
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"   # SMTP-Eingang von PRIMA
+      - "8025:8025"   # Web-UI
+    restart: unless-stopped
+
 volumes:
   postgres_data:

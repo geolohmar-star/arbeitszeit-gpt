@@ -1654,6 +1654,61 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                 </div>
               </div>
 
+              <!-- E-Mail-Infrastruktur: Mailpit + Stalwart -->
+              <div style="border:2px solid #7c3aed; border-top:5px solid #7c3aed; border-radius:8px; padding:1rem; background:#faf5ff; position:relative; margin-top:1rem;">
+                <div style="position:absolute; top:-1px; right:10px; background:#7c3aed; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  INTERNE KOMMUNIKATION
+                </div>
+                <div class="fw-bold mb-2" style="color:#7c3aed; font-size:0.92rem;">E-Mail-Infrastruktur: Mailpit &amp; Stalwart</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem; line-height:1.6;">
+                  PRIMA versendet Workflow-Benachrichtigungen, Prozess-Abschluesse und Verteiler-Meldungen
+                  ueber einen vollstaendig selbst betriebenen SMTP-Stack &mdash; kein Drittanbieter, keine Cloud-Abhaengigkeit.
+                  <br><br>
+                  <strong>Mailpit (MIT-Lizenz) &ndash; interner SMTP-Empfaenger</strong><br>
+                  Im laufenden Betrieb faengt Mailpit alle ausgehenden E-Mails ab und stellt sie
+                  in einer uebersichtlichen Web-Oberflaeche dar (<code>http://localhost:8025</code>).
+                  Kein einziges Mail verlaesst das Intranet &mdash; ideal fuer die interne Kommunikation
+                  zwischen Abteilungen, Workflow-Benachrichtigungen und Prozess-Verteiler.
+                  Mailpit ist als Docker-Container im Stapel integriert und startet mit
+                  <code>docker compose up</code> automatisch mit.
+                  <br><br>
+                  <strong>Upgrade-Pfad: Stalwart Mail Server (AGPL-3.0)</strong><br>
+                  Sollte kuenftig echter bidirektionaler E-Mail-Verkehr benoetigt werden &mdash;
+                  also Mitarbeiter mit eigenen Postfaechern unter einer internen Domain wie
+                  <code>@prima.intern</code> &mdash; ist Stalwart die logische Erweiterung.
+                  Stalwart vereint SMTP, IMAP und eine Web-Admin-Oberflaeche in einem einzigen
+                  Rust-basierten Container mit minimalem Ressourcenbedarf.
+                  Der Wechsel erfordert <strong>keine Aenderung am PRIMA-Code</strong>:
+                  lediglich <code>EMAIL_HOST</code> und <code>EMAIL_PORT</code> in der
+                  Umgebungskonfiguration anpassen &mdash; Django kommuniziert mit beiden Servern
+                  ueber denselben SMTP-Standard.
+                </div>
+                <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+                  <div style="background:#ede9fe; border:1px solid #c4b5fd; border-radius:6px; padding:0.6rem 0.75rem; flex:1; min-width:200px;">
+                    <div style="font-weight:700; color:#6d28d9; font-size:0.78rem; margin-bottom:3px;">Mailpit &mdash; jetzt aktiv</div>
+                    <div style="font-size:0.75rem; color:#374151;">
+                      MIT-Lizenz &middot; Docker-integriert &middot; Web-UI auf Port&nbsp;8025 &middot;
+                      kein Mail verlaesst das Haus &middot; sofortiger Einsatz ohne Konfiguration
+                    </div>
+                  </div>
+                  <div style="background:#f3e8ff; border:1px solid #d8b4fe; border-radius:6px; padding:0.6rem 0.75rem; flex:1; min-width:200px;">
+                    <div style="font-weight:700; color:#7c3aed; font-size:0.78rem; margin-bottom:3px;">Stalwart &mdash; Upgrade-Pfad</div>
+                    <div style="font-size:0.75rem; color:#374151;">
+                      AGPL-3.0 &middot; Rust-basiert &middot; SMTP + IMAP in einem Container &middot;
+                      WebAdmin-UI &middot; interne Postfaecher &middot; nahtloser Wechsel von Mailpit
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#ede9fe; border:1px solid #c4b5fd; color:#4c1d95; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Mailpit MIT</span>
+                  <span style="background:#ede9fe; border:1px solid #c4b5fd; color:#4c1d95; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Stalwart AGPL-3.0</span>
+                  <span style="background:#ede9fe; border:1px solid #c4b5fd; color:#4c1d95; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Vendor Lock-in</span>
+                  <span style="background:#ede9fe; border:1px solid #c4b5fd; color:#4c1d95; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">vollstaendig offline</span>
+                  <span style="background:#ede9fe; border:1px solid #c4b5fd; color:#4c1d95; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">zero Code-Aenderung beim Upgrade</span>
+                  <span style="background:#ede9fe; border:1px solid #c4b5fd; color:#4c1d95; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Docker-nativ</span>
+                </div>
+              </div>
+
               <!-- Datenhoheit & Selbstbetrieb -->
               <div style="border:2px solid #1a4d2e; border-top:5px solid #1a4d2e; border-radius:8px; padding:1rem; background:#f0fdf4; position:relative; margin-top:1rem;">
                 <div style="position:absolute; top:-1px; right:10px; background:#1a4d2e; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">

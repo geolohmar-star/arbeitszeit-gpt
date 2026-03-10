@@ -246,6 +246,20 @@ CLAMAV_BLOCKIERE_BEI_FEHLER = os.environ.get("CLAMAV_BLOCKIERE_BEI_FEHLER", "Fal
 # Email-Domain fuer stellenbasierte Adressen
 STELLEN_EMAIL_DOMAIN = os.environ.get('STELLEN_EMAIL_DOMAIN', 'firma.de')
 
+# E-Mail-Versand (intern via Mailpit, spaeter Stalwart)
+# Lokal: Mailpit laeuft als Docker-Container auf Port 1025
+# Produktion: EMAIL_HOST/PORT per .env ueberschreiben → kein Code-Aenderung noetig
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend'
+)
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'localhost')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '1025'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'False') == 'True'
+EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False') == 'True'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'prima@prima.intern')
+
 # Workflow-Einstellungen
 # Schwellwert fuer GF-Freigabe bei Dienstreisen (in EUR)
 DIENSTREISE_GF_FREIGABE_SCHWELLE = 1000
