@@ -2530,17 +2530,6 @@ def _im_dms_ablegen(inhalt_bytes, dateiname, mime, titel, beschreibung, erstellt
             defaults={"klasse": "sensibel", "sortierung": 1},
         )
 
-        # OrgEinheit des Mitarbeiters als Eigentuemer (Pfad: arbeitszeit.Mitarbeiter → user → hr.HRMitarbeiter → stelle)
-        eigentuemereinheit = None
-        try:
-            from hr.models import OrgEinheit
-            ma_user = vereinbarung.mitarbeiter.user
-            stelle = ma_user.hr_mitarbeiter.stelle
-            if stelle and stelle.org_einheit_id:
-                eigentuemereinheit = OrgEinheit.objects.filter(pk=stelle.org_einheit_id).first()
-        except Exception:
-            pass
-
         dok = Dokument(
             titel=titel,
             dateiname=dateiname,
@@ -2548,7 +2537,7 @@ def _im_dms_ablegen(inhalt_bytes, dateiname, mime, titel, beschreibung, erstellt
             groesse_bytes=len(inhalt_bytes),
             klasse="sensibel",
             kategorie=kategorie,
-            eigentuemereinheit=eigentuemereinheit,
+            eigentuemereinheit=None,  # kein OrgEinheit-Zugriff – nur explizit freigeschaltete User
             erstellt_von=erstellt_von,
             beschreibung=beschreibung,
             version=1,
@@ -2556,12 +2545,21 @@ def _im_dms_ablegen(inhalt_bytes, dateiname, mime, titel, beschreibung, erstellt
         speichere_dokument(dok, inhalt_bytes)
         dok.save()
 
-        # Betroffenen Mitarbeiter explizit freischalten (sichtbar_fuer),
-        # damit er sein eigenes Dokument einsehen kann ohne Zugriffsantrag
+        # Betroffenen Mitarbeiter freischalten (eigenes Dokument)
         try:
             ma_user = vereinbarung.mitarbeiter.user
             if ma_user:
                 dok.sichtbar_fuer.add(ma_user)
+        except Exception:
+            pass
+
+        # AZV-Team-Mitglieder freischalten (kuerzel='azv')
+        try:
+            from formulare.models import TeamQueue
+            azv_team = TeamQueue.objects.filter(kuerzel='azv').first()
+            if azv_team:
+                for azv_user in azv_team.mitglieder.all():
+                    dok.sichtbar_fuer.add(azv_user)
         except Exception:
             pass
 
