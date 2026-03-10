@@ -12,6 +12,8 @@ Alle Inhalte als BinaryField – kein Dateisystem, kein Railway-Ephemeral-FS-Pro
 import logging
 
 from django.contrib.auth.models import User
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 
 logger = logging.getLogger(__name__)
@@ -128,12 +130,18 @@ class Dokument(models.Model):
     )
 
     # ------------------------------------------------------------------
-    # Volltext-Suchvektor (nur Klasse 1, befuellt via SQL-Trigger oder Service)
+    # Volltext-Suchvektor (nur Klasse 1)
     # ------------------------------------------------------------------
-    # Hinweis: SearchVectorField existiert nur bei django.contrib.postgres.
-    # Wir speichern als TextField um SQLite-Kompatibilitaet zu wahren;
-    # der GIN-Index wird separat als Raw-SQL-Migration angelegt.
-    suchvektor = models.TextField(blank=True, editable=False, verbose_name="Suchvektor")
+    # PostgreSQL tsvector-Spalte mit GIN-Index.
+    # Wird befuellt durch suchvektor_befuellen() in services.py:
+    #   - Titel (Gewicht A), Beschreibung (Gewicht B), OCR-Text (Gewicht C)
+    # Sensible Dokumente (Klasse 2): bleibt leer (kein FTS auf verschluesselte Daten).
+    suchvektor = SearchVectorField(null=True, blank=True, editable=False, verbose_name="Suchvektor")
+
+    # OCR-Text aus Paperless-ngx (nur Klasse 1, nur bei Paperless-Import).
+    # Wird fuer den Suchvektor verwendet und ermoeglicht spaetere Reindizierung
+    # ohne erneuten Paperless-API-Aufruf.
+    ocr_text = models.TextField(blank=True, editable=False, verbose_name="OCR-Text")
 
     # ------------------------------------------------------------------
     # Metadaten
@@ -176,10 +184,31 @@ class Dokument(models.Model):
         verbose_name="Sichtbar fuer",
     )
 
+    # Workflow-Vorschlag: gesetzt beim Paperless-Import wenn eine Regel greift.
+    # Null = kein Vorschlag, gesetzt = empfohlenes Template wird im Detail-Banner
+    # angezeigt. Nach dem Starten des Workflows bleibt das Feld gesetzt (History).
+    workflow_vorschlag = models.ForeignKey(
+        "workflow.WorkflowTemplate",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="vorgeschlagene_dokumente",
+        verbose_name="Workflow-Vorschlag",
+        help_text="Automatisch vorgeschlagener Workflow (gesetzt beim Paperless-Import).",
+    )
+    # Ob der Vorschlag bereits bearbeitet wurde (Workflow gestartet oder manuell verworfen)
+    workflow_vorschlag_erledigt = models.BooleanField(
+        default=False,
+        verbose_name="Workflow-Vorschlag erledigt",
+    )
+
     class Meta:
         ordering = ["-erstellt_am"]
         verbose_name = "Dokument"
         verbose_name_plural = "Dokumente"
+        indexes = [
+            GinIndex(fields=["suchvektor"], name="dms_dokument_suchvektor_gin2"),
+        ]
 
     def __str__(self):
         return self.titel
@@ -509,3 +538,68 @@ class PaperlessImportLog(models.Model):
 
     def __str__(self):
         return f"Paperless #{self.paperless_id} – {self.status} ({self.importiert_am:%d.%m.%Y})"
+
+
+class PaperlessWorkflowRegel(models.Model):
+    """Konfigurierbare Mapping-Regel: Paperless-Dokumenttyp oder Tag → Workflow-Template.
+
+    Beim Paperless-Import wird jede Regel geprueft. Die erste Regel mit einem
+    Treffer (Dokumenttyp-Name ODER Tag-Name) setzt das Feld
+    Dokument.workflow_vorschlag auf das zugeordnete Template.
+
+    Mehrere Regeln werden nach 'prioritaet' (aufsteigend) sortiert – niedrige
+    Zahl = hoehere Prioritaet.
+
+    Beispiel:
+        Dokumenttyp = "Rechnung", Template = "Rechnungspruefung"
+        Tag         = "elektro",  Template = "Rechnungspruefung Elektro"
+    """
+
+    TREFFER_DOKUMENTTYP = "dokumenttyp"
+    TREFFER_TAG = "tag"
+
+    TREFFER_CHOICES = [
+        (TREFFER_DOKUMENTTYP, "Paperless Dokumenttyp (Name)"),
+        (TREFFER_TAG, "Paperless Tag (Name)"),
+    ]
+
+    bezeichnung = models.CharField(
+        max_length=200,
+        verbose_name="Bezeichnung",
+        help_text="Interne Beschreibung der Regel, z.B. 'Eingangsrechnungen Elektro'.",
+    )
+    treffer_typ = models.CharField(
+        max_length=20,
+        choices=TREFFER_CHOICES,
+        default=TREFFER_DOKUMENTTYP,
+        verbose_name="Treffer-Typ",
+        help_text="Ob der Name als Paperless-Dokumenttyp oder als Tag verglichen wird.",
+    )
+    paperless_name = models.CharField(
+        max_length=200,
+        verbose_name="Paperless-Name",
+        help_text=(
+            "Name des Dokumenttyps oder Tags in Paperless-ngx (Gross/Kleinschreibung egal). "
+            "Beispiel: 'Rechnung' oder 'elektro'."
+        ),
+    )
+    workflow_template = models.ForeignKey(
+        "workflow.WorkflowTemplate",
+        on_delete=models.CASCADE,
+        related_name="paperless_regeln",
+        verbose_name="Workflow-Template",
+        help_text="Dieses Template wird als Vorschlag gesetzt wenn die Regel greift.",
+    )
+    prioritaet = models.PositiveSmallIntegerField(
+        default=100,
+        verbose_name="Prioritaet (niedrig = zuerst geprueft)",
+    )
+    aktiv = models.BooleanField(default=True, verbose_name="Aktiv")
+
+    class Meta:
+        ordering = ["prioritaet", "bezeichnung"]
+        verbose_name = "Paperless-Workflow-Regel"
+        verbose_name_plural = "Paperless-Workflow-Regeln"
+
+    def __str__(self):
+        return f"{self.bezeichnung} [{self.get_treffer_typ_display()}: {self.paperless_name}]"

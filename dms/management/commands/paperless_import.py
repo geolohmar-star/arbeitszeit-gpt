@@ -21,8 +21,8 @@ import urllib.error
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from dms.models import Dokument, DokumentKategorie, PaperlessImportLog
-from dms.services import speichere_dokument
+from dms.models import Dokument, DokumentKategorie, PaperlessImportLog, PaperlessWorkflowRegel
+from dms.services import speichere_dokument, suchvektor_befuellen
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,9 @@ class Command(BaseCommand):
             PaperlessImportLog.objects.values_list("paperless_id", flat=True)
         )
 
+        # Aktive Workflow-Regeln laden (nach Prioritaet sortiert)
+        regeln = list(PaperlessWorkflowRegel.objects.filter(aktiv=True).select_related("workflow_template"))
+
         # Paperless-API abfragen
         url = f"{base_url}/api/documents/?page_size={limit}&ordering=-created"
         headers = {"Authorization": f"Token {token}", "Accept": "application/json"}
@@ -76,6 +79,27 @@ class Command(BaseCommand):
             return
 
         dokumente = daten.get("results", [])
+
+        # Paperless Dokumenttypen + Tags als {id: name}-Dict laden (fuer Regel-Matching)
+        doc_types = {}
+        tag_names_map = {}
+        if regeln and dokumente:
+            try:
+                req = urllib.request.Request(
+                    f"{base_url}/api/document_types/?page_size=200", headers=headers
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    dt_daten = json.loads(resp.read().decode("utf-8"))
+                doc_types = {item["id"]: item["name"] for item in dt_daten.get("results", [])}
+
+                req = urllib.request.Request(
+                    f"{base_url}/api/tags/?page_size=500", headers=headers
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    tag_daten = json.loads(resp.read().decode("utf-8"))
+                tag_names_map = {item["id"]: item["name"] for item in tag_daten.get("results", [])}
+            except Exception as exc:
+                logger.warning("Konnte Paperless-Metadaten (Tags/Typen) nicht laden: %s", exc)
         self.stdout.write(f"Paperless liefert {len(dokumente)} Dokumente (letzte {limit}).")
 
         importiert = 0
@@ -90,6 +114,8 @@ class Command(BaseCommand):
             titel = doc.get("title") or doc.get("original_file_name") or f"Paperless #{pl_id}"
             dateiname = doc.get("original_file_name") or f"paperless_{pl_id}.pdf"
             content_type = "application/pdf"  # Paperless erzeugt immer PDFs
+            # OCR-Text: Paperless liefert ihn direkt im Dokument-JSON (Feld 'content')
+            ocr_text = (doc.get("content") or "").strip()
 
             # Inhalt herunterladen
             download_url = f"{base_url}/api/documents/{pl_id}/download/"
@@ -116,6 +142,34 @@ class Command(BaseCommand):
                 importiert += 1
                 continue
 
+            # Workflow-Vorschlag ermitteln (erste passende aktive Regel)
+            workflow_vorschlag = None
+            if regeln:
+                dt_id = doc.get("document_type")
+                dt_name = (doc_types.get(dt_id) or "").strip().lower() if dt_id else ""
+                tag_ids = doc.get("tags") or []
+                tag_names_lower = {
+                    (tag_names_map.get(tid) or "").strip().lower()
+                    for tid in tag_ids
+                    if tag_names_map.get(tid)
+                }
+
+                for regel in regeln:
+                    vergleich = regel.paperless_name.strip().lower()
+                    if regel.treffer_typ == PaperlessWorkflowRegel.TREFFER_DOKUMENTTYP:
+                        if vergleich and dt_name == vergleich:
+                            workflow_vorschlag = regel.workflow_template
+                            break
+                    elif regel.treffer_typ == PaperlessWorkflowRegel.TREFFER_TAG:
+                        if vergleich and vergleich in tag_names_lower:
+                            workflow_vorschlag = regel.workflow_template
+                            break
+
+            if workflow_vorschlag:
+                self.stdout.write(
+                    f"    Workflow-Vorschlag: '{workflow_vorschlag.name}' fuer #{pl_id} '{titel}'"
+                )
+
             # Dokument anlegen (Klasse 1 – offen, da Paperless-Dokumente im Regelfall offen sind)
             dok = Dokument(
                 titel=titel,
@@ -124,18 +178,23 @@ class Command(BaseCommand):
                 groesse_bytes=len(inhalt_bytes),
                 klasse="offen",
                 paperless_id=pl_id,
+                workflow_vorschlag=workflow_vorschlag,
+                ocr_text=ocr_text,
             )
 
             try:
                 speichere_dokument(dok, inhalt_bytes)
                 dok.save()
+                # Suchvektor nach dem Speichern befuellen (pk benoetigt)
+                suchvektor_befuellen(dok, ocr_text)
                 PaperlessImportLog.objects.create(
                     paperless_id=pl_id,
                     dokument=dok,
                     status="ok",
                 )
                 importiert += 1
-                self.stdout.write(f"  Importiert: #{pl_id} '{titel}'")
+                ocr_info = f" ({len(ocr_text)} Zeichen OCR)" if ocr_text else " (kein OCR-Text)"
+                self.stdout.write(f"  Importiert: #{pl_id} '{titel}'{ocr_info}")
             except Exception as exc:
                 logger.error("Import fehlgeschlagen fuer Paperless #%s: %s", pl_id, exc)
                 PaperlessImportLog.objects.create(

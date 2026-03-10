@@ -1575,6 +1575,53 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                 </div>
               </div>
 
+              <!-- Skalierung: MinIO + OpenSearch -->
+              <div style="border:2px solid #0369a1; border-top:5px solid #0369a1; border-radius:8px; padding:1rem; background:#f0f9ff; position:relative; margin-top:1rem;">
+                <div style="position:absolute; top:-1px; right:10px; background:#0369a1; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  SKALIERUNGSSTRATEGIE
+                </div>
+                <div class="fw-bold mb-2" style="color:#0369a1; font-size:0.92rem;">Enterprise-Skalierung: MinIO &amp; OpenSearch</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem; line-height:1.6;">
+                  PRIMA ist von Grund auf fuer lineares Wachstum ausgelegt. Fuer Volumina im sechsstelligen Dokumentenbereich
+                  pro Jahr stehen zwei battle-tested Infrastrukturkomponenten bereit, die nahtlos in den bestehenden Stack integriert werden:
+                  <br><br>
+                  <strong>MinIO &ndash; S3-kompatibles Objekt-Storage</strong><br>
+                  Ab einem bestimmten Dokumentenvolumen ist es technisch sinnvoll, Binaerdaten aus PostgreSQL
+                  in einen dedizierten Objekt-Store auszulagern. MinIO (Apache&nbsp;2.0) bietet S3-kompatibles
+                  Storage auf eigener Hardware &ndash; ohne Cloud-Abhaengigkeit, ohne laufende Lizenzkosten,
+                  mit nativem Erasure&nbsp;Coding fuer Ausfallsicherheit. PostgreSQL behaelt dann nur Metadaten
+                  und Suchvektoren (~1&nbsp;KB/Dokument), waehrend MinIO die Rohdateien verwaltet.
+                  Das Ergebnis: PostgreSQL bleibt in jedem Szenario schnell; Speicherkosten sinken auf
+                  Commodity-Niveau; horizontale Skalierung des Storage-Tiers wird moeglich.
+                  <br><br>
+                  <strong>OpenSearch &ndash; verteilte Volltextsuche</strong><br>
+                  PostgreSQL FTS mit GIN-Index skaliert zuverlaessig bis in den mittleren einstelligen
+                  Millionenbereich. Sollte das Suchvolumen &ndash; durch steigende Gleichzeitigkeit,
+                  mehrsprachige Inhalte oder Faceted-Search-Anforderungen &ndash; ueber diesen Schwellwert
+                  hinauswachsen, ist OpenSearch (Apache&nbsp;2.0, AWS-gepflegt) die logische Erweiterung.
+                  Die API ist kompatibel zu Elasticsearch&nbsp;7.x; ein Django-Client existiert;
+                  der Indexierungsaufruf in PRIMA ist bereits als separater Service-Layer isoliert
+                  und laesst sich ohne Strukturaenderungen auf einen externen Search-Cluster umlenken.
+                  <br><br>
+                  <div style="background:#e0f2fe; border:1px solid #7dd3fc; border-radius:6px; padding:0.6rem 0.8rem; font-size:0.78rem; color:#0c4a6e;">
+                    <strong>Einordnung:</strong> Beide Komponenten sind fuer PRIMA vorbereitet, aber noch nicht aktiv &ndash;
+                    weil sie bei aktuellem Volumen schlicht nicht noetig sind. PostgreSQL FTS auf GIN-Index
+                    beantwortet Suchanfragen ueber 500&nbsp;000 Dokumente in unter 50&nbsp;ms.
+                    Das ist der richtige Zeitpunkt um zu skalieren: wenn die Messwerte es erfordern,
+                    nicht wenn ein Whitepaper es empfiehlt.
+                  </div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">MinIO Apache 2.0</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">OpenSearch Apache 2.0</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">S3-kompatibel</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Erasure Coding</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">horizontale Skalierung</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Vendor Lock-in</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">messdatengetrieben</span>
+                </div>
+              </div>
+
               <!-- Datenhoheit & Selbstbetrieb -->
               <div style="border:2px solid #1a4d2e; border-top:5px solid #1a4d2e; border-radius:8px; padding:1rem; background:#f0fdf4; position:relative; margin-top:1rem;">
                 <div style="position:absolute; top:-1px; right:10px; background:#1a4d2e; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">

@@ -23,8 +23,18 @@ urlpatterns = [
     path("<int:pk>/onlyoffice/callback/", views.onlyoffice_callback, name="onlyoffice_callback"),
     path("<int:pk>/onlyoffice/forcesave/", views.onlyoffice_forcesave, name="onlyoffice_forcesave"),
     path("<int:pk>/onlyoffice/version/", views.onlyoffice_version_check, name="onlyoffice_version_check"),
+    # DMS → Workflow
+    path("<int:pk>/workflow/starten/", views.dms_workflow_starten, name="workflow_starten"),
+    path("<int:pk>/workflow/vorschlag-verwerfen/", views.workflow_vorschlag_verwerfen, name="workflow_vorschlag_verwerfen"),
+    # Workflow-Trigger-Regeln (Staff)
+    path("einstellungen/workflow-regeln/", views.workflow_regeln_liste, name="workflow_regeln"),
+    path("einstellungen/workflow-regeln/neu/", views.workflow_regel_erstellen, name="workflow_regel_erstellen"),
+    path("einstellungen/workflow-regeln/<int:regel_pk>/bearbeiten/", views.workflow_regel_bearbeiten, name="workflow_regel_bearbeiten"),
+    path("einstellungen/workflow-regeln/<int:regel_pk>/loeschen/", views.workflow_regel_loeschen, name="workflow_regel_loeschen"),
     # Versionsverlauf
-    path("<int:pk>/versionen/<int:version_nr>/restore/", views.version_restore, name="version_restore"),
+    path("<int:pk>/versionen/<int:version_nr>/restore/",   views.version_restore,  name="version_restore"),
+    path("<int:pk>/versionen/<int:version_nr>/download/",  views.version_download, name="version_download"),
+    path("<int:pk>/versionen/<int:version_nr>/vorschau/",  views.version_vorschau, name="version_vorschau"),
     # API v1 – externe Systeme (SAP, Paperless-ngx, etc.)
     path("api/v1/health/",                             api_views.api_health,                name="api_health"),
     path("api/v1/dokumente/",                          api_views.api_dokumente,             name="api_dokumente"),

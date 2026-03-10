@@ -82,6 +82,39 @@ def speichere_dokument(dokument, inhalt_bytes: bytes) -> None:
         dokument.verschluessel_nonce = ""
 
 
+def suchvektor_befuellen(dokument, ocr_text: str = "") -> None:
+    """Baut den PostgreSQL-Suchvektor (tsvector) fuer ein Dokument neu auf.
+
+    Gewichtung:
+        A = Titel          (hoehere Relevanz)
+        B = Beschreibung
+        C = OCR-Text       (Volltextinhalt aus Paperless)
+
+    Sensible Dokumente (Klasse 2) werden uebersprungen – kein FTS auf
+    verschluesselte Inhalte.
+
+    Das Dokument muss bereits in der DB gespeichert sein (pk benoetigt).
+    """
+    from django.contrib.postgres.search import SearchVector
+    from django.db.models import Value
+
+    if dokument.klasse == "sensibel":
+        return  # Kein FTS auf verschluesselte Dokumente
+
+    if dokument.pk is None:
+        raise ValueError("Dokument muss zuerst gespeichert werden (pk fehlt).")
+
+    # Lazy import um Zirkularimporte zu vermeiden
+    from .models import Dokument as DokumentModel
+
+    vektor = (
+        SearchVector(Value(dokument.titel or ""), weight="A", config="german")
+        + SearchVector(Value(dokument.beschreibung or ""), weight="B", config="german")
+        + SearchVector(Value(ocr_text or ""), weight="C", config="german")
+    )
+    DokumentModel.objects.filter(pk=dokument.pk).update(suchvektor=vektor)
+
+
 def lade_dokument(dokument) -> bytes:
     """Laedt und (falls noetig) entschluesselt den Dokumentinhalt.
 

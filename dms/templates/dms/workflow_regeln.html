@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}DMS – Workflow-Trigger-Regeln{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:1000px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{% url 'dms:liste' %}" class="text-muted text-decoration-none small">&larr; Zur Dokumentenliste</a>
+            <h1 class="h3 fw-bold mb-0 mt-1" style="color:#1a4d2e;">Workflow-Trigger-Regeln</h1>
+            <p class="text-muted small mb-0">
+                Bestimmen welche Paperless-Dokumente automatisch einen Workflow-Vorschlag erhalten.
+            </p>
+        </div>
+        <a href="{% url 'dms:workflow_regel_erstellen' %}"
+           class="btn btn-sm" style="background:#1a4d2e; color:white;">
+            + Neue Regel
+        </a>
+    </div>
+
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Erklaerungsbox -->
+    <div class="alert alert-info mb-4 py-3" style="font-size:0.88rem;">
+        <strong>Wie funktioniert das?</strong><br>
+        Beim Import aus Paperless-ngx wird jedes Dokument gegen diese Regeln geprueft.
+        Die erste Regel mit einem Treffer setzt einen <em>Workflow-Vorschlag</em> auf dem Dokument.
+        Der Sachbearbeiter sieht den Vorschlag beim Oeffnen des Dokuments und kann den Workflow
+        mit einem Klick starten – oder den Vorschlag verwerfen.
+        <hr class="my-2">
+        <strong>Treffer-Typen:</strong>
+        <span class="badge bg-primary ms-1">Dokumenttyp</span> = Name des Dokumenttyps in Paperless (z.B. <code>Rechnung</code>) &nbsp;
+        <span class="badge bg-secondary ms-1">Tag</span> = Name eines Tags in Paperless (z.B. <code>elektro</code>)
+        <br>Gross-/Kleinschreibung wird bei beiden Typen ignoriert.
+        Bei mehreren Treffern gewinnt die Regel mit der niedrigsten Prioritaetszahl.
+    </div>
+
+    {% if regeln %}
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="font-size:0.75rem; text-transform:uppercase; color:#6b7280; background:#f9fafb;">
+                    <tr>
+                        <th class="px-4 py-3" style="width:40px;">Prio</th>
+                        <th class="py-3">Bezeichnung</th>
+                        <th class="py-3">Treffer-Typ</th>
+                        <th class="py-3">Paperless-Name</th>
+                        <th class="py-3">Workflow-Template</th>
+                        <th class="py-3 text-center">Aktiv</th>
+                        <th class="py-3"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for regel in regeln %}
+                    <tr {% if not regel.aktiv %}style="opacity:0.5;"{% endif %}>
+                        <td class="px-4 py-2">
+                            <span class="badge bg-secondary">{{ regel.prioritaet }}</span>
+                        </td>
+                        <td class="py-2 fw-semibold">{{ regel.bezeichnung }}</td>
+                        <td class="py-2">
+                            {% if regel.treffer_typ == 'dokumenttyp' %}
+                            <span class="badge bg-primary">Dokumenttyp</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Tag</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2">
+                            <code>{{ regel.paperless_name }}</code>
+                        </td>
+                        <td class="py-2">
+                            <span class="text-muted small">{{ regel.workflow_template.get_kategorie_display }} &middot;</span>
+                            {{ regel.workflow_template.name }}
+                        </td>
+                        <td class="py-2 text-center">
+                            {% if regel.aktiv %}
+                            <span class="badge bg-success">Ja</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Nein</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2 text-end pe-3">
+                            <a href="{% url 'dms:workflow_regel_bearbeiten' regel.pk %}"
+                               class="btn btn-xs btn-outline-secondary me-1"
+                               style="font-size:0.75rem; padding:2px 10px;">
+                                Bearbeiten
+                            </a>
+                            <form method="post" action="{% url 'dms:workflow_regel_loeschen' regel.pk %}"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Regel &quot;{{ regel.bezeichnung }}&quot; wirklich loeschen?')">
+                                {% csrf_token %}
+                                <button type="submit"
+                                        class="btn btn-xs btn-outline-danger"
+                                        style="font-size:0.75rem; padding:2px 10px;">
+                                    Loeschen
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body py-5 text-center text-muted">
+            <p class="mb-3">Noch keine Regeln vorhanden.</p>
+            <a href="{% url 'dms:workflow_regel_erstellen' %}"
+               class="btn btn-sm" style="background:#1a4d2e; color:white;">
+                Erste Regel anlegen
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

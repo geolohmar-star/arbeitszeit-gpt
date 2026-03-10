@@ -13,6 +13,14 @@
                 <p class="text-muted small mb-0">{{ dok.dateiname }} &middot; {{ dok.groesse_lesbar }}</p>
             </div>
             <div class="d-flex gap-2 align-items-center flex-wrap">
+              <!-- Workflow starten -->
+              <button type="button"
+                      class="btn btn-sm btn-outline-dark"
+                      data-bs-toggle="modal"
+                      data-bs-target="#workflowModal">
+                  Workflow starten
+              </button>
+
               {% if dok.klasse == "sensibel" %}
                 {% if darf_zugreifen %}
                   {% if aktiver_schluessel %}
@@ -64,6 +72,37 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Workflow-Vorschlag Banner (aus Paperless-Import-Regel) -->
+    {% if dok.workflow_vorschlag and not dok.workflow_vorschlag_erledigt %}
+    <div class="alert alert-warning d-flex justify-content-between align-items-center mb-4 py-3"
+         style="border-left:4px solid #f59e0b;">
+        <div>
+            <strong>Workflow empfohlen:</strong>
+            {{ dok.workflow_vorschlag.name }}
+            <span class="badge bg-warning text-dark ms-2">{{ dok.workflow_vorschlag.get_kategorie_display }}</span>
+            <div class="small text-muted mt-1">
+                Dieses Dokument wurde automatisch erkannt und ein passender Workflow vorgeschlagen.
+                Bitte pruefen Sie das Dokument und starten Sie den Workflow oder verwerfen Sie den Vorschlag.
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-shrink-0 ms-3">
+            <button type="button"
+                    class="btn btn-warning btn-sm fw-semibold"
+                    data-bs-toggle="modal"
+                    data-bs-target="#workflowModal">
+                Jetzt starten
+            </button>
+            <form method="post" action="{% url 'dms:workflow_vorschlag_verwerfen' dok.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-secondary btn-sm"
+                        title="Vorschlag verwerfen ohne Workflow zu starten">
+                    Verwerfen
+                </button>
+            </form>
+        </div>
     </div>
     {% endif %}
 
@@ -147,8 +186,9 @@
                         <th class="py-2">Erstellt von</th>
                         <th class="py-2">Groesse</th>
                         <th class="py-2">Kommentar</th>
+                        <th class="py-2">Download</th>
                         {% if request.user.is_staff or request.user.is_superuser %}
-                        <th class="py-2"></th>
+                        <th class="py-2">Restore</th>
                         {% endif %}
                     </tr>
                 </thead>
@@ -167,6 +207,23 @@
                         </td>
                         <td style="font-size:0.82rem;">{{ v.groesse_lesbar }}</td>
                         <td style="font-size:0.78rem; color:#6b7280;">{{ v.kommentar|default:"—" }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{% url 'dms:version_vorschau' dok.pk v.version_nr %}"
+                                   target="_blank"
+                                   class="btn btn-xs btn-outline-secondary"
+                                   style="font-size:0.72rem; padding:2px 8px;"
+                                   title="Version {{ v.version_nr }} im Browser anzeigen">
+                                    Vorschau
+                                </a>
+                                <a href="{% url 'dms:version_download' dok.pk v.version_nr %}"
+                                   class="btn btn-xs btn-outline-secondary"
+                                   style="font-size:0.72rem; padding:2px 8px;"
+                                   title="Version {{ v.version_nr }} herunterladen">
+                                    &darr;
+                                </a>
+                            </div>
+                        </td>
                         {% if request.user.is_staff or request.user.is_superuser %}
                         <td>
                             {% if not forloop.first %}
@@ -182,6 +239,62 @@
                             {% endif %}
                         </td>
                         {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Laufende Workflows fuer dieses Dokument -->
+    {% if workflow_instanzen %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white fw-semibold py-2 px-4">
+            Aktive Workflows
+            <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">{{ workflow_instanzen|length }}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead style="font-size:0.75rem; text-transform:uppercase; color:#6b7280;">
+                    <tr>
+                        <th class="px-4 py-2">Workflow</th>
+                        <th class="py-2">Gestartet am</th>
+                        <th class="py-2">Gestartet von</th>
+                        <th class="py-2">Status</th>
+                        <th class="py-2">Detail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inst in workflow_instanzen %}
+                    <tr>
+                        <td class="px-4 py-2">
+                            <span class="fw-semibold">{{ inst.template.name }}</span>
+                            <div class="text-muted" style="font-size:0.75rem;">{{ inst.template.get_kategorie_display }}</div>
+                        </td>
+                        <td style="font-size:0.82rem;">{{ inst.gestartet_am|date:"d.m.Y H:i" }}</td>
+                        <td style="font-size:0.82rem;">
+                            {% if inst.gestartet_von %}
+                                {{ inst.gestartet_von.get_full_name|default:inst.gestartet_von.username }}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            <span class="badge
+                                {% if inst.status == 'laufend' %}bg-primary
+                                {% elif inst.status == 'abgeschlossen' %}bg-success
+                                {% elif inst.status == 'abgebrochen' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ inst.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'workflow:workflow_status' inst.pk %}"
+                               class="btn btn-xs btn-outline-secondary"
+                               style="font-size:0.72rem; padding:2px 8px;"
+                               target="_blank">
+                                Verlauf
+                            </a>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -241,4 +354,10 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Modal: Workflow starten -->
+<div class="modal fade" id="workflowModal" tabindex="-1" aria-hidden="true">
+    {% include "dms/partials/_workflow_starten_modal.html" %}
+</div>
+
 {% endblock %}

@@ -7,6 +7,7 @@ from .models import (
     DokumentTag,
     DokumentZugriffsschluessel,
     PaperlessImportLog,
+    PaperlessWorkflowRegel,
     ZugriffsProtokoll,
 )
 
@@ -77,3 +78,11 @@ class PaperlessImportLogAdmin(admin.ModelAdmin):
     list_display = ["paperless_id", "status", "dokument", "importiert_am"]
     list_filter = ["status"]
     readonly_fields = ["importiert_am", "paperless_id", "status", "dokument", "fehler"]
+
+
+@admin.register(PaperlessWorkflowRegel)
+class PaperlessWorkflowRegelAdmin(admin.ModelAdmin):
+    list_display = ["bezeichnung", "treffer_typ", "paperless_name", "workflow_template", "prioritaet", "aktiv"]
+    list_filter = ["aktiv", "treffer_typ"]
+    search_fields = ["bezeichnung", "paperless_name"]
+    list_editable = ["prioritaet", "aktiv"]

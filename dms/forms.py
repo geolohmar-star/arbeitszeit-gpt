@@ -3,7 +3,7 @@ from django import forms
 
 from hr.models import OrgEinheit
 
-from .models import DAUER_OPTIONEN, Dokument, DokumentKategorie, DokumentTag, DokumentZugriffsschluessel
+from .models import DAUER_OPTIONEN, Dokument, DokumentKategorie, DokumentTag, DokumentZugriffsschluessel, PaperlessWorkflowRegel
 
 
 class DokumentUploadForm(forms.ModelForm):
@@ -113,6 +113,41 @@ class DokumentNeuForm(forms.ModelForm):
             "kategorie": forms.Select(attrs={"class": "form-select"}),
             "eigentuemereinheit": forms.Select(attrs={"class": "form-select"}),
             "beschreibung": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+        }
+
+
+class PaperlessWorkflowRegelForm(forms.ModelForm):
+    """Formular zum Anlegen und Bearbeiten von Paperless-Workflow-Regeln."""
+
+    class Meta:
+        model = PaperlessWorkflowRegel
+        fields = ["bezeichnung", "treffer_typ", "paperless_name", "workflow_template", "prioritaet", "aktiv"]
+        widgets = {
+            "bezeichnung": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "z.B. Eingangsrechnungen Elektro",
+                "autofocus": True,
+            }),
+            "treffer_typ": forms.Select(attrs={"class": "form-select"}),
+            "paperless_name": forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "z.B. Rechnung  oder  elektro",
+            }),
+            "workflow_template": forms.Select(attrs={"class": "form-select"}),
+            "prioritaet": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 999}),
+            "aktiv": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+        labels = {
+            "bezeichnung": "Bezeichnung",
+            "treffer_typ": "Treffer-Typ",
+            "paperless_name": "Paperless-Name (Dokumenttyp oder Tag)",
+            "workflow_template": "Workflow-Template",
+            "prioritaet": "Prioritaet (1 = hoechste)",
+            "aktiv": "Aktiv",
+        }
+        help_texts = {
+            "paperless_name": "Gross-/Kleinschreibung wird ignoriert. Exakter Name wie in Paperless-ngx.",
+            "prioritaet": "Bei mehreren Treffern gewinnt die Regel mit der niedrigsten Prioritaetszahl.",
         }
 
 

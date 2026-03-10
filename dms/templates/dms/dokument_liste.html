@@ -13,7 +13,12 @@
                 Klasse 2: sensibel &amp; AES-256-GCM verschluesselt
             </p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            {% if request.user.is_staff %}
+            <a href="{% url 'dms:workflow_regeln' %}" class="btn btn-sm btn-outline-secondary">
+                Workflow-Regeln
+            </a>
+            {% endif %}
             {% if onlyoffice_url %}
             <a href="{% url 'dms:neu' %}" class="btn btn-sm btn-outline-success">
                 + Neu in OnlyOffice
@@ -34,6 +39,52 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Posteingang: Dokumente mit offenem Workflow-Vorschlag -->
+    {% if posteingang %}
+    <div class="card border-0 mb-4" style="border-left:4px solid #f59e0b !important; box-shadow:0 1px 4px rgba(0,0,0,.08);">
+        <div class="card-header py-2 px-4 d-flex align-items-center gap-2"
+             style="background:#fffbeb; border-bottom:1px solid #fde68a;">
+            <span class="fw-semibold" style="color:#92400e;">Posteingang</span>
+            <span class="badge" style="background:#f59e0b; color:white;">{{ posteingang|length }}</span>
+            <span class="text-muted small ms-1">Dokument{% if posteingang|length != 1 %}e{% endif %} mit empfohlenem Workflow</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead style="font-size:0.75rem; text-transform:uppercase; color:#6b7280; background:#fffbeb;">
+                    <tr>
+                        <th class="px-4 py-2">Dokument</th>
+                        <th class="py-2">Empfangsdatum</th>
+                        <th class="py-2">Vorgeschlagener Workflow</th>
+                        <th class="py-2">Aktion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dok in posteingang %}
+                    <tr>
+                        <td class="px-4 py-2">
+                            <a href="{% url 'dms:detail' dok.pk %}" class="fw-semibold text-decoration-none"
+                               style="color:#1a4d2e;">{{ dok.titel }}</a>
+                            <div class="text-muted" style="font-size:0.75rem;">{{ dok.dateiname }}</div>
+                        </td>
+                        <td style="font-size:0.82rem;">{{ dok.erstellt_am|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            <span class="badge bg-warning text-dark">{{ dok.workflow_vorschlag.name }}</span>
+                        </td>
+                        <td>
+                            <a href="{% url 'dms:detail' dok.pk %}"
+                               class="btn btn-sm btn-warning fw-semibold"
+                               style="font-size:0.78rem; padding:3px 10px;">
+                                Pruefen &amp; starten
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
     {% endif %}
 

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}DMS – Workflow-Regel {% if neu %}anlegen{% else %}bearbeiten{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:640px;">
+
+    <a href="{% url 'dms:workflow_regeln' %}" class="text-muted text-decoration-none small">&larr; Zurueck zu den Regeln</a>
+
+    <h1 class="h3 fw-bold mt-2 mb-4" style="color:#1a4d2e;">
+        Workflow-Regel {% if neu %}anlegen{% else %}bearbeiten{% endif %}
+    </h1>
+
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ form.bezeichnung.label }}</label>
+                    {{ form.bezeichnung }}
+                    {% if form.bezeichnung.help_text %}
+                    <div class="form-text">{{ form.bezeichnung.help_text }}</div>
+                    {% endif %}
+                    {% for err in form.bezeichnung.errors %}
+                    <div class="text-danger small mt-1">{{ err }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">{{ form.treffer_typ.label }}</label>
+                        {{ form.treffer_typ }}
+                        <div class="form-text">
+                            <strong>Dokumenttyp:</strong> Kategorienname in Paperless<br>
+                            <strong>Tag:</strong> Tag-Name in Paperless
+                        </div>
+                        {% for err in form.treffer_typ.errors %}
+                        <div class="text-danger small mt-1">{{ err }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">{{ form.paperless_name.label }}</label>
+                        {{ form.paperless_name }}
+                        {% if form.paperless_name.help_text %}
+                        <div class="form-text">{{ form.paperless_name.help_text }}</div>
+                        {% endif %}
+                        {% for err in form.paperless_name.errors %}
+                        <div class="text-danger small mt-1">{{ err }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ form.workflow_template.label }}</label>
+                    {{ form.workflow_template }}
+                    <div class="form-text">
+                        Welcher Workflow wird vorgeschlagen wenn die Regel greift?
+                    </div>
+                    {% for err in form.workflow_template.errors %}
+                    <div class="text-danger small mt-1">{{ err }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">{{ form.prioritaet.label }}</label>
+                        {{ form.prioritaet }}
+                        {% if form.prioritaet.help_text %}
+                        <div class="form-text">{{ form.prioritaet.help_text }}</div>
+                        {% endif %}
+                        {% for err in form.prioritaet.errors %}
+                        <div class="text-danger small mt-1">{{ err }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="col-md-8 d-flex align-items-end pb-1">
+                        <div class="form-check ms-1">
+                            {{ form.aktiv }}
+                            <label class="form-check-label fw-semibold ms-1" for="{{ form.aktiv.id_for_label }}">
+                                {{ form.aktiv.label }}
+                            </label>
+                            <div class="form-text">Deaktivierte Regeln werden beim Import uebersprungen.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn"
+                            style="background:#1a4d2e; color:white;">
+                        {% if neu %}Regel anlegen{% else %}Aenderungen speichern{% endif %}
+                    </button>
+                    <a href="{% url 'dms:workflow_regeln' %}" class="btn btn-outline-secondary">
+                        Abbrechen
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- Hinweis: Paperless-Namen ermitteln -->
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white fw-semibold py-2 px-4" style="font-size:0.85rem;">
+            Wo finde ich die Namen in Paperless-ngx?
+        </div>
+        <div class="card-body py-3 px-4" style="font-size:0.84rem;">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <strong>Dokumenttypen</strong><br>
+                    Paperless-ngx &rarr; <em>Einstellungen &rarr; Dokumenttypen</em><br>
+                    Den <em>Namen</em> (nicht die ID) hier eintragen.
+                    <div class="mt-1 text-muted">Beispiele: <code>Rechnung</code>, <code>Vertrag</code>, <code>Lieferschein</code></div>
+                </div>
+                <div class="col-md-6">
+                    <strong>Tags</strong><br>
+                    Paperless-ngx &rarr; <em>Einstellungen &rarr; Tags</em><br>
+                    Den <em>Namen</em> des Tags hier eintragen.
+                    <div class="mt-1 text-muted">Beispiele: <code>elektro</code>, <code>eingang</code>, <code>dringend</code></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

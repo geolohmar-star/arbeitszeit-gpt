@@ -97,6 +97,8 @@
                     Z-AG Storno
                     {% elif task.instance.content_type.model == 'betriebssportgutschrift' %}
                     Betriebssport-Gutschrift
+                    {% elif task.instance.content_type.model == 'dokument' %}
+                    DMS-Dokument
                     {% else %}
                     {{ task.instance.content_type }}
                     {% endif %}
@@ -419,6 +421,68 @@
                         <a href="{% url 'betriebssport:gutschrift_download' g.gruppe.pk g.monat_str %}"
                            class="btn btn-sm btn-outline-danger" target="_blank">
                             PDF herunterladen
+                        </a>
+                    </div>
+                    {% endwith %}
+
+                <!-- DMS-Dokument Details -->
+                {% elif task.instance.content_type.model == 'dokument' %}
+                    {% with dok=task.instance.content_object %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Titel:</strong></p>
+                            <p class="mb-0 fw-semibold">{{ dok.titel }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Datei:</strong></p>
+                            <p class="mb-0">{{ dok.dateiname }} &middot; {{ dok.groesse_lesbar }}</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Klasse:</strong></p>
+                            <p class="mb-0">
+                                {% if dok.klasse == "sensibel" %}
+                                <span class="badge bg-danger">Sensibel – AES-256-GCM</span>
+                                {% else %}
+                                <span class="badge bg-success">Offen</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <p class="text-muted small mb-1"><strong>Version:</strong></p>
+                            <p class="mb-0">v{{ dok.version }}</p>
+                        </div>
+                    </div>
+                    {% if dok.beschreibung %}
+                    <div class="mb-3">
+                        <p class="text-muted small mb-1"><strong>Beschreibung:</strong></p>
+                        <p class="mb-0">{{ dok.beschreibung }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- PDF-Vorschau direkt im Task (nur bei PDF und Klasse offen) -->
+                    {% if dok.dateityp == "application/pdf" and dok.klasse == "offen" %}
+                    <div class="mb-3">
+                        <p class="text-muted small mb-1"><strong>Vorschau:</strong></p>
+                        <iframe src="{% url 'dms:vorschau' dok.pk %}"
+                                style="width:100%; height:480px; border:1px solid #dee2e6; border-radius:4px;"
+                                title="{{ dok.titel }}"></iframe>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-2 d-flex gap-2 flex-wrap">
+                        <a href="{% url 'dms:detail' dok.pk %}"
+                           class="btn btn-sm btn-primary" target="_blank">
+                            Details im DMS
+                        </a>
+                        <a href="{% url 'dms:vorschau' dok.pk %}"
+                           class="btn btn-sm btn-outline-secondary" target="_blank">
+                            Vorschau
+                        </a>
+                        <a href="{% url 'dms:download' dok.pk %}"
+                           class="btn btn-sm btn-outline-success" target="_blank">
+                            Download
                         </a>
                     </div>
                     {% endwith %}

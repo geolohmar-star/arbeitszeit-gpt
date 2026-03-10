@@ -14,9 +14,9 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from guardian.shortcuts import assign_perm, remove_perm
 
-from .forms import DokumentNeuForm, DokumentSucheForm, DokumentUploadForm, ZugriffsantragForm
-from .models import DAUER_OPTIONEN, ApiToken, Dokument, DokumentVersion, DokumentZugriffsschluessel, ZugriffsProtokoll
-from .services import lade_dokument, speichere_dokument
+from .forms import DokumentNeuForm, DokumentSucheForm, DokumentUploadForm, PaperlessWorkflowRegelForm, ZugriffsantragForm
+from .models import DAUER_OPTIONEN, ApiToken, Dokument, DokumentVersion, DokumentZugriffsschluessel, PaperlessWorkflowRegel, ZugriffsProtokoll
+from .services import lade_dokument, speichere_dokument, suchvektor_befuellen
 
 logger = logging.getLogger(__name__)
 
@@ -122,12 +122,13 @@ def dokument_liste(request):
         if q:
             from django.db import connection
             if connection.vendor == "postgresql":
-                from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
-                vektor = SearchVector("titel", weight="A") + SearchVector("beschreibung", weight="B")
+                from django.contrib.postgres.search import SearchQuery, SearchRank
+                # Nutzt den GIN-Index auf suchvektor (tsvector-Spalte).
+                # filter(suchvektor=query) aktiviert den Index; annotate ergaenzt die Rang-Sortierung.
                 query = SearchQuery(q, config="german")
                 qs = (
-                    qs.annotate(rank=SearchRank(vektor, query))
-                    .filter(rank__gte=0.01)
+                    qs.filter(suchvektor=query)
+                    .annotate(rank=SearchRank("suchvektor", query))
                     .order_by("-rank")
                 )
             else:
@@ -155,11 +156,28 @@ def dokument_liste(request):
     paginator = Paginator(qs, 25)
     seite = paginator.get_page(request.GET.get("page"))
 
+    # Posteingang: offene Workflow-Vorschlaege (nur eigene oder staff)
+    posteingang_qs = Dokument.objects.filter(
+        workflow_vorschlag__isnull=False,
+        workflow_vorschlag_erledigt=False,
+    ).select_related("workflow_vorschlag").order_by("-erstellt_am")
+    if not request.user.is_staff and not request.user.is_superuser:
+        user_org_ids = _get_user_orgeinheit_ids(request.user)
+        if user_org_ids:
+            posteingang_qs = posteingang_qs.filter(
+                db_models.Q(klasse="offen")
+                | db_models.Q(klasse="sensibel", eigentuemereinheit_id__in=user_org_ids)
+            )
+        else:
+            posteingang_qs = posteingang_qs.filter(klasse="offen")
+    posteingang = list(posteingang_qs[:20])
+
     return render(request, "dms/dokument_liste.html", {
         "form": form,
         "seite": seite,
         "titel": "Dokumente",
         "aktive_schluessel_ids": aktive_schluessel_ids,
+        "posteingang": posteingang,
     })
 
 
@@ -197,6 +215,7 @@ def dokument_upload(request):
 
         dok.save()
         form.save_m2m()
+        suchvektor_befuellen(dok)
 
         _protokolliere(request, dok, aktion="erstellt")
         messages.success(request, f'Dokument "{dok.titel}" wurde erfolgreich hochgeladen.')
@@ -277,6 +296,7 @@ def dokument_neu(request):
             return render(request, "dms/dokument_neu.html", {"form": form})
 
         dok.save()
+        suchvektor_befuellen(dok)
 
         _protokolliere(request, dok, aktion="erstellt", notiz=f"Neues {dateityp.upper()} via OnlyOffice angelegt")
         return redirect("dms:onlyoffice_editor", pk=dok.pk)
@@ -369,6 +389,18 @@ def dokument_detail(request, pk):
         ).first()
 
     versionen = dok.versionen.select_related("erstellt_von").order_by("-version_nr")[:20]
+
+    # Laufende Workflow-Instanzen fuer dieses Dokument laden
+    from django.contrib.contenttypes.models import ContentType
+    from workflow.models import WorkflowInstance
+    dok_ct = ContentType.objects.get_for_model(Dokument)
+    workflow_instanzen = (
+        WorkflowInstance.objects
+        .filter(content_type=dok_ct, object_id=dok.pk)
+        .select_related("template", "gestartet_von")
+        .order_by("-gestartet_am")[:10]
+    )
+
     onlyoffice_typen = {"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -387,6 +419,7 @@ def dokument_detail(request, pk):
         "bentopdf_url": getattr(django_settings, "BENTOPDF_URL", ""),
         "onlyoffice_url": getattr(django_settings, "ONLYOFFICE_URL", ""),
         "onlyoffice_unterstuetzt": dok.dateityp in onlyoffice_typen,
+        "workflow_instanzen": workflow_instanzen,
     })
 
 
@@ -817,6 +850,8 @@ def onlyoffice_callback(request, pk):
     dok.groesse_bytes = len(neuer_inhalt)
     dok.save(update_fields=["inhalt_roh", "inhalt_verschluesselt",
                              "verschluessel_nonce", "version", "groesse_bytes"])
+    # Suchvektor nach Aenderung neu aufbauen (Titel/Beschreibung unveraendert, ocr_text bleibt)
+    suchvektor_befuellen(dok, dok.ocr_text)
 
     # Protokolleintrag ohne Request-Objekt (Callback kommt vom OnlyOffice-Server)
     ZugriffsProtokoll.objects.create(
@@ -961,6 +996,214 @@ def version_restore(request, pk, version_nr):
         )
 
     return redirect("dms:detail", pk=pk)
+
+
+@login_required
+def version_vorschau(request, pk, version_nr):
+    """Zeigt eine archivierte Version inline im Browser (PDF, Bilder)."""
+    dok = get_object_or_404(Dokument, pk=pk)
+
+    if dok.klasse == "sensibel" and not _darf_sensibel_zugreifen(request, dok):
+        messages.error(request, "Sie benoetigen einen gueltigen Zugriffsschluessel.")
+        return redirect("dms:detail", pk=pk)
+
+    version = get_object_or_404(DokumentVersion, dokument=dok, version_nr=version_nr)
+
+    if dok.klasse == "sensibel":
+        from .services import entschluessel_inhalt
+        inhalt = entschluessel_inhalt(
+            bytes(version.inhalt_verschluesselt),
+            version.verschluessel_nonce,
+        )
+    else:
+        inhalt = bytes(version.inhalt_roh)
+
+    _protokolliere(request, dok, "vorschau", f"Version {version_nr} (Archiv-Vorschau)")
+
+    response = HttpResponse(inhalt, content_type=dok.dateityp or "application/octet-stream")
+    response["Content-Disposition"] = f'inline; filename="{version.dateiname}"'
+    return response
+
+
+@login_required
+def version_download(request, pk, version_nr):
+    """Laedt eine bestimmte Version eines Dokuments herunter (ohne Restore)."""
+    dok = get_object_or_404(Dokument, pk=pk)
+
+    # Berechtigung: Staff, OrgEinheit-Mitglied oder Zugriffsschluessel (sensibel)
+    if dok.klasse == "sensibel":
+        darf = (
+            request.user.is_staff
+            or request.user.is_superuser
+            or dok.eigentuemereinheit_id in _get_user_orgeinheit_ids(request.user)
+        )
+        if not darf:
+            from django.utils import timezone as tz
+            aktiver_schluessel = dok.zugriffsschluessel.filter(
+                user=request.user,
+                status=DokumentZugriffsschluessel.STATUS_GENEHMIGT,
+                gueltig_bis__gt=tz.now(),
+            ).first()
+            darf = aktiver_schluessel is not None
+        if not darf:
+            messages.error(request, "Keine Berechtigung fuer dieses Dokument.")
+            return redirect("dms:detail", pk=pk)
+
+    version = get_object_or_404(DokumentVersion, dokument=dok, version_nr=version_nr)
+
+    if dok.klasse == "sensibel":
+        from .services import entschluessel_inhalt
+        inhalt = entschluessel_inhalt(
+            bytes(version.inhalt_verschluesselt),
+            version.verschluessel_nonce,
+        )
+    else:
+        inhalt = bytes(version.inhalt_roh)
+
+    _protokolliere(request, dok, "download", f"Version {version_nr} (Archiv-Download)")
+
+    response = HttpResponse(inhalt, content_type=dok.dateityp or "application/octet-stream")
+    # Dateiname mit Versionsnummer kennzeichnen
+    name_teile = version.dateiname.rsplit(".", 1)
+    if len(name_teile) == 2:
+        versioned_name = f"{name_teile[0]}_v{version_nr}.{name_teile[1]}"
+    else:
+        versioned_name = f"{version.dateiname}_v{version_nr}"
+    response["Content-Disposition"] = f'attachment; filename="{versioned_name}"'
+    return response
+
+
+# ---------------------------------------------------------------------------
+# DMS → Workflow-Integration
+# ---------------------------------------------------------------------------
+
+@login_required
+def workflow_regeln_liste(request):
+    """Staff-View: Liste aller Paperless-Workflow-Regeln."""
+    if not request.user.is_staff:
+        messages.error(request, "Keine Berechtigung.")
+        return redirect("dms:liste")
+
+    regeln = PaperlessWorkflowRegel.objects.select_related("workflow_template").order_by("prioritaet", "bezeichnung")
+    return render(request, "dms/workflow_regeln.html", {"regeln": regeln})
+
+
+@login_required
+def workflow_regel_erstellen(request):
+    """Staff-View: Neue Paperless-Workflow-Regel anlegen."""
+    if not request.user.is_staff:
+        messages.error(request, "Keine Berechtigung.")
+        return redirect("dms:liste")
+
+    form = PaperlessWorkflowRegelForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, f'Regel "{form.cleaned_data["bezeichnung"]}" wurde angelegt.')
+        return redirect("dms:workflow_regeln")
+
+    return render(request, "dms/workflow_regel_form.html", {"form": form, "neu": True})
+
+
+@login_required
+def workflow_regel_bearbeiten(request, regel_pk):
+    """Staff-View: Vorhandene Paperless-Workflow-Regel bearbeiten."""
+    if not request.user.is_staff:
+        messages.error(request, "Keine Berechtigung.")
+        return redirect("dms:liste")
+
+    regel = get_object_or_404(PaperlessWorkflowRegel, pk=regel_pk)
+    form = PaperlessWorkflowRegelForm(request.POST or None, instance=regel)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, f'Regel "{regel.bezeichnung}" wurde gespeichert.')
+        return redirect("dms:workflow_regeln")
+
+    return render(request, "dms/workflow_regel_form.html", {"form": form, "regel": regel, "neu": False})
+
+
+@login_required
+def workflow_regel_loeschen(request, regel_pk):
+    """Staff-View: Paperless-Workflow-Regel loeschen (POST)."""
+    if not request.user.is_staff:
+        messages.error(request, "Keine Berechtigung.")
+        return redirect("dms:liste")
+
+    regel = get_object_or_404(PaperlessWorkflowRegel, pk=regel_pk)
+    if request.method == "POST":
+        name = regel.bezeichnung
+        regel.delete()
+        messages.success(request, f'Regel "{name}" wurde geloescht.')
+    return redirect("dms:workflow_regeln")
+
+
+@login_required
+def workflow_vorschlag_verwerfen(request, pk):
+    """Markiert den automatischen Workflow-Vorschlag als erledigt (ohne Workflow zu starten).
+
+    Wird aufgerufen wenn der User den Banner-Vorschlag manuell verwirft.
+    """
+    if request.method != "POST":
+        return redirect("dms:detail", pk=pk)
+    dok = get_object_or_404(Dokument, pk=pk)
+    if dok.workflow_vorschlag_id:
+        dok.workflow_vorschlag_erledigt = True
+        dok.save(update_fields=["workflow_vorschlag_erledigt"])
+        _protokolliere(request, dok, "geaendert", "Workflow-Vorschlag manuell verworfen.")
+    return redirect("dms:detail", pk=pk)
+
+@login_required
+def dms_workflow_starten(request, pk):
+    """Startet einen Workflow fuer ein DMS-Dokument.
+
+    GET:  Gibt das Modal-Partial mit Auswahl der verfuegbaren Templates zurueck.
+    POST: Startet den gewaehlten Workflow und leitet zurueck zur Detailseite.
+    """
+    dok = get_object_or_404(Dokument, pk=pk)
+
+    # Sensible Dokumente: Zugriff pruefen
+    if dok.klasse == "sensibel" and not _darf_sensibel_zugreifen(request, dok):
+        messages.error(request, "Sie benoetigen einen gueltigen Zugriffsschluessel um einen Workflow zu starten.")
+        return redirect("dms:detail", pk=pk)
+
+    if request.method == "POST":
+        from workflow.models import WorkflowTemplate
+        from workflow.services import WorkflowEngine
+
+        template_id = request.POST.get("template_id")
+        if not template_id:
+            messages.error(request, "Kein Workflow-Template ausgewaehlt.")
+            return redirect("dms:detail", pk=pk)
+
+        template = get_object_or_404(WorkflowTemplate, pk=template_id, ist_aktiv=True)
+        try:
+            engine = WorkflowEngine()
+            instance = engine.start_workflow(template, dok, request.user)
+            # Workflow-Vorschlag als erledigt markieren
+            if dok.workflow_vorschlag_id:
+                dok.workflow_vorschlag_erledigt = True
+                dok.save(update_fields=["workflow_vorschlag_erledigt"])
+            _protokolliere(
+                request, dok, "geaendert",
+                f"Workflow gestartet: {template.name} (Instanz #{instance.pk})",
+            )
+            messages.success(
+                request,
+                f'Workflow "{template.name}" wurde gestartet. '
+                f'Die Aufgaben erscheinen jetzt im Arbeitsstapel der zustaendigen Mitarbeiter.'
+            )
+        except Exception as exc:
+            logger.error("Workflow-Start fehlgeschlagen fuer Dokument %s: %s", pk, exc)
+            messages.error(request, f"Fehler beim Starten des Workflows: {exc}")
+
+        return redirect("dms:detail", pk=pk)
+
+    # GET: Modal-Partial rendern
+    from workflow.models import WorkflowTemplate
+    templates = WorkflowTemplate.objects.filter(ist_aktiv=True).order_by("kategorie", "name")
+    return render(request, "dms/partials/_workflow_starten_modal.html", {
+        "dok": dok,
+        "templates": templates,
+    })
 
 
 @login_required
