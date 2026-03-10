@@ -85,6 +85,9 @@ def _darf_sensibel_zugreifen(request, dokument):
     if dokument.eigentuemereinheit_id:
         if dokument.eigentuemereinheit_id in _get_user_orgeinheit_ids(request.user):
             return True
+    # Explizit freigegebene User (sichtbar_fuer) haben ebenfalls Zugriff
+    if dokument.sichtbar_fuer.filter(pk=request.user.pk).exists():
+        return True
     # Alle anderen (auch staff): nur mit aktivem Zugriffsschluessel
     return _hat_aktiven_zugriffsschluessel(request.user, dokument)
 

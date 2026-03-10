@@ -2547,6 +2547,15 @@ def _im_dms_ablegen(inhalt_bytes, dateiname, mime, titel, beschreibung, erstellt
         speichere_dokument(dok, inhalt_bytes)
         dok.save()
 
+        # Betroffenen Mitarbeiter explizit freischalten (sichtbar_fuer),
+        # damit er sein eigenes Dokument einsehen kann ohne Zugriffsantrag
+        try:
+            ma_user = vereinbarung.mitarbeiter.user
+            if ma_user:
+                dok.sichtbar_fuer.add(ma_user)
+        except Exception:
+            pass
+
         from dms.models import ZugriffsProtokoll
         ZugriffsProtokoll.objects.create(
             dokument=dok,
