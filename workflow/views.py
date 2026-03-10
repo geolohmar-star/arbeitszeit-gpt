@@ -622,6 +622,154 @@ def prozesszentrale(request):
 
 
 @login_required
+def prozessantrag_stellen(request):
+    """HTMX-Formular zum Einreichen eines neuen Prozessantrags.
+
+    Mitarbeiter beschreiben den gewuenschten Prozess strukturiert.
+    Nach dem Einreichen wird automatisch eine Workflow-Instanz gestartet.
+    """
+    import logging
+    from .forms import ProzessAntragForm
+    from .models import ProzessAntrag
+
+    if request.method == "POST":
+        form = ProzessAntragForm(request.POST)
+
+        # Schritte aus POST-Daten zusammenbauen
+        schritte = []
+        i = 1
+        while True:
+            beschreibung = request.POST.get(
+                f"schritt_{i}_beschreibung", ""
+            ).strip()
+            if not beschreibung:
+                break
+            zustaendig = request.POST.get(
+                f"schritt_{i}_zustaendig", ""
+            ).strip()
+            frist = request.POST.get(f"schritt_{i}_frist", "3").strip()
+            schritte.append({
+                "nr": i,
+                "beschreibung": beschreibung,
+                "zustaendig": zustaendig,
+                "frist_tage": int(frist) if frist.isdigit() else 3,
+            })
+            i += 1
+
+        if form.is_valid():
+            antrag = form.save(commit=False)
+            antrag.antragsteller = request.user
+            antrag.schritte = schritte
+            antrag.save()
+
+            # Workflow automatisch starten (trigger_event: prozessantrag_erstellt)
+            try:
+                template_qs = WorkflowTemplate.objects.filter(
+                    trigger_event="prozessantrag_erstellt",
+                    ist_aktiv=True,
+                ).order_by("-version")
+                if template_qs.exists():
+                    engine = WorkflowEngine()
+                    instance = engine.start_workflow(
+                        template_qs.first(), antrag, request.user
+                    )
+                    antrag.workflow_instance = instance
+                    antrag.save(update_fields=["workflow_instance"])
+            except Exception as exc:
+                logging.getLogger(__name__).error(
+                    "Workflow-Start fehlgeschlagen fuer ProzessAntrag %s: %s",
+                    antrag.pk,
+                    exc,
+                )
+
+            if request.headers.get("HX-Request"):
+                return render(
+                    request,
+                    "workflow/partials/_prozessantrag_erfolg.html",
+                    {"antrag": antrag},
+                )
+
+            messages.success(
+                request,
+                f"Prozessantrag '{antrag.name}' erfolgreich eingereicht.",
+            )
+            return redirect("workflow:prozessantrag_detail", pk=antrag.pk)
+
+        if request.headers.get("HX-Request"):
+            return render(
+                request,
+                "workflow/partials/_prozessantrag_formular.html",
+                {"form": form},
+            )
+    else:
+        form = ProzessAntragForm()
+
+    return render(request, "workflow/prozessantrag_stellen.html", {"form": form})
+
+
+@login_required
+def prozessantrag_neue_zeile(request):
+    """HTMX-Partial: Neue Schritt-Zeile fuer den Prozessantrag.
+
+    Wird per hx-get aufgerufen wenn der Nutzer auf '+ Schritt hinzufuegen'
+    klickt.
+    """
+    # HTMX-View – gibt nur Partial zurueck
+    nr = int(request.GET.get("nr", 1))
+    return render(
+        request,
+        "workflow/partials/_prozessantrag_schritt.html",
+        {"nr": nr},
+    )
+
+
+@login_required
+def prozessantrag_detail(request, pk):
+    """Detailansicht eines Prozessantrags."""
+    from .models import ProzessAntrag
+    antrag = get_object_or_404(
+        ProzessAntrag.objects.select_related(
+            "antragsteller", "workflow_instance"
+        ),
+        pk=pk,
+    )
+    # Nur Antragsteller, Prozessverantwortliche und Staff duerfen sehen
+    ist_berechtigt = (
+        antrag.antragsteller == request.user
+        or request.user.is_staff
+        or request.user.groups.filter(name="Prozessverantwortliche").exists()
+    )
+    if not ist_berechtigt:
+        messages.error(request, "Kein Zugriffsrecht auf diesen Prozessantrag.")
+        return redirect("workflow:arbeitsstapel")
+
+    return render(
+        request,
+        "workflow/prozessantrag_detail.html",
+        {"antrag": antrag},
+    )
+
+
+@login_required
+def prozessantrag_liste(request):
+    """Liste aller Prozessantraege (nur fuer Prozessverantwortliche und Staff)."""
+    from .models import ProzessAntrag
+    if not (
+        request.user.is_staff
+        or request.user.groups.filter(name="Prozessverantwortliche").exists()
+    ):
+        messages.error(request, "Kein Zugriffsrecht.")
+        return redirect("workflow:prozesszentrale")
+
+    antraege = ProzessAntrag.objects.select_related("antragsteller").all()
+    return render(
+        request,
+        "workflow/prozessantrag_liste.html",
+        {"antraege": antraege},
+    )
+
+
+@login_required
 def trigger_uebersicht(request):
     """Zeigt Uebersicht ueber alle Workflow-Trigger.
 

@@ -1,6 +1,13 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import WorkflowTemplate, WorkflowStep, WorkflowInstance, WorkflowTask, WorkflowTransition
+from .models import (
+    WorkflowTemplate,
+    WorkflowStep,
+    WorkflowInstance,
+    WorkflowTask,
+    WorkflowTransition,
+    ProzessAntrag,
+)
 
 
 class WorkflowStepInline(admin.TabularInline):
@@ -432,3 +439,66 @@ class WorkflowTaskAdmin(admin.ModelAdmin):
         )
 
     get_status_badge.short_description = "Status-Badge"
+
+
+@admin.register(ProzessAntrag)
+class ProzessAntragAdmin(admin.ModelAdmin):
+    """Admin fuer Prozessantraege."""
+
+    list_display = [
+        "name",
+        "antragsteller",
+        "ausloeser_typ",
+        "status",
+        "erstellt_am",
+    ]
+    list_filter = ["status", "ausloeser_typ", "erstellt_am"]
+    search_fields = [
+        "name",
+        "antragsteller__username",
+        "antragsteller__last_name",
+    ]
+    readonly_fields = [
+        "erstellt_am",
+        "aktualisiert_am",
+        "antragsteller",
+        "workflow_instance",
+    ]
+
+    fieldsets = [
+        (
+            "Antrag",
+            {
+                "fields": [
+                    "name",
+                    "antragsteller",
+                    "status",
+                    "erstellt_am",
+                    "aktualisiert_am",
+                ]
+            },
+        ),
+        (
+            "Inhalt",
+            {
+                "fields": [
+                    "ziel",
+                    "ausloeser_typ",
+                    "ausloeser_detail",
+                    "schritte",
+                ]
+            },
+        ),
+        (
+            "Team",
+            {"fields": ["team_benoetigt", "team_vorschlag"]},
+        ),
+        (
+            "Sonstiges",
+            {"fields": ["pdf_benoetigt", "bemerkungen"]},
+        ),
+        (
+            "Workflow",
+            {"fields": ["workflow_instance"]},
+        ),
+    ]

@@ -1,0 +1,102 @@
+{% if form.errors %}
+<div class="alert alert-danger mb-3">
+  Bitte korrigieren Sie die markierten Felder.
+</div>
+{% endif %}
+
+<!-- Block 1: Was soll passieren -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-white fw-semibold py-3">
+    1. Was soll der Prozess leisten?
+  </div>
+  <div class="card-body">
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Name des Prozesses <span class="text-danger">*</span></label>
+      {{ form.name }}
+      {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="mb-0">
+      <label class="form-label fw-semibold">Ziel / Ergebnis <span class="text-danger">*</span></label>
+      {{ form.ziel }}
+      <div class="form-text">Was soll am Ende des Prozesses erreicht sein?</div>
+      {% if form.ziel.errors %}<div class="text-danger small mt-1">{{ form.ziel.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Block 2: Auslöser -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-white fw-semibold py-3">
+    2. Wie wird der Prozess ausgelöst?
+  </div>
+  <div class="card-body">
+    <div class="mb-3">
+      <label class="form-label fw-semibold">Auslöser-Typ <span class="text-danger">*</span></label>
+      {{ form.ausloeser_typ }}
+    </div>
+    <div class="mb-0">
+      <label class="form-label fw-semibold">Genauere Beschreibung</label>
+      {{ form.ausloeser_detail }}
+      <div class="form-text">Optional – z.B. "Dokument mit Tag 'Eingangsrechnung' kommt aus Paperless"</div>
+    </div>
+  </div>
+</div>
+
+<!-- Block 3: Schritte -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-white fw-semibold py-3 d-flex justify-content-between align-items-center">
+    <span>3. Gewünschte Prozessschritte</span>
+    <small class="text-muted fw-normal">Grob skizzieren reicht – kein perfekter Ablauf nötig</small>
+  </div>
+  <div class="card-body">
+    <div id="schritte-container">
+      {% include "workflow/partials/_prozessantrag_schritt.html" with nr=1 %}
+    </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm mt-2"
+            hx-get="{% url 'workflow:prozessantrag_neue_zeile' %}?nr={{ naechste_nr|default:2 }}"
+            hx-target="#schritte-container"
+            hx-swap="beforeend"
+            id="btn-neue-zeile">
+      + Schritt hinzufügen
+    </button>
+  </div>
+</div>
+
+<!-- Block 4: Team & Sonstiges -->
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-header bg-white fw-semibold py-3">
+    4. Team &amp; Rahmenbedingungen
+  </div>
+  <div class="card-body">
+    <div class="mb-3">
+      <div class="form-check">
+        {{ form.team_benoetigt }}
+        <label class="form-check-label" for="{{ form.team_benoetigt.id_for_label }}">
+          Wird ein Team / eine Arbeitsgruppe benötigt?
+        </label>
+      </div>
+    </div>
+    <div class="mb-3" id="team-vorschlag-feld">
+      <label class="form-label">Team-Mitglieder (Vorschlag)</label>
+      {{ form.team_vorschlag }}
+      <div class="form-text">Namen oder Kürzel der gewünschten Team-Mitglieder</div>
+    </div>
+    <div class="mb-3">
+      <div class="form-check">
+        {{ form.pdf_benoetigt }}
+        <label class="form-check-label" for="{{ form.pdf_benoetigt.id_for_label }}">
+          Soll am Ende ein PDF-Dokument erzeugt werden?
+        </label>
+      </div>
+    </div>
+    <div class="mb-0">
+      <label class="form-label">Zusätzliche Bemerkungen</label>
+      {{ form.bemerkungen }}
+    </div>
+  </div>
+</div>
+
+<div class="d-flex gap-2 justify-content-end">
+  <a href="{% url 'workflow:prozesszentrale' %}" class="btn btn-outline-secondary">Abbrechen</a>
+  <button type="submit" class="btn btn-success px-4">Prozess beantragen</button>
+</div>

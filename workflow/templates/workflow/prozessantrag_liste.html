@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Prozessanträge – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 fw-bold mb-0">Prozessanträge</h1>
+    <a href="{% url 'workflow:prozessantrag_stellen' %}" class="btn btn-success">+ Neuer Antrag</a>
+  </div>
+
+  {% if antraege %}
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Prozess</th>
+            <th>Antragsteller</th>
+            <th>Auslöser</th>
+            <th>Status</th>
+            <th>Eingereicht</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for antrag in antraege %}
+          <tr>
+            <td class="ps-3 fw-semibold">{{ antrag.name }}</td>
+            <td class="text-muted">
+              {{ antrag.antragsteller.get_full_name|default:antrag.antragsteller.username }}
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">
+                {{ antrag.get_ausloeser_typ_display }}
+              </span>
+            </td>
+            <td>
+              <span class="badge
+                {% if antrag.status == 'eingereicht' %}bg-warning text-dark
+                {% elif antrag.status == 'in_pruefung' %}bg-info text-dark
+                {% elif antrag.status == 'in_umsetzung' %}bg-primary
+                {% elif antrag.status == 'umgesetzt' %}bg-success
+                {% else %}bg-danger{% endif %}">
+                {{ antrag.get_status_display }}
+              </span>
+            </td>
+            <td class="text-muted small">{{ antrag.erstellt_am|date:"d.m.Y" }}</td>
+            <td>
+              <a href="{% url 'workflow:prozessantrag_detail' antrag.pk %}"
+                 class="btn btn-sm btn-outline-secondary">Ansehen</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <p>Noch keine Prozessanträge vorhanden.</p>
+    <a href="{% url 'workflow:prozessantrag_stellen' %}" class="btn btn-success">
+      Ersten Antrag stellen
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

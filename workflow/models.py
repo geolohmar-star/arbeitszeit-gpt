@@ -831,3 +831,126 @@ class WorkflowTask(models.Model):
                 return False
 
         return False
+
+
+class ProzessAntrag(models.Model):
+    """Antrag auf Erstellung eines neuen Workflow-Prozesses.
+
+    Ermoeglicht Mitarbeitern, neue Prozesse strukturiert zu beantragen.
+    Der Antrag durchlaeuft selbst einen Workflow (Meta-Workflow).
+    """
+
+    AUSLOESER_MANUELL = "manuell"
+    AUSLOESER_DMS = "dms"
+    AUSLOESER_FORMULAR = "formular"
+    AUSLOESER_ZEITGESTEUERT = "zeitgesteuert"
+    AUSLOESER_SONSTIGES = "sonstiges"
+
+    AUSLOESER_CHOICES = [
+        (AUSLOESER_MANUELL, "Manuell (Mitarbeiter startet selbst)"),
+        (AUSLOESER_DMS, "DMS-Import (Paperless-Dokument)"),
+        (AUSLOESER_FORMULAR, "Formular-Einreichung"),
+        (AUSLOESER_ZEITGESTEUERT, "Zeitgesteuert (Datum/Uhrzeit)"),
+        (AUSLOESER_SONSTIGES, "Sonstiges"),
+    ]
+
+    STATUS_EINGEREICHT = "eingereicht"
+    STATUS_IN_PRUEFUNG = "in_pruefung"
+    STATUS_IN_UMSETZUNG = "in_umsetzung"
+    STATUS_UMGESETZT = "umgesetzt"
+    STATUS_ABGELEHNT = "abgelehnt"
+
+    STATUS_CHOICES = [
+        (STATUS_EINGEREICHT, "Eingereicht"),
+        (STATUS_IN_PRUEFUNG, "In Pruefung"),
+        (STATUS_IN_UMSETZUNG, "In Umsetzung"),
+        (STATUS_UMGESETZT, "Umgesetzt"),
+        (STATUS_ABGELEHNT, "Abgelehnt"),
+    ]
+
+    antragsteller = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="prozessantraege",
+        verbose_name="Antragsteller",
+    )
+    name = models.CharField(
+        max_length=200,
+        verbose_name="Name des Prozesses",
+        help_text=(
+            "Wie soll der neue Prozess heissen? "
+            "(z.B. 'Rechnungspruefung Elektro')"
+        ),
+    )
+    ziel = models.TextField(
+        verbose_name="Ziel des Prozesses",
+        help_text="Was soll am Ende des Prozesses erreicht sein?",
+    )
+    ausloeser_typ = models.CharField(
+        max_length=20,
+        choices=AUSLOESER_CHOICES,
+        default=AUSLOESER_MANUELL,
+        verbose_name="Wie wird der Prozess ausgeloest?",
+    )
+    ausloeser_detail = models.TextField(
+        blank=True,
+        verbose_name="Genauere Beschreibung des Ausloesers",
+        help_text=(
+            "Optional: z.B. 'Dokument mit Tag Eingangsrechnung aus Paperless'"
+        ),
+    )
+    schritte = models.JSONField(
+        default=list,
+        verbose_name="Prozessschritte",
+        help_text="Liste der gewuenschten Schritte als JSON",
+    )
+    team_benoetigt = models.BooleanField(
+        default=False,
+        verbose_name="Wird ein Team benoetigt?",
+    )
+    team_vorschlag = models.TextField(
+        blank=True,
+        verbose_name="Team-Vorschlag",
+        help_text="Welche Mitarbeiter sollen ins Team? (Namen oder Kuerzel)",
+    )
+    pdf_benoetigt = models.BooleanField(
+        default=False,
+        verbose_name="Soll am Ende ein PDF erzeugt werden?",
+    )
+    bemerkungen = models.TextField(
+        blank=True,
+        verbose_name="Zusaetzliche Bemerkungen",
+        help_text="Alles was sonst noch wichtig ist",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_EINGEREICHT,
+        verbose_name="Status",
+    )
+    workflow_instance = models.ForeignKey(
+        "workflow.WorkflowInstance",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="prozessantraege",
+        verbose_name="Workflow-Instanz",
+    )
+    erstellt_am = models.DateTimeField(
+        auto_now_add=True, verbose_name="Eingereicht am"
+    )
+    aktualisiert_am = models.DateTimeField(
+        auto_now=True, verbose_name="Aktualisiert am"
+    )
+
+    class Meta:
+        ordering = ["-erstellt_am"]
+        verbose_name = "Prozessantrag"
+        verbose_name_plural = "Prozessantraege"
+
+    def __str__(self):
+        name = (
+            self.antragsteller.get_full_name()
+            or self.antragsteller.username
+        )
+        return f"Prozessantrag: {self.name} ({name})"

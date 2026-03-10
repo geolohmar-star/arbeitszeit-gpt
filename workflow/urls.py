@@ -26,4 +26,26 @@ urlpatterns = [
 
     # Prozesszentrale
     path("prozesse/", views.prozesszentrale, name="prozesszentrale"),
+
+    # Prozessantraege
+    path(
+        "prozesse/antrag/",
+        views.prozessantrag_stellen,
+        name="prozessantrag_stellen",
+    ),
+    path(
+        "prozesse/antrag/<int:pk>/",
+        views.prozessantrag_detail,
+        name="prozessantrag_detail",
+    ),
+    path(
+        "prozesse/antraege/",
+        views.prozessantrag_liste,
+        name="prozessantrag_liste",
+    ),
+    path(
+        "prozesse/antrag/neue-zeile/",
+        views.prozessantrag_neue_zeile,
+        name="prozessantrag_neue_zeile",
+    ),
 ]

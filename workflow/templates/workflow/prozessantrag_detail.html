@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Prozessantrag: {{ antrag.name }} – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:820px;">
+
+  <div class="d-flex align-items-start justify-content-between mb-4">
+    <div>
+      <h1 class="h3 fw-bold mb-1">{{ antrag.name }}</h1>
+      <div class="text-muted small">
+        Eingereicht von
+        <strong>{{ antrag.antragsteller.get_full_name|default:antrag.antragsteller.username }}</strong>
+        am {{ antrag.erstellt_am|date:"d.m.Y H:i" }} Uhr
+      </div>
+    </div>
+    <span class="badge fs-6
+      {% if antrag.status == 'eingereicht' %}bg-warning text-dark
+      {% elif antrag.status == 'in_pruefung' %}bg-info text-dark
+      {% elif antrag.status == 'in_umsetzung' %}bg-primary
+      {% elif antrag.status == 'umgesetzt' %}bg-success
+      {% else %}bg-danger{% endif %}">
+      {{ antrag.get_status_display }}
+    </span>
+  </div>
+
+  <!-- Ziel -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold py-2">Ziel des Prozesses</div>
+    <div class="card-body">{{ antrag.ziel }}</div>
+  </div>
+
+  <!-- Auslöser -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold py-2">Auslöser</div>
+    <div class="card-body">
+      <span class="badge bg-secondary mb-2">{{ antrag.get_ausloeser_typ_display }}</span>
+      {% if antrag.ausloeser_detail %}
+      <p class="mb-0 text-muted">{{ antrag.ausloeser_detail }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Schritte -->
+  {% if antrag.schritte %}
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold py-2">Gewünschte Prozessschritte</div>
+    <div class="card-body p-0">
+      <table class="table mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3" style="width:50px;">Nr.</th>
+            <th>Beschreibung</th>
+            <th>Zuständig</th>
+            <th>Frist</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for schritt in antrag.schritte %}
+          <tr>
+            <td class="ps-3 fw-bold">{{ schritt.nr }}</td>
+            <td>{{ schritt.beschreibung }}</td>
+            <td class="text-muted">{{ schritt.zustaendig|default:"–" }}</td>
+            <td>
+              {{ schritt.frist_tage }}
+              Tag{% if schritt.frist_tage != 1 %}e{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Team & Rahmenbedingungen -->
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold py-2">Rahmenbedingungen</div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Team benötigt</dt>
+        <dd class="col-sm-8">{% if antrag.team_benoetigt %}Ja{% else %}Nein{% endif %}</dd>
+        {% if antrag.team_vorschlag %}
+        <dt class="col-sm-4">Team-Vorschlag</dt>
+        <dd class="col-sm-8">{{ antrag.team_vorschlag }}</dd>
+        {% endif %}
+        <dt class="col-sm-4">PDF am Ende</dt>
+        <dd class="col-sm-8">{% if antrag.pdf_benoetigt %}Ja{% else %}Nein{% endif %}</dd>
+        {% if antrag.bemerkungen %}
+        <dt class="col-sm-4">Bemerkungen</dt>
+        <dd class="col-sm-8">{{ antrag.bemerkungen }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+  </div>
+
+  <!-- Workflow-Status -->
+  {% if antrag.workflow_instance %}
+  <div class="card border-0 shadow-sm mb-3">
+    <div class="card-header bg-white fw-semibold py-2">Bearbeitungsstand</div>
+    <div class="card-body">
+      <a href="{% url 'workflow:workflow_status' antrag.workflow_instance.pk %}"
+         class="btn btn-outline-primary btn-sm">
+        Workflow-Status ansehen
+      </a>
+      <span class="ms-2 badge
+        {% if antrag.workflow_instance.status == 'laufend' %}bg-primary
+        {% elif antrag.workflow_instance.status == 'abgeschlossen' %}bg-success
+        {% else %}bg-secondary{% endif %}">
+        {{ antrag.workflow_instance.get_status_display }}
+      </span>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="d-flex gap-2">
+    <a href="{% url 'workflow:prozesszentrale' %}" class="btn btn-outline-secondary">
+      Zur Prozesszentrale
+    </a>
+    {% if request.user.is_staff or request.user.groups.filter(name="Prozessverantwortliche").exists %}
+    <a href="{% url 'workflow:prozessantrag_liste' %}" class="btn btn-outline-secondary">
+      Alle Anträge
+    </a>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

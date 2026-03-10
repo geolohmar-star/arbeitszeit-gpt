@@ -1,0 +1,16 @@
+<div class="text-center py-5">
+  <div class="mb-3" style="font-size:3rem; color:#198754;">&#10003;</div>
+  <h4 class="fw-bold text-success">Prozessantrag eingereicht!</h4>
+  <p class="text-muted mb-4">
+    Ihr Antrag <strong>&bdquo;{{ antrag.name }}&ldquo;</strong> wurde erfolgreich übermittelt.<br>
+    Die Prozesszentrale kümmert sich um die Prüfung und Umsetzung.
+  </p>
+  {% if antrag.workflow_instance %}
+  <a href="{% url 'workflow:workflow_status' antrag.workflow_instance.pk %}"
+     class="btn btn-outline-primary me-2">Workflow-Status ansehen</a>
+  {% endif %}
+  <a href="{% url 'workflow:prozessantrag_detail' antrag.pk %}"
+     class="btn btn-outline-secondary me-2">Antrag anzeigen</a>
+  <a href="{% url 'workflow:prozessantrag_stellen' %}"
+     class="btn btn-success">Weiteren Antrag stellen</a>
+</div>
