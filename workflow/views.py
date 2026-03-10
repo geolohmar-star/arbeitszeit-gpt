@@ -558,6 +558,64 @@ def workflow_start_manual(request, template_id):
 
 
 @login_required
+def prozesszentrale(request):
+    """Prozesszentrale: Verwaltungs-Hub fuer alle Workflows.
+
+    Zeigt Templates, laufende Instanzen und Statistiken.
+    Zugaenglich fuer User in der Gruppe 'Prozessverantwortliche' und Staff.
+    """
+    if not (
+        request.user.is_staff
+        or request.user.is_superuser
+        or request.user.groups.filter(name="Prozessverantwortliche").exists()
+    ):
+        messages.error(request, "Sie sind nicht berechtigt, die Prozesszentrale aufzurufen.")
+        return redirect("workflow:arbeitsstapel")
+
+    from datetime import timedelta
+    from django.db.models import Count
+
+    # Templates
+    templates_aktiv = WorkflowTemplate.objects.filter(ist_aktiv=True).annotate(
+        instanzen_anzahl=Count("instances")
+    ).order_by("kategorie", "name")
+    templates_inaktiv = WorkflowTemplate.objects.filter(ist_aktiv=False).order_by("name")
+
+    # Laufende Instanzen (nicht abgeschlossen/abgebrochen)
+    instanzen_laufend = (
+        WorkflowInstance.objects.filter(status__in=["laufend", "warten"])
+        .select_related("template", "gestartet_von", "aktueller_schritt")
+        .order_by("-gestartet_am")[:20]
+    )
+
+    # Statistiken
+    vor_30_tagen = timezone.now() - timedelta(days=30)
+    stats = {
+        "templates_gesamt": WorkflowTemplate.objects.count(),
+        "templates_aktiv": WorkflowTemplate.objects.filter(ist_aktiv=True).count(),
+        "instanzen_laufend": WorkflowInstance.objects.filter(
+            status__in=["laufend", "warten"]
+        ).count(),
+        "instanzen_abgeschlossen_30d": WorkflowInstance.objects.filter(
+            status="abgeschlossen",
+            gestartet_am__gte=vor_30_tagen,
+        ).count(),
+        "tasks_offen_gesamt": WorkflowTask.objects.filter(
+            status__in=["offen", "in_bearbeitung"]
+        ).count(),
+    }
+
+    context = {
+        "templates_aktiv": templates_aktiv,
+        "templates_inaktiv": templates_inaktiv,
+        "instanzen_laufend": instanzen_laufend,
+        "stats": stats,
+    }
+
+    return render(request, "workflow/prozesszentrale.html", context)
+
+
+@login_required
 def trigger_uebersicht(request):
     """Zeigt Uebersicht ueber alle Workflow-Trigger.
 

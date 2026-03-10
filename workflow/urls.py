@@ -23,4 +23,7 @@ urlpatterns = [
 
     # Trigger-Uebersicht
     path("trigger/", views.trigger_uebersicht, name="trigger_uebersicht"),
+
+    # Prozesszentrale
+    path("prozesse/", views.prozesszentrale, name="prozesszentrale"),
 ]

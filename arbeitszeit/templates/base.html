@@ -175,6 +175,39 @@
                     </ul>
                 </li>
 
+                <!-- Prozesse -->
+                {% if ist_prozessverantwortlicher %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="prozesseDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Prozesse
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="prozesseDropdown">
+                        <li>
+                            <a class="dropdown-item fw-semibold" href="{% url 'workflow:prozesszentrale' %}">
+                                Prozesszentrale
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Bearbeitung</h6></li>
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'workflow:arbeitsstapel' %}">
+                                Arbeitsstapel
+                                {% if workflow_tasks_anzahl %}<span class="badge bg-danger rounded-pill">{{ workflow_tasks_anzahl }}</span>{% endif %}
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Verwaltung</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'workflow:workflow_editor' %}">Workflow-Editor</a></li>
+                        <li><a class="dropdown-item" href="{% url 'workflow:trigger_uebersicht' %}">Trigger-Übersicht</a></li>
+                        {% if user.is_staff %}
+                        <li><a class="dropdown-item" href="{% url 'dms:workflow_regeln' %}">DMS-Workflow-Regeln</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+
                 <!-- Anträge (NEU) -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="antraegeDropdown"
@@ -322,7 +355,6 @@
                     <ul class="dropdown-menu" aria-labelledby="adminDropdown">
                         <li><h6 class="dropdown-header">Verwaltung</h6></li>
                         <li><a class="dropdown-item" href="{% url 'berechtigungen:uebersicht' %}">Rechtevergabe</a></li>
-                        <li><a class="dropdown-item" href="{% url 'workflow:workflow_editor' %}">Workflow-Editor</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><h6 class="dropdown-header">Facility / Gebäude</h6></li>
                         <li><a class="dropdown-item" href="{% url 'facility:textbaustein_liste' %}">Textbausteine</a></li>

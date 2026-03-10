@@ -129,6 +129,29 @@ def team_stapel_anzahl(request):
     return {"team_stapel_anzahl": anzahl}
 
 
+def prozessverantwortlicher(request):
+    """Prueft ob der eingeloggte User in der Gruppe 'Prozessverantwortliche' ist.
+
+    Gibt 'ist_prozessverantwortlicher' ans Template weiter – steuert Sichtbarkeit
+    des Workflow-Editors und der Prozesszentrale-Verwaltungsfunktionen.
+    Superuser und Staff haben automatisch diesen Zugang.
+    """
+    if not request.user.is_authenticated:
+        return {"ist_prozessverantwortlicher": False}
+
+    if request.user.is_superuser or request.user.is_staff:
+        return {"ist_prozessverantwortlicher": True}
+
+    try:
+        ist_mitglied = request.user.groups.filter(
+            name="Prozessverantwortliche"
+        ).exists()
+    except Exception:
+        ist_mitglied = False
+
+    return {"ist_prozessverantwortlicher": ist_mitglied}
+
+
 def cmd_items(request):
     """Baut die Schnellsuche-Eintraege fuer die Navbar-Befehlspalette.
 

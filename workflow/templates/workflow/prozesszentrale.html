@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Prozesszentrale – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h1 class="h3 mb-0 fw-bold">Prozesszentrale</h1>
+      <p class="text-muted mb-0">Verwaltung und Übersicht aller Workflows und Prozessvorlagen</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'workflow:workflow_editor' %}" class="btn btn-success">
+        + Neuer Workflow
+      </a>
+      <a href="{% url 'workflow:trigger_uebersicht' %}" class="btn btn-outline-secondary">
+        Trigger-Übersicht
+      </a>
+      {% if request.user.is_staff %}
+      <a href="{% url 'dms:workflow_regeln' %}" class="btn btn-outline-secondary">
+        DMS-Regeln
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- KPI-Karten -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="fs-1 fw-bold text-success">{{ stats.templates_aktiv }}</div>
+          <div class="text-muted small">Aktive Templates</div>
+          <div class="text-muted" style="font-size:0.75rem;">von {{ stats.templates_gesamt }} gesamt</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="fs-1 fw-bold text-primary">{{ stats.instanzen_laufend }}</div>
+          <div class="text-muted small">Laufende Vorgänge</div>
+          <div class="text-muted" style="font-size:0.75rem;">aktuell in Bearbeitung</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="fs-1 fw-bold text-warning">{{ stats.tasks_offen_gesamt }}</div>
+          <div class="text-muted small">Offene Aufgaben</div>
+          <div class="text-muted" style="font-size:0.75rem;">systemweit unbearbeitet</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="fs-1 fw-bold text-secondary">{{ stats.instanzen_abgeschlossen_30d }}</div>
+          <div class="text-muted small">Abgeschlossen (30 Tage)</div>
+          <div class="text-muted" style="font-size:0.75rem;">erfolgreich beendet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- Aktive Workflow-Templates -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3">
+          <h5 class="mb-0 fw-semibold">Aktive Workflow-Templates</h5>
+          <span class="badge bg-success rounded-pill">{{ stats.templates_aktiv }}</span>
+        </div>
+        <div class="card-body p-0">
+          {% if templates_aktiv %}
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Name</th>
+                  <th>Kategorie</th>
+                  <th class="text-center">Vorgänge</th>
+                  <th class="text-end pe-3">Aktionen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for tmpl in templates_aktiv %}
+                <tr>
+                  <td class="ps-3">
+                    <div class="fw-semibold">{{ tmpl.name }}</div>
+                    {% if tmpl.beschreibung %}
+                    <div class="text-muted small">{{ tmpl.beschreibung|truncatechars:60 }}</div>
+                    {% endif %}
+                    {% if tmpl.trigger_event %}
+                    <span class="badge bg-light text-secondary border" style="font-size:0.7rem;">
+                      Trigger: {{ tmpl.trigger_event }}
+                    </span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge
+                      {% if tmpl.kategorie == 'genehmigung' %}bg-primary
+                      {% elif tmpl.kategorie == 'pruefung' %}bg-info text-dark
+                      {% elif tmpl.kategorie == 'bearbeitung' %}bg-warning text-dark
+                      {% else %}bg-secondary{% endif %}">
+                      {{ tmpl.get_kategorie_display }}
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    <span class="fw-semibold">{{ tmpl.instanzen_anzahl }}</span>
+                  </td>
+                  <td class="text-end pe-3">
+                    <a href="{% url 'workflow:workflow_editor' %}?load={{ tmpl.pk }}"
+                       class="btn btn-outline-secondary btn-sm">Bearbeiten</a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="p-4 text-center text-muted">
+            <p class="mb-2">Noch keine aktiven Workflow-Templates vorhanden.</p>
+            <a href="{% url 'workflow:workflow_editor' %}" class="btn btn-success btn-sm">
+              Ersten Workflow erstellen
+            </a>
+          </div>
+          {% endif %}
+        </div>
+        {% if templates_inaktiv %}
+        <div class="card-footer bg-white border-top py-2 px-3">
+          <small class="text-muted">
+            {{ templates_inaktiv|length }} inaktive Template(s):
+            {% for tmpl in templates_inaktiv %}
+              <span class="badge bg-light text-secondary border">{{ tmpl.name }}</span>{% if not forloop.last %} {% endif %}
+            {% endfor %}
+          </small>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Laufende Vorgänge -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3">
+          <h5 class="mb-0 fw-semibold">Laufende Vorgänge</h5>
+          <span class="badge bg-primary rounded-pill">{{ stats.instanzen_laufend }}</span>
+        </div>
+        <div class="card-body p-0">
+          {% if instanzen_laufend %}
+          <div class="list-group list-group-flush">
+            {% for inst in instanzen_laufend %}
+            <a href="{% url 'workflow:workflow_status' inst.pk %}"
+               class="list-group-item list-group-item-action px-3 py-2">
+              <div class="d-flex align-items-start justify-content-between">
+                <div>
+                  <div class="fw-semibold small">{{ inst.template.name }}</div>
+                  {% if inst.content_object %}
+                  <div class="text-muted" style="font-size:0.78rem;">
+                    {{ inst.content_object|truncatechars:45 }}
+                  </div>
+                  {% endif %}
+                  {% if inst.aktueller_schritt %}
+                  <div class="text-primary" style="font-size:0.75rem;">
+                    Schritt: {{ inst.aktueller_schritt.titel }}
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="text-end ms-2 flex-shrink-0">
+                  <span class="badge
+                    {% if inst.status == 'laufend' %}bg-primary
+                    {% elif inst.status == 'warten' %}bg-warning text-dark
+                    {% else %}bg-secondary{% endif %}"
+                    style="font-size:0.7rem;">
+                    {{ inst.get_status_display }}
+                  </span>
+                  <div class="text-muted" style="font-size:0.7rem; white-space:nowrap;">
+                    {{ inst.gestartet_am|date:"d.m. H:i" }}
+                  </div>
+                </div>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+          {% if stats.instanzen_laufend > instanzen_laufend|length %}
+          <div class="p-2 text-center border-top">
+            <small class="text-muted">
+              … und {{ stats.instanzen_laufend|add:"-20" }} weitere Vorgänge
+            </small>
+          </div>
+          {% endif %}
+          {% else %}
+          <div class="p-4 text-center text-muted">
+            <p class="mb-0">Keine laufenden Vorgänge.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Schnellzugriff -->
+      <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header bg-white border-bottom py-3">
+          <h5 class="mb-0 fw-semibold">Schnellzugriff</h5>
+        </div>
+        <div class="list-group list-group-flush">
+          <a href="{% url 'workflow:arbeitsstapel' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+            Mein Arbeitsstapel
+            {% if workflow_tasks_anzahl %}<span class="badge bg-danger rounded-pill">{{ workflow_tasks_anzahl }}</span>{% endif %}
+          </a>
+          <a href="{% url 'workflow:workflow_editor' %}" class="list-group-item list-group-item-action">
+            Workflow-Editor
+          </a>
+          <a href="{% url 'workflow:trigger_uebersicht' %}" class="list-group-item list-group-item-action">
+            Trigger-Übersicht
+          </a>
+          {% if request.user.is_staff %}
+          <a href="{% url 'dms:workflow_regeln' %}" class="list-group-item list-group-item-action">
+            DMS-Workflow-Regeln
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
