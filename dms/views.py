@@ -313,7 +313,7 @@ def dokument_neu(request):
 
 @login_required
 def dokument_download(request, pk):
-    """Laedt das Dokument herunter – entschluesselt falls noetig.
+    """Oeffnet OnlyOffice-Editor fuer unterstuetzte Typen, sonst Datei-Download.
 
     Sensible Dokumente: nur mit aktivem Zugriffsschluessel moeglich.
     """
@@ -323,6 +323,12 @@ def dokument_download(request, pk):
         messages.error(request, "Sie benoetigen einen gueltigen Zugriffsschluessel fuer dieses Dokument.")
         return redirect("dms:zugriff_beantragen", pk=pk)
 
+    # OnlyOffice-faehige Typen direkt im Editor oeffnen
+    onlyoffice_url = getattr(django_settings, "ONLYOFFICE_URL", "")
+    if onlyoffice_url and dok.dateityp in _ONLYOFFICE_MIME_TYPEN:
+        return redirect("dms:onlyoffice_editor", pk=pk)
+
+    # Fallback: Datei herunterladen
     try:
         inhalt = lade_dokument(dok)
     except Exception as exc:
@@ -340,7 +346,7 @@ def dokument_download(request, pk):
 
 @login_required
 def dokument_vorschau(request, pk):
-    """Zeigt das Dokument inline im Browser (PDF, Bilder).
+    """Oeffnet OnlyOffice-Editor fuer unterstuetzte Typen, sonst Inline-Anzeige.
 
     Sensible Dokumente: nur mit aktivem Zugriffsschluessel moeglich.
     """
@@ -350,6 +356,12 @@ def dokument_vorschau(request, pk):
         messages.error(request, "Sie benoetigen einen gueltigen Zugriffsschluessel fuer dieses Dokument.")
         return redirect("dms:zugriff_beantragen", pk=pk)
 
+    # OnlyOffice-faehige Typen direkt im Editor oeffnen
+    onlyoffice_url = getattr(django_settings, "ONLYOFFICE_URL", "")
+    if onlyoffice_url and dok.dateityp in _ONLYOFFICE_MIME_TYPEN:
+        return redirect("dms:onlyoffice_editor", pk=pk)
+
+    # Fallback: Inline-Anzeige (z.B. Bilder)
     try:
         inhalt = lade_dokument(dok)
     except Exception as exc:
@@ -405,14 +417,6 @@ def dokument_detail(request, pk):
         .order_by("-gestartet_am")[:10]
     )
 
-    onlyoffice_typen = {"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                        "application/msword", "application/vnd.ms-excel",
-                        "application/vnd.ms-powerpoint",
-                        "application/vnd.oasis.opendocument.text",
-                        "application/vnd.oasis.opendocument.spreadsheet",
-                        "application/vnd.oasis.opendocument.presentation"}
     return render(request, "dms/dokument_detail.html", {
         "dok": dok,
         "zugriffe": zugriffe,
@@ -422,7 +426,7 @@ def dokument_detail(request, pk):
         "darf_zugreifen": _darf_sensibel_zugreifen(request, dok) if dok.klasse == "sensibel" else True,
         "bentopdf_url": getattr(django_settings, "BENTOPDF_URL", ""),
         "onlyoffice_url": getattr(django_settings, "ONLYOFFICE_URL", ""),
-        "onlyoffice_unterstuetzt": dok.dateityp in onlyoffice_typen,
+        "onlyoffice_unterstuetzt": dok.dateityp in _ONLYOFFICE_MIME_TYPEN,
         "workflow_instanzen": workflow_instanzen,
     })
 
@@ -648,7 +652,11 @@ _MIME_ZU_EXT = {
     "application/vnd.oasis.opendocument.text":                                   "odt",
     "application/vnd.oasis.opendocument.spreadsheet":                            "ods",
     "application/vnd.oasis.opendocument.presentation":                           "odp",
+    "application/pdf":                                                            "pdf",
 }
+
+# Alle MIME-Typen die OnlyOffice oeffnen kann (fuer Redirect-Logik)
+_ONLYOFFICE_MIME_TYPEN = set(_MIME_ZU_EXT.keys())
 
 
 def _onlyoffice_jwt(payload: dict) -> str:
@@ -721,7 +729,7 @@ def onlyoffice_editor(request, pk):
 
 def _document_type(file_type: str) -> str:
     """Gibt den OnlyOffice documentType zurueck (word/cell/slide)."""
-    if file_type in ("docx", "doc", "odt"):
+    if file_type in ("docx", "doc", "odt", "pdf"):
         return "word"
     if file_type in ("xlsx", "xls", "ods"):
         return "cell"
