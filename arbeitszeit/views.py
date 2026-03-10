@@ -2530,12 +2530,13 @@ def _im_dms_ablegen(inhalt_bytes, dateiname, mime, titel, beschreibung, erstellt
             defaults={"klasse": "sensibel", "sortierung": 1},
         )
 
-        # OrgEinheit des Mitarbeiters als Eigentuemer
+        # OrgEinheit des Mitarbeiters als Eigentuemer (Pfad: arbeitszeit.Mitarbeiter → user → hr.HRMitarbeiter → stelle)
         eigentuemereinheit = None
         try:
-            stelle = vereinbarung.mitarbeiter.stelle
+            from hr.models import OrgEinheit
+            ma_user = vereinbarung.mitarbeiter.user
+            stelle = ma_user.hr_mitarbeiter.stelle
             if stelle and stelle.org_einheit_id:
-                from hr.models import OrgEinheit
                 eigentuemereinheit = OrgEinheit.objects.filter(pk=stelle.org_einheit_id).first()
         except Exception:
             pass
