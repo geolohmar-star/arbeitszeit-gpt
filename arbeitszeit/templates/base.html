@@ -420,6 +420,13 @@
                           </a>
                         </li>
                         {% endif %}
+                        {% if ist_pg_mitglied %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Personalgewinnung</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'bewerbung:hr_liste' %}">Bewerbungseingang (extern)</a></li>
+                        <li><a class="dropdown-item" href="{% url 'bewerbung:hr_einladungscodes' %}">Einladungscodes</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% endif %}
                         <li><a class="dropdown-item" href="{% url 'signatur:dashboard' %}">Digitale Signatur</a></li>
                         {% if bentopdf_url %}
                         <li><a class="dropdown-item" href="{{ bentopdf_url }}" target="_blank">PDF-Werkzeuge (BentoPDF) ↗</a></li>

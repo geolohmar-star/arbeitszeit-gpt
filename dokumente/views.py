@@ -122,11 +122,24 @@ def dokument_hochladen(request):
                 request,
                 f"'{datei.name}' wurde verschluesselt gespeichert.",
             )
+            next_url = request.POST.get("next", "")
+            if next_url and next_url.startswith("/"):
+                return redirect(next_url)
             return redirect("dokumente:liste")
     else:
-        form = DokumentHochladenForm(is_staff=request.user.is_staff)
+        # Vorauswahl via GET-Parameter (z.B. vom HR-Stammdaten-Link)
+        initial = {}
+        if request.user.is_staff:
+            fuer_user_pk = request.GET.get("fuer_user")
+            if fuer_user_pk:
+                try:
+                    initial["ziel_user"] = User.objects.get(pk=fuer_user_pk)
+                except User.DoesNotExist:
+                    pass
+        form = DokumentHochladenForm(is_staff=request.user.is_staff, initial=initial)
 
-    return render(request, "dokumente/hochladen.html", {"form": form})
+    next_url = request.GET.get("next") or request.POST.get("next") or ""
+    return render(request, "dokumente/hochladen.html", {"form": form, "next_url": next_url})
 
 
 @login_required

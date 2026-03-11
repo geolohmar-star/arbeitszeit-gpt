@@ -16,8 +16,15 @@ SESSION_CODE_KEY = "bewerbung_einladungscode"
 
 
 def _nur_hr(user):
-    """Prueft ob der User HR-Rechte hat."""
-    return user.is_staff or user.has_perm("hr.hr_view_stammdaten")
+    """Prueft ob der User HR-Rechte hat.
+
+    Zugriff erhalten: Staff, User mit hr_view_stammdaten-Permission
+    sowie alle Mitglieder des Personalgewinnung-Teams (kuerzel='PG').
+    """
+    if user.is_staff or user.has_perm("hr.hr_view_stammdaten"):
+        return True
+    from formulare.models import TeamQueue
+    return TeamQueue.objects.filter(kuerzel="PG", mitglieder=user).exists()
 
 
 # ── Bewerber-Seite (kein Login noetig) ──────────────────────────────────────
@@ -271,39 +278,98 @@ def hr_ablehnen(request, pk):
     return render(request, "bewerbung/hr_ablehnen.html", {"bewerbung": bewerbung})
 
 
+def _bewerbung_docx_ins_dms(docx_bytes, dateiname, titel, beschreibung, erstellt_von, bewerbung):
+    """Legt ein Bewerbungs-DOCX im DMS ab (Klasse 2 – sensibel) und gibt die Dok-ID zurueck."""
+    from dms.models import Dokument, DokumentKategorie
+    from dms.services import speichere_dokument
+
+    mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+    # Kategorie Personalverwaltung > Bewerbungen sicherstellen
+    eltern, _ = DokumentKategorie.objects.get_or_create(
+        name="Personalverwaltung",
+        elternkategorie=None,
+    )
+    kategorie, _ = DokumentKategorie.objects.get_or_create(
+        name="Bewerbungen",
+        elternkategorie=eltern,
+    )
+
+    dok = Dokument(
+        titel=titel,
+        beschreibung=beschreibung,
+        dateiname=dateiname,
+        dateityp=mime,
+        groesse_bytes=len(docx_bytes),
+        klasse="sensibel",
+        kategorie=kategorie,
+        erstellt_von=erstellt_von,
+        eigentuemereinheit=None,
+    )
+    dok.save()
+    speichere_dokument(dok, docx_bytes)
+    dok.save(update_fields=["inhalt_verschluesselt", "inhalt_roh", "verschluessel_nonce"])
+
+    # HR-Team (kuerzel='PG') und Bewerber-HR-User freischalten
+    try:
+        from formulare.models import TeamQueue
+        pg_team = TeamQueue.objects.filter(kuerzel="PG").first()
+        if pg_team:
+            for u in pg_team.mitglieder.all():
+                dok.sichtbar_fuer.add(u)
+    except Exception:
+        pass
+
+    return dok
+
+
 @login_required
 def hr_zusage_docx(request, pk):
-    """Zusage-Brief als DOCX herunterladen."""
+    """Zusage-Brief ins DMS ablegen und direkt in OnlyOffice oeffnen."""
     if not _nur_hr(request.user):
         raise Http404
 
+    from django.conf import settings
     bewerbung = get_object_or_404(Bewerbung, pk=pk)
-
     docx_bytes = erstelle_zusage_docx(bewerbung)
     name_safe = f"{bewerbung.nachname}_{bewerbung.vorname}".replace(" ", "_")
-    response = HttpResponse(
-        docx_bytes,
-        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    )
-    response["Content-Disposition"] = f'attachment; filename="Zusage_{name_safe}.docx"'
+    dateiname = f"Zusage_{name_safe}.docx"
+    titel = f"Zusage – {bewerbung.vorname} {bewerbung.nachname}"
+    beschreibung = f"Zusage-Brief fuer Bewerbung #{bewerbung.pk}"
+
+    onlyoffice_url = getattr(settings, "ONLYOFFICE_URL", "")
+    if onlyoffice_url:
+        dok = _bewerbung_docx_ins_dms(docx_bytes, dateiname, titel, beschreibung, request.user, bewerbung)
+        return redirect("dms:onlyoffice_editor", pk=dok.pk)
+
+    # Fallback: direkter Download wenn OnlyOffice nicht konfiguriert
+    response = HttpResponse(docx_bytes, content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    response["Content-Disposition"] = f'attachment; filename="{dateiname}"'
     return response
 
 
 @login_required
 def hr_absage_docx(request, pk):
-    """Absage-Brief als DOCX herunterladen."""
+    """Absage-Brief ins DMS ablegen und direkt in OnlyOffice oeffnen."""
     if not _nur_hr(request.user):
         raise Http404
 
+    from django.conf import settings
     bewerbung = get_object_or_404(Bewerbung, pk=pk)
-
     docx_bytes = erstelle_absage_docx(bewerbung)
     name_safe = f"{bewerbung.nachname}_{bewerbung.vorname}".replace(" ", "_")
-    response = HttpResponse(
-        docx_bytes,
-        content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    )
-    response["Content-Disposition"] = f'attachment; filename="Absage_{name_safe}.docx"'
+    dateiname = f"Absage_{name_safe}.docx"
+    titel = f"Absage – {bewerbung.vorname} {bewerbung.nachname}"
+    beschreibung = f"Absage-Brief fuer Bewerbung #{bewerbung.pk}"
+
+    onlyoffice_url = getattr(settings, "ONLYOFFICE_URL", "")
+    if onlyoffice_url:
+        dok = _bewerbung_docx_ins_dms(docx_bytes, dateiname, titel, beschreibung, request.user, bewerbung)
+        return redirect("dms:onlyoffice_editor", pk=dok.pk)
+
+    # Fallback: direkter Download wenn OnlyOffice nicht konfiguriert
+    response = HttpResponse(docx_bytes, content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    response["Content-Disposition"] = f'attachment; filename="{dateiname}"'
     return response
 
 

@@ -135,6 +135,7 @@ TEMPLATES = [
                 'arbeitszeit.context_processors.workflow_tasks_anzahl',
                 'arbeitszeit.context_processors.team_stapel_anzahl',
                 'arbeitszeit.context_processors.prozessverantwortlicher',
+                'arbeitszeit.context_processors.personalgewinnung_kontext',
                 'arbeitszeit.context_processors.dms_badge_kontext',
                 'arbeitszeit.context_processors.hilfe_kontext',
                 'arbeitszeit.context_processors.cmd_items',

@@ -147,10 +147,10 @@
                         <strong>{{ bewerbung.get_status_display }}</strong>
                     </div>
                     {% if bewerbung.naechster_status %}
-                    <form method="post" action="{% url 'bewerbung:hr_status_weiter' pk=bewerbung.pk %}">
+                    <form method="post" action="{% url 'bewerbung:hr_status_weiter' pk=bewerbung.pk %}" id="form-status-weiter">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-primary w-100 mb-2"
-                                onclick="return confirm('Status weiterschalten zu: {{ bewerbung.naechster_status_label }}?')">
+                                data-confirm="Status weiterschalten zu: {{ bewerbung.naechster_status_label }}?">
                             Weiter: {{ bewerbung.naechster_status_label }} &rarr;
                         </button>
                     </form>
@@ -253,4 +253,9 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/hr_detail_bewerbung.js' %}"></script>
 {% endblock %}

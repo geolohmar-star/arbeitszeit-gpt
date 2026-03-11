@@ -63,7 +63,7 @@
                     </td>
                     <td>{{ code.ausgegeben_an_name|default:"–" }}</td>
                     <td>{{ code.ausgegeben_an_telefon|default:"–" }}</td>
-                    <td>{{ code.ausgegeben_von.get_full_name|default:code.ausgegeben_von.username|default:"–" }}</td>
+                    <td>{% if code.ausgegeben_von %}{{ code.ausgegeben_von.get_full_name|default:code.ausgegeben_von.username }}{% else %}–{% endif %}</td>
                     <td>
                         {% if code.ausgegeben_am %}
                             {{ code.ausgegeben_am|date:"d.m.Y H:i" }}

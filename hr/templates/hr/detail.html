@@ -21,7 +21,7 @@
     </div>
 
     <!-- Personalstammdaten-Link (nur fuer HR) -->
-    {% if user.is_staff or user.has_perm("hr.hr_view_stammdaten") %}
+    {% if user.is_staff or perms.hr.hr_view_stammdaten %}
     <div class="mb-3">
         <a href="{% url 'hr:stammdaten_detail' ma.pk %}" class="btn btn-outline-danger btn-sm">
             Personalstammdaten (vertraulich)

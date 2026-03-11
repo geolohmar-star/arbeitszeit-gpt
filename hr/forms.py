@@ -17,9 +17,9 @@ class PersonalstammdatenForm(forms.ModelForm):
             "steuerklasse": forms.Select(attrs={"class": "form-select"}),
             "krankenversicherungsart": forms.Select(attrs={"class": "form-select"}),
             "vertragsart": forms.Select(attrs={"class": "form-select"}),
-            "geburtsdatum": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
-            "probezeit_bis": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
-            "austrittsdatum": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "geburtsdatum": forms.DateInput(attrs={"type": "date", "class": "form-control"}, format="%Y-%m-%d"),
+            "probezeit_bis": forms.DateInput(attrs={"type": "date", "class": "form-control"}, format="%Y-%m-%d"),
+            "austrittsdatum": forms.DateInput(attrs={"type": "date", "class": "form-control"}, format="%Y-%m-%d"),
         }
 
     def __init__(self, *args, **kwargs):

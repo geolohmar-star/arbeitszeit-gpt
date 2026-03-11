@@ -269,6 +269,18 @@ def cmd_items(request):
     return {"cmd_items_json": items}
 
 
+def personalgewinnung_kontext(request):
+    """Prueft ob der User im PG-Team (Personalgewinnung) ist."""
+    if not request.user.is_authenticated:
+        return {"ist_pg_mitglied": False}
+    try:
+        from formulare.models import TeamQueue
+        ist_pg = TeamQueue.objects.filter(kuerzel="PG", mitglieder=request.user).exists()
+    except Exception:
+        ist_pg = False
+    return {"ist_pg_mitglied": ist_pg}
+
+
 def dms_badge_kontext(request):
     """Zaehlt offene DMS-Zugriffsantraege fuer DMS-Admins und Dokumenten-Ersteller.
 

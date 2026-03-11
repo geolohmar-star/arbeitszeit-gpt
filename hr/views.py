@@ -2231,10 +2231,18 @@ def stammdaten_detail(request, pk):
     ma = get_object_or_404(HRMitarbeiter, pk=pk)
     stammdaten = getattr(ma, "stammdaten", None)
 
+    from dokumente.models import SensiblesDokument
+    from django.utils import timezone
+    sensible_dokumente = SensiblesDokument.objects.filter(
+        user=ma.user
+    ).order_by("-hochgeladen_am") if ma.user else []
+
     return render(request, "hr/stammdaten_detail.html", {
         "ma": ma,
         "stammdaten": stammdaten,
         "darf_bearbeiten": _hat_stammdaten_recht(request.user, "change"),
+        "sensible_dokumente": sensible_dokumente,
+        "today": timezone.localdate(),
     })
 
 

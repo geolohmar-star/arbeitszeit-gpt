@@ -54,8 +54,8 @@ class HREinstellungForm(forms.ModelForm):
             "interne_notiz",
         ]
         widgets = {
-            "geplantes_eintrittsdatum": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
-            "probezeit_bis": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "geplantes_eintrittsdatum": forms.DateInput(attrs={"type": "date", "class": "form-control"}, format="%Y-%m-%d"),
+            "probezeit_bis": forms.DateInput(attrs={"type": "date", "class": "form-control"}, format="%Y-%m-%d"),
             "vertragsart": forms.Select(attrs={"class": "form-select"}),
             "interne_notiz": forms.Textarea(attrs={"rows": 3, "class": "form-control"}),
         }
@@ -64,6 +64,11 @@ class HREinstellungForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["angestrebte_stelle"].widget.attrs["class"] = "form-select"
         self.fields["angestrebte_stelle"].required = False
+        # Nur unbesetzte Stellen anzeigen (keine aktive HRMitarbeiter-Zuordnung)
+        from hr.models import Stelle
+        self.fields["angestrebte_stelle"].queryset = Stelle.objects.filter(
+            hrmitarbeiter__isnull=True
+        ).order_by("kuerzel")
 
 
 class BewerbungDokumentForm(forms.Form):

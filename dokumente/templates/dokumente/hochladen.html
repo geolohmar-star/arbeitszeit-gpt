@@ -28,6 +28,7 @@
         <div class="card-body p-4">
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
+                {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
 
                 {% if form.ziel_user %}
                 <div class="mb-3">

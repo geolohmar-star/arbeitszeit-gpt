@@ -817,11 +817,14 @@ def onlyoffice_editor(request, pk):
         "documentType": _document_type(file_type),
         "editorConfig": {
             "callbackUrl": f"{prima_base}/dms/{dok.pk}/onlyoffice/callback/",
-            "lang":        "de",
+            "lang":        "de-DE",
             "mode":        "edit",
             "user": {
                 "id":   str(request.user.pk),
                 "name": request.user.get_full_name() or request.user.username,
+            },
+            "customization": {
+                "spellcheck": True,
             },
         },
     }
