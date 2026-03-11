@@ -68,13 +68,33 @@ def _hat_aktiven_zugriffsschluessel(user, dokument):
     ).exists()
 
 
+def _ist_azv_team_mitglied(user):
+    """Gibt True zurueck wenn der User im AZV-Team (kuerzel='azv') ist."""
+    from formulare.models import TeamQueue
+    return TeamQueue.objects.filter(kuerzel="azv", mitglieder=user).exists()
+
+
+def _ist_azv_dokument(dokument):
+    """Gibt True zurueck wenn das Dokument zur Kategorie 'Arbeitszeitvereinbarungen' gehoert."""
+    if not dokument.kategorie_id:
+        return False
+    from dms.models import DokumentKategorie
+    try:
+        kat = DokumentKategorie.objects.get(pk=dokument.kategorie_id)
+        return kat.name == "Arbeitszeitvereinbarungen"
+    except DokumentKategorie.DoesNotExist:
+        return False
+
+
 def _darf_sensibel_zugreifen(request, dokument):
     """Gibt True zurueck wenn der User auf ein sensibles Dokument zugreifen darf.
 
     Reihenfolge der Pruefung:
     1. Superuser: immer Zugriff
     2. Mitglied der Eigentuemer-OrgEinheit: direkter Zugriff ohne Schluessel
-    3. Alle anderen (auch staff): nur mit aktivem Zugriffsschluessel
+    3. Explizit freigegebene User (sichtbar_fuer)
+    4. AZV-Team-Mitglied bei AZV-Dokumenten (dynamisch, unabhaengig von sichtbar_fuer)
+    5. Alle anderen: nur mit aktivem Zugriffsschluessel
     """
     if not request.user.is_authenticated:
         return False
@@ -88,6 +108,25 @@ def _darf_sensibel_zugreifen(request, dokument):
     # Explizit freigegebene User (sichtbar_fuer) haben ebenfalls Zugriff
     if dokument.sichtbar_fuer.filter(pk=request.user.pk).exists():
         return True
+    # AZV-Team-Mitglieder haben automatisch Zugriff auf AZV-Dokumente (dynamisch)
+    if _ist_azv_dokument(dokument) and _ist_azv_team_mitglied(request.user):
+        return True
+    # Workflow-Teilnehmer: User hat offenen Task auf diesem Dokument
+    from django.contrib.contenttypes.models import ContentType
+    from workflow.models import WorkflowInstance, WorkflowTask
+    dok_ct = ContentType.objects.get_for_model(dokument)
+    laufende_instanzen = WorkflowInstance.objects.filter(
+        content_type=dok_ct,
+        object_id=dokument.pk,
+        status=WorkflowInstance.STATUS_LAUFEND,
+    )
+    for instanz in laufende_instanzen:
+        offene_tasks = instanz.tasks.filter(
+            status__in=[WorkflowTask.STATUS_OFFEN, WorkflowTask.STATUS_IN_BEARBEITUNG]
+        )
+        for task in offene_tasks:
+            if task.ist_zugewiesen_an(request.user):
+                return True
     # Alle anderen (auch staff): nur mit aktivem Zugriffsschluessel
     return _hat_aktiven_zugriffsschluessel(request.user, dokument)
 
@@ -105,15 +144,51 @@ def dokument_liste(request):
     # Sensible Dokumente: Sichtbarkeit nach Rolle und OrgEinheit-Zugehoerigkeit
     if not request.user.is_superuser and not request.user.is_staff:
         user_org_ids = _get_user_orgeinheit_ids(request.user)
+        ist_azv = _ist_azv_team_mitglied(request.user)
+
+        # Basis: offene Dokumente
+        q_filter = db_models.Q(klasse="offen")
+
+        # Sensible Dokumente der eigenen Abteilung
         if user_org_ids:
-            # Offene Dokumente ODER sensible Dokumente der eigenen Abteilung
-            qs = qs.filter(
-                db_models.Q(klasse="offen")
-                | db_models.Q(klasse="sensibel", eigentuemereinheit_id__in=user_org_ids)
+            q_filter |= db_models.Q(klasse="sensibel", eigentuemereinheit_id__in=user_org_ids)
+
+        # Sensible Dokumente aus sichtbar_fuer
+        q_filter |= db_models.Q(klasse="sensibel", sichtbar_fuer=request.user)
+
+        # AZV-Team-Mitglieder sehen alle AZV-Dokumente (dynamisch)
+        if ist_azv:
+            from dms.models import DokumentKategorie
+            azv_kat = DokumentKategorie.objects.filter(name="Arbeitszeitvereinbarungen").first()
+            if azv_kat:
+                q_filter |= db_models.Q(klasse="sensibel", kategorie=azv_kat)
+
+        # Dokumente mit laufendem Workflow auf dem der User einen offenen Task hat
+        from django.contrib.contenttypes.models import ContentType
+        from workflow.models import WorkflowInstance, WorkflowTask
+        dok_ct = ContentType.objects.get_for_model(Dokument)
+        workflow_dok_ids = (
+            WorkflowInstance.objects
+            .filter(
+                content_type=dok_ct,
+                status=WorkflowInstance.STATUS_LAUFEND,
+                tasks__status__in=[WorkflowTask.STATUS_OFFEN, WorkflowTask.STATUS_IN_BEARBEITUNG],
             )
-        else:
-            # Kein OrgEinheit-Treffer: nur offene Dokumente sichtbar
-            qs = qs.filter(klasse="offen")
+            .filter(
+                db_models.Q(tasks__zugewiesen_an_user=request.user)
+                | db_models.Q(tasks__zugewiesen_an_team__mitglieder=request.user)
+                | db_models.Q(tasks__zugewiesen_an_stelle=getattr(
+                    getattr(getattr(request.user, "hr_mitarbeiter", None), "stelle", None),
+                    "pk", None,
+                ))
+            )
+            .values_list("object_id", flat=True)
+            .distinct()
+        )
+        if workflow_dok_ids:
+            q_filter |= db_models.Q(klasse="sensibel", pk__in=workflow_dok_ids)
+
+        qs = qs.filter(q_filter).distinct()
 
     if form.is_valid():
         q = form.cleaned_data.get("q")
@@ -487,26 +562,52 @@ def zugriff_beantragen(request, pk):
 
 
 # ---------------------------------------------------------------------------
-# Zugriffsschluessel – Staff-Verwaltung
+# Zugriffsschluessel – Verwaltung (DMS-Admin oder Dokumenten-Ersteller)
 # ---------------------------------------------------------------------------
+
+def _ist_dms_admin(user):
+    """Gibt True zurueck wenn der User in der Gruppe 'DMS-Admin' oder im DMS-Team ist."""
+    from formulare.models import TeamQueue
+    return (
+        user.groups.filter(name="DMS-Admin").exists()
+        or TeamQueue.objects.filter(kuerzel="dms", mitglieder=user).exists()
+    )
+
 
 @login_required
 def zugriffsantraege_liste(request):
-    """Staff-View: Alle offenen und aktuellen Zugriffsantraege."""
-    if not request.user.is_staff:
-        messages.error(request, "Keine Berechtigung.")
-        return redirect("dms:liste")
+    """DMS-Admin-View: Alle offenen und aktuellen Zugriffsantraege.
+
+    DMS-Admins sehen alle Antraege. Dokumenten-Ersteller sehen nur Antraege
+    auf ihre eigenen Dokumente.
+    """
+    ist_admin = _ist_dms_admin(request.user) or request.user.is_superuser
+
+    if not ist_admin and not request.user.is_staff:
+        # Pruefe ob User ueberhaupt Dokumente erstellt hat auf die Antraege existieren
+        eigene_dok_ids = Dokument.objects.filter(
+            erstellt_von=request.user
+        ).values_list("id", flat=True)
+        if not eigene_dok_ids:
+            messages.error(request, "Keine Berechtigung.")
+            return redirect("dms:liste")
+        # Nur Antraege auf eigene Dokumente
+        filter_dok = db_models.Q(dokument_id__in=eigene_dok_ids)
+    else:
+        filter_dok = db_models.Q()  # keine Einschraenkung
 
     offene = DokumentZugriffsschluessel.objects.filter(
+        filter_dok,
         status=DokumentZugriffsschluessel.STATUS_OFFEN,
     ).select_related("user", "dokument").order_by("antrag_zeitpunkt")
 
     aktive = DokumentZugriffsschluessel.objects.filter(
+        filter_dok,
         status=DokumentZugriffsschluessel.STATUS_GENEHMIGT,
         gueltig_bis__gt=timezone.now(),
     ).select_related("user", "dokument", "genehmigt_von").order_by("gueltig_bis")
 
-    abgelaufen = DokumentZugriffsschluessel.objects.exclude(
+    abgelaufen = DokumentZugriffsschluessel.objects.filter(filter_dok).exclude(
         status__in=[
             DokumentZugriffsschluessel.STATUS_OFFEN,
             DokumentZugriffsschluessel.STATUS_GENEHMIGT,
@@ -517,21 +618,25 @@ def zugriffsantraege_liste(request):
         "offene": offene,
         "aktive": aktive,
         "abgelaufen": abgelaufen,
+        "ist_dms_admin": ist_admin,
     })
 
 
 @login_required
 def zugriff_genehmigen(request, schluessel_pk):
-    """Staff genehmigt einen Zugriffsantrag und setzt das Ablaufdatum."""
-    if not request.user.is_staff:
-        messages.error(request, "Keine Berechtigung.")
-        return redirect("dms:zugriffsantraege")
-
-    schluessel = get_object_or_404(
+    """DMS-Admin oder Dokumenten-Ersteller genehmigt einen Zugriffsantrag."""
+    schluessel_qs = get_object_or_404(
         DokumentZugriffsschluessel,
         pk=schluessel_pk,
         status=DokumentZugriffsschluessel.STATUS_OFFEN,
     )
+    ist_admin = _ist_dms_admin(request.user) or request.user.is_superuser
+    ist_ersteller = schluessel_qs.dokument.erstellt_von == request.user
+    if not ist_admin and not ist_ersteller and not request.user.is_staff:
+        messages.error(request, "Keine Berechtigung.")
+        return redirect("dms:zugriffsantraege")
+
+    schluessel = schluessel_qs
 
     if request.method == "POST":
         from datetime import timedelta
@@ -565,16 +670,19 @@ def zugriff_genehmigen(request, schluessel_pk):
 
 @login_required
 def zugriff_ablehnen(request, schluessel_pk):
-    """Staff lehnt einen Zugriffsantrag ab."""
-    if not request.user.is_staff:
-        messages.error(request, "Keine Berechtigung.")
-        return redirect("dms:zugriffsantraege")
-
-    schluessel = get_object_or_404(
+    """DMS-Admin oder Dokumenten-Ersteller lehnt einen Zugriffsantrag ab."""
+    schluessel_obj = get_object_or_404(
         DokumentZugriffsschluessel,
         pk=schluessel_pk,
         status=DokumentZugriffsschluessel.STATUS_OFFEN,
     )
+    ist_admin = _ist_dms_admin(request.user) or request.user.is_superuser
+    ist_ersteller = schluessel_obj.dokument.erstellt_von == request.user
+    if not ist_admin and not ist_ersteller and not request.user.is_staff:
+        messages.error(request, "Keine Berechtigung.")
+        return redirect("dms:zugriffsantraege")
+
+    schluessel = schluessel_obj
 
     if request.method == "POST":
         schluessel.status = DokumentZugriffsschluessel.STATUS_ABGELEHNT
@@ -601,16 +709,19 @@ def zugriff_ablehnen(request, schluessel_pk):
 
 @login_required
 def zugriff_widerrufen(request, schluessel_pk):
-    """Staff widerruft einen aktiven Zugriffsschluessel vorzeitig."""
-    if not request.user.is_staff:
-        messages.error(request, "Keine Berechtigung.")
-        return redirect("dms:zugriffsantraege")
-
-    schluessel = get_object_or_404(
+    """DMS-Admin oder Dokumenten-Ersteller widerruft einen aktiven Zugriffsschluessel."""
+    schluessel_check = get_object_or_404(
         DokumentZugriffsschluessel,
         pk=schluessel_pk,
         status=DokumentZugriffsschluessel.STATUS_GENEHMIGT,
     )
+    ist_admin = _ist_dms_admin(request.user) or request.user.is_superuser
+    ist_ersteller = schluessel_check.dokument.erstellt_von == request.user
+    if not ist_admin and not ist_ersteller and not request.user.is_staff:
+        messages.error(request, "Keine Berechtigung.")
+        return redirect("dms:zugriffsantraege")
+
+    schluessel = schluessel_check
 
     if request.method == "POST":
         schluessel.status = DokumentZugriffsschluessel.STATUS_WIDERRUFEN

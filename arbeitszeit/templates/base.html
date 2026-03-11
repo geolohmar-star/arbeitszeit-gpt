@@ -371,7 +371,12 @@
                         <li><a class="dropdown-item" href="{% url 'datenschutz:dashboard' %}">Datenschutz (DSGVO)</a></li>
                         <li><a class="dropdown-item" href="{% url 'dokumente:liste' %}">Sensible Dokumente</a></li>
                         <li><a class="dropdown-item" href="{% url 'dms:liste' %}">DMS – Dokumentenmanagement</a></li>
-                        <li><a class="dropdown-item" href="{% url 'dms:zugriffsantraege' %}">DMS – Zugriffsantraege</a></li>
+                        <li>
+                          <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'dms:zugriffsantraege' %}">
+                            DMS – Zugriffsantraege
+                            {% if dms_zugriffsantraege_anzahl %}<span class="badge bg-danger rounded-pill ms-2">{{ dms_zugriffsantraege_anzahl }}</span>{% endif %}
+                          </a>
+                        </li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank">Django-Admin ↗</a></li>
                     </ul>
@@ -407,6 +412,14 @@
                         <li><a class="dropdown-item" href="{% url 'datenschutz:auskunft_pdf' %}">Meine Daten (DSGVO)</a></li>
                         <li><a class="dropdown-item" href="{% url 'dokumente:liste' %}">Meine Dokumente</a></li>
                         <li><a class="dropdown-item" href="{% url 'dms:liste' %}">DMS – Dokumente</a></li>
+                        {% if ist_dms_admin %}
+                        <li>
+                          <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'dms:zugriffsantraege' %}">
+                            DMS – Zugriffsantraege
+                            {% if dms_zugriffsantraege_anzahl %}<span class="badge bg-danger rounded-pill ms-2">{{ dms_zugriffsantraege_anzahl }}</span>{% endif %}
+                          </a>
+                        </li>
+                        {% endif %}
                         <li><a class="dropdown-item" href="{% url 'signatur:dashboard' %}">Digitale Signatur</a></li>
                         {% if bentopdf_url %}
                         <li><a class="dropdown-item" href="{{ bentopdf_url }}" target="_blank">PDF-Werkzeuge (BentoPDF) ↗</a></li>

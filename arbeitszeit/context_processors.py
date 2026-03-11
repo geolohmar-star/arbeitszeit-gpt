@@ -269,6 +269,50 @@ def cmd_items(request):
     return {"cmd_items_json": items}
 
 
+def dms_badge_kontext(request):
+    """Zaehlt offene DMS-Zugriffsantraege fuer DMS-Admins und Dokumenten-Ersteller.
+
+    Gibt 'dms_zugriffsantraege_anzahl' ans Template weiter – wird in der Navbar
+    als Badge am DMS-Link angezeigt.
+    """
+    if not request.user.is_authenticated:
+        return {"dms_zugriffsantraege_anzahl": 0}
+
+    try:
+        from dms.models import DokumentZugriffsschluessel, Dokument
+        from django.db.models import Q
+
+        from formulare.models import TeamQueue as _TQ
+        ist_dms_admin = (
+            request.user.is_superuser
+            or request.user.is_staff
+            or request.user.groups.filter(name="DMS-Admin").exists()
+            or _TQ.objects.filter(kuerzel="dms", mitglieder=request.user).exists()
+        )
+
+        if ist_dms_admin:
+            # DMS-Admin sieht alle offenen Antraege
+            anzahl = DokumentZugriffsschluessel.objects.filter(
+                status=DokumentZugriffsschluessel.STATUS_OFFEN
+            ).count()
+        else:
+            # Dokumenten-Ersteller sieht nur Antraege auf eigene Dokumente
+            eigene_dok_ids = Dokument.objects.filter(
+                erstellt_von=request.user
+            ).values_list("id", flat=True)
+            anzahl = DokumentZugriffsschluessel.objects.filter(
+                status=DokumentZugriffsschluessel.STATUS_OFFEN,
+                dokument_id__in=eigene_dok_ids,
+            ).count()
+    except Exception:
+        anzahl = 0
+
+    return {
+        "dms_zugriffsantraege_anzahl": anzahl,
+        "ist_dms_admin": ist_dms_admin,
+    }
+
+
 def hilfe_kontext(request):
     """Stellt die App-Liste und externe Dienst-URLs fuer das Hilfe-Modal bereit."""
     from django.conf import settings
