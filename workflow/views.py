@@ -10,77 +10,104 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from .models import WorkflowInstance, WorkflowTask, WorkflowTemplate, WorkflowStep, WorkflowTransition
+from .models import WorkflowInstance, WorkflowTask, WorkflowTemplate, WorkflowStep, WorkflowTransition, WorkflowTrigger
 from .services import WorkflowEngine
 
 
 @login_required
 def arbeitsstapel(request):
-    """Arbeitsstapel: Zeigt alle offenen Tasks fuer den aktuellen User.
+    """Workflow-Zentrale: persoenliche Tasks + Team-Arbeitsstapel."""
+    from datetime import timedelta
+    from formulare.models import TeamQueue
 
-    Tasks werden angezeigt wenn:
-    - direkt an den User zugewiesen (zugewiesen_an_user)
-    - an die Stelle des Users zugewiesen und User hat diese Stelle
-    """
     user = request.user
 
-    # Tasks die dem User direkt zugewiesen sind
+    # --- Persoenliche Tasks ---
     tasks_direkt = Q(zugewiesen_an_user=user)
-
-    # Tasks die der Stelle des Users zugewiesen sind
     tasks_stelle = Q(zugewiesen_an_user__isnull=True)
     if hasattr(user, "hr_mitarbeiter") and user.hr_mitarbeiter.stelle:
         tasks_stelle &= Q(zugewiesen_an_stelle=user.hr_mitarbeiter.stelle)
     else:
-        # User hat keine Stelle → keine Stellen-Tasks
         tasks_stelle = Q(pk__isnull=True)
 
-    # Kombiniere beide Bedingungen
     tasks = (
         WorkflowTask.objects.filter(tasks_direkt | tasks_stelle)
         .filter(status__in=["offen", "in_bearbeitung"])
         .select_related(
-            "instance",
-            "instance__template",
-            "step",
-            "zugewiesen_an_stelle",
-            "zugewiesen_an_user",
+            "instance", "instance__template", "step",
+            "zugewiesen_an_stelle", "zugewiesen_an_user",
         )
         .order_by("frist", "erstellt_am")
     )
+    task_liste = list(tasks)
+    ueberfaellig = [t for t in task_liste if t.ist_ueberfaellig]
+    heute_faellig = [t for t in task_liste if t.ist_heute_faellig and not t.ist_ueberfaellig]
+    demnaechst = [t for t in task_liste if not t.ist_ueberfaellig and not t.ist_heute_faellig]
 
-    # Kategorisierung
-    ueberfaellig = [t for t in tasks if t.ist_ueberfaellig]
-    heute_faellig = [t for t in tasks if t.ist_heute_faellig and not t.ist_ueberfaellig]
-    demnaechst = [t for t in tasks if not t.ist_ueberfaellig and not t.ist_heute_faellig]
-
-    # Erledigte Tasks des Users (letzte 30 Tage)
-    from datetime import timedelta
-    vor_30_tagen = timezone.now() - timedelta(days=30)
-
+    # --- Zuletzt erledigt (letzte 14 Tage, max 10) ---
+    vor_14_tagen = timezone.now() - timedelta(days=14)
     erledigte_tasks = (
-        WorkflowTask.objects.filter(erledigt_von=user, status="erledigt")
-        .filter(erledigt_am__gte=vor_30_tagen)
-        .select_related(
-            "instance",
-            "instance__template",
-            "step",
-            "zugewiesen_an_stelle",
-            "zugewiesen_an_user",
-        )
-        .order_by("-erledigt_am")[:20]  # Max 20 neueste
+        WorkflowTask.objects.filter(erledigt_von=user, status="erledigt",
+                                    erledigt_am__gte=vor_14_tagen)
+        .select_related("instance", "instance__template", "step")
+        .order_by("-erledigt_am")[:10]
     )
 
+    # --- Team-Arbeitsstapel: Queues deren Mitglied der User ist ---
+    user_queues = TeamQueue.objects.filter(mitglieder=user).prefetch_related("mitglieder")
+    stapel_liste = []
+    for queue in user_queues:
+        queue_tasks = (
+            WorkflowTask.objects.filter(
+                zugewiesen_an_team=queue,
+                status__in=["offen", "in_bearbeitung"],
+            )
+            .select_related(
+                "instance", "instance__template", "step",
+                "zugewiesen_an_stelle", "zugewiesen_an_user", "claimed_von",
+            )
+            .order_by("frist", "erstellt_am")
+        )
+        stapel_liste.append({
+            "queue": queue,
+            "tasks": list(queue_tasks),
+            "anzahl": queue_tasks.count(),
+        })
+
+    # Superuser/Staff: alle Queues mit offenen Tasks anzeigen (Ueberblick)
+    alle_queues_tasks = None
+    if user.is_staff:
+        alle_queues_tasks = (
+            WorkflowTask.objects.filter(
+                zugewiesen_an_team__isnull=False,
+                status__in=["offen", "in_bearbeitung"],
+            )
+            .select_related(
+                "instance", "instance__template", "step",
+                "zugewiesen_an_team", "claimed_von",
+            )
+            .order_by("zugewiesen_an_team__name", "frist")
+        )
+        # Gruppiert nach Queue
+        from collections import defaultdict
+        queue_map = defaultdict(list)
+        for t in alle_queues_tasks:
+            queue_map[t.zugewiesen_an_team].append(t)
+        alle_queues_tasks = [
+            {"queue": q, "tasks": tlist, "anzahl": len(tlist)}
+            for q, tlist in queue_map.items()
+        ]
+
     context = {
-        "tasks": tasks,
         "ueberfaellig": ueberfaellig,
         "heute_faellig": heute_faellig,
         "demnaechst": demnaechst,
-        "anzahl_gesamt": tasks.count(),
+        "anzahl_gesamt": len(task_liste),
         "anzahl_ueberfaellig": len(ueberfaellig),
         "anzahl_heute": len(heute_faellig),
         "erledigte_tasks": erledigte_tasks,
-        "anzahl_erledigt": erledigte_tasks.count(),
+        "stapel_liste": stapel_liste,
+        "alle_queues_tasks": alle_queues_tasks,
     }
 
     return render(request, "workflow/arbeitsstapel.html", context)
@@ -229,7 +256,16 @@ def workflow_editor(request):
     if load_param and load_param.isdigit():
         autoload_id = int(load_param)
 
-    return render(request, "workflow/workflow_editor.html", {"autoload_id": autoload_id})
+    # Matrix-Raeume fuer Verteiler-Dropdown
+    from matrix_integration.models import MatrixRaum
+    matrix_raeume = list(
+        MatrixRaum.objects.filter(ist_aktiv=True).order_by("name").values("id", "name", "room_id", "ping_typ")
+    )
+
+    return render(request, "workflow/workflow_editor.html", {
+        "autoload_id": autoload_id,
+        "matrix_raeume": matrix_raeume,
+    })
 
 
 @login_required
@@ -843,9 +879,99 @@ def trigger_uebersicht(request):
             w.ist_aktiv for w in event["workflows"]
         )
 
+    # Lade zusaetzlich die per GUI konfigurierten Trigger
+    gui_trigger = WorkflowTrigger.objects.select_related("content_type").all()
+
+    # Markiere welche hardcodierten Events bereits per GUI abgeloest wurden
+    gui_events = {t.trigger_event for t in gui_trigger}
+    for event in registrierte_events:
+        event["per_gui"] = event["name"] in gui_events
+        event["workflows"] = trigger_map.get(event["name"], [])
+        event["aktiv"] = any(w.ist_aktiv for w in event["workflows"])
+
     context = {
         "registrierte_events": registrierte_events,
         "alle_templates": templates_mit_trigger,
+        "gui_trigger": gui_trigger,
     }
 
     return render(request, "workflow/trigger_uebersicht.html", context)
+
+
+@login_required
+def trigger_konfiguration(request):
+    """Listet alle per GUI konfigurierten WorkflowTrigger."""
+    trigger_liste = WorkflowTrigger.objects.select_related("content_type").all()
+    # Fuer jeden Trigger: verknuepfte WorkflowTemplates
+    for trigger in trigger_liste:
+        trigger.templates = WorkflowTemplate.objects.filter(
+            trigger_event=trigger.trigger_event
+        )
+    return render(
+        request,
+        "workflow/trigger_konfiguration.html",
+        {"trigger_liste": trigger_liste},
+    )
+
+
+@login_required
+def trigger_erstellen(request):
+    """Legt einen neuen WorkflowTrigger an."""
+    from .forms import WorkflowTriggerForm
+
+    form = WorkflowTriggerForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Trigger wurde angelegt.")
+        return redirect("workflow:trigger_konfiguration")
+    return render(
+        request,
+        "workflow/trigger_form.html",
+        {"form": form, "titel": "Neuen Trigger anlegen"},
+    )
+
+
+@login_required
+def trigger_bearbeiten(request, pk):
+    """Bearbeitet einen vorhandenen WorkflowTrigger."""
+    from .forms import WorkflowTriggerForm
+
+    trigger = get_object_or_404(WorkflowTrigger, pk=pk)
+    form = WorkflowTriggerForm(request.POST or None, instance=trigger)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, f"Trigger '{trigger.name}' wurde gespeichert.")
+        return redirect("workflow:trigger_konfiguration")
+    return render(
+        request,
+        "workflow/trigger_form.html",
+        {"form": form, "trigger": trigger, "titel": f"Trigger bearbeiten: {trigger.name}"},
+    )
+
+
+@login_required
+def trigger_loeschen(request, pk):
+    """Loescht einen WorkflowTrigger nach Bestaetigung."""
+    trigger = get_object_or_404(WorkflowTrigger, pk=pk)
+    if request.method == "POST":
+        name = trigger.name
+        trigger.delete()
+        messages.success(request, f"Trigger '{name}' wurde geloescht.")
+        return redirect("workflow:trigger_konfiguration")
+    return render(
+        request,
+        "workflow/trigger_loeschen_bestaetigung.html",
+        {"trigger": trigger},
+    )
+
+
+@login_required
+@require_POST
+def trigger_toggle(request, pk):
+    """Aktiviert oder deaktiviert einen WorkflowTrigger per POST."""
+    trigger = get_object_or_404(WorkflowTrigger, pk=pk)
+    trigger.ist_aktiv = not trigger.ist_aktiv
+    trigger.save(update_fields=["ist_aktiv"])
+    status = "aktiviert" if trigger.ist_aktiv else "deaktiviert"
+    messages.success(request, f"Trigger '{trigger.name}' wurde {status}.")
+    return redirect("workflow:trigger_konfiguration")

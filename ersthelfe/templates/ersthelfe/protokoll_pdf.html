@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 10pt; color: #222; margin: 2cm; }
+    h1 { font-size: 14pt; border-bottom: 2px solid #333; padding-bottom: 6px; margin-bottom: 16px; }
+    h2 { font-size: 11pt; margin-top: 20px; margin-bottom: 6px; border-bottom: 1px solid #ccc; }
+    .meta { display: flex; gap: 40px; margin-bottom: 20px; font-size: 9pt; color: #555; }
+    .meta span strong { color: #222; }
+    .bewertung { display: inline-block; padding: 3px 10px; border-radius: 4px; font-weight: bold; font-size: 9pt; }
+    .bewertung-positiv { background: #d1fae5; color: #065f46; }
+    .bewertung-verbesserungsbedarf { background: #fef3c7; color: #92400e; }
+    .bewertung-kritisch { background: #fee2e2; color: #991b1b; }
+    table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 8px; }
+    th { background: #f3f4f6; text-align: left; padding: 5px 8px; border: 1px solid #d1d5db; }
+    td { padding: 5px 8px; border: 1px solid #e5e7eb; vertical-align: top; }
+    .protokolltext { white-space: pre-wrap; font-family: monospace; font-size: 9pt;
+                     background: #f9fafb; border: 1px solid #e5e7eb; padding: 10px;
+                     border-radius: 4px; }
+    .footer { margin-top: 40px; font-size: 8pt; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+  </style>
+</head>
+<body>
+
+  <h1>Erste-Hilfe-Einsatzprotokoll</h1>
+
+  <div class="meta">
+    <span><strong>Vorfall-Nr.:</strong> {{ vorfall.pk }}</span>
+    <span><strong>Datum:</strong> {{ vorfall.erstellt_am|date:"d.m.Y" }}</span>
+    <span><strong>Alarmzeit:</strong> {{ vorfall.erstellt_am|date:"H:i" }} Uhr</span>
+    <span><strong>Ort:</strong> {{ vorfall.ort }}</span>
+  </div>
+
+  {% if vorfall.protokoll_bewertung %}
+  <p>
+    Bewertung:&nbsp;
+    <span class="bewertung bewertung-{{ vorfall.protokoll_bewertung }}">
+      {{ vorfall.get_protokoll_bewertung_display }}
+    </span>
+  </p>
+  {% endif %}
+
+  <h2>Einsatzverlauf</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:80px;">Uhrzeit</th>
+        <th style="width:160px;">Ersthelfer/in</th>
+        <th style="width:140px;">Status</th>
+        <th>Notiz</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ vorfall.erstellt_am|date:"H:i" }} Uhr</td>
+        <td colspan="2"><em>Alarm ausgeloest</em></td>
+        <td>
+          Gemeldet von:
+          {% if vorfall.gemeldet_von.hr_mitarbeiter %}
+            {{ vorfall.gemeldet_von.hr_mitarbeiter.vollname }}
+          {% else %}
+            {{ vorfall.gemeldet_von.username }}
+          {% endif %}
+          {% if vorfall.beschreibung %} &ndash; {{ vorfall.beschreibung }}{% endif %}
+        </td>
+      </tr>
+      {% for r in rueckmeldungen %}
+      <tr>
+        <td>{{ r.gemeldet_am|date:"H:i" }} Uhr</td>
+        <td>{{ r.ersthelfer.vollname }}</td>
+        <td>{{ r.get_status_display }}</td>
+        <td>{{ r.notiz|default:"" }}</td>
+      </tr>
+      {% endfor %}
+      {% if vorfall.geschlossen_am %}
+      <tr>
+        <td>{{ vorfall.geschlossen_am|date:"H:i" }} Uhr</td>
+        <td colspan="2"><em>Vorfall abgeschlossen</em></td>
+        <td></td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  {% if vorfall.protokoll_text %}
+  <h2>Protokolltext / Ergaenzungen</h2>
+  <div class="protokolltext">{{ vorfall.protokoll_text }}</div>
+  {% endif %}
+
+  <!-- Unterschrift -->
+  <div style="margin-top: 50px; display: flex; gap: 80px;">
+    <div style="text-align:center;">
+      <div style="border-bottom: 1px solid #333; width: 220px; margin-bottom: 4px;">&nbsp;</div>
+      <div style="font-size: 8pt; color: #555;">
+        {% if vorfall.protokoll_erstellt_von %}
+          {% if vorfall.protokoll_erstellt_von.hr_mitarbeiter %}
+            {{ vorfall.protokoll_erstellt_von.hr_mitarbeiter.vollname }}
+          {% else %}
+            {{ vorfall.protokoll_erstellt_von.get_full_name }}
+          {% endif %}
+          (Betriebsarzt/-aerztin)
+        {% else %}
+          Betriebsarzt/-aerztin
+        {% endif %}
+      </div>
+    </div>
+    <div style="text-align:center;">
+      <div style="border-bottom: 1px solid #333; width: 160px; margin-bottom: 4px;">&nbsp;</div>
+      <div style="font-size: 8pt; color: #555;">Datum</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Erstellt mit PRIMA &middot; Vorfall #{{ vorfall.pk }} &middot;
+    {% if vorfall.protokoll_erstellt_am %}
+      Protokoll vom {{ vorfall.protokoll_erstellt_am|date:"d.m.Y H:i" }} Uhr
+    {% endif %}
+  </div>
+
+</body>
+</html>

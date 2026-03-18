@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Sicherheitsalarme – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Sicherheitsalarme</h2>
+    <span class="text-muted small">Nur fuer Security-Personal</span>
+  </div>
+
+  {% if alarme %}
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>Typ</th>
+          <th>Ort</th>
+          <th>Status</th>
+          <th>Ausgeloest von</th>
+          <th>Uhrzeit</th>
+          <th>Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alarm in alarme %}
+        <tr class="{% if alarm.status == 'aktiv' %}table-danger{% else %}table-success{% endif %}">
+          <td>
+            {% if alarm.typ == 'amok' %}
+            <span class="badge bg-danger fw-bold">AMOK</span>
+            {% else %}
+            <span class="badge bg-secondary">Stiller Alarm</span>
+            {% endif %}
+          </td>
+          <td>{{ alarm.ort|default:"–" }}</td>
+          <td>
+            {% if alarm.status == 'aktiv' %}
+            <span class="badge bg-danger">Aktiv</span>
+            {% else %}
+            <span class="badge bg-success">Geschlossen</span>
+            {% endif %}
+          </td>
+          <td>{{ alarm.ausgeloest_von.get_full_name|default:alarm.ausgeloest_von.username|default:"–" }}</td>
+          <td>{{ alarm.erstellt_am|date:"d.m.Y H:i" }} Uhr</td>
+          <td>
+            <a href="{% url 'sicherheit:alarm_detail' alarm.pk %}" class="btn btn-sm btn-outline-secondary">
+              Detail
+            </a>
+            {% if alarm.status == 'aktiv' %}
+            <form method="post" action="{% url 'sicherheit:alarm_schliessen' alarm.pk %}"
+                  style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-success"
+                      onclick="return confirm('Alarm wirklich schliessen?');">
+                Schliessen
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-success">
+    Keine Sicherheitsalarme vorhanden.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

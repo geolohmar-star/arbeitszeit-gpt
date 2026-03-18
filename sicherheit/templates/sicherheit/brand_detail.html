@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Brandalarm #{{ brandalarm.pk }} – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">&#128293; Brandalarm #{{ brandalarm.pk }}</h4>
+    <div class="d-flex gap-2 align-items-center">
+      {% if brandalarm.status != "geschlossen" %}
+      <a id="btn-autorefresh" href="{{ request.path }}" class="btn btn-outline-secondary btn-sm text-decoration-none">
+        &#8635; Auto-Refresh
+      </a>
+      {% endif %}
+      <a href="{% url 'sicherheit:brand_liste' %}" class="btn btn-outline-secondary btn-sm">
+        &larr; Liste
+      </a>
+    </div>
+  </div>
+
+  <!-- Aktionsleiste: Security-Review ausstehend -->
+  {% if brandalarm.status == "bestaetigung" %}
+  <div class="card border-warning mb-4">
+    <div class="card-header bg-warning fw-bold">
+      &#9888; Security-Review ausstehend – Entscheidung erforderlich
+    </div>
+    <div class="card-body">
+      <a href="{% url 'sicherheit:brand_security' pk=brandalarm.pk %}"
+         class="btn btn-warning fw-bold me-2">
+        Security-Review durchfuehren
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Aktionsleiste: Evakuierung aktiv -->
+  {% if brandalarm.status == "evakuierung" %}
+  <div class="card border-danger mb-4">
+    <div class="card-header bg-danger text-white fw-bold">
+      &#128680; EVAKUIERUNG AKTIV – Entwarnung geben wenn Lage geklaert
+    </div>
+    <div class="card-body">
+      <form method="post" action="{% url 'sicherheit:brand_schliessen' pk=brandalarm.pk %}">
+        {% csrf_token %}
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <input type="text" name="notiz" class="form-control" style="max-width:360px;"
+                 placeholder="Entwarnung – Notiz (optional, z.B. Feuerwehr hat Lage beendet)">
+          <button type="submit" class="btn btn-success fw-bold"
+                  data-confirm="Entwarnung geben und Alarm schliessen?">
+            &#10003; Entwarnung geben
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Aktionsleiste: Alarm schliessen (Fehlalarm/Test) – Status gemeldet -->
+  {% if brandalarm.status == "gemeldet" %}
+  <div class="card mb-4 border-secondary">
+    <div class="card-header bg-secondary text-white fw-bold">
+      Alarm abschliessen
+    </div>
+    <div class="card-body">
+      <form method="post" action="{% url 'sicherheit:brand_schliessen' pk=brandalarm.pk %}">
+        {% csrf_token %}
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <input type="text" name="notiz" class="form-control" style="max-width:360px;"
+                 placeholder="Notiz (z.B. Fehlalarm, Test)">
+          <button type="submit" class="btn btn-outline-secondary"
+                  data-confirm="Alarm als Fehlalarm/Test schliessen?">
+            Alarm schliessen (Fehlalarm / Test)
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Aktionsleiste: Alarm schliessen (Bestaetigung – ohne Security-Review) -->
+  {% if brandalarm.status == "bestaetigung" %}
+  <div class="card mb-4 border-secondary">
+    <div class="card-header bg-secondary text-white fw-bold">
+      Alarm schliessen ohne Security-Review
+    </div>
+    <div class="card-body">
+      <form method="post" action="{% url 'sicherheit:brand_schliessen' pk=brandalarm.pk %}">
+        {% csrf_token %}
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <input type="text" name="notiz" class="form-control" style="max-width:360px;"
+                 placeholder="Notiz (optional)">
+          <button type="submit" class="btn btn-outline-secondary"
+                  data-confirm="Alarm schliessen ohne Security-Review?">
+            Alarm schliessen (Entwarnung)
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Nachbewertung fuer geschlossene Alarme (al_as / Arbeitsschutz) -->
+  {% if brandalarm.status == "geschlossen" and ist_arbeitsschutz %}
+  <div class="card mb-4 border-info">
+    <div class="card-header bg-info bg-opacity-25 fw-bold">
+      &#9997; Nachbewertung (Arbeitsschutz)
+    </div>
+    <div class="card-body">
+      {% if brandalarm.nachbewertung %}
+        <dl class="row mb-2">
+          <dt class="col-sm-3">Bewertung</dt>
+          <dd class="col-sm-9">
+            {% if brandalarm.nachbewertung == "positiv" %}
+              <span class="badge bg-success">{{ brandalarm.get_nachbewertung_display }}</span>
+            {% elif brandalarm.nachbewertung == "verbesserungsbedarf" %}
+              <span class="badge bg-warning text-dark">{{ brandalarm.get_nachbewertung_display }}</span>
+            {% elif brandalarm.nachbewertung == "kritisch" %}
+              <span class="badge bg-danger">{{ brandalarm.get_nachbewertung_display }}</span>
+            {% endif %}
+          </dd>
+          {% if brandalarm.nachbewertung_text %}
+          <dt class="col-sm-3">Protokolltext</dt>
+          <dd class="col-sm-9" style="white-space:pre-wrap;">{{ brandalarm.nachbewertung_text }}</dd>
+          {% endif %}
+          {% if brandalarm.nachbewertung_erstellt_von %}
+          <dt class="col-sm-3">Bewertet von</dt>
+          <dd class="col-sm-9">
+            {{ brandalarm.nachbewertung_erstellt_von.get_full_name|default:brandalarm.nachbewertung_erstellt_von.username }}
+            {% if brandalarm.nachbewertung_erstellt_am %}
+            &ndash; {{ brandalarm.nachbewertung_erstellt_am|date:"d.m.Y H:i" }} Uhr
+            {% endif %}
+          </dd>
+          {% endif %}
+        </dl>
+      {% else %}
+        <p class="text-muted mb-2">Noch keine Nachbewertung eingetragen.</p>
+      {% endif %}
+      <a href="{% url 'sicherheit:brand_nachbewertung' pk=brandalarm.pk %}"
+         class="btn btn-outline-info btn-sm">
+        {% if brandalarm.nachbewertung %}Nachbewertung bearbeiten{% else %}Nachbewertung eintragen{% endif %}
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Stammdaten -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center
+      {% if brandalarm.status == 'evakuierung' %}bg-danger text-white
+      {% elif brandalarm.status == 'bestaetigung' %}bg-warning
+      {% elif brandalarm.status == 'geschlossen' %}bg-secondary text-white
+      {% else %}bg-warning{% endif %}">
+      <strong>
+        {% if brandalarm.status == "gemeldet" %}Gemeldet – Branderkunder unterwegs
+        {% elif brandalarm.status == "bestaetigung" %}Security-Review ausstehend
+        {% elif brandalarm.status == "evakuierung" %}EVAKUIERUNG AKTIV
+        {% else %}Geschlossen / Entwarnung{% endif %}
+      </strong>
+      <span class="badge bg-dark">Melder: {{ brandalarm.melder_anzahl }}</span>
+    </div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-3">Gemeldeter Ort</dt>
+        <dd class="col-sm-9 fw-semibold">{{ brandalarm.ort }}</dd>
+
+        {% if brandalarm.ort_praezise %}
+        <dt class="col-sm-3">Ort (praezisiert)</dt>
+        <dd class="col-sm-9 fw-semibold text-danger">{{ brandalarm.ort_praezise }}</dd>
+        {% endif %}
+
+        <dt class="col-sm-3">Gemeldet von</dt>
+        <dd class="col-sm-9">
+          {% if brandalarm.gemeldet_von.hr_mitarbeiter %}
+            {{ brandalarm.gemeldet_von.hr_mitarbeiter.vollname }}
+          {% else %}
+            {{ brandalarm.gemeldet_von.get_full_name|default:brandalarm.gemeldet_von.username }}
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">Datum / Uhrzeit</dt>
+        <dd class="col-sm-9">{{ brandalarm.erstellt_am|date:"d.m.Y H:i:s" }} Uhr</dd>
+
+        {% if brandalarm.security_bestaetigt_von %}
+        <dt class="col-sm-3">Security bestaetigt</dt>
+        <dd class="col-sm-9">
+          {{ brandalarm.security_bestaetigt_von.get_full_name|default:brandalarm.security_bestaetigt_von }}
+          &ndash; {{ brandalarm.security_bestaetigt_am|date:"d.m.Y H:i" }} Uhr
+        </dd>
+        {% endif %}
+
+        {% if brandalarm.geschlossen_von %}
+        <dt class="col-sm-3">Geschlossen von</dt>
+        <dd class="col-sm-9">
+          {{ brandalarm.geschlossen_von.get_full_name|default:brandalarm.geschlossen_von }}
+          &ndash; {{ brandalarm.geschlossen_am|date:"d.m.Y H:i" }} Uhr
+        </dd>
+        {% endif %}
+
+        {% if brandalarm.notiz %}
+        <dt class="col-sm-3">Notiz</dt>
+        <dd class="col-sm-9">{{ brandalarm.notiz }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+  </div>
+
+  <!-- Branderkunder-Rueckmeldungen -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>Branderkunder-Rueckmeldungen</strong>
+      <span class="badge bg-secondary">{{ brandalarm.erkunder_tokens.count }} Erkunder</span>
+    </div>
+    <div class="card-body">
+      {% if not brandalarm.erkunder_tokens.all %}
+        <p class="text-muted mb-0">Keine Erkunder zugeordnet.</p>
+      {% else %}
+        <div class="d-flex flex-wrap gap-2">
+          {% for tok in brandalarm.erkunder_tokens.all %}
+            <a href="{% url 'sicherheit:brand_erkunden_token' token=tok.token %}"
+               target="_blank"
+               title="{% if tok.notiz %}{{ tok.notiz }}{% endif %}{% if tok.ort_praezise %} | Ort: {{ tok.ort_praezise }}{% endif %}"
+               style="text-decoration:none;min-width:110px;max-width:160px;">
+              <div style="
+                border-radius:6px;
+                padding:6px 10px;
+                font-size:0.78rem;
+                font-weight:600;
+                line-height:1.3;
+                {% if tok.status == 'bestaetigt' %}
+                  background:#dc2626;color:#fff;
+                {% elif tok.status == 'unterwegs' %}
+                  background:#1d4ed8;color:#bfdbfe;
+                {% elif tok.status == 'am_ort' %}
+                  background:#d97706;color:#fef3c7;
+                {% elif tok.status == 'fehlalarm' %}
+                  background:#15803d;color:#bbf7d0;
+                {% else %}
+                  background:#e5e7eb;color:#6b7280;
+                {% endif %}
+              ">
+                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  {{ tok.erkunder.vollname }}
+                </div>
+                <div style="font-weight:400;font-size:0.72rem;opacity:0.85;white-space:nowrap;">
+                  {% if tok.status == "bestaetigt" %}Brand bestaetigt
+                  {% elif tok.status == "unterwegs" %}Unterwegs
+                  {% elif tok.status == "am_ort" %}Am Brandort
+                  {% elif tok.status == "fehlalarm" %}Fehlalarm
+                  {% else %}Ausstehend{% endif %}
+                </div>
+                {% if tok.ort_praezise %}
+                <div style="font-weight:400;font-size:0.68rem;opacity:0.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  {{ tok.ort_praezise }}
+                </div>
+                {% endif %}
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/brand_detail.js' %}"></script>
+{% endblock %}

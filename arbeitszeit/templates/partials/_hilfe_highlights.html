@@ -1,0 +1,1665 @@
+            <p class="text-muted mb-4" style="font-size:0.9rem;">
+              Die Anwendung deckt den vollstaendigen Verwaltungskreislauf eines mittelstaendischen Unternehmens ab &mdash;
+              vollstaendig offline-faehig, ohne externe Abhaengigkeiten.
+            </p>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1rem;">
+
+              <div style="border:2px solid #1a4d2e; border-top:5px solid #1a4d2e; border-radius:8px; padding:1rem; background:#f0fdf4; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#1a4d2e; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  FUNDAMENT
+                </div>
+                <div class="fw-bold mb-2" style="color:#1a4d2e; font-size:1rem;">Arbeitszeitvereinbarung als Stammdatum</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  Die Vereinbarung ist nicht nur ein Formular &mdash; sie ist das Stammdatum, auf dem
+                  das gesamte System aufbaut. Vom ersten Arbeitstag an ist definiert, was ein
+                  Mitarbeiter arbeiten soll. Alles andere leitet sich daraus ab.
+                </div>
+                <div style="font-size:0.78rem; color:#374151; background:#dcfce7; border:1px solid #86efac; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Vereinbarung &rarr; Soll-Stunden &rarr; Zeiterfassung &rarr; ZAG / Zeitgutschrift / Dienstreise &rarr; Genehmigung &rarr; PDF signiert &rarr; DSGVO-Archivierung
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Grundlage aller Berechnungen</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Regulaer &amp; individuell</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Genehmigungsworkflow</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Rechtssicher ab Tag 1</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Kein Folgesystem kann sinnvoll arbeiten ohne zu wissen was vereinbart wurde &mdash; hier ist es von Anfang an da.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #0d6efd; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#0d6efd;">Antraege &amp; Formulare (HTMX)</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Digitale Antragstypen: Zusatzarbeit (ZAG), Zeitgutschrift, Dienstreise.
+                  Inline-Validierung, Team-Queue-System, mehrstufige Genehmigungsworkflows.
+                  Alle PDFs signiert.
+                </div>
+              </div>
+
+              <div style="border:2px solid #f77f00; border-top:5px solid #f77f00; border-radius:8px; padding:1rem; background:#fffbf5; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#f77f00; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  HIGHLIGHT
+                </div>
+                <div class="fw-bold mb-2" style="color:#f77f00; font-size:1rem;">Workflow-Engine mit Team-Queue</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  Konfigurierbare State Machine, die Workflows als <em>Daten</em> behandelt &mdash; nicht als hartcodierten If-Else-Block.
+                  Zustaendigkeiten werden dynamisch ueber die HR-Stellenhierarchie aufgeloest.
+                  Team-Pools mit Claiming-Mechanismus (wer nimmt welche Aufgabe).
+                  Duplikat-Schutz, Navbar-Badges in Echtzeit, visueller Editor &mdash; keine Code-Aenderung noetig.
+                </div>
+                <div style="font-size:0.78rem; color:#374151; background:#fff7ed; border:1px solid #fed7aa; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  <strong>Beispiel:</strong> ZAG-Antrag &rarr; Teamleiter (via HR) &rarr; Abteilungsleiter &rarr; ZG-Team &rarr; ZE-Team &rarr; Antragsteller &rarr; PDF signiert &amp; archiviert &mdash; vollautomatisch.
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">JSON-Workflow-Definition</span>
+                  <span style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Team-Queue &amp; Claiming</span>
+                  <span style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">HR-Stellenhierarchie als Resolver</span>
+                  <span style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Visueller Editor</span>
+                  <span style="background:#fff7ed; border:1px solid #fed7aa; color:#c2410c; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Kein externes Framework</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Vergleichbar mit: Jira Workflows, SAP Workflow, Camunda &mdash; selbst gebaut, ~400 Zeilen Python.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #0d9488; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#0d9488;">Facility Management</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Stoermeldungen erfassen, kategorisieren, Team-Queue bearbeiten.
+                  Eskalation an Abteilungsleiter. Wartungsplaene, Textbausteine,
+                  Monatsbericht mit Tendenz-Erkennung (konfigurierbare Schwellwerte).
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #0d9488; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#0d9488;">Raumbuch</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Hierarchische Gebaeudestruktur (Standort &rarr; Gebaeude &rarr; Geschoss &rarr; Bereich &rarr; Raum).
+                  22 Models: Belegung, Buchung, Besuch, Reinigung, Schluessel,
+                  Zutrittstoken, Umzugsauftrag. Vollstaendiger Audit-Trail.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #7c3aed; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#7c3aed;">HR &amp; Organigramm</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Stellenplan (OrgEinheit &rarr; Stelle &rarr; HR-Mitarbeiter).
+                  Interaktives Organigramm (D3.js v7, lokal eingebunden).
+                  Durchwahlen, Raumzuordnung, Fuehrungskraft-Hierarchie.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #7c3aed; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#7c3aed;">Bewerbung &amp; Personalaufnahme</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Single Point of Truth fuer Personalstammdaten. Bewerber fuellt am Intranet-PC
+                  einen Aufnahmebogen aus (kein Login). HR prueft, nimmt an oder lehnt ab.
+                  Bei Einstellung: atomarer Transfer in HRMitarbeiter + Personalstammdaten.
+                  Bei Ablehnung: DSGVO-konformer Hard-Delete aller Daten (Art. 17 DSGVO).
+                  Dokumente verschluesselt (Fernet AES-128) + ClamAV-Scan vor Speicherung.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #16a34a; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-2" style="color:#16a34a;">Veranstaltungen &amp; Betriebssport</div>
+                <div class="text-muted mb-2" style="font-size:0.82rem;">
+                  <strong>Veranstaltungen</strong> (Sommerfest, Weihnachtsfeier, Teamausflug): Anmeldung,
+                  Teilnahmebestaetigung, automatische Zeitgutschrift-Sammelliste mit Genehmigungsworkflow
+                  nach Reichweite (Abteilung &rarr; AL / Bereich &rarr; BL / Unternehmen &rarr; GF).
+                  Signiertes PDF auf Knopfdruck.
+                </div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  <strong>Betriebssport</strong>: Wiederkehrende Gruppen nach Sportart / Standort / Wochentag.
+                  Jeder Mitarbeiter meldet sich selbst an und markiert seine Anwesenheit
+                  in einer gemeinsamen Matrix &mdash; alle sehen alle (Selbstkontrolle).
+                  Der Verantwortliche prueft und reicht monatlich ein.
+                  Workflow: Verantwortlicher &rarr; ZG-Team &rarr; ZA-Team bucht &rarr; Abschluss.
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.75rem;">
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Selbst-Eintrag (Matrix)</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Monatliche Sammelliste</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Signiertes PDF</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Genehmigungsworkflow</span>
+                </div>
+                <div style="font-size:0.78rem; color:#374151; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.6rem 0.8rem;">
+                  <strong>Kurzanleitung Betriebssport:</strong><br>
+                  1. Gruppe anlegen (Sportart, Wochentag, Uhrzeit, Standort) &mdash; Verantwortlicher tritt automatisch bei.<br>
+                  2. Mitarbeiter treten der Gruppe bei (Gruppe beitreten-Button).<br>
+                  3. Verantwortlicher legt nach jeder Einheit einen Datumseintrag an.<br>
+                  4. Jeder Teilnehmer hakt sich selbst in der Matrix ab (HTMX, sofort).<br>
+                  5. Am Monatsende: Verantwortlicher oeffnet &ldquo;Gutschrift vorbereiten&rdquo;, prueft Vorschau, reicht ein.<br>
+                  6. Workflow startet automatisch &rarr; ZG-Team &rarr; ZA-Team bucht Stunden &rarr; PDF signiert &amp; archiviert.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #dc2626; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#dc2626;">Digitale Signatur (FES nach eIDAS)</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Automatische Signatur aller erzeugten PDFs (WeasyPrint + pyhanko).
+                  PKCS#12-Zertifikate pro Mitarbeiter, interne Root-CA-Infrastruktur.<br>
+                  <strong>Mehrfachsignatur bei Workflow-PDFs:</strong> Jeder Bearbeitungsschritt
+                  (Antragsteller, Vorgesetzter, Team) hinterlaesst eine eigene kryptografische
+                  Signatur im PDF – inkrementell, unveraenderlich, pruefbar im PDF-Reader.
+                  Signatur-Protokoll, PDF-Pruefseite und CA-Importanleitung fuer Windows GPO
+                  unter <em>Sicherheit &rarr; Digitale Signatur</em>.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #dc2626; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#dc2626;">Datenschutz (DSGVO)</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Art. 15-Auskunft als PDF auf Knopfdruck. Loeschprotokoll (unveraenderlich).
+                  Management-Command fuer Loeschfristen (2/3/10 Jahre je Kategorie).
+                  Automatische Zugangssperre bei Austrittsdatum.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #dc2626; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#dc2626;">Sensible Dokumente &amp; Schluesselverwaltung</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  <strong>Dokumente:</strong> AES-128 Fernet fuer Zeugnisse, Abschluesse, Reiseunterlagen.
+                  Kein Klartext in der Datenbank. Unveraenderbares Zugriffsprotokoll mit IP, User, Zeitstempel.<br>
+                  <strong>Private Signatur-Schluessel (neu):</strong> Jeder Mitarbeiter-Schluessel wird mit
+                  <em>PBKDF2-HMAC-SHA256</em> (600.000 Iterationen) aus dem Login-Passwort abgeleitet und
+                  mit <em>AES-256-GCM</em> verschluesselt gespeichert.
+                  Der Entschluesselungsschluessel existiert nur waehrend der aktiven Sitzung im Arbeitsspeicher –
+                  nie auf der Festplatte oder in der Datenbank.<br>
+                  <strong>Einordnung:</strong> Ein gestohlener Datenbank-Dump allein reicht nicht aus, um
+                  Signaturen zu faelschen. Dafuer waere zusaetzlich eine aktive Nutzersitzung notwendig.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #dc2626; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#dc2626;">ClamAV Virenscanner-Integration</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  Alle hochgeladenen Dateien werden vor dem Speichern automatisch
+                  gegen einen zentralen ClamAV-Netzwerkscanner geprueft.
+                  Graceful Fallback: ist der Scanner nicht erreichbar, wird der Upload
+                  geloggt aber nicht blockiert &mdash; konfigurierbar per Umgebungsvariable.
+                  Bedrohungen werden abgelehnt und vollstaendig protokolliert.
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #dc2626; border-radius:8px; padding:1rem;">
+                <div class="fw-bold mb-1" style="color:#dc2626;">BSI IT-Grundschutz (APP.3.1 / ORP.4 / OPS.1.1.5)</div>
+                <div class="text-muted" style="font-size:0.82rem;">
+                  PRIMA orientiert sich am BSI IT-Grundschutz als freiwilligem internen Sicherheitsmassstab.
+                  Umgesetzt: Brute-Force-Schutz am Login (django-axes, 5 Versuche / 1h Sperre, BSI APP.3.1),
+                  Content Security Policy Header (XSS-Schutz, BSI APP.3.1),
+                  Session-Timeout nach 8h Inaktivitaet (BSI ORP.4),
+                  zentrales Security-Logging aller sicherheitsrelevanten Ereignisse (BSI OPS.1.1.5),
+                  eigene Fehlerseiten ohne technische Details (BSI APP.3.1),
+                  automatische CVE-Pruefung per pip-audit im Deployment-Build (BSI OPS.1.1.3
+                  Patch-Management) &mdash; beim ersten Lauf 4 Schwachstellen sofort behoben.
+                  Ergaenzend: HSTS, X-Frame-Options, CSRF, MIME-Sniffing-Schutz,
+                  Secret-Key aus Umgebungsvariable, kein Debug-Modus in Produktion.
+                </div>
+              </div>
+
+              <div style="border:2px solid #64748b; border-top:5px solid #64748b; border-radius:8px; padding:1rem; background:#f8fafc; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#64748b; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  IN PLANUNG
+                </div>
+                <div class="fw-bold mb-2" style="color:#475569; font-size:1rem;">Bewerber-Kiosk: Alpine Linux Netboot</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  Hoechste Sicherheitsstufe fuer den Bewerber-Aufnahmerechner.
+                  Der PC bootet taeglich neu aus dem Netzwerk (PXE/TFTP) &mdash; ohne lokales Dateisystem.
+                  Das komplette Betriebssystem (Alpine Linux, ~50 MB) wird in den RAM geladen.
+                  Nach jeder Session automatischer Reboot: Malware kann nicht ueberleben, da es
+                  nichts zu infizieren gibt. Kombiniert mit VLAN-Isolation (nur ein einziger
+                  Intranet-Endpunkt erreichbar) und Browser-Kiosk-Modus (kein DevTools, keine Adressleiste).
+                </div>
+                <div style="font-size:0.78rem; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Netzwerk &rarr; PXE-Boot &rarr; Alpine-Image (RAM) &rarr; Chromium --kiosk &rarr; Bewerbungsformular &rarr; Reboot nach Session
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Diskless / RAM-only</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">PXE Netboot</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">VLAN-Isolation</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Session-Reboot</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Raspberry Pi 5 als Boot-Server</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Verteidigungslinien: VLAN (Netzwerk) + RAM-only (Persistenz) + Kiosk-Modus (Browser) + USB deaktiviert (Hardware) + ClamAV (Uploads)
+                </div>
+              </div>
+
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #0891b2; border-radius:8px; padding:1rem; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#0891b2; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  PRIMA-SEITE UMGESETZT
+                </div>
+                <div class="fw-bold mb-1" style="color:#0e7490;">Matrix &ndash; Interner verschluesselter Messenger</div>
+                <div class="text-muted mb-2" style="font-size:0.82rem;">
+                  PRIMA generiert automatisch einen <strong>Jitsi-Meeting-Link</strong> bei jeder Raumbuchung
+                  (sichtbar im Buchungsdetail). Parallel wird ein <strong>Matrix/Element-Raum-Link</strong>
+                  bereitgestellt &mdash; persistenter, verschluesselter Chat-Kanal fuer den gebuchten Raum.
+                  Bei neuen Facility-Stoermeldungen sendet PRIMA automatisch einen Ping an den konfigurierten
+                  Matrix-Team-Raum.
+                </div>
+
+                {% if matrix_konfiguriert %}
+                <!-- Mitarbeiter-Schnellstart -->
+                <div style="background:linear-gradient(135deg,#0d1b2a 0%,#0f4c75 100%); border-radius:10px; padding:1.1rem 1.25rem; color:white; margin-bottom:0.75rem;">
+                  <div style="font-size:0.65rem; text-transform:uppercase; letter-spacing:1.2px; font-weight:700; opacity:0.65; margin-bottom:0.25rem;">Schnellstart fuer Mitarbeiter</div>
+                  <div style="font-size:1rem; font-weight:700; margin-bottom:0.75rem;">In 3 Schritten loslegen</div>
+                  <div style="display:flex; flex-direction:column; gap:0.45rem; margin-bottom:0.9rem;">
+                    <div style="display:flex; align-items:flex-start; gap:0.6rem; font-size:0.82rem; opacity:0.92;">
+                      <span style="display:inline-flex; align-items:center; justify-content:center; width:1.3rem; height:1.3rem; min-width:1.3rem; background:rgba(255,255,255,0.18); border-radius:50%; font-size:0.72rem; font-weight:700; margin-top:0.05rem;">1</span>
+                      <span>App installieren: <strong>Element</strong> im App-Store laden (iOS / Android) oder im Browser oeffnen</span>
+                    </div>
+                    <div style="display:flex; align-items:flex-start; gap:0.6rem; font-size:0.82rem; opacity:0.92;">
+                      <span style="display:inline-flex; align-items:center; justify-content:center; width:1.3rem; height:1.3rem; min-width:1.3rem; background:rgba(255,255,255,0.18); border-radius:50%; font-size:0.72rem; font-weight:700; margin-top:0.05rem;">2</span>
+                      <span>Beim Anmelden &bdquo;Eigenen Server nutzen&ldquo; waehlen und eingeben: <strong style="font-family:monospace; background:rgba(0,0,0,0.3); padding:1px 6px; border-radius:4px;">{{ matrix_homeserver_url }}</strong></span>
+                    </div>
+                    <div style="display:flex; align-items:flex-start; gap:0.6rem; font-size:0.82rem; opacity:0.92;">
+                      <span style="display:inline-flex; align-items:center; justify-content:center; width:1.3rem; height:1.3rem; min-width:1.3rem; background:rgba(255,255,255,0.18); border-radius:50%; font-size:0.72rem; font-weight:700; margin-top:0.05rem;">3</span>
+                      <span>Mit PRIMA-Benutzernamen &amp; Passwort <strong>hrmitarbeiter2026</strong> einloggen &ndash; fertig!</span>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+                    <a href="{% url 'matrix_integration:raum_liste' %}" data-bs-dismiss="modal"
+                       style="background:white; color:#0f4c75; border-radius:6px; padding:0.35rem 0.9rem; font-size:0.8rem; font-weight:700; text-decoration:none;">
+                      Kanaele ansehen
+                    </a>
+                    <a href="{{ matrix_element_web_url }}" target="_blank" rel="noopener"
+                       style="background:rgba(255,255,255,0.12); color:white; border:1px solid rgba(255,255,255,0.25); border-radius:6px; padding:0.35rem 0.9rem; font-size:0.8rem; font-weight:600; text-decoration:none;">
+                      Element oeffnen
+                    </a>
+                    <form method="post" action="{% url 'matrix_integration:passwort_reset_self' %}" style="margin:0;" data-bs-dismiss="modal">
+                      {% csrf_token %}
+                      <button type="submit"
+                              style="background:rgba(255,200,0,0.15); color:#ffe066; border:1px solid rgba(255,200,0,0.4); border-radius:6px; padding:0.35rem 0.9rem; font-size:0.8rem; font-weight:600; cursor:pointer;">
+                        Passwort vergessen
+                      </button>
+                    </form>
+                  </div>
+                </div>
+                {% endif %}
+                <div style="font-size:0.78rem; color:#0e7490; background:#ecfeff; border:1px solid #a5f3fc; border-radius:6px; padding:0.5rem 0.8rem; margin-bottom:0.75rem;">
+                  Raumbuchung &rarr; Jitsi-Link + Matrix-Raum-Link automatisch generiert &middot;
+                  Stoermeldung &rarr; Matrix-Ping ans Facility-Team &middot;
+                  Jitsi-Server + Matrix-Homeserver: eigenstaendig betrieben (PRIMA verweist nur)
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.75rem;">
+                  <span style="background:#ecfeff; border:1px solid #a5f3fc; color:#0e7490; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Jitsi E2EE (alle Standorte)</span>
+                  <span style="background:#ecfeff; border:1px solid #a5f3fc; color:#0e7490; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Matrix Megolm/Signal-Protokoll</span>
+                  <span style="background:#ecfeff; border:1px solid #a5f3fc; color:#0e7490; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Kein Cloud-Anbieter</span>
+                  <span style="background:#ecfeff; border:1px solid #a5f3fc; color:#0e7490; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Matrix-Pings bei Stoermeldung</span>
+                  <span style="background:#ecfeff; border:1px solid #a5f3fc; color:#0e7490; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">config: JITSI_BASE_URL / MATRIX_*</span>
+                </div>
+                <div style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Jitsi-Server (Docker) + Matrix-Homeserver (Synapse/Dendrite, Docker) separat aufsetzen
+                  &rarr; Umgebungsvariablen in .env / Railway setzen &rarr; fertig.
+                </div>
+
+                <!-- Ausfuehrlicher Leitfaden (Collapse) -->
+                <div class="mt-3">
+                  <button class="btn btn-sm btn-outline-secondary" type="button"
+                          data-bs-toggle="collapse" data-bs-target="#collapse-jitsi-matrix"
+                          aria-expanded="false">
+                    Ausfuehrlicher Leitfaden (Datensicherheit &amp; Verschluesselung)
+                  </button>
+                  <div class="collapse mt-3" id="collapse-jitsi-matrix">
+                    <div style="font-size:0.82rem; line-height:1.6; border-top:1px solid #e0f2fe; padding-top:1rem;">
+
+                      <p class="fw-semibold mb-1" style="color:#0e7490;">Was ist das ueberhaupt?</p>
+                      <p class="text-muted">
+                        Stell dir vor, du nutzt WhatsApp zum Chatten und Zoom fuer Videokonferenzen &mdash;
+                        beides laeuft aber auf einem Server <strong>in eurer eigenen Firma</strong>.
+                        Kein amerikanisches Unternehmen sieht deine Nachrichten, kein Cloud-Anbieter speichert
+                        deine Gespraeche, keine Lizenzkosten, keine AGBs.
+                        Genau das ist <strong>Matrix</strong> (Chat) und <strong>Jitsi</strong> (Video).
+                      </p>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Matrix / Element &ndash; der Firmen-Chat</p>
+                      <p class="text-muted mb-1">
+                        <strong>Raeume</strong> sind das Herzstuck. Ein Raum ist wie eine WhatsApp-Gruppe, nur besser:
+                      </p>
+                      <ul class="text-muted mb-2" style="padding-left:1.2rem;">
+                        <li><code>#allgemein</code> &ndash; alle Mitarbeiter</li>
+                        <li><code>#facility-elektro</code> &ndash; nur das Elektro-Team</li>
+                        <li><code>#hr-intern</code> &ndash; nur HR, extra verschluesselt</li>
+                        <li><code>#raum-101</code> &ndash; automatisch erstellt bei Raumbuchung</li>
+                        <li>Direktnachrichten &ndash; 1:1, komplett privat</li>
+                      </ul>
+                      <p class="text-muted">
+                        Du wirst automatisch in die richtigen Raeume eingeladen. Wenn ein Mitarbeiter
+                        ausscheidet: Account gesperrt, aus allen Raeumen entfernt &mdash; sofort, nicht
+                        erst wenn jemand daran denkt die WhatsApp-Gruppe zu bereinigen.
+                      </p>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Jitsi Meet &ndash; die Videokonferenz</p>
+                      <p class="text-muted mb-1">
+                        Wie Zoom &mdash; aber auf eurem eigenen Server. Keine Lizenz, keine Daten in
+                        amerikanischen Rechenzentren.
+                      </p>
+                      <p class="text-muted">
+                        <strong>Aus der Raumbuchung:</strong> Raum in PRIMA buchen &rarr; im Buchungsdetail
+                        erscheint automatisch ein Button &bdquo;Meeting beitreten&ldquo;. Link per Matrix
+                        an Teilnehmer schicken &mdash; fertig. Externe Gaeste koennen per Link beitreten,
+                        kein Account noetig.
+                      </p>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Verschluesselung &ndash; drei Ebenen erklaert</p>
+                      <p class="text-muted mb-1">Stell dir einen Brief vor. Es gibt drei Wege ihn zu schuetzen:</p>
+                      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.75rem; margin-bottom:0.5rem;">
+                        <strong style="color:#166534;">Ebene 1 &ndash; Der Umschlag (TLS)</strong><br>
+                        <span class="text-muted">Der Brief steckt im Umschlag. Niemand auf dem Postweg liest ihn.
+                        Der Server selbst koennte ihn aber oeffnen. &rarr; Standard auf allen Webseiten (https://).</span>
+                      </div>
+                      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.75rem; margin-bottom:0.5rem;">
+                        <strong style="color:#166534;">Ebene 2 &ndash; Tresor auf dem Server (Verschluesselung at Rest)</strong><br>
+                        <span class="text-muted">Nachrichten werden verschluesselt gespeichert. Wer die Festplatte
+                        stiehlt, liest nichts. &rarr; Matrix macht das automatisch.</span>
+                      </div>
+                      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.75rem; margin-bottom:0.5rem;">
+                        <strong style="color:#166534;">Ebene 3 &ndash; Tresor in deinem Geraet (E2EE)</strong><br>
+                        <span class="text-muted">Die Nachricht wird auf <em>deinem Geraet</em> verschluesselt,
+                        bevor sie den Server erreicht. Der Server sieht nur unlesbaren Datenmuell.
+                        Nur das Geraet des Empfaengers kann entschluesseln.
+                        &rarr; Matrix/Element standardmaessig in privaten Raeumen.
+                        &rarr; Jitsi optional bei sensiblen Gespraechen.</span>
+                      </div>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Was bedeutet das konkret?</p>
+                      <table class="table table-sm table-bordered" style="font-size:0.78rem;">
+                        <thead style="background:#ecfeff;">
+                          <tr><th>Szenario</th><th>Was passiert</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td>IT-Admin schaut auf den Server</td><td class="text-muted">Sieht verschluesselte Daten &ndash; kann nichts lesen</td></tr>
+                          <tr><td>Server wird gehackt</td><td class="text-muted">Angreifer sieht verschluesselte Blobs &ndash; wertlos ohne Schluessel</td></tr>
+                          <tr><td>Behoerde beschlagnahmt Server</td><td class="text-muted">Ohne Nutzergeraete kein Zugriff auf Inhalte</td></tr>
+                          <tr><td>Mitarbeiter verlaesst Firma</td><td class="text-muted">Schluessel weg, alte Nachrichten fuer ihn nicht mehr lesbar</td></tr>
+                          <tr><td>Jemand hoert WLAN ab</td><td class="text-muted">TLS schuetzt Transport, E2EE schuetzt Inhalt</td></tr>
+                        </tbody>
+                      </table>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Warum nicht einfach WhatsApp / Teams / Zoom?</p>
+                      <table class="table table-sm table-bordered" style="font-size:0.78rem;">
+                        <thead style="background:#ecfeff;">
+                          <tr><th></th><th>WhatsApp / Teams / Zoom</th><th>Matrix / Jitsi</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td>Wer sieht meine Daten?</td><td class="text-muted">Meta, Microsoft, Zoom Inc.</td><td class="text-muted fw-semibold">Niemand ausser euch</td></tr>
+                          <tr><td>Wo liegen die Daten?</td><td class="text-muted">USA (Cloud)</td><td class="text-muted fw-semibold">Euer Server</td></tr>
+                          <tr><td>DSGVO-konform?</td><td class="text-muted">Fraglich</td><td class="text-muted fw-semibold">Ja &ndash; ihr seid Verantwortliche</td></tr>
+                          <tr><td>Kosten?</td><td class="text-muted">Lizenz pro Nutzer</td><td class="text-muted fw-semibold">Nur Serverkosten</td></tr>
+                          <tr><td>Funktioniert ohne Internet?</td><td class="text-muted">Nein</td><td class="text-muted fw-semibold">Ja (Intranet)</td></tr>
+                        </tbody>
+                      </table>
+                      <p class="text-muted">
+                        <strong>Der entscheidende Unterschied:</strong> Bei Teams oder Zoom vertraust du dem
+                        Anbieter, dass er nicht mitliest. Du kannst es nicht pruefen.
+                        Bei Matrix/Jitsi auf eurem Server musst du nicht vertrauen &mdash; technisch ist es
+                        schlicht unmoeglich fuer Aussenstehende mitzulesen, weil der Schluessel nur auf
+                        euren Geraeten liegt.
+                      </p>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Was PRIMA automatisch macht</p>
+                      <ul class="text-muted" style="padding-left:1.2rem;">
+                        <li>Raum buchen &rarr; Jitsi-Link + Matrix-Raum-Link sofort im Buchungsdetail</li>
+                        <li>Stoermeldung abschicken &rarr; Matrix-Ping ans Facility-Team</li>
+                        <li>Geplant: Neuer Mitarbeiter &rarr; Matrix-Account automatisch, direkt in Teamraeume eingeladen</li>
+                        <li>Geplant: Mitarbeiter tritt aus &rarr; ueberall sofort gesperrt</li>
+                      </ul>
+
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">E2EE bei Videokonferenzen &ndash; wann einschalten?</p>
+                      <ul class="text-muted" style="padding-left:1.2rem;">
+                        <li><strong>Standard (ohne E2EE):</strong> Verbindung zum Jitsi-Server verschluesselt (TLS). Da der Server euch gehoert: kein Problem.</li>
+                        <li><strong>Mit E2EE:</strong> Bild und Ton werden auf deinem Geraet verschluesselt. Server sieht nur Datenpakete. Empfohlen fuer Personalgespräche, GF-Sitzungen, Verhandlungen.</li>
+                        <li><strong>Voraussetzung E2EE:</strong> Chromium-basierter Browser (Edge, Chrome) oder Jitsi-App &ndash; Firefox noch nicht vollstaendig unterstuetzt.</li>
+                      </ul>
+
+                      <div style="background:#ecfeff; border:1px solid #a5f3fc; border-radius:6px; padding:0.75rem; margin-top:1rem; font-size:0.78rem; color:#0e7490;">
+                        <strong>Kurz zusammengefasst:</strong><br>
+                        Matrix/Element ist euer WhatsApp &ndash; auf eurem Server, niemand liest mit.<br>
+                        Jitsi ist euer Zoom &ndash; kostenlos, ohne Lizenzvertrag, mit echter E2EE fuer sensible Gespraeche.<br>
+                        PRIMA verbindet alles: Raum buchen &rarr; Meeting-Link da. Stoerung melden &rarr; Team sofort benachrichtigt.
+                      </div>
+                      <p class="text-muted mt-2" style="font-size:0.72rem; font-style:italic;">
+                        Technisch: Matrix verwendet Megolm (basiert auf Signal-Protokoll) fuer E2EE.
+                        Jitsi verwendet WebRTC Insertable Streams. Beide Verfahren gelten als sicher und sind Open Source &ndash; der Code ist oeffentlich pruefbar.
+                      </p>
+
+                    </div>
+                  </div>
+                </div>
+                <!-- Ende Leitfaden -->
+
+                <!-- Docker-Installationsanleitung (Collapse) -->
+                <div class="mt-2">
+                  <button class="btn btn-sm btn-outline-secondary" type="button"
+                          data-bs-toggle="collapse" data-bs-target="#collapse-docker-install"
+                          aria-expanded="false">
+                    Docker-Installation (Technik-Referenz)
+                  </button>
+                  <div class="collapse mt-3" id="collapse-docker-install">
+                    <div style="font-size:0.8rem; line-height:1.6; border-top:1px solid #e0f2fe; padding-top:1rem;">
+
+                      <!-- Voraussetzungen -->
+                      <p class="fw-semibold mb-1" style="color:#0e7490;">Voraussetzungen</p>
+                      <ul class="text-muted mb-3" style="padding-left:1.2rem;">
+                        <li>VPS mit Ubuntu 22.04 LTS, mind. 4 GB RAM (8 GB empfohlen fuer beide Dienste)</li>
+                        <li>Domain mit DNS-Zugriff (z.B. <code>firma.de</code>)</li>
+                        <li>DNS-A-Records gesetzt: <code>matrix.firma.de</code>, <code>chat.firma.de</code>, <code>meet.firma.de</code> &rarr; VPS-IP</li>
+                        <li>Docker + Docker Compose installiert</li>
+                        <li>Ports 80, 443, 10000/UDP in Firewall offen</li>
+                      </ul>
+
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># Docker + Compose auf Ubuntu installieren
+curl -fsSL https://get.docker.com | sh
+apt install docker-compose-plugin -y</pre>
+
+                      <!-- Nginx + Let's Encrypt -->
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">1. Nginx Reverse Proxy + Let's Encrypt</p>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># /opt/proxy/docker-compose.yml
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+    restart: always
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - acme:/etc/acme.sh
+    environment:
+      - DEFAULT_EMAIL=admin@firma.de
+    restart: always
+
+volumes:
+  certs:
+  vhost:
+  html:
+  acme:
+
+networks:
+  default:
+    name: proxy-net
+    external: false</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;">cd /opt/proxy && docker compose up -d</pre>
+
+                      <!-- Matrix Synapse -->
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">2. Matrix Homeserver (Synapse) + Element Web</p>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># Konfiguration einmalig generieren
+docker run --rm \
+  -v /opt/matrix/synapse:/data \
+  -e SYNAPSE_SERVER_NAME=matrix.firma.de \
+  -e SYNAPSE_REPORT_STATS=no \
+  matrixdotorg/synapse generate</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># /opt/matrix/docker-compose.yml
+services:
+  synapse:
+    image: matrixdotorg/synapse:latest
+    volumes:
+      - ./synapse:/data
+    environment:
+      - VIRTUAL_HOST=matrix.firma.de
+      - VIRTUAL_PORT=8008
+      - LETSENCRYPT_HOST=matrix.firma.de
+    networks:
+      - proxy-net
+      - matrix-internal
+    restart: always
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=synapse
+      - POSTGRES_USER=synapse
+      - POSTGRES_PASSWORD=SICHERES_PASSWORT_HIER
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - matrix-internal
+    restart: always
+
+  element:
+    image: vectorim/element-web:latest
+    volumes:
+      - ./element-config.json:/app/config.json:ro
+    environment:
+      - VIRTUAL_HOST=chat.firma.de
+      - VIRTUAL_PORT=80
+      - LETSENCRYPT_HOST=chat.firma.de
+    networks:
+      - proxy-net
+    restart: always
+
+volumes:
+  pg-data:
+
+networks:
+  proxy-net:
+    external: true
+  matrix-internal:</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># /opt/matrix/element-config.json
+{
+  "default_server_config": {
+    "m.homeserver": {
+      "base_url": "https://matrix.firma.de",
+      "server_name": "matrix.firma.de"
+    }
+  },
+  "brand": "PRIMA Chat",
+  "default_theme": "light",
+  "disable_guests": true,
+  "disable_login_language_selector": true
+}</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># Synapse starten + ersten Admin anlegen
+cd /opt/matrix && docker compose up -d
+docker compose exec synapse register_new_matrix_user \
+  -c /data/homeserver.yaml \
+  --admin -u prima-admin -p ADMINPASSWORT \
+  http://localhost:8008
+
+# Bot-Account anlegen (fuer PRIMA-Benachrichtigungen)
+docker compose exec synapse register_new_matrix_user \
+  -c /data/homeserver.yaml \
+  --no-admin -u prima-bot -p BOTPASSWORT \
+  http://localhost:8008</pre>
+
+                      <!-- Jitsi -->
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">3. Jitsi Meet</p>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># Offizielles Jitsi Docker-Setup holen
+git clone https://github.com/jitsi/docker-jitsi-meet /opt/jitsi
+cd /opt/jitsi
+cp env.example .env</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># /opt/jitsi/.env (wichtigste Werte)
+PUBLIC_URL=https://meet.firma.de
+HTTP_PORT=8080
+HTTPS_PORT=8443
+
+# Starke zufaellige Passwoerter generieren: pwgen 32 4
+JICOFO_AUTH_PASSWORD=ZUFALLSWERT_1
+JVB_AUTH_PASSWORD=ZUFALLSWERT_2
+JIGASI_XMPP_PASSWORD=ZUFALLSWERT_3
+JIBRI_RECORDER_PASSWORD=ZUFALLSWERT_4
+
+# E2EE aktivieren (WebRTC Insertable Streams)
+ENABLE_XMPP_WEBSOCKET=1
+ENABLE_COLIBRI_WEBSOCKET=1
+
+# Nur authentifizierte Nutzer duerfen Raeume erstellen
+ENABLE_AUTH=1
+ENABLE_GUESTS=1
+AUTH_TYPE=internal</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># Nginx-Proxy Eintrag fuer Jitsi (web-Container anpassen)
+# In /opt/jitsi/docker-compose.yml beim web-Service ergaenzen:
+#   environment:
+#     - VIRTUAL_HOST=meet.firma.de
+#     - VIRTUAL_PORT=80
+#     - LETSENCRYPT_HOST=meet.firma.de
+#   networks:
+#     - proxy-net (zusaetzlich zu den Jitsi-internen Netzen)
+
+cd /opt/jitsi && docker compose up -d
+
+# Ersten Jitsi-User anlegen
+docker compose exec prosody \
+  prosodyctl --config /config/prosody.cfg.lua \
+  register nutzer1 meet.jitsi PASSWORT</pre>
+
+                      <!-- PRIMA Umgebungsvariablen -->
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">4. PRIMA-Umgebungsvariablen setzen</p>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># .env (lokal) oder Railway Service-Variablen
+
+# Jitsi
+JITSI_BASE_URL=https://meet.firma.de
+
+# Matrix
+MATRIX_HOMESERVER_URL=https://matrix.firma.de
+MATRIX_BOT_TOKEN=syt_prima-bot_TOKEN_HIER  # aus Schritt 2 (Login-Antwort)
+MATRIX_FACILITY_ROOM_ID=!RAUMID:matrix.firma.de  # in Element unter Raumeinstellungen</pre>
+                      <pre style="background:#0f172a; color:#e2e8f0; border-radius:8px; padding:1rem; font-size:0.72rem; overflow-x:auto; white-space:pre; margin-bottom:1rem;"># Bot-Token ermitteln (Matrix Client-Server-API)
+curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "m.login.password",
+    "user": "prima-bot",
+    "password": "BOTPASSWORT"
+  }' | python3 -m json.tool
+# -> "access_token": "syt_..." --> das ist der MATRIX_BOT_TOKEN</pre>
+
+                      <!-- Uebersicht -->
+                      <p class="fw-semibold mb-1 mt-3" style="color:#0e7490;">Ergebnis</p>
+                      <table class="table table-sm table-bordered" style="font-size:0.78rem;">
+                        <thead style="background:#ecfeff;">
+                          <tr><th>Dienst</th><th>URL</th><th>Zweck</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr><td>Matrix Synapse</td><td><code>matrix.firma.de</code></td><td>Homeserver (API)</td></tr>
+                          <tr><td>Element Web</td><td><code>chat.firma.de</code></td><td>Chat-Client im Browser</td></tr>
+                          <tr><td>Jitsi Meet</td><td><code>meet.firma.de</code></td><td>Videokonferenz</td></tr>
+                          <tr><td>PRIMA</td><td><code>prima.firma.de</code></td><td>Koordination + Links</td></tr>
+                        </tbody>
+                      </table>
+
+                      <div style="background:#fef9c3; border:1px solid #fde047; border-radius:6px; padding:0.75rem; margin-top:0.75rem; font-size:0.78rem; color:#713f12;">
+                        <strong>Sicherheitshinweise:</strong>
+                        Alle Passwoerter mit <code>pwgen 32 1</code> oder <code>openssl rand -hex 32</code> generieren.
+                        Synapse-Registrierung nach Admin-Anlage deaktivieren
+                        (<code>enable_registration: false</code> in homeserver.yaml).
+                        Regelmaessige Backups: <code>/opt/matrix/synapse</code> + PostgreSQL-Dump.
+                        Firewall: nur Port 80, 443, 10000/UDP offen &mdash; SSH nur per Key.
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+                <!-- Ende Docker-Installation -->
+
+              </div>
+
+              <div style="border:2px solid #64748b; border-top:5px solid #64748b; border-radius:8px; padding:1rem; background:#f8fafc; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#64748b; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  IN PLANUNG
+                </div>
+                <div class="fw-bold mb-2" style="color:#475569; font-size:1rem;">Single Sign-On: LDAP &rarr; Keycloak</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  Zweistufiger SSO-Ansatz auf Basis der vorhandenen Windows-Domäne (Active Directory).
+                  Stufe 1: LDAP-Anbindung &mdash; Mitarbeiter meldet sich mit Windows-Passwort in PRIMA an,
+                  AD ist die einzige Passwort-Wahrheit, AD-Gruppen werden auf PRIMA-Rechte gemappt.
+                  Stufe 2: Keycloak als zentraler Identity Provider &mdash; spricht per LDAP-Federation
+                  mit AD und stellt OIDC/OAuth2 fuer alle Apps bereit.
+                  PRIMA, Jitsi und alle kuenftigen Systeme authentifizieren sich ueber einen
+                  einzigen Punkt. MFA zentral konfigurierbar. Einmal abmelden &rarr; ueberall abgemeldet.
+                </div>
+                <div style="font-size:0.78rem; color:#475569; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Active Directory &rarr; (LDAP) &rarr; Keycloak &rarr; (OIDC/OAuth2) &rarr; PRIMA + Jitsi + weitere Apps
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Active Directory</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">LDAP-Federation</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Keycloak OIDC</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">MFA</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#475569; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Ein Login fuer alles</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Edge per GPO &rarr; interne CA per GPO &rarr; SSO per Keycloak &rarr; alle Standorte automatisch eingebunden.
+                </div>
+              </div>
+
+              <div style="border:2px solid #0f766e; border-top:5px solid #0f766e; border-radius:8px; padding:1rem; background:#f0fdfa; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#0f766e; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  UMGESETZT
+                </div>
+                <div class="fw-bold mb-2" style="color:#134e4a; font-size:1rem;">Dokumentenmanagement: PRIMA DMS + Paperless-ngx</div>
+                <div style="font-size:0.82rem; color:#134e4a; margin-bottom:0.75rem;">
+                  Hybrides DMS mit zwei Dokumentenklassen:
+                  <br><strong>Klasse 1 – Offen:</strong> Betriebsanweisungen, Protokolle, Formulare.
+                  PostgreSQL GIN-Index auf <code>to_tsvector('german', titel || beschreibung)</code> &mdash; Volltext durchsuchbar mit deutschen Stemming-Regeln.
+                  <br><strong>Klasse 2 – Sensibel:</strong> Personalakten, Zeugnisse, Steuerunterlagen.
+                  AES-256-GCM mit serverseitigem Schluessel (DMS_VERSCHLUESSEL_KEY) &mdash;
+                  staerker als das alte Fernet AES-128 der Dokumente-App.
+                  Alle Inhalte als <code>BinaryField</code> direkt in PostgreSQL &mdash; kein Dateisystem, kein Railway-Ephemeral-Problem.
+                  <br><br>
+                  <strong>Paperless-ngx Integration (produktiv getestet):</strong>
+                  Canon DR-2580C &rarr; NAPS2 &rarr; consume-Ordner &rarr; Paperless OCR (Tesseract, deu+eng) &rarr;
+                  <code>manage.py paperless_import</code> pollt die REST API und importiert neue Dokumente in PRIMA DMS.
+                  PaperlessImportLog verhindert Duplikate. Duplikat-Schutz und Fehlerprotokoll integriert.
+                  <br><br>
+                  <strong>Cloudflare Tunnel:</strong> Paperless laeuft lokal, ist aber ueber
+                  <code>paperless.georg-klein.com</code> sicher erreichbar &mdash; ohne offene Ports, ohne statische IP.
+                  Cloudflare terminiert TLS, der Tunnel laeuft verschluesselt von innen nach aussen.
+                  Railway (PRIMA Produktion) importiert damit direkt aus dem lokalen Paperless-Server.
+                </div>
+                <div style="font-size:0.78rem; color:#0f766e; background:#ccfbf1; border:1px solid #99f6e4; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  DMS: Navigation &rarr; Sicherheit &rarr; DMS &ndash; Dokumentenmanagement &nbsp;|&nbsp;
+                  Paperless: <strong>paperless.georg-klein.com</strong>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">PostgreSQL GIN-Index</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">AES-256-GCM</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">BinaryField (kein FS)</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Cloudflare Tunnel</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Canon DR-2580C</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">OCR Tesseract deu+eng</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Audit-Trail</span>
+                  <span style="background:#ccfbf1; border:1px solid #99f6e4; color:#0f766e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">2-Klassen-Architektur</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#6b7280; font-style:italic;">
+                  Kein offener Port, keine statische IP noetig &mdash; Cloudflare Tunnel verbindet lokalen Server sicher mit Railway.
+                </div>
+              </div>
+
+              <div style="border:2px solid #6366f1; border-top:5px solid #6366f1; border-radius:8px; padding:1rem; background:#eef2ff; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#6366f1; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  UMGESETZT
+                </div>
+                <div class="fw-bold mb-2" style="color:#3730a3; font-size:1rem;">Matrix – Interner verschluesselter Messenger</div>
+                <div style="font-size:0.82rem; color:#3730a3; margin-bottom:0.75rem;">
+                  Selbst betriebener Matrix-Homeserver (Synapse) fuer sichere interne Kommunikation.
+                  Kein WhatsApp, kein Teams, keine Cloud &mdash; alle Nachrichten bleiben auf dem eigenen Server.
+                  Ende-zu-Ende-Verschluesselung per Standard. Foederation mit anderen Matrix-Servern moeglich.
+                  <br><br>
+                  <strong>Kurzanleitung:</strong><br>
+                  1. Browser oeffnen &rarr; <strong>app.element.io</strong> aufrufen (oder Element-App installieren)<br>
+                  2. <strong>Anmelden</strong> &rarr; <strong>Homeserver aendern</strong> &rarr; <code>https://matrix.georg-klein.com</code> eingeben<br>
+                  3. Benutzername + Passwort eingeben &rarr; fertig<br>
+                  4. <strong>Raum erstellen</strong> oder Kollegen per <code>@benutzername:georg-klein.com</code> direkt anschreiben<br>
+                  <br>
+                  Neue Benutzer werden vom Admin angelegt (keine Selbstregistrierung &mdash; Sicherheitsprinzip).
+                  Element gibt es als Web-App, Desktop (Windows/Mac/Linux) und Smartphone (iOS/Android).
+                </div>
+                <div style="font-size:0.78rem; color:#6366f1; background:#e0e7ff; border:1px solid #c7d2fe; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Server: <strong>matrix.georg-klein.com</strong> &nbsp;|&nbsp;
+                  Client: <strong>app.element.io</strong> &nbsp;|&nbsp;
+                  User-Format: <strong>@name:georg-klein.com</strong>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#4338ca; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Matrix/Synapse</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#4338ca; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Ende-zu-Ende-Verschluesselung</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#4338ca; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Self-hosted</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#4338ca; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Cloudflare Tunnel</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#4338ca; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Element-Client</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#4338ca; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein WhatsApp / Teams</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#6b7280; font-style:italic;">
+                  PostgreSQL-Backend, Docker, keine Lizenzkosten &mdash; volle Datenkontrolle im eigenen Netz.
+                </div>
+              </div>
+
+              <div style="border:2px solid #0284c7; border-top:5px solid #0284c7; border-radius:8px; padding:1rem; background:#f0f9ff; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#0284c7; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  UMGESETZT
+                </div>
+                <div class="fw-bold mb-2" style="color:#0c4a6e; font-size:1rem;">Jitsi Meet &ndash; Interne Videokonferenz</div>
+                <div style="font-size:0.82rem; color:#0c4a6e; margin-bottom:0.75rem;">
+                  Selbst betriebener Jitsi Meet-Server fuer Videokonferenzen &mdash; ohne Zoom-Abo,
+                  ohne Microsoft Teams, ohne externe Cloud. Getestet mit 3 Rechnern und 2 Smartphones gleichzeitig.
+                  Unbegrenzte Teilnehmer im eigenen Netz, realistisch 50&ndash;100 Personen mit vorhandener Hardware.
+                  <br><br>
+                  <strong>Kurzanleitung (Smartphone):</strong><br>
+                  1. <strong>Jitsi Meet App</strong> installieren (iOS App Store / Google Play &ndash; kostenlos)<br>
+                  2. Einstellungen &rarr; Server-URL &rarr; <code>https://meet.georg-klein.com</code> eintragen<br>
+                  3. Raumname eingeben (z.&thinsp;B. <code>Besprechung-Vertrieb</code>) &rarr; Beitreten<br>
+                  <br>
+                  <strong>Kurzanleitung (Browser):</strong><br>
+                  1. Browser oeffnen &rarr; <strong>meet.georg-klein.com</strong> aufrufen<br>
+                  2. Raumname eingeben &rarr; <strong>Los</strong><br>
+                  3. Kamera/Mikrofon freigeben &rarr; fertig<br>
+                  <br>
+                  Alle Teilnehmer mit demselben Raumnamen kommen in denselben Raum.
+                  Kein Account noetig. Jeder mit dem Link kann direkt beitreten.
+                </div>
+                <div style="font-size:0.78rem; color:#0284c7; background:#e0f2fe; border:1px solid #bae6fd; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Server: <strong>meet.georg-klein.com</strong> &nbsp;|&nbsp;
+                  LAN-intern: <strong>IP:8443</strong> &nbsp;|&nbsp;
+                  App: <strong>Jitsi Meet</strong> (iOS &amp; Android)
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#e0f2fe; border:1px solid #bae6fd; color:#0369a1; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Self-hosted Docker</span>
+                  <span style="background:#e0f2fe; border:1px solid #bae6fd; color:#0369a1; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">E2EE (optional)</span>
+                  <span style="background:#e0f2fe; border:1px solid #bae6fd; color:#0369a1; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Kein Account noetig</span>
+                  <span style="background:#e0f2fe; border:1px solid #bae6fd; color:#0369a1; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Cloudflare Tunnel</span>
+                  <span style="background:#e0f2fe; border:1px solid #bae6fd; color:#0369a1; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Zoom / Teams</span>
+                  <span style="background:#e0f2fe; border:1px solid #bae6fd; color:#0369a1; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">getestet: 5 Geraete</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#6b7280; font-style:italic;">
+                  4 Container: prosody (XMPP) + jicofo (Konferenzsteuerung) + jvb (Video-Bridge) + web &mdash;
+                  UDP 10000 fuer Media, UDP/TCP 443 fuer Signaling via Cloudflare Tunnel.
+                </div>
+              </div>
+
+              <div style="border:2px solid #dc2626; border-top:5px solid #dc2626; border-radius:8px; padding:1rem; background:#fff7f7; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#dc2626; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  UMGESETZT
+                </div>
+                <div class="fw-bold mb-2" style="color:#7f1d1d; font-size:1rem;">PDF-Werkzeuge: BentoPDF</div>
+                <div style="font-size:0.82rem; color:#7f1d1d; margin-bottom:0.75rem;">
+                  BentoPDF ist eine browserbasierte PDF-Toolbox &mdash; kein Server verarbeitet eure Dateien.
+                  Alle Operationen laufen vollstaendig per <strong>WebAssembly im Browser</strong>:
+                  das PDF verlasst euren Rechner zu keinem Zeitpunkt, auch nicht zum eigenen BentoPDF-Server.
+                  Selbst wenn jemand den Server kompromittieren wuerde, saehe er keine Dokumentinhalte.
+                  <br><br>
+                  <strong>Verfuegbare Werkzeuge:</strong>
+                  PDFs zusammenfuehren &middot; aufteilen &middot; komprimieren &middot;
+                  drehen &middot; Seiten entfernen &middot; PDF/A konvertieren &middot;
+                  PDF &rarr; Word/Excel &middot; Wasserzeichen &middot; OCR (Texterkennung) &middot;
+                  Metadaten bearbeiten &middot; Lesezeichen verwalten
+                  <br><br>
+                  <strong>Wichtig:</strong> BentoPDF ist eine reine Werkzeugbox ohne PRIMA-Integration.
+                  Signierte oder verschluesselte PRIMA-Dokumente werden wie jedes andere PDF behandelt &mdash;
+                  PRIMA-interne Signaturen und AES-Verschluesselung kennt BentoPDF nicht.
+                  Workflow: Dokument aus DMS herunterladen &rarr; in BentoPDF bearbeiten &rarr; neu hochladen.
+                </div>
+                <div style="font-size:0.78rem; color:#dc2626; background:#fee2e2; border:1px solid #fecaca; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Sicherheitsgarantie: <strong>Kein Dokumentinhalt verlaesst den Browser.</strong>
+                  WebAssembly-Verarbeitung &mdash; Server sieht ausschliesslich statische HTML/JS-Dateien,
+                  niemals PDF-Inhalte.
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#fee2e2; border:1px solid #fecaca; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">WebAssembly (clientseitig)</span>
+                  <span style="background:#fee2e2; border:1px solid #fecaca; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Server-Upload</span>
+                  <span style="background:#fee2e2; border:1px solid #fecaca; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Self-hosted Docker</span>
+                  <span style="background:#fee2e2; border:1px solid #fecaca; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">AGPL-3.0 (Open Source)</span>
+                  <span style="background:#fee2e2; border:1px solid #fecaca; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">v2.4.1 (aus Quellcode)</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#6b7280; font-style:italic;">
+                  Erreichbar ueber: Benutzermenue &rarr; PDF-Werkzeuge (BentoPDF) &rarr; neuer Tab &nbsp;|&nbsp;
+                  oder direkt: <strong>pdf.georg-klein.com</strong>
+                </div>
+              </div>
+
+              <div style="border:2px solid #16a34a; border-top:5px solid #16a34a; border-radius:8px; padding:1rem; background:#f0fdf4; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#16a34a; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  UMGESETZT
+                </div>
+                <div class="fw-bold mb-2" style="color:#14532d; font-size:1rem;">OnlyOffice – Office-Suite mit DMS-Integration &amp; Versionskontrolle</div>
+                <div style="font-size:0.82rem; color:#14532d; margin-bottom:0.75rem;">
+                  Selbst betriebener OnlyOffice Document Server &mdash; vollstaendig in das PRIMA-DMS integriert.
+                  Word- und Excel-Dokumente direkt aus dem DMS heraus bearbeiten, ohne Microsoft 365 oder Google Docs.
+                  Jede Speicherung erzeugt automatisch eine neue <strong>revisionssichere Version</strong> im DMS.
+                  <br><br>
+                  <strong>Workflow:</strong><br>
+                  DMS &rarr; &bdquo;+ Neu in OnlyOffice&ldquo; oder bestehendes Dokument &rarr; &bdquo;In OnlyOffice bearbeiten&ldquo;
+                  &rarr; Dokument bearbeiten &rarr; &bdquo;Speichern &amp; zurueck&ldquo;
+                  &rarr; PRIMA speichert automatisch neue Version im DMS
+                  <br><br>
+                  <strong>Versionskontrolle:</strong><br>
+                  Jede gespeicherte Version bleibt erhalten &mdash; mit Autor, Zeitstempel und Kommentar.
+                  Staff kann jede aeltere Version wiederherstellen (Restore erzeugt neue Version, ueberschreibt nie).
+                  Vollstaendiger Audit-Trail im Zugriffsprotokoll: wer hat wann welche Version gespeichert.
+                  <br><br>
+                  <strong>Unterschied zu BentoPDF:</strong>
+                  OnlyOffice verarbeitet Dokumente auf dem eigenen Server (kein externer Cloud-Dienst).
+                  BentoPDF laeuft rein im Browser. Fuer Office-Dokumente unvermeidbar &mdash;
+                  der Server gehoert euch, die Daten bleiben im Haus.
+                </div>
+                <div style="font-size:0.78rem; color:#16a34a; background:#dcfce7; border:1px solid #bbf7d0; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Server: <strong>office.georg-klein.com</strong> &nbsp;|&nbsp;
+                  Community Edition &nbsp;|&nbsp;
+                  20 gleichzeitige Verbindungen (Intranet: de facto unbegrenzt) &nbsp;|&nbsp;
+                  JWT-gesichert
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Self-hosted Docker</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">DMS-Integration</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Versionskontrolle</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Audit-Trail</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">.docx / .xlsx</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Microsoft 365</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Daten bleiben im Haus</span>
+                  <span style="background:#dcfce7; border:1px solid #bbf7d0; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Restore auf jede Version</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#6b7280; font-style:italic;">
+                  Intern laufen PostgreSQL, RabbitMQ und Redis im selben Container &mdash;
+                  keine externen Abhaengigkeiten, startet in ca. 90 Sekunden.
+                </div>
+              </div>
+
+              <div style="border:2px solid #94a3b8; border-top:5px solid #94a3b8; border-radius:8px; padding:1rem; background:#f8fafc; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#94a3b8; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  VISION
+                </div>
+                <div class="fw-bold mb-2" style="color:#64748b; font-size:1rem;">PRIMA als freundliches SAP-Frontend</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  Eine denkbare Weiterentwicklung: PRIMA positioniert sich nicht als Ersatz
+                  fuer bestehende ERP-Systeme, sondern als die menschliche Schicht davor.
+                  SAP bleibt was es ist &mdash; Buchungssystem, Compliance-Motor, Wahrheit der Zahlen.
+                  PRIMA uebernimmt was SAP nicht kann: eine Bedienoberflaeche die normale
+                  Mitarbeiter verstehen und gerne nutzen.
+                  Zeiterfassung, Dienstreisen, Antraege &mdash; erfasst in PRIMA, gebucht in SAP.
+                  Kein SAP-GUI. Kein Schulungsaufwand. Keine SAP-Lizenz pro Arbeitsplatz.
+                  <br><br>
+                  <em>Ob und wie diese Integration sinnvoll ist, wird gemeinsam mit
+                  erfahrenen SAP-Beratern bewertet.</em>
+                </div>
+                <div style="font-size:0.78rem; color:#64748b; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  Mitarbeiter &rarr; PRIMA (einfach) &rarr; SAP (unsichtbar) &rarr; Buchhaltung, Lohn, Compliance
+                </div>
+                <div style="font-size:0.78rem; background:#fefce8; border:1px solid #fde68a; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  <strong style="color:#92400e;">Technische Grundlage bereits vorhanden:</strong>
+                  <span style="color:#78350f;">
+                    Das PRIMA-DMS stellt eine REST-API bereit (&bdquo;DMS API v1&ldquo;) ueber die SAP
+                    Dokumente direkt ins PRIMA-Dokumentenarchiv schreiben und lesen kann &mdash;
+                    per Bearer-Token authentifiziert, vollstaendig auditiert, ohne SAP-Benutzer-Login.
+                    ABAP-Beispielcode und Endpunkt-Referenz unter
+                    <strong>DMS &rarr; API-Dokumentation</strong>.
+                    Die Gegenseite (SAP schickt Buchungsdaten an PRIMA) ist Konzept, noch nicht implementiert.
+                  </span>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#64748b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">SAP RFC / OData</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#64748b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Zeitwirtschaft</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#64748b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Reisekosten</span>
+                  <span style="background:#f1f5f9; border:1px solid #cbd5e1; color:#64748b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Kein SAP-GUI</span>
+                  <span style="background:#fef9c3; border:1px solid #fde68a; color:#92400e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">DMS REST-API v1 implementiert</span>
+                </div>
+                <div class="mt-3" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Was SAP kann, soll SAP machen. Was Menschen brauchen, macht PRIMA.
+                </div>
+              </div>
+
+              <!-- Digitale Souveraenitaet -->
+              <div style="border:2px solid #1e40af; border-top:5px solid #1e40af; border-radius:8px; padding:1rem; background:#eff6ff; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#1e40af; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  DIGITALE SOUVERAENITAET
+                </div>
+                <div class="fw-bold mb-2" style="color:#1e3a8a; font-size:1rem;">Warum PRIMA statt Microsoft / SAP / Personio</div>
+                <div style="font-size:0.82rem; color:#1e3a8a; margin-bottom:0.75rem;">
+                  PRIMA ist kein Bastelproject &mdash; es ist ein vollwertiges, selbst betriebenes
+                  Intranet-System mit DMS, Versionskontrolle, Zugriffsschutz, digitalem Audit-Trail
+                  und Office-Integration. Alle Daten bleiben unter eurer Kontrolle, auf euren Servern,
+                  nach euren Regeln.
+                  <br><br>
+                  <strong>Kostenvergleich (50 Mitarbeiter, pro Jahr):</strong>
+                </div>
+                <div style="font-size:0.8rem; margin-bottom:0.75rem;">
+                  <table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                      <tr style="background:#dbeafe;">
+                        <th style="padding:5px 8px; text-align:left; color:#1e3a8a; font-size:0.75rem;">Loesung</th>
+                        <th style="padding:5px 8px; text-align:right; color:#1e3a8a; font-size:0.75rem;">Kosten/Jahr</th>
+                        <th style="padding:5px 8px; text-align:left; color:#1e3a8a; font-size:0.75rem;">Datenlage</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style="border-bottom:1px solid #bfdbfe;">
+                        <td style="padding:5px 8px;">Microsoft 365 Business (Office + SharePoint + Teams)</td>
+                        <td style="padding:5px 8px; text-align:right; font-weight:600; color:#dc2626;">~&nbsp;8.400&nbsp;&euro;</td>
+                        <td style="padding:5px 8px; color:#6b7280;">US-Cloud, DSGVO-Grauzone</td>
+                      </tr>
+                      <tr style="border-bottom:1px solid #bfdbfe;">
+                        <td style="padding:5px 8px;">Personio (HR) + Google Workspace (Office)</td>
+                        <td style="padding:5px 8px; text-align:right; font-weight:600; color:#dc2626;">~&nbsp;18.000&nbsp;&euro;</td>
+                        <td style="padding:5px 8px; color:#6b7280;">US-Cloud</td>
+                      </tr>
+                      <tr style="border-bottom:1px solid #bfdbfe;">
+                        <td style="padding:5px 8px;">d.3 DMS + SAP-Anbindung (Einstieg)</td>
+                        <td style="padding:5px 8px; text-align:right; font-weight:600; color:#dc2626;">&gt;&nbsp;30.000&nbsp;&euro;</td>
+                        <td style="padding:5px 8px; color:#6b7280;">Vendor Lock-in</td>
+                      </tr>
+                      <tr style="background:#dcfce7;">
+                        <td style="padding:5px 8px; font-weight:700; color:#166534;">PRIMA (self-hosted)</td>
+                        <td style="padding:5px 8px; text-align:right; font-weight:700; color:#166534;">Entwicklungszeit</td>
+                        <td style="padding:5px 8px; font-weight:600; color:#166534;">eigene Server, volle Kontrolle</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div style="font-size:0.78rem; color:#1e40af; background:#dbeafe; border:1px solid #bfdbfe; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  <strong>Was PRIMA ersetzt:</strong>
+                  Microsoft 365 (Office, SharePoint, Teams) &nbsp;&middot;&nbsp;
+                  Personio (HR, Zeiterfassung) &nbsp;&middot;&nbsp;
+                  Adobe Acrobat (Signaturen) &nbsp;&middot;&nbsp;
+                  d.3 / Alfresco (DMS) &nbsp;&middot;&nbsp;
+                  Zoom / Teams (Videokonferenz via Jitsi)
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#dbeafe; border:1px solid #bfdbfe; color:#1e40af; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Digitale Souveraenitaet</span>
+                  <span style="background:#dbeafe; border:1px solid #bfdbfe; color:#1e40af; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">DSGVO-konform</span>
+                  <span style="background:#dbeafe; border:1px solid #bfdbfe; color:#1e40af; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">BSI IT-Grundschutz</span>
+                  <span style="background:#dbeafe; border:1px solid #bfdbfe; color:#1e40af; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Vendor Lock-in</span>
+                  <span style="background:#dbeafe; border:1px solid #bfdbfe; color:#1e40af; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">alle Daten im Haus</span>
+                  <span style="background:#dbeafe; border:1px solid #bfdbfe; color:#1e40af; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Open Source Stack</span>
+                </div>
+              </div>
+
+              <!-- Datensicherung NAS/SAN -->
+              <div style="border:2px solid #0f172a; border-top:5px solid #0f172a; border-radius:8px; padding:1rem; background:#f8fafc; position:relative; margin-top:1rem;">
+                <div style="position:absolute; top:-1px; right:10px; background:#0f172a; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  BACKUP-KONZEPT
+                </div>
+                <div class="fw-bold mb-2" style="color:#0f172a; font-size:0.92rem;">Datensicherung im NAS/SAN-Umfeld</div>
+                <div style="font-size:0.82rem; color:#374151; line-height:1.65;">
+
+                  <strong>Warum PRIMA hier einen strukturellen Vorteil hat:</strong><br>
+                  PRIMA nutzt kein Dateisystem &mdash; alle Dokumente, Metadaten, Protokolle und Binaerdaten
+                  stecken in <em>einer einzigen PostgreSQL-Datenbank</em>.
+                  Kein separates Dokumentenverzeichnis, kein verteilter Speicher, kein Sync-Problem.
+                  Ein einziger <code>pg_dump</code> sichert den vollstaendigen Systemzustand.
+                  <br><br>
+
+                  <!-- Stufen-Tabelle -->
+                  <div style="overflow-x:auto; margin-bottom:1rem;">
+                    <table style="width:100%; border-collapse:collapse; font-size:0.78rem;">
+                      <thead>
+                        <tr style="background:#0f172a; color:white;">
+                          <th style="padding:6px 10px; text-align:left;">Ausbaustufe</th>
+                          <th style="padding:6px 10px; text-align:left;">Technologie</th>
+                          <th style="padding:6px 10px; text-align:left;">Werkzeug</th>
+                          <th style="padding:6px 10px; text-align:left;">Recovery Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr style="background:#f1f5f9;">
+                          <td style="padding:6px 10px; font-weight:600; color:#0f172a;">Einstieg</td>
+                          <td style="padding:6px 10px;"><strong>TrueNAS Scale</strong> (ZFS, iSCSI)</td>
+                          <td style="padding:6px 10px;"><code>pgBackRest</code> + ZFS-Snapshot</td>
+                          <td style="padding:6px 10px; color:#16a34a;">~30 Min</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px 10px; font-weight:600; color:#0f172a;">Standard</td>
+                          <td style="padding:6px 10px;"><strong>Synology RS-Serie</strong> + <strong>Proxmox Backup Server</strong></td>
+                          <td style="padding:6px 10px;"><code>WAL-G</code> + S3/MinIO</td>
+                          <td style="padding:6px 10px; color:#16a34a;">~10 Min</td>
+                        </tr>
+                        <tr style="background:#f1f5f9;">
+                          <td style="padding:6px 10px; font-weight:600; color:#0f172a;">Professional</td>
+                          <td style="padding:6px 10px;"><strong>NetApp ONTAP</strong> / <strong>Dell EMC PowerStore</strong></td>
+                          <td style="padding:6px 10px;"><code>pgBackRest</code> + Storage-Snapshot</td>
+                          <td style="padding:6px 10px; color:#16a34a;">&lt; 2 Min</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:6px 10px; font-weight:600; color:#0f172a;">High Availability</td>
+                          <td style="padding:6px 10px;"><strong>Ceph</strong> / <strong>PostgreSQL Streaming Replication</strong></td>
+                          <td style="padding:6px 10px;">WAL-Archivierung + Standby-Server</td>
+                          <td style="padding:6px 10px; color:#16a34a;">&lt; 30 Sek (Failover)</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <strong>Empfohlener Stack fuer Selbstbetrieb (IT-Standard):</strong>
+                  <br><br>
+
+                  <!-- Stack-Karten -->
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem;">
+                    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:0.6rem 0.75rem;">
+                      <div style="font-weight:700; color:#1d4ed8; font-size:0.78rem; margin-bottom:3px;">pgBackRest</div>
+                      <div style="font-size:0.75rem; color:#374151;">
+                        PostgreSQL-nativer Backup-Standard. Inkrementell, komprimiert, verschluesselt.
+                        WAL-Archivierung fuer Point-in-Time-Recovery &mdash; Datenbank auf beliebigen
+                        Zeitpunkt innerhalb des Archivfensters zuruecksetzen.
+                      </div>
+                    </div>
+                    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:0.6rem 0.75rem;">
+                      <div style="font-weight:700; color:#1d4ed8; font-size:0.78rem; margin-bottom:3px;">WAL-G</div>
+                      <div style="font-size:0.75rem; color:#374151;">
+                        Schreibt PostgreSQL WAL-Segmente direkt auf S3-kompatible Ziele (MinIO, Ceph, NetApp S3).
+                        Backup-Overhead nahe null, da parallel zum laufenden Betrieb.
+                        Von Yelp entwickelt, heute Industrie-Standard.
+                      </div>
+                    </div>
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.6rem 0.75rem;">
+                      <div style="font-weight:700; color:#166534; font-size:0.78rem; margin-bottom:3px;">TrueNAS Scale</div>
+                      <div style="font-size:0.75rem; color:#374151;">
+                        Open-Source-NAS auf ZFS-Basis. Snapshots in Millisekunden, Copy-on-Write,
+                        integriertes iSCSI-SAN, S3-Gateway, Replikation auf zweites TrueNAS.
+                        IT-Community-Favorit fuer Heimlabore bis mittleres Rechenzentrum.
+                      </div>
+                    </div>
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.6rem 0.75rem;">
+                      <div style="font-weight:700; color:#166534; font-size:0.78rem; margin-bottom:3px;">Proxmox Backup Server</div>
+                      <div style="font-size:0.75rem; color:#374151;">
+                        Open-Source-Backup fuer VMs und Container, aber auch fuer Daten-Backups nutzbar.
+                        Deduplizierung, Verschluesselung, Web-GUI, Retention-Policies.
+                        Ideal wenn PRIMA in einer VM laeuft.
+                      </div>
+                    </div>
+                    <div style="background:#fefce8; border:1px solid #fde68a; border-radius:6px; padding:0.6rem 0.75rem;">
+                      <div style="font-weight:700; color:#92400e; font-size:0.78rem; margin-bottom:3px;">MinIO</div>
+                      <div style="font-size:0.75rem; color:#374151;">
+                        S3-kompatibler Objektspeicher, laeuft auf eigener Hardware.
+                        WAL-G und pgBackRest sprechen MinIO nativ an &mdash; gleiche API wie AWS S3,
+                        keine Cloud-Abhaengigkeit. Cluster-faehig ab 4 Nodes (Erasure Coding).
+                      </div>
+                    </div>
+                    <div style="background:#fefce8; border:1px solid #fde68a; border-radius:6px; padding:0.6rem 0.75rem;">
+                      <div style="font-weight:700; color:#92400e; font-size:0.78rem; margin-bottom:3px;">Restic + Restic REST Server</div>
+                      <div style="font-size:0.75rem; color:#374151;">
+                        Modernes Backup-Werkzeug: dedupliziert, verschluesselt (AES-256-CTR),
+                        laeuft gegen NAS, S3, SFTP oder lokales Verzeichnis.
+                        Einfachste Option fuer den Einstieg &mdash; ein Binary, kein Daemon.
+                      </div>
+                    </div>
+                  </div>
+
+                  <strong>3-2-1-Regel in der Praxis mit PRIMA:</strong><br><br>
+                  <div style="background:#1e293b; color:#e2e8f0; border-radius:6px; padding:0.85rem 1rem; font-size:0.77rem; font-family:monospace; line-height:1.7; margin-bottom:1rem; overflow-x:auto;">
+3 Kopien:<br>
+&nbsp;&nbsp;[1] Live-PostgreSQL &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ PRIMA laeuft<br>
+&nbsp;&nbsp;[2] TrueNAS Scale NAS &nbsp;&nbsp;&nbsp;&nbsp;→ taeglich, pgBackRest, 30 Tage Retention<br>
+&nbsp;&nbsp;[3] Zweiter Standort / Band →  woechentlich, verschluesselt, 1 Jahr<br>
+<br>
+2 verschiedene Medien:<br>
+&nbsp;&nbsp;NVMe (DB-Server) ≠ HDD/SSD-Pool (TrueNAS)<br>
+<br>
+1 raeumlich getrennte Kopie:<br>
+&nbsp;&nbsp;Anderes Gebaeude, anderer Brandabschnitt, oder<br>
+&nbsp;&nbsp;verschluesselt auf Band im Safe (LTO-8: 12 TB nativ)
+                  </div>
+
+                  <strong>Point-in-Time-Recovery &mdash; was das bedeutet:</strong><br>
+                  Mit WAL-Archivierung kann PRIMA auf jeden beliebigen Zeitpunkt
+                  der letzten N Tage zurueckgesetzt werden &mdash; nicht nur auf den letzten Backup-Punkt.
+                  <em>Beispiel: Ransomware-Angriff Dienstag 14:32 Uhr &rarr; Restore auf Dienstag 14:31 Uhr.
+                  Datenverlust: eine Minute.</em>
+                  <br><br>
+
+                  <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:0.6rem 0.8rem; font-size:0.78rem; color:#991b1b; margin-bottom:0.75rem;">
+                    <strong>BSI CON.3 Pflicht:</strong> Backup ohne dokumentierten Restore-Test
+                    gilt als nicht vorhanden. Mindestens einmal jaehrlich vollstaendigen
+                    Restore auf Testsystem durchfuehren und protokollieren.
+                    PRIMA-Roadmap: Datensicherungs-GUI mit Protokoll und Faelligkeitserinnerung.
+                  </div>
+
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">pgBackRest</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">WAL-G</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">TrueNAS Scale (ZFS)</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">MinIO S3</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Proxmox Backup Server</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Restic</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Point-in-Time-Recovery</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">3-2-1-Regel</span>
+                  <span style="background:#e0e7ff; border:1px solid #c7d2fe; color:#3730a3; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">BSI CON.3</span>
+                </div>
+              </div>
+
+              <!-- Skalierung: MinIO + OpenSearch -->
+              <div style="border:2px solid #0369a1; border-top:5px solid #0369a1; border-radius:8px; padding:1rem; background:#f0f9ff; position:relative; margin-top:1rem;">
+                <div style="position:absolute; top:-1px; right:10px; background:#0369a1; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  SKALIERUNGSSTRATEGIE
+                </div>
+                <div class="fw-bold mb-2" style="color:#0369a1; font-size:0.92rem;">Enterprise-Skalierung: MinIO &amp; OpenSearch</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem; line-height:1.6;">
+                  PRIMA ist von Grund auf fuer lineares Wachstum ausgelegt. Fuer Volumina im sechsstelligen Dokumentenbereich
+                  pro Jahr stehen zwei battle-tested Infrastrukturkomponenten bereit, die nahtlos in den bestehenden Stack integriert werden:
+                  <br><br>
+                  <strong>MinIO &ndash; S3-kompatibles Objekt-Storage</strong><br>
+                  Ab einem bestimmten Dokumentenvolumen ist es technisch sinnvoll, Binaerdaten aus PostgreSQL
+                  in einen dedizierten Objekt-Store auszulagern. MinIO (Apache&nbsp;2.0) bietet S3-kompatibles
+                  Storage auf eigener Hardware &ndash; ohne Cloud-Abhaengigkeit, ohne laufende Lizenzkosten,
+                  mit nativem Erasure&nbsp;Coding fuer Ausfallsicherheit. PostgreSQL behaelt dann nur Metadaten
+                  und Suchvektoren (~1&nbsp;KB/Dokument), waehrend MinIO die Rohdateien verwaltet.
+                  Das Ergebnis: PostgreSQL bleibt in jedem Szenario schnell; Speicherkosten sinken auf
+                  Commodity-Niveau; horizontale Skalierung des Storage-Tiers wird moeglich.
+                  <br><br>
+                  <strong>OpenSearch &ndash; verteilte Volltextsuche</strong><br>
+                  PostgreSQL FTS mit GIN-Index skaliert zuverlaessig bis in den mittleren einstelligen
+                  Millionenbereich. Sollte das Suchvolumen &ndash; durch steigende Gleichzeitigkeit,
+                  mehrsprachige Inhalte oder Faceted-Search-Anforderungen &ndash; ueber diesen Schwellwert
+                  hinauswachsen, ist OpenSearch (Apache&nbsp;2.0, AWS-gepflegt) die logische Erweiterung.
+                  Die API ist kompatibel zu Elasticsearch&nbsp;7.x; ein Django-Client existiert;
+                  der Indexierungsaufruf in PRIMA ist bereits als separater Service-Layer isoliert
+                  und laesst sich ohne Strukturaenderungen auf einen externen Search-Cluster umlenken.
+                  <br><br>
+                  <div style="background:#e0f2fe; border:1px solid #7dd3fc; border-radius:6px; padding:0.6rem 0.8rem; font-size:0.78rem; color:#0c4a6e;">
+                    <strong>Einordnung:</strong> Beide Komponenten sind fuer PRIMA vorbereitet, aber noch nicht aktiv &ndash;
+                    weil sie bei aktuellem Volumen schlicht nicht noetig sind. PostgreSQL FTS auf GIN-Index
+                    beantwortet Suchanfragen ueber 500&nbsp;000 Dokumente in unter 50&nbsp;ms.
+                    Das ist der richtige Zeitpunkt um zu skalieren: wenn die Messwerte es erfordern,
+                    nicht wenn ein Whitepaper es empfiehlt.
+                  </div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">MinIO Apache 2.0</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">OpenSearch Apache 2.0</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">S3-kompatibel</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Erasure Coding</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">horizontale Skalierung</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Vendor Lock-in</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#0c4a6e; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">messdatengetrieben</span>
+                </div>
+              </div>
+
+              <!-- E-Mail-Infrastruktur: Mailpit + Stalwart -->
+              <div style="border:2px solid #7c3aed; border-top:5px solid #7c3aed; border-radius:8px; padding:1rem; background:#faf5ff; position:relative; margin-top:1rem;">
+                <div style="position:absolute; top:-1px; right:10px; background:#7c3aed; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  INTERNE KOMMUNIKATION
+                </div>
+                <div class="fw-bold mb-2" style="color:#7c3aed; font-size:0.92rem;">E-Mail-Infrastruktur: Mailpit &amp; Stalwart</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem; line-height:1.6;">
+                  PRIMA versendet Workflow-Benachrichtigungen, Prozess-Abschluesse und Verteiler-Meldungen
+                  ueber einen vollstaendig selbst betriebenen SMTP-Stack &mdash; kein Drittanbieter, keine Cloud-Abhaengigkeit.
+                  <br><br>
+                  <strong>Mailpit (MIT-Lizenz) &ndash; interner SMTP-Empfaenger</strong><br>
+                  Im laufenden Betrieb faengt Mailpit alle ausgehenden E-Mails ab und stellt sie
+                  in einer uebersichtlichen Web-Oberflaeche dar (<code>http://localhost:8025</code>).
+                  Kein einziges Mail verlaesst das Intranet &mdash; ideal fuer die interne Kommunikation
+                  zwischen Abteilungen, Workflow-Benachrichtigungen und Prozess-Verteiler.
+                  Mailpit ist als Docker-Container im Stapel integriert und startet mit
+                  <code>docker compose up</code> automatisch mit.
+                  <br><br>
+                  <strong>Upgrade-Pfad: Stalwart Mail Server (AGPL-3.0)</strong><br>
+                  Sollte kuenftig echter bidirektionaler E-Mail-Verkehr benoetigt werden &mdash;
+                  also Mitarbeiter mit eigenen Postfaechern unter einer internen Domain wie
+                  <code>@prima.intern</code> &mdash; ist Stalwart die logische Erweiterung.
+                  Stalwart vereint SMTP, IMAP und eine Web-Admin-Oberflaeche in einem einzigen
+                  Rust-basierten Container mit minimalem Ressourcenbedarf.
+                  Der Wechsel erfordert <strong>keine Aenderung am PRIMA-Code</strong>:
+                  lediglich <code>EMAIL_HOST</code> und <code>EMAIL_PORT</code> in der
+                  Umgebungskonfiguration anpassen &mdash; Django kommuniziert mit beiden Servern
+                  ueber denselben SMTP-Standard.
+                </div>
+                <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+                  <div style="background:#ede9fe; border:1px solid #c4b5fd; border-radius:6px; padding:0.6rem 0.75rem; flex:1; min-width:200px;">
+                    <div style="font-weight:700; color:#6d28d9; font-size:0.78rem; margin-bottom:3px;">Mailpit &mdash; jetzt aktiv</div>
+                    <div style="font-size:0.75rem; color:#374151;">
+                      MIT-Lizenz &middot; Docker-integriert &middot; Web-UI auf Port&nbsp;8025 &middot;
+                      kein Mail verlaesst das Haus &middot; sofortiger Einsatz ohne Konfiguration
+                    </div>
+                  </div>
+                  <div style="background:#f3e8ff; border:1px solid #d8b4fe; border-radius:6px; padding:0.6rem 0.75rem; flex:1; min-width:200px;">
+                    <div style="font-weight:700; color:#7c3aed; font-size:0.78rem; margin-bottom:3px;">Stalwart &mdash; Upgrade-Pfad</div>
+                    <div style="font-size:0.75rem; color:#374151;">
+                      AGPL-3.0 &middot; Rust-basiert &middot; SMTP + IMAP in einem Container &middot;
+                      WebAdmin-UI &middot; interne Postfaecher &middot; nahtloser Wechsel von Mailpit
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#ede9fe; border:1px solid #c4b5fd; color:#4c1d95; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Mailpit MIT</span>
+                  <span style="background:#ede9fe; border:1px solid #c4b5fd; color:#4c1d95; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Stalwart AGPL-3.0</span>
+                  <span style="background:#ede9fe; border:1px solid #c4b5fd; color:#4c1d95; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Vendor Lock-in</span>
+                  <span style="background:#ede9fe; border:1px solid #c4b5fd; color:#4c1d95; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">vollstaendig offline</span>
+                  <span style="background:#ede9fe; border:1px solid #c4b5fd; color:#4c1d95; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">zero Code-Aenderung beim Upgrade</span>
+                  <span style="background:#ede9fe; border:1px solid #c4b5fd; color:#4c1d95; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Docker-nativ</span>
+                </div>
+              </div>
+
+              <!-- Datenhoheit & Selbstbetrieb -->
+              <div style="border:2px solid #1a4d2e; border-top:5px solid #1a4d2e; border-radius:8px; padding:1rem; background:#f0fdf4; position:relative; margin-top:1rem;">
+                <div style="position:absolute; top:-1px; right:10px; background:#1a4d2e; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  GESAMTBEWERTUNG
+                </div>
+                <div class="fw-bold mb-2" style="color:#1a4d2e; font-size:0.92rem;">Datenhoheit &amp; Selbstbetrieb</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem; line-height:1.6;">
+                  PRIMA wurde von Anfang an fuer genau ein Szenario gebaut: <strong>vollstaendig selbst betrieben, ohne Abhaengigkeit von Drittanbietern.</strong>
+                  Kein CDN, keine externen APIs, keine Cloud-Pflicht. Alle Daten bleiben dort wo sie hingehoeren &mdash; im eigenen Haus.
+                  <br><br>
+                  Auf eigener Serverhardware mit lokaler PostgreSQL-Instanz ist PRIMA <strong>produktionsreifer als auf jedem Cloudanbieter</strong>:
+                  die Datenbanklatenz faellt von ~15&nbsp;ms auf unter 1&nbsp;ms, der OnlyOffice-Callback laeuft im eigenen LAN,
+                  kein Container schlaeft ein, und die Rechenleistung ist dediziert statt geteilt.
+                  <br><br>
+                  <strong>Railway und Supabase waren immer nur ein Kompromiss fuer die Entwicklungsphase.</strong>
+                  Das Ziel war immer der eigene Serverraum.
+                  <br><br>
+                  Der einzige echte Aufwand im Selbstbetrieb ist Ops-Disziplin: Backups regelmaessig testen, Sicherheitsupdates einspielen, Monitoring aufsetzen.
+                  Dieselbe Arbeit faellt bei SAP, Personio oder Microsoft&nbsp;365 genauso an &mdash;
+                  dort zahlt man dafuer sechsstellige Jahresbetraege und bekommt im Gegenzug
+                  Daten auf fremden Servern, Vendor&nbsp;Lock-in und Abhaengigkeit von Kuendigungsfristen.
+                  <br><br>
+                  <div style="background:#dcfce7; border:1px solid #86efac; border-radius:6px; padding:0.6rem 0.8rem; font-size:0.78rem; color:#166534;">
+                    <strong>Fazit:</strong> Wer PRIMA auf eigener Hardware betreibt, hat ein vollstaendiges Unternehmenssystem das ihm gehoert,
+                    das er versteht, das er anpassen kann &mdash; und das keine Daten nach aussen traegt.
+                    Das ist keine Bastelarbeit. Das ist Infrastruktur.
+                  </div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Daten bleiben im Haus</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Vendor Lock-in</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein CDN, kein Cloud-Zwang</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">dedizierte Hardware = volle Performance</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Open Source Stack</span>
+                  <span style="background:#dcfce7; border:1px solid #86efac; color:#166534; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">DSGVO Art. 25 by Design</span>
+                </div>
+              </div>
+
+              <!-- IT-Systemstatus & Meldekette -->
+              <div style="border:2px solid #0369a1; border-top:5px solid #0369a1; border-radius:8px; padding:1rem; background:#f0f9ff; position:relative; margin-top:1rem;">
+                <div style="position:absolute; top:-1px; right:10px; background:#0369a1; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  IT-HELPDESK
+                </div>
+                <div class="fw-bold mb-2" style="color:#0369a1; font-size:0.92rem;">IT-Systemstatus &amp; automatische Meldekette</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem; line-height:1.6;">
+                  PRIMA ueberwacht den Zustand aller IT-Systeme und zeigt den Gesamtstatus als farbige Ampel
+                  direkt in der Navigationsleiste &mdash; sichtbar fuer jeden eingeloggten Mitarbeiter.
+                  Ein gruener Punkt bedeutet: alles in Betrieb. Gelb: Hinweis. Rot: aktive Stoerung.
+                  <br><br>
+                  <strong>IT-Helpdesk-Pflege ohne Admin-Zugang</strong><br>
+                  Mitarbeiter der Gruppe <code>it_helpdesk</code> (Stellen: al_hd, ma_hd1&ndash;3, it_ad) koennen
+                  direkt ueber <code>/it-status/</code> Stoerungen melden, Wartungsfenster planen,
+                  Systeme anlegen und den Status einzelner Systeme aendern &mdash; alles ohne Django-Admin.
+                  Der Login erfolgt ueber das Stellen-Kuerzel (z.B. <code>al_hd</code>) statt des persoenlichen Usernamens.
+                  <br><br>
+                  <strong>Automatische Meldekette: Workflow-Postbote</strong><br>
+                  Sobald eine Stoerung gespeichert wird, startet PRIMA automatisch einen Workflow-Postboten.
+                  Dieser versendet gleichzeitig:<br>
+                  &bull; eine <strong>E-Mail</strong> mit System, Status, Titel, Beschreibung, Melder und Zeitstempel
+                  an alle fuenf Helpdesk-Mitarbeiter (ueber Mailpit, vollstaendig intern)<br>
+                  &bull; eine <strong>Matrix-Nachricht</strong> in den Raum <code>IT_Stoerung_PING</code>
+                  auf dem selbstgehosteten Synapse-Server &mdash; empfangen von allen Helpdesk-Mitarbeitern
+                  in Element in Echtzeit<br>
+                  <br>
+                  Der Nachrichtentext &mdash; Empfaenger, Betreff, Kanaele &mdash; ist vollstaendig ueber den
+                  PRIMA Workflow-Editor unter <code>/workflow/</code> konfigurierbar, ohne Code-Aenderung.
+                  <br><br>
+                  <strong>Stellen-Login: Funktionskonto statt Personenkonto</strong><br>
+                  Das eigens entwickelte <code>StelleAuthBackend</code> erlaubt den Login mit dem
+                  Stellen-Kuerzel. Wechselt der Stelleninhaber, aendert sich am Login-Prozess nichts &mdash;
+                  das System loest das Kuerzel automatisch zum aktuellen Inhaber auf.
+                </div>
+                <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+                  <div style="background:#e0f2fe; border:1px solid #7dd3fc; border-radius:6px; padding:0.6rem 0.75rem; flex:1; min-width:180px;">
+                    <div style="font-weight:700; color:#0369a1; font-size:0.78rem; margin-bottom:3px;">Navbar-Ampel</div>
+                    <div style="font-size:0.75rem; color:#374151;">
+                      Gruener / gelber / roter Punkt oben rechts &middot; Klick oeffnet Statusuebersicht &middot;
+                      automatische Aktualisierung bei jeder Seite
+                    </div>
+                  </div>
+                  <div style="background:#e0f2fe; border:1px solid #7dd3fc; border-radius:6px; padding:0.6rem 0.75rem; flex:1; min-width:180px;">
+                    <div style="font-weight:700; color:#0369a1; font-size:0.78rem; margin-bottom:3px;">Matrix-Meldekette</div>
+                    <div style="font-size:0.75rem; color:#374151;">
+                      Raum IT_Stoerung_PING auf georg-klein.com &middot; Synapse selbstgehostet &middot;
+                      Bot prima-bot sendet automatisch &middot; Echtzeit in Element
+                    </div>
+                  </div>
+                  <div style="background:#e0f2fe; border:1px solid #7dd3fc; border-radius:6px; padding:0.6rem 0.75rem; flex:1; min-width:180px;">
+                    <div style="font-weight:700; color:#0369a1; font-size:0.78rem; margin-bottom:3px;">Workflow-Postbote</div>
+                    <div style="font-size:0.75rem; color:#374151;">
+                      E-Mail + Matrix gleichzeitig &middot; Trigger: it_stoerung_gemeldet &middot;
+                      Konfigurierbar ueber /workflow/ &middot; kein Code noetig
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#075985; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Navbar-Ampel</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#075985; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Matrix Echtzeit-Ping</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#075985; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">E-Mail intern (Mailpit)</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#075985; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Stellen-Login (StelleAuthBackend)</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#075985; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Workflow-gesteuert</span>
+                  <span style="background:#e0f2fe; border:1px solid #7dd3fc; color:#075985; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Admin-Zugang noetig</span>
+                </div>
+              </div>
+
+              <!-- Erste Hilfe – Digitale Meldekette -->
+              <div style="border:2px solid #b91c1c; border-top:5px solid #b91c1c; border-radius:8px; padding:1rem; background:#fff1f2; position:relative; margin-top:1rem;">
+                <div style="position:absolute; top:-1px; right:10px; background:#b91c1c; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  ERSTE HILFE
+                </div>
+                <div class="fw-bold mb-2" style="color:#b91c1c; font-size:0.92rem;">&#9888; Erste-Hilfe-Alarm &amp; digitale Meldekette</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem; line-height:1.6;">
+                  PRIMA ist nach unserem Kenntnisstand das einzige interne HR- und Organisationssystem,
+                  das einen vollstaendig <strong>digitalisierten Erste-Hilfe-Alarmierungsablauf</strong>
+                  direkt in die betriebliche Softwareumgebung integriert &mdash; ohne externe App, ohne Cloud-Abhaengigkeit,
+                  vollstaendig DSGVO-konform auf eigener Infrastruktur.
+                  <br><br>
+
+                  <strong>Ablauf in der Praxis</strong><br>
+                  Ein Mitarbeiter sieht einen Notfall. Er klickt in der PRIMA-Navbar auf den roten
+                  <strong>SOS-Knopf</strong>, bestaetigt einmal und gibt den Ort an &mdash; fertig.
+                  PRIMA loest automatisch aus:<br>
+                  &bull; <strong>Oeffentlicher Matrix-Ping</strong> (<code>@room</code>) im Raum <code>EH_PING</code> an alle Ersthelfer gleichzeitig<br>
+                  &bull; <strong>Persoenliche Matrix-Direktnachricht</strong> mit individuellem Token-Link an jeden Ersthelfer<br>
+                  &bull; <strong>ntfy-Push</strong> an alle Abonnenten des Themas <code>eh-alarm-prima</code> (Android &amp; Browser)<br>
+                  &bull; <strong>Separate Benachrichtigung</strong> an den Betriebsarzt (Stelle <code>ba_as</code>)<br>
+                  <br>
+
+                  <strong>Live-Alarm-Banner im Browser (alle PRIMA-Nutzer)</strong><br>
+                  Ist ein Ersthelfer oder Verantwortlicher (al_as / Betriebsarzt) in PRIMA angemeldet und
+                  wechselt gerade zwischen Seiten, erkennt ein <em>Status-Poller</em> den neuen Einsatz
+                  automatisch &mdash; spaetestens nach 5 Sekunden. Es erscheint ein rotes Vollbild-Overlay
+                  mit Einsatzort und Alarmzeit sowie ein Alarmton. Die Seite laedt danach automatisch neu
+                  und zeigt den roten Lauftext-Banner oben in der Navigationsleiste, der solange laeuft
+                  bis ein Ersthelfer &bdquo;Bin vor Ort&ldquo; gemeldet hat.<br>
+                  <br>
+
+                  <strong>Token-basierte Rueckmeldung &mdash; kein Login noetig</strong><br>
+                  Jeder Ersthelfer erhaelt einen persoenlichen Einmal-Link direkt per Matrix-DM.
+                  Oeffnet er diesen &mdash; z.B. am Smartphone &mdash; sieht er vier grosse Schaltflaechen:
+                  <em>Bin unterwegs &middot; Bin vor Ort &middot; Brauche Unterstuetzung &middot; Kann nicht kommen.</em>
+                  Kein Login, kein Passwort. Die Rueckmeldung erscheint sofort im EH_PING-Raum und
+                  im Protokoll des Vorfalls.<br>
+                  <br>
+
+                  <strong>Betriebsarzt-Protokoll (DSGVO Art. 9)</strong><br>
+                  Alle Vorfaelle werden lueckenlos protokolliert. Vorfalldetails und Ersthelfer-Rueckmeldungen
+                  sind ausschliesslich fuer den Betriebsarzt und Staff einsehbar.
+                  Der Betriebsarzt (Stelle <code>ba_as</code>, OrgEinheit Arbeitsschutz) hat eine eigene
+                  geschuetzte Uebersicht unter <code>/ersthelfe/</code>.<br>
+                  <br>
+
+                  <strong>Ersthelfer-Schein-Verwaltung</strong><br>
+                  PRIMA erinnert automatisch &mdash; 30, 14 und 7 Tage vor Ablauf &mdash; per Matrix-DM
+                  an den betroffenen Ersthelfer und den Betriebsarzt, wenn der Erste-Hilfe-Schein
+                  erneuerungsbeduerftig wird.
+                </div>
+
+                <!-- ntfy Push-Benachrichtigungen einrichten -->
+                <div style="background:#fff; border:1px solid #fca5a5; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+                  <div style="font-weight:700; color:#b91c1c; font-size:0.85rem; margin-bottom:0.75rem;">
+                    &#128276; Push-Benachrichtigungen einrichten (ntfy)
+                  </div>
+                  <div style="font-size:0.8rem; color:#374151; margin-bottom:0.75rem;">
+                    PRIMA betreibt einen eigenen Push-Dienst (<strong>ntfy</strong>) &mdash; selbst gehostet,
+                    kein Google-Konto noetig, keine Cloud. Sobald ein EH-Alarm ausgeloest wird,
+                    erscheint auf dem Gerat eine laute Sofortbenachrichtigung &mdash; auch wenn der
+                    Browser geschlossen ist.
+                  </div>
+
+                  <!-- Android -->
+                  <div style="border-left:3px solid #22c55e; padding-left:0.75rem; margin-bottom:0.9rem;">
+                    <div style="font-weight:700; font-size:0.78rem; color:#15803d; margin-bottom:0.3rem;">
+                      Android-Smartphone
+                    </div>
+                    <ol style="font-size:0.76rem; color:#374151; margin:0; padding-left:1.2rem; line-height:1.8;">
+                      <li><strong>ntfy-App</strong> aus dem Play&nbsp;Store oder F-Droid installieren<br>
+                          <em>(Suche: &bdquo;ntfy&ldquo; von Philipp Heckel)</em></li>
+                      <li>App oeffnen &rarr; oben rechts <strong>+</strong> tippen</li>
+                      <li>Als Server eingeben: <code>https://ntfy.georg-klein.com</code></li>
+                      <li>Als Thema (Topic) eingeben: <code>eh-alarm-prima</code></li>
+                      <li>Abonnieren bestaetigen</li>
+                      <li>In den Android-Einstellungen &rarr; Apps &rarr; ntfy &rarr; Benachrichtigungen
+                          sicherstellen, dass der Kanal <strong>eh-alarm-prima</strong> auf
+                          <em>Dringend</em> (hoechste Lautstaerke) gestellt ist</li>
+                    </ol>
+                    <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:4px; padding:0.4rem 0.6rem; margin-top:0.5rem; font-size:0.73rem; color:#166534;">
+                      <strong>Ton-Einstellung:</strong> Android-Einstellungen &rarr; Apps &rarr; ntfy &rarr;
+                      Benachrichtigungen &rarr; Kanal <em>eh-alarm-prima</em> &rarr; Ton &rarr;
+                      lautesten Klingelton auswaehlen &amp; Vibration aktivieren.
+                      Nicht-Stoeren-Ausnahme fuer ntfy hinzufuegen, damit der Alarm auch nachts durchkommt.
+                    </div>
+                  </div>
+
+                  <!-- Chrome Desktop -->
+                  <div style="border-left:3px solid #f59e0b; padding-left:0.75rem; margin-bottom:0.9rem;">
+                    <div style="font-weight:700; font-size:0.78rem; color:#92400e; margin-bottom:0.3rem;">
+                      Chrome / Edge &mdash; Desktop-Browser
+                    </div>
+                    <ol style="font-size:0.76rem; color:#374151; margin:0; padding-left:1.2rem; line-height:1.8;">
+                      <li>Im Browser aufrufen: <code>https://ntfy.georg-klein.com</code></li>
+                      <li>Auf das <strong>Glocken-Symbol</strong> oben rechts in der ntfy-Oberflaeche klicken</li>
+                      <li>Den Browser-Dialog <em>&bdquo;Benachrichtigungen erlauben&ldquo;</em> bestaetigen</li>
+                      <li>Thema <code>eh-alarm-prima</code> abonnieren (falls noch nicht)</li>
+                      <li>Das Glocken-Symbol muss nun <strong>aktiv (ausgefuellt)</strong> erscheinen</li>
+                    </ol>
+                    <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:4px; padding:0.4rem 0.6rem; margin-top:0.5rem; font-size:0.73rem; color:#92400e;">
+                      <strong>Hinweis:</strong> Der Browser muss geoeffnet sein (Seite muss nicht aktiv im Vordergrund sein).
+                      In Chrome unter Einstellungen &rarr; Datenschutz &rarr; Website-Einstellungen &rarr;
+                      Benachrichtigungen sicherstellen, dass <code>ntfy.georg-klein.com</code> erlaubt ist.
+                    </div>
+                  </div>
+
+                  <!-- Firefox Desktop -->
+                  <div style="border-left:3px solid #f97316; padding-left:0.75rem; margin-bottom:0.5rem;">
+                    <div style="font-weight:700; font-size:0.78rem; color:#c2410c; margin-bottom:0.3rem;">
+                      Firefox &mdash; Desktop-Browser
+                    </div>
+                    <ol style="font-size:0.76rem; color:#374151; margin:0; padding-left:1.2rem; line-height:1.8;">
+                      <li>Im Browser aufrufen: <code>https://ntfy.georg-klein.com</code></li>
+                      <li>Auf das <strong>Glocken-Symbol</strong> oben rechts klicken</li>
+                      <li>Den Firefox-Dialog <em>&bdquo;Benachrichtigungen erlauben&ldquo;</em> bestaetigen</li>
+                      <li>Thema <code>eh-alarm-prima</code> abonnieren</li>
+                    </ol>
+                    <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:4px; padding:0.4rem 0.6rem; margin-top:0.5rem; font-size:0.73rem; color:#9a3412;">
+                      <strong>Hinweis Firefox:</strong> Web Push funktioniert in Firefox, allerdings
+                      spielt Firefox standardmaessig <em>keinen eigenen Alarmton</em> ab &mdash; nur den
+                      system&uuml;blichen Benachrichtigungston des Betriebssystems.
+                      Fuer laute Alarmierung auf dem Smartphone besser die <strong>ntfy-App</strong>
+                      (Android) oder <strong>Element mit UnifiedPush</strong> (siehe unten) verwenden.<br>
+                      Falls Benachrichtigungen nicht erscheinen: Adressleiste &rarr; Schloss-Symbol &rarr;
+                      Benachrichtigungen &rarr; Erlaubt.
+                    </div>
+                  </div>
+
+                  <!-- Element UnifiedPush -->
+                  <div style="border-left:3px solid #0e7490; padding-left:0.75rem; margin-top:0.9rem;">
+                    <div style="font-weight:700; font-size:0.78rem; color:#0e7490; margin-bottom:0.3rem;">
+                      Element (Android) via UnifiedPush &mdash; lauteste Option
+                    </div>
+                    <div style="font-size:0.76rem; color:#374151; line-height:1.7;">
+                      Element kann ntfy als <em>Push-Gateway</em> (UnifiedPush) nutzen.
+                      Damit kommen Matrix-Nachrichten aus dem Raum <code>EH_PING</code> als laute
+                      Push-Benachrichtigung an &mdash; ohne Google FCM, vollstaendig selbst gehostet.<br>
+                      <strong>Einrichtung:</strong> Element &rarr; Einstellungen &rarr; Benachrichtigungen &rarr;
+                      UnifiedPush-Anbieter auswaehlen &rarr; ntfy-App auswaehlen
+                      (ntfy-App muss bereits installiert und <code>eh-alarm-prima</code> abonniert sein).<br>
+                      <strong>Ton in Element:</strong> Android-Einstellungen &rarr; Apps &rarr; Element &rarr;
+                      Benachrichtigungen &rarr; Kanal <em>Messages (Noisy)</em> oder
+                      <em>Mentions &amp; Keywords</em> &rarr; Ton auf den lautesten Klingelton stellen.
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+                  <div style="background:#ffe4e6; border:1px solid #fca5a5; border-radius:6px; padding:0.6rem 0.75rem; flex:1; min-width:180px;">
+                    <div style="font-weight:700; color:#b91c1c; font-size:0.78rem; margin-bottom:3px;">SOS-Knopf in der Navbar</div>
+                    <div style="font-size:0.75rem; color:#374151;">
+                      2-Klick-Bestaetigung &middot; Ort eingeben &middot; sofortige Alarmierung &middot;
+                      auch offline im Intranet
+                    </div>
+                  </div>
+                  <div style="background:#ffe4e6; border:1px solid #fca5a5; border-radius:6px; padding:0.6rem 0.75rem; flex:1; min-width:180px;">
+                    <div style="font-weight:700; color:#b91c1c; font-size:0.78rem; margin-bottom:3px;">Matrix + ntfy-Meldekette</div>
+                    <div style="font-size:0.75rem; color:#374151;">
+                      @room-Ping im EH_PING &middot; DM mit Token-Link &middot;
+                      ntfy-Push Android &amp; Browser &middot; kein Cloud-Zwang
+                    </div>
+                  </div>
+                  <div style="background:#ffe4e6; border:1px solid #fca5a5; border-radius:6px; padding:0.6rem 0.75rem; flex:1; min-width:180px;">
+                    <div style="font-weight:700; color:#b91c1c; font-size:0.78rem; margin-bottom:3px;">Live-Alarm im Browser</div>
+                    <div style="font-size:0.75rem; color:#374151;">
+                      Rotes Vollbild-Overlay + Ton &middot; max. 5 Sek. Verzoegerung &middot;
+                      auto. Reload &middot; Lauftext-Banner bis Ersthelfer vor Ort
+                    </div>
+                  </div>
+                  <div style="background:#ffe4e6; border:1px solid #fca5a5; border-radius:6px; padding:0.6rem 0.75rem; flex:1; min-width:180px;">
+                    <div style="font-weight:700; color:#b91c1c; font-size:0.78rem; margin-bottom:3px;">Rueckmeldung ohne Login</div>
+                    <div style="font-size:0.75rem; color:#374151;">
+                      Token-URL per DM &middot; 4 Buttons (Unterwegs / Am Ort / Hilfe / Nein) &middot;
+                      Bestaetigung erscheint im EH_PING &middot; mobil optimiert
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#ffe4e6; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Alleinstellungsmerkmal</span>
+                  <span style="background:#ffe4e6; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Token-Rueckmeldung ohne Login</span>
+                  <span style="background:#ffe4e6; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Matrix-DM je Ersthelfer</span>
+                  <span style="background:#ffe4e6; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">ntfy selbst gehostet</span>
+                  <span style="background:#ffe4e6; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">UnifiedPush (kein FCM)</span>
+                  <span style="background:#ffe4e6; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">DSGVO Art. 9 konform</span>
+                  <span style="background:#ffe4e6; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Schein-Ablauf-Warnung 30/14/7 Tage</span>
+                  <span style="background:#ffe4e6; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Cloud-Zwang</span>
+                  <span style="background:#ffe4e6; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Betriebsarzt-Protokoll</span>
+                </div>
+              </div>
+
+              <!-- Sicherheits-App: Brand & AMOK Alarmierung -->
+              <div style="border:2px solid #991b1b; border-top:5px solid #991b1b; border-radius:8px; padding:1rem; background:#fff7f7; position:relative; margin-top:1rem;">
+                <div style="position:absolute; top:-1px; right:10px; background:#991b1b; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  HIGHLIGHT
+                </div>
+                <div class="fw-bold mb-2" style="color:#7f1d1d; font-size:1rem;">Sicherheits-App: Brand- &amp; AMOK-Alarmierung</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem;">
+                  Vollstaendig digitalisierter Gefahrenalarm-Ablauf &mdash; direkt ins Intranet integriert,
+                  ohne externe App, ohne Cloud. Bei Brandalarm loest PRIMA automatisch eine
+                  <strong>gestaffelte Erkunder-Alarmierung</strong> per Matrix-DM aus: naechste Etage zuerst,
+                  dann stufenweise weiter. Erkunder melden sich per Token-Link zurueck (kein Login noetig).
+                  Security-Personal sieht die Einsatzleitstelle in Echtzeit und entscheidet ueber
+                  Vollalarm oder Entwarnung.
+                </div>
+                <div style="font-size:0.78rem; color:#374151; background:#fee2e2; border:1px solid #fca5a5; border-radius:6px; padding:0.6rem 0.8rem; margin-bottom:0.75rem;">
+                  <strong>Brand-Ablauf:</strong> Melder &rarr; PRIMA startet Alarm &rarr; Matrix-DM an alle Erkunder (gestaffelt nach Etage)
+                  &rarr; Erkunder antwortet per Token (1=Unterwegs, 2=Vor Ort, 9=Abbruch) &rarr;
+                  Einsatzleitstelle (Security) &rarr; Security-Review &rarr; Vollalarm oder Entwarnung
+                </div>
+                <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+                  <div style="background:#fff; border:1px solid #fca5a5; border-radius:6px; padding:0.55rem 0.75rem; flex:1; min-width:150px;">
+                    <div style="font-weight:700; color:#991b1b; font-size:0.77rem; margin-bottom:3px;">AMOK / Stiller Alarm</div>
+                    <div style="font-size:0.74rem; color:#374151;">
+                      Separater AMOK-Alarm &middot; Security-Overlay &middot; Evakuierungshinweis fuer alle
+                      Mitarbeiter im Browser &middot; Verhaltensregeln sofort sichtbar
+                    </div>
+                  </div>
+                  <div style="background:#fff; border:1px solid #fca5a5; border-radius:6px; padding:0.55rem 0.75rem; flex:1; min-width:150px;">
+                    <div style="font-weight:700; color:#991b1b; font-size:0.77rem; margin-bottom:3px;">Einsatzleitstelle</div>
+                    <div style="font-size:0.74rem; color:#374151;">
+                      Live-Rueckmeldungsstatus aller Erkunder &middot; automatische Aktualisierung &middot;
+                      Countdown-Reload (kein Flackern) &middot; nur fuer Security-Rollen
+                    </div>
+                  </div>
+                  <div style="background:#fff; border:1px solid #fca5a5; border-radius:6px; padding:0.55rem 0.75rem; flex:1; min-width:150px;">
+                    <div style="font-weight:700; color:#991b1b; font-size:0.77rem; margin-bottom:3px;">Nachbewertung</div>
+                    <div style="font-size:0.74rem; color:#374151;">
+                      Arbeitsschutz-Leitung (al_as) bewertet jeden Alarm nach Abschluss &middot;
+                      Ursache, Massnahme, Nachsorgepflicht &middot; unveraenderliches Protokoll
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:0.75rem;">
+                  <span style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Matrix-DM je Erkunder</span>
+                  <span style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Token-Rueckmeldung (kein Login)</span>
+                  <span style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Etagen-Staffelung</span>
+                  <span style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Einsatzleitstelle (Security)</span>
+                  <span style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">AMOK + Brand + Entwarnung</span>
+                  <span style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Nachbewertung</span>
+                  <span style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">ntfy-Push (selbst gehostet)</span>
+                  <span style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Cloud-Zwang</span>
+                </div>
+                <details class="mt-2">
+                  <summary style="display:inline-block; padding:0.25rem 0.75rem; font-size:0.875rem; border:1px solid #dc2626; border-radius:0.375rem; color:#dc2626; background:white; cursor:pointer; font-weight:500; list-style:none;">
+                    Sicherheits-App &ndash; Anleitung mit Beispielen &rarr;
+                  </summary>
+                  <div style="border-top:2px solid #fca5a5; padding-top:1rem; margin-top:0.75rem;">
+                    {% include "partials/_hilfe_sicherheit_anleitung.html" %}
+                  </div>
+                </details>
+                <div class="mt-2" style="font-size:0.75rem; color:#9ca3af; font-style:italic;">
+                  Parallelsystem zur Ersthelfer-App (EH) &mdash; beide nutzen denselben Matrix-DM-Mechanismus,
+                  aber unterschiedliche Rollen und Zustaendigkeiten.
+                </div>
+              </div>
+
+              <!-- TETRA-BOS-Anbindung (Konzept) -->
+              <div style="border:1px solid #e5e7eb; border-top:3px solid #374151; border-radius:8px; padding:1rem; margin-top:1rem; background:#f9fafb; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#374151; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  KONZEPT
+                </div>
+                <div class="fw-bold mb-1" style="color:#374151; font-size:0.92rem;">&#128225; TETRA-BOS-Anbindung</div>
+                <div class="text-muted mb-3" style="font-size:0.82rem; line-height:1.6;">
+                  PRIMA kann den EH-Alarm direkt an <strong>TETRA-BOS-Digitalfunkger&auml;te</strong>
+                  senden &mdash; und Erst&shy;helfer k&ouml;nnen per <strong>einzigem Tastendruck</strong>
+                  am Funkger&auml;t r&uuml;ckmelden (Status 3&nbsp;= Unterwegs, Status&nbsp;4&nbsp;= Vor Ort),
+                  ohne Smartphone, ohne Login, ohne Link &ouml;ffnen.
+                  Das Konzept ist technisch vollst&auml;ndig ausgearbeitet und in einem Arbeitstag
+                  implementierbar, sobald ein TETRA- oder DMR-Gateway im Netz erreichbar ist.
+                  Bidirektionale Kopplung: PRIMA sendet SDS-Textnachricht &rarr; Ersthelfer
+                  dr&uuml;ckt Statustaste &rarr; PRIMA empf&auml;ngt Webhook &rarr; Protokoll
+                  und Lauftext-Banner werden identisch wie bei Matrix/ntfy aktualisiert.
+                </div>
+                <div class="mb-2">
+                  <a href="{% url 'ersthelfe:tetra_info' %}" class="btn btn-sm btn-outline-secondary">
+                    Vollst&auml;ndige Analyse &amp; Implementierungsplan &rarr;
+                  </a>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#f3f4f6; border:1px solid #d1d5db; color:#374151; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">TETRA SDS bidirektional</span>
+                  <span style="background:#f3f4f6; border:1px solid #d1d5db; color:#374151; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">1 Tastendruck = R&uuml;ckmeldung</span>
+                  <span style="background:#f3f4f6; border:1px solid #d1d5db; color:#374151; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Smartphone n&ouml;tig</span>
+                  <span style="background:#f3f4f6; border:1px solid #d1d5db; color:#374151; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">funktioniert ohne Mobilfunk</span>
+                  <span style="background:#f3f4f6; border:1px solid #d1d5db; color:#374151; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">BOS &amp; privates TETRA / DMR</span>
+                  <span style="background:#f3f4f6; border:1px solid #d1d5db; color:#374151; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">1 Tag Implementierungsaufwand</span>
+                </div>
+              </div>
+
+            </div>

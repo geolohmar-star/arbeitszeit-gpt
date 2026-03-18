@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ titel }}</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
+        .seite {
+            padding: 2cm 2.5cm;
+        }
+
+        /* --- Kopfzeile --- */
+        .kopfzeile {
+            border-bottom: 3px solid #1a4d2e;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .kopfzeile h1 {
+            font-size: 16pt;
+            color: #1a4d2e;
+            margin: 0 0 4px 0;
+        }
+        .kopfzeile .untertitel {
+            font-size: 10pt;
+            color: #555;
+        }
+        .meta-zeile {
+            font-size: 8pt;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        /* --- Abschnitt-Ueberschriften --- */
+        h2 {
+            font-size: 12pt;
+            color: #1a4d2e;
+            border-bottom: 1px solid #2d6a42;
+            padding-bottom: 3px;
+            margin-top: 24px;
+            margin-bottom: 10px;
+        }
+        h3 {
+            font-size: 10pt;
+            color: #333;
+            margin: 12px 0 4px 0;
+        }
+
+        /* --- Infobox --- */
+        .infobox {
+            background: #f0f7f2;
+            border-left: 4px solid #2d6a42;
+            padding: 8px 12px;
+            margin-bottom: 16px;
+            font-size: 9pt;
+        }
+        .hinweis {
+            background: #fff8e1;
+            border-left: 4px solid #f59e0b;
+            padding: 8px 12px;
+            margin-bottom: 16px;
+            font-size: 9pt;
+        }
+
+        /* --- Prozessfluss --- */
+        .prozess-fluss {
+            margin: 16px 0;
+        }
+        .schritt-box {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px 14px;
+            margin-bottom: 6px;
+            background: #fff;
+            page-break-inside: avoid;
+        }
+        .schritt-box.aktionstyp-genehmigen { border-left: 5px solid #16a34a; }
+        .schritt-box.aktionstyp-pruefen     { border-left: 5px solid #2563eb; }
+        .schritt-box.aktionstyp-bearbeiten  { border-left: 5px solid #7c3aed; }
+        .schritt-box.aktionstyp-informieren { border-left: 5px solid #64748b; }
+        .schritt-box.aktionstyp-entscheiden { border-left: 5px solid #dc2626; }
+        .schritt-nummer {
+            display: inline-block;
+            background: #1a4d2e;
+            color: #fff;
+            font-size: 8pt;
+            font-weight: bold;
+            padding: 2px 7px;
+            border-radius: 10px;
+            margin-right: 6px;
+        }
+        .schritt-titel {
+            font-size: 11pt;
+            font-weight: bold;
+            display: inline;
+        }
+        .schritt-meta {
+            margin-top: 6px;
+            font-size: 9pt;
+            color: #444;
+        }
+        .schritt-meta td {
+            padding: 2px 12px 2px 0;
+            vertical-align: top;
+        }
+        .label { color: #888; font-size: 8pt; text-transform: uppercase; }
+        .badge {
+            display: inline-block;
+            background: #e5e7eb;
+            border-radius: 3px;
+            padding: 1px 6px;
+            font-size: 8pt;
+            font-family: monospace;
+            color: #111;
+        }
+        .badge.gruen { background: #dcfce7; color: #14532d; }
+        .badge.blau  { background: #dbeafe; color: #1e3a8a; }
+        .badge.lila  { background: #ede9fe; color: #4c1d95; }
+
+        .pfeil {
+            text-align: center;
+            font-size: 14pt;
+            color: #999;
+            margin: 2px 0;
+        }
+
+        /* --- Tabellen --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+            margin-bottom: 12px;
+        }
+        th {
+            background: #1a4d2e;
+            color: #fff;
+            padding: 5px 8px;
+            text-align: left;
+            font-size: 8pt;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        td {
+            padding: 4px 8px;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+        tr:nth-child(even) td { background: #f9fafb; }
+        .kuerzel {
+            font-family: monospace;
+            font-size: 9pt;
+            background: #f0f4ff;
+            padding: 1px 5px;
+            border-radius: 2px;
+            color: #1e40af;
+        }
+        .org-gruppe {
+            background: #f0f7f2 !important;
+            font-weight: bold;
+            font-size: 8.5pt;
+            color: #1a4d2e;
+            padding: 4px 8px;
+        }
+
+        /* --- Rollenlegende --- */
+        .rollen-grid {
+            display: table;
+            width: 100%;
+        }
+        .rollen-row {
+            display: table-row;
+        }
+        .rollen-zelle {
+            display: table-cell;
+            width: 50%;
+            padding: 3px 6px;
+            font-size: 9pt;
+            vertical-align: top;
+        }
+
+        /* --- Fusszeile --- */
+        .fusszeile {
+            margin-top: 30px;
+            padding-top: 8px;
+            border-top: 1px solid #ccc;
+            font-size: 8pt;
+            color: #999;
+            text-align: center;
+        }
+        @page {
+            size: A4;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+<div class="seite">
+
+    <!-- Kopfzeile -->
+    <div class="kopfzeile">
+        <h1>{{ titel }}</h1>
+        <div class="untertitel">Prozessbeschreibung &amp; Teilnehmerliste mit Stellenkuerzeln</div>
+        <div class="meta-zeile">
+            Stand: {{ erstellt_am|date:"d.m.Y H:i" }} Uhr
+            {% if workflow_template %}
+            &nbsp;&middot;&nbsp; Workflow: {{ workflow_template.name }}
+            &nbsp;&middot;&nbsp; Trigger: <span style="font-family:monospace;">{{ workflow_template.trigger_event }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 1. Was ist eine Zeitgutschrift? -->
+    <h2>1. Was ist ein Zeitgutschrift-Antrag?</h2>
+    <div class="infobox">
+        Ein <strong>Zeitgutschrift-Antrag</strong> wird gestellt, wenn einem Mitarbeiter zus&auml;tzliche Arbeitszeit
+        gutgeschrieben werden soll &ndash; z.B. f&uuml;r Fortbildungen au&szlig;erhalb der Regelarbeitszeit,
+        krankheitsbedingte Ausgleichszeiten oder sonstige Sondervereinbarungen.
+        Der Antrag durchl&auml;uft einen <strong>mehrstufigen</strong> Genehmigungsworkflow mit Pr&uuml;fung durch
+        Teamleiter, Abteilungsleitung und das Zeitgutschrift-Team.
+    </div>
+
+    <!-- 2. Wie wird der Antrag gestellt? -->
+    <h2>2. Antrag stellen</h2>
+    <table class="daten" style="border:1px solid #ccc;">
+        <tr>
+            <td style="width:30%; padding:6px 10px; background:#f9f9f9; font-weight:bold;">Aufruf</td>
+            <td style="padding:6px 10px;">PRIMA &rarr; Antr&auml;ge &rarr; Zeitgutschrift beantragen</td>
+        </tr>
+        <tr>
+            <td style="padding:6px 10px; background:#f9f9f9; font-weight:bold;">Berechtigung</td>
+            <td style="padding:6px 10px;">Alle eingeloggten Mitarbeiter</td>
+        </tr>
+        <tr>
+            <td style="padding:6px 10px; background:#f9f9f9; font-weight:bold;">Gutschriftarten</td>
+            <td style="padding:6px 10px;">
+                Fortbildung &middot; &Uuml;berstunden &middot; Erkrankung &middot; Sonstiges<br>
+                Die Berechnung der Minuten erfolgt automatisch auf Basis der Arbeitszeitvereinbarung.
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:6px 10px; background:#f9f9f9; font-weight:bold;">Antragsteller</td>
+            <td style="padding:6px 10px;">Der Mitarbeiter selbst (Stellenkuerzel sichtbar im Profil)</td>
+        </tr>
+        <tr>
+            <td style="padding:6px 10px; background:#f9f9f9; font-weight:bold;">Automatik</td>
+            <td style="padding:6px 10px;">
+                Nach dem Einreichen startet der Workflow automatisch.<br>
+                Der Antrag erh&auml;lt ein eindeutiges Aktenzeichen (z.B. <span style="font-family:monospace;">ZGS-Max Mustermann-10001-20260318</span>).
+            </td>
+        </tr>
+        <tr>
+            <td style="padding:6px 10px; background:#f9f9f9; font-weight:bold;">Abschluss</td>
+            <td style="padding:6px 10px;">
+                Nach Erledigung erh&auml;lt der Antragsteller eine R&uuml;ckmeldung (Schritt&nbsp;5 &ndash; Kenntnisnahme)
+                und das PDF mit allen digitalen Signaturen steht zum Download bereit.
+            </td>
+        </tr>
+    </table>
+
+    <!-- 3. Prozessablauf -->
+    <h2>3. Prozessablauf</h2>
+
+    {% if not workflow_template %}
+    <div class="hinweis">
+        Kein aktiver Workflow-Template f&uuml;r diesen Prozess konfiguriert.
+        Bitte im Workflow-Editor einen Template mit Trigger <span style="font-family:monospace;">aenderung_erstellt</span> anlegen.
+    </div>
+    {% else %}
+
+    <div class="infobox">
+        Konfiguriert im Workflow-Editor: <strong>{{ workflow_template.name }}</strong>
+        &nbsp;&middot;&nbsp; {{ schritte|length }} Schritt{{ schritte|length|pluralize:"e" }}
+    </div>
+
+    <!-- Start-Node -->
+    <div class="prozess-fluss">
+        <div class="schritt-box" style="border-left:5px solid #1a4d2e; background:#f0f7f2;">
+            <span class="schritt-nummer">START</span>
+            <span class="schritt-titel">Antragsteller reicht ein</span>
+            <div class="schritt-meta">
+                <table>
+                    <tr>
+                        <td><span class="label">Rolle</span></td>
+                        <td>Jeder Mitarbeiter &ndash; Stellenkuerzel aus Tabelle Abschnitt&nbsp;5</td>
+                    </tr>
+                    <tr>
+                        <td><span class="label">Aktion</span></td>
+                        <td>Formular ausf&uuml;llen und absenden &rarr; Workflow startet automatisch</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        {% for schritt in schritte %}
+        <div class="pfeil">&#8595;</div>
+        <div class="schritt-box aktionstyp-{{ schritt.aktion_typ }}">
+            <span class="schritt-nummer">{{ schritt.reihenfolge }}</span>
+            <span class="schritt-titel">{{ schritt.titel }}</span>
+            {% if schritt.ist_parallel %}
+            <span class="badge blau" style="margin-left:6px;">parallel</span>
+            {% endif %}
+
+            <div class="schritt-meta">
+                <table>
+                    <tr>
+                        <td><span class="label">Aktion</span></td>
+                        <td>
+                            <span class="badge
+                                {% if schritt.aktion_typ == 'genehmigen' %}gruen
+                                {% elif schritt.aktion_typ == 'bearbeiten' %}lila
+                                {% else %}{% endif %}">
+                                {{ schritt.get_aktion_typ_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="label">Zust&auml;ndig</span></td>
+                        <td>
+                            {% if schritt.zustaendig_rolle == "direkter_vorgesetzter" %}
+                                <strong>Direkte F&uuml;hrungskraft</strong> des Antragstellers
+                                <span style="color:#888; font-size:8pt;">(Vorgesetzter lt. HR-Stammdaten)</span>
+                            {% elif schritt.zustaendig_rolle == "team_queue" and schritt.zustaendig_team %}
+                                Bearbeitungsstapel Team
+                                <span class="kuerzel">{{ schritt.zustaendig_team.kuerzel }}</span>
+                                &ndash; {{ schritt.zustaendig_team.name }}
+                            {% elif schritt.zustaendig_rolle == "spezifische_stelle" and schritt.zustaendig_stelle %}
+                                Stelle <span class="kuerzel">{{ schritt.zustaendig_stelle.kuerzel }}</span>
+                                &ndash; {{ schritt.zustaendig_stelle.bezeichnung }}
+                            {% elif schritt.zustaendig_rolle == "spezifische_org" and schritt.zustaendig_org %}
+                                Organisationseinheit: {{ schritt.zustaendig_org.bezeichnung }}
+                            {% else %}
+                                {{ schritt.get_zustaendig_rolle_display }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="label">Frist</span></td>
+                        <td>{{ schritt.frist_tage }} Werktag{{ schritt.frist_tage|pluralize:"e" }}</td>
+                    </tr>
+                    {% if schritt.eskalation_nach_tagen %}
+                    <tr>
+                        <td><span class="label">Eskalation</span></td>
+                        <td>
+                            nach {{ schritt.eskalation_nach_tagen }}&nbsp;Tagen an
+                            {% if schritt.eskalation_an_stelle %}
+                                <span class="kuerzel">{{ schritt.eskalation_an_stelle.kuerzel }}</span>
+                            {% else %}
+                                automatisch
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if schritt.bedingung_feld %}
+                    <tr>
+                        <td><span class="label">Bedingung</span></td>
+                        <td style="font-family:monospace; font-size:8pt;">
+                            {{ schritt.bedingung_feld }} {{ schritt.bedingung_operator }} {{ schritt.bedingung_wert }}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if schritt.beschreibung %}
+                    <tr>
+                        <td><span class="label">Hinweis</span></td>
+                        <td style="color:#555;">{{ schritt.beschreibung }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="pfeil">&#8595;</div>
+        <div class="schritt-box" style="border-left:5px solid #6b7280; background:#f9fafb;">
+            <span class="schritt-nummer" style="background:#6b7280;">ENDE</span>
+            <span class="schritt-titel">Antrag erledigt</span>
+            <div class="schritt-meta" style="font-size:9pt; color:#555; margin-top:4px;">
+                Status wechselt auf <strong>erledigt</strong>.
+                PDF mit Bearbeitungsverlauf und digitalen Signaturen abrufbar.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 4. Rollenlegende -->
+    <h2>4. Rollenlegende</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:25%;">Rollenkuerzel</th>
+                <th>Bedeutung</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rolle, beschreibung in rollen_erklaerung.items %}
+            <tr>
+                <td><span class="kuerzel">{{ rolle }}</span></td>
+                <td>{{ beschreibung }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- 5. Mitarbeiterliste mit Stellenkuerzeln -->
+    <h2>5. Mitarbeiter &ndash; Stellenkuerzel &amp; Vorgesetzte</h2>
+    <div class="hinweis">
+        Die Spalte <strong>Vorgesetzter</strong> zeigt, an wen Schritt&nbsp;1 (Genehmigung) automatisch
+        weitergeleitet wird. Mitarbeiter ohne Vorgesetzten-Eintrag wenden sich an HR.
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:22%;">Name</th>
+                <th style="width:14%;">Stellenkuerzel</th>
+                <th style="width:28%;">Stelle</th>
+                <th style="width:22%;">Organisationseinheit</th>
+                <th style="width:14%;">Vorgesetzter (Kuerzel)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% regroup mitarbeiter_liste by stelle.org_einheit.bezeichnung as org_gruppen %}
+            {% for gruppe in org_gruppen %}
+            <tr>
+                <td class="org-gruppe" colspan="5">{{ gruppe.grouper|default:"Ohne Organisationseinheit" }}</td>
+            </tr>
+            {% for ma in gruppe.list %}
+            <tr>
+                <td>{{ ma.vorname }} {{ ma.nachname }}</td>
+                <td>
+                    {% if ma.stelle %}
+                    <span class="kuerzel">{{ ma.stelle.kuerzel }}</span>
+                    {% else %}
+                    <span style="color:#999;">–</span>
+                    {% endif %}
+                </td>
+                <td>{% if ma.stelle %}{{ ma.stelle.bezeichnung }}{% else %}–{% endif %}</td>
+                <td>{% if ma.stelle and ma.stelle.org_einheit %}{{ ma.stelle.org_einheit.bezeichnung }}{% else %}–{% endif %}</td>
+                <td>
+                    {% if ma.vorgesetzter and ma.vorgesetzter.stelle %}
+                    <span class="kuerzel">{{ ma.vorgesetzter.stelle.kuerzel }}</span>
+                    {% else %}
+                    <span style="color:#999;">HR</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Fusszeile -->
+    <div class="fusszeile">
+        PRIMA &ndash; Internes Betriebs-OS &nbsp;&middot;&nbsp;
+        Musteranleitung Zeitgutschrift erzeugt am {{ erstellt_am|date:"d.m.Y" }} &nbsp;&middot;&nbsp;
+        Intern &amp; vertraulich
+    </div>
+
+</div>
+</body>
+</html>

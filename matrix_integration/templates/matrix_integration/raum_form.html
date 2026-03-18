@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titel }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 720px;">
+    <div class="mb-3">
+        <a href="{% url 'matrix_integration:raum_liste' %}" class="text-muted text-decoration-none">
+            &larr; Matrix-Räume
+        </a>
+        <h2 class="mt-1">{{ titel }}</h2>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Allgemein</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Name *</label>
+                    <input type="text" name="name" class="form-control" required
+                           value="{{ raum.name|default:'' }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Typ *</label>
+                    <select name="typ" class="form-select" required>
+                        <option value="bereich" {% if raum.typ == "bereich" %}selected{% endif %}>Bereichs-Chat</option>
+                        <option value="abteilung" {% if raum.typ == "abteilung" %}selected{% endif %}>Abteilungs-Chat</option>
+                        <option value="team" {% if raum.typ == "team" %}selected{% endif %}>Team-Chat</option>
+                        <option value="manuell" {% if raum.typ == "manuell" or not raum %}selected{% endif %}>Manueller Chat</option>
+                        <option value="ping" {% if raum.typ == "ping" %}selected{% endif %}>Ping-Kanal (Benachrichtigungen)</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Beschreibung</label>
+                    <textarea name="beschreibung" class="form-control" rows="2">{{ raum.beschreibung|default:'' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Org-Einheit</label>
+                    <select name="org_einheit" class="form-select">
+                        <option value="">-- keine --</option>
+                        {% for oe in org_einheiten %}
+                        <option value="{{ oe.pk }}"
+                            {% if raum.org_einheit_id == oe.pk %}selected{% endif %}>
+                            {{ oe.kuerzel }} – {{ oe.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Teilnehmer-Template</label>
+                    <select name="teilnehmer_template" class="form-select">
+                        <option value="">-- keines --</option>
+                        {% for tmpl in templates %}
+                        <option value="{{ tmpl.pk }}"
+                            {% if raum.teilnehmer_template_id == tmpl.pk %}selected{% endif %}>
+                            {{ tmpl.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">
+                        Template mit vordefinierten Mitgliedern (fuer automatische Einladungen).
+                    </small>
+                </div>
+                {% if raum %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="ist_aktiv" id="id_ist_aktiv"
+                           {% if raum.ist_aktiv %}checked{% endif %}>
+                    <label class="form-check-label" for="id_ist_aktiv">Aktiv</label>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Matrix-Verbindung</div>
+            <div class="card-body">
+
+                {% if not raum %}
+                <div class="alert alert-light border mb-3 d-flex align-items-center gap-3">
+                    <div class="flex-grow-1">
+                        <strong>Raum direkt auf Synapse anlegen</strong>
+                        <div class="text-muted small">
+                            Legt den Raum auf dem Matrix-Server an und befüllt Room-ID und Alias automatisch.
+                        </div>
+                    </div>
+                    <button type="button" id="btn-synapse-erstellen" class="btn btn-outline-primary text-nowrap">
+                        Raum erstellen
+                    </button>
+                </div>
+                <div id="synapse-fehler" class="alert alert-danger d-none mb-3"></div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label class="form-label">Room-ID</label>
+                    <input type="text" name="room_id" id="id_room_id" class="form-control font-monospace"
+                           value="{{ raum.room_id|default:'' }}"
+                           placeholder="z.B. !IsrMLfIlLxJXrAIUKr:georg-klein.com">
+                    <small class="text-muted">Wird automatisch befüllt wenn du oben auf "Raum erstellen" klickst.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Room-Alias</label>
+                    <input type="text" name="room_alias" id="id_room_alias" class="form-control font-monospace"
+                           value="{{ raum.room_alias|default:'' }}"
+                           placeholder="z.B. #team-it:georg-klein.com">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Element-URL (direkt)</label>
+                    <input type="url" name="element_url" class="form-control"
+                           value="{{ raum.element_url|default:'' }}"
+                           placeholder="https://app.element.io/#/room/!ID:georg-klein.com">
+                    <small class="text-muted">
+                        Wenn angegeben, wird diese URL fuer den "Element öffnen"-Button verwendet.
+                        Sonst wird die URL aus Room-ID generiert.
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Ping-Kanal (optional)</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Ping-Kanal-Typ</label>
+                    <select name="ping_typ" class="form-select">
+                        <option value="" {% if not raum.ping_typ %}selected{% endif %}>-- kein Ping-Kanal --</option>
+                        <option value="allgemein" {% if raum.ping_typ == "allgemein" %}selected{% endif %}>Allgemein</option>
+                        <option value="facility" {% if raum.ping_typ == "facility" %}selected{% endif %}>Facility / Störmeldungen</option>
+                        <option value="hr" {% if raum.ping_typ == "hr" %}selected{% endif %}>HR / Personal</option>
+                        <option value="it" {% if raum.ping_typ == "it" %}selected{% endif %}>IT / Technik</option>
+                        <option value="sicherheit" {% if raum.ping_typ == "sicherheit" %}selected{% endif %}>Sicherheit</option>
+                    </select>
+                    <small class="text-muted">
+                        Nur wenn dieser Raum als Benachrichtigungs-Kanal fuer automatische Nachrichten dient.
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">Speichern</button>
+            <a href="{% url 'matrix_integration:raum_liste' %}" class="btn btn-outline-secondary">Abbrechen</a>
+        </div>
+    </form>
+</div>
+
+{% block extra_js %}
+{% load static %}
+{% url 'matrix_integration:synapse_raum_erstellen' as synapse_url %}
+{{ synapse_url|json_script:"synapse-raum-erstellen-url" }}
+<script src="{% static 'js/matrix_raum_form.js' %}"></script>
+{% endblock %}
+{% endblock %}

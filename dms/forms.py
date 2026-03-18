@@ -1,5 +1,6 @@
 """DMS-Formulare fuer Upload, Suche und Zugriffsantraege."""
 from django import forms
+from django.contrib.auth.models import User
 
 from hr.models import OrgEinheit
 
@@ -92,6 +93,7 @@ class DokumentNeuForm(forms.ModelForm):
     DATEITYP_CHOICES = [
         ("docx", "Word-Dokument (.docx)"),
         ("xlsx", "Excel-Tabelle (.xlsx)"),
+        ("pptx", "Praesentation (.pptx)"),
     ]
 
     dateityp_neu = forms.ChoiceField(
@@ -171,4 +173,72 @@ class ZugriffsantragForm(forms.ModelForm):
         labels = {
             "antrag_grund": "Begruendung",
             "gewuenschte_dauer_h": "Zugriffsdauer",
+        }
+
+
+class PersoenlicheAblageUploadForm(forms.Form):
+    """Formular fuer Upload in die persoenliche Ablage."""
+
+    KLASSE_CHOICES = [
+        ("offen", "Klasse 1 – Offen (kein Passwortschutz)"),
+        ("sensibel", "Klasse 2 – Verschluesselt (AES-256, nur fuer mich + Freigaben)"),
+    ]
+
+    titel = forms.CharField(
+        max_length=300,
+        label="Titel",
+        widget=forms.TextInput(attrs={"class": "form-control", "autofocus": True}),
+    )
+    klasse = forms.ChoiceField(
+        choices=KLASSE_CHOICES,
+        label="Dokumentenklasse",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    beschreibung = forms.CharField(
+        required=False,
+        label="Beschreibung",
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+    )
+    datei = forms.FileField(
+        label="Datei",
+        help_text="PDF, Word, Excel, Bild. Maximale Groesse: 25 MB.",
+    )
+
+    def clean_datei(self):
+        datei = self.cleaned_data.get("datei")
+        if datei and datei.size > 25 * 1024 * 1024:
+            raise forms.ValidationError("Die Datei ist zu gross. Maximale Groesse: 25 MB.")
+        return datei
+
+
+class PersoenlicheAblageFreigabeForm(forms.Form):
+    """Formular um einen User fuer ein persoenliches Dokument freizugeben."""
+
+    user = forms.ModelChoiceField(
+        queryset=User.objects.filter(is_active=True).order_by("last_name", "first_name"),
+        label="Person freigeben fuer",
+        empty_label="Person auswaehlen...",
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+
+class DokumentKategorieForm(forms.ModelForm):
+    """Formular zum Anlegen und Bearbeiten von Ablage-Kategorien."""
+
+    class Meta:
+        model = DokumentKategorie
+        fields = ["name", "beschreibung", "elternkategorie", "klasse", "sortierung"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "z.B. Eingangsrechnungen"}),
+            "beschreibung": forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Kurze Beschreibung (optional)"}),
+            "elternkategorie": forms.Select(attrs={"class": "form-select"}),
+            "klasse": forms.Select(attrs={"class": "form-select"}),
+            "sortierung": forms.NumberInput(attrs={"class": "form-control", "placeholder": "0"}),
+        }
+        labels = {
+            "name": "Name der Ablage",
+            "beschreibung": "Beschreibung",
+            "elternkategorie": "Übergeordnete Kategorie",
+            "klasse": "Dokumentenklasse",
+            "sortierung": "Sortierung",
         }

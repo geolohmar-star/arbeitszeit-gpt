@@ -14,8 +14,9 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from guardian.shortcuts import assign_perm, remove_perm
 
-from .forms import DokumentNeuForm, DokumentSucheForm, DokumentUploadForm, PaperlessWorkflowRegelForm, ZugriffsantragForm
-from .models import DAUER_OPTIONEN, ApiToken, Dokument, DokumentVersion, DokumentZugriffsschluessel, PaperlessWorkflowRegel, ZugriffsProtokoll
+from .forms import DokumentKategorieForm, DokumentNeuForm, DokumentSucheForm, DokumentUploadForm, PaperlessWorkflowRegelForm, PersoenlicheAblageFreigabeForm, PersoenlicheAblageUploadForm, ZugriffsantragForm
+from .models import DAUER_OPTIONEN, ApiToken, Dokument, DokumentKategorie, DokumentVersion, DokumentZugriffsschluessel, PaperlessWorkflowRegel, ZugriffsProtokoll
+from workflow.models import WorkflowTemplate
 from .services import lade_dokument, speichere_dokument, suchvektor_befuellen
 
 logger = logging.getLogger(__name__)
@@ -101,6 +102,9 @@ def _darf_sensibel_zugreifen(request, dokument):
     # Superuser: immer Zugriff (keine Einschraenkung fuer Sysadmin)
     if request.user.is_superuser:
         return True
+    # Eigentuemer eines persoenlichen Dokuments hat immer Zugriff
+    if dokument.ist_persoenlich and dokument.erstellt_von_id == request.user.pk:
+        return True
     # Mitglied der Eigentuemer-OrgEinheit: direkter Zugriff ohne Schluessel
     if dokument.eigentuemereinheit_id:
         if dokument.eigentuemereinheit_id in _get_user_orgeinheit_ids(request.user):
@@ -125,8 +129,24 @@ def _darf_sensibel_zugreifen(request, dokument):
             status__in=[WorkflowTask.STATUS_OFFEN, WorkflowTask.STATUS_IN_BEARBEITUNG]
         )
         for task in offene_tasks:
-            if task.ist_zugewiesen_an(request.user):
+            # Direkt an User zugewiesen?
+            if task.zugewiesen_an_user_id == request.user.pk:
                 return True
+            # An die Stelle des Users zugewiesen?
+            try:
+                stelle = request.user.hr_mitarbeiter.stelle
+                if task.zugewiesen_an_stelle_id == stelle.pk:
+                    return True
+            except Exception:
+                pass
+            # An ein Team zugewiesen, in dem der User ist?
+            if task.zugewiesen_an_team_id:
+                from hr.models import Team
+                if Team.objects.filter(
+                    pk=task.zugewiesen_an_team_id,
+                    mitarbeiter__user=request.user,
+                ).exists():
+                    return True
     # Alle anderen (auch staff): nur mit aktivem Zugriffsschluessel
     return _hat_aktiven_zugriffsschluessel(request.user, dokument)
 
@@ -139,7 +159,8 @@ def _darf_sensibel_zugreifen(request, dokument):
 def dokument_liste(request):
     """Listet alle fuer den User sichtbaren Dokumente mit Suche."""
     form = DokumentSucheForm(request.GET or None)
-    qs = Dokument.objects.select_related("kategorie", "eigentuemereinheit").prefetch_related("tags")
+    # Persoenliche Dokumente werden in "Meine Ablage" angezeigt, nicht hier
+    qs = Dokument.objects.filter(ist_persoenlich=False).select_related("kategorie", "eigentuemereinheit").prefetch_related("tags")
 
     # Sensible Dokumente: Sichtbarkeit nach Rolle und OrgEinheit-Zugehoerigkeit
     if not request.user.is_superuser and not request.user.is_staff:
@@ -234,6 +255,35 @@ def dokument_liste(request):
     paginator = Paginator(qs, 25)
     seite = paginator.get_page(request.GET.get("page"))
 
+    # Workflow-Ampel: Status pro Dokument auf der aktuellen Seite
+    from django.contrib.contenttypes.models import ContentType
+    from workflow.models import WorkflowInstance
+    dok_ids_seite = [d.pk for d in seite.object_list]
+    dok_ct = ContentType.objects.get_for_model(Dokument)
+    wf_laufend_ids = set()
+    wf_abgeschlossen_ids = set()
+    wf_abgebrochen_ids = set()
+    if dok_ids_seite:
+        instanzen = (
+            WorkflowInstance.objects
+            .filter(content_type=dok_ct, object_id__in=dok_ids_seite)
+            .values("object_id", "status")
+            .order_by("object_id", "-gestartet_am")
+        )
+        # Neueste Instanz pro Dokument – Prioritaet: laufend > abgeschlossen > abgebrochen
+        seen = {}
+        for inst in instanzen:
+            oid = inst["object_id"]
+            if oid not in seen:
+                seen[oid] = inst["status"]
+        for oid, status in seen.items():
+            if status == WorkflowInstance.STATUS_LAUFEND:
+                wf_laufend_ids.add(oid)
+            elif status == "abgeschlossen":
+                wf_abgeschlossen_ids.add(oid)
+            elif status == "abgebrochen":
+                wf_abgebrochen_ids.add(oid)
+
     # Posteingang: offene Workflow-Vorschlaege (nur eigene oder staff)
     posteingang_qs = Dokument.objects.filter(
         workflow_vorschlag__isnull=False,
@@ -250,12 +300,74 @@ def dokument_liste(request):
             posteingang_qs = posteingang_qs.filter(klasse="offen")
     posteingang = list(posteingang_qs[:20])
 
+    # Persoenliche Ablage des eingeloggten Users (nur fuer ihn selbst sichtbar)
+    meine_ablage_docs = (
+        Dokument.objects
+        .filter(ist_persoenlich=True, erstellt_von=request.user)
+        .order_by("-erstellt_am")[:10]
+    )
+    meine_freigaben = (
+        Dokument.objects
+        .filter(ist_persoenlich=True, sichtbar_fuer=request.user)
+        .exclude(erstellt_von=request.user)
+        .order_by("-erstellt_am")[:5]
+    )
+
     return render(request, "dms/dokument_liste.html", {
         "form": form,
         "seite": seite,
         "titel": "Dokumente",
         "aktive_schluessel_ids": aktive_schluessel_ids,
         "posteingang": posteingang,
+        "wf_laufend_ids": wf_laufend_ids,
+        "wf_abgeschlossen_ids": wf_abgeschlossen_ids,
+        "wf_abgebrochen_ids": wf_abgebrochen_ids,
+        "meine_ablage_docs": meine_ablage_docs,
+        "meine_freigaben": meine_freigaben,
+    })
+
+
+# ---------------------------------------------------------------------------
+# Tag anlegen (JSON-API fuer Inline-Erstellung im Upload-Formular)
+# ---------------------------------------------------------------------------
+
+@login_required
+def tag_anlegen(request):
+    """Legt einen neuen DokumentTag an und gibt ihn als JSON zurueck.
+
+    POST-Parameter: name (str), farbe (str, Hex, optional)
+    Antwort: {"ok": true, "id": .., "name": .., "farbe": ..}
+             {"ok": false, "fehler": ".."}
+    """
+    if request.method != "POST":
+        from django.http import JsonResponse
+        return JsonResponse({"ok": False, "fehler": "Nur POST erlaubt."}, status=405)
+
+    from django.http import JsonResponse
+    from .models import DokumentTag
+
+    name = request.POST.get("name", "").strip()
+    farbe = request.POST.get("farbe", "#6c757d").strip()
+
+    if not name:
+        return JsonResponse({"ok": False, "fehler": "Name darf nicht leer sein."})
+    if len(name) > 50:
+        return JsonResponse({"ok": False, "fehler": "Name zu lang (max. 50 Zeichen)."})
+    # Farbe validieren
+    import re
+    if not re.fullmatch(r"#[0-9a-fA-F]{6}", farbe):
+        farbe = "#6c757d"
+
+    tag, erstellt = DokumentTag.objects.get_or_create(
+        name=name,
+        defaults={"farbe": farbe},
+    )
+    return JsonResponse({
+        "ok": True,
+        "id": tag.pk,
+        "name": tag.name,
+        "farbe": tag.farbe,
+        "neu": erstellt,
     })
 
 
@@ -306,17 +418,81 @@ def dokument_upload(request):
 # Neues Dokument erstellen (leere Vorlage direkt in OnlyOffice oeffnen)
 # ---------------------------------------------------------------------------
 
+def _setze_docx_sprache_deutsch(doc) -> None:
+    """Setzt die Dokumentsprache eines python-docx-Dokuments auf Deutsch (de-DE).
+
+    Betrifft:
+      - Normal-Stil (rPr/w:lang) – Rechtschreibpruefung aller Absaetze
+      - Dokument-Settings (w:themeFontLang) – Standard-Thema-Schriftart
+    """
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    # Normal-Stil: Sprache im zeichenformatierenden Teil (rPr) setzen
+    normal = doc.styles["Normal"]
+    rpr = normal.element.get_or_add_rPr()
+    for vorhandenes in rpr.findall(qn("w:lang")):
+        rpr.remove(vorhandenes)
+    lang = OxmlElement("w:lang")
+    lang.set(qn("w:val"), "de-DE")
+    lang.set(qn("w:eastAsia"), "zh-CN")
+    lang.set(qn("w:bidi"), "ar-SA")
+    rpr.append(lang)
+
+    # Dokument-Settings: Thema-Schriftsprache
+    settings_elem = doc.settings.element
+    for vorhandenes in settings_elem.findall(qn("w:themeFontLang")):
+        settings_elem.remove(vorhandenes)
+    theme_lang = OxmlElement("w:themeFontLang")
+    theme_lang.set(qn("w:val"), "de-DE")
+    settings_elem.append(theme_lang)
+
+
+def _setze_pptx_sprache_deutsch(prs) -> None:
+    """Setzt die Dokumentsprache einer python-pptx-Praesentation auf Deutsch (de-DE).
+
+    Schreibt das <a:lang>-Attribut im Default-Textstil der Praesentation.
+    """
+    from pptx.oxml.ns import qn as pqn
+    from lxml import etree
+
+    # defaultTextStyle im Presentation-XML anpassen
+    prs_elem = prs.presentation
+    dts = prs_elem.find(pqn("p:defaultTextStyle"))
+    if dts is None:
+        dts = etree.SubElement(prs_elem, pqn("p:defaultTextStyle"))
+
+    # lvl1pPr sicherstellen
+    lvl1 = dts.find(pqn("a:lvl1pPr"))
+    if lvl1 is None:
+        lvl1 = etree.SubElement(dts, pqn("a:lvl1pPr"))
+
+    # defRPr (default run properties) sicherstellen
+    def_rpr = lvl1.find(pqn("a:defRPr"))
+    if def_rpr is None:
+        def_rpr = etree.SubElement(lvl1, pqn("a:defRPr"))
+
+    # a:lang setzen
+    for vorhandenes in def_rpr.findall(pqn("a:lang")):
+        def_rpr.remove(vorhandenes)
+    lang_elem = etree.SubElement(def_rpr, pqn("a:lang"))
+    lang_elem.set("val", "de-DE")
+
+
 def _erstelle_leere_datei(dateityp: str) -> tuple[bytes, str, str]:
     """Gibt (inhalt_bytes, dateiname, mime_typ) fuer eine leere Vorlage zurueck.
 
-    Unterstuetzte Typen: docx, xlsx
+    Unterstuetzte Typen: docx, xlsx, pptx
+    Alle Dokumente werden mit Textsprache Deutsch (de-DE) erstellt.
     """
     import io
 
     if dateityp == "docx":
         from docx import Document
+        doc = Document()
+        _setze_docx_sprache_deutsch(doc)
         buf = io.BytesIO()
-        Document().save(buf)
+        doc.save(buf)
         return buf.getvalue(), "dokument.docx", \
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
@@ -326,6 +502,15 @@ def _erstelle_leere_datei(dateityp: str) -> tuple[bytes, str, str]:
         Workbook().save(buf)
         return buf.getvalue(), "tabelle.xlsx", \
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    if dateityp == "pptx":
+        from pptx import Presentation
+        prs = Presentation()
+        _setze_pptx_sprache_deutsch(prs)
+        buf = io.BytesIO()
+        prs.save(buf)
+        return buf.getvalue(), "praesentation.pptx", \
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 
     raise ValueError(f"Unbekannter Dateityp: {dateityp}")
 
@@ -462,7 +647,9 @@ def dokument_detail(request, pk):
         messages.error(request, "Kein Zugriffsrecht fuer dieses Dokument.")
         return redirect("dms:liste")
 
-    zugriffe = dok.zugriffe.select_related("user").order_by("-zeitpunkt")[:20]
+    zugriffe = dok.zugriffe.select_related(
+        "user", "user__hr_mitarbeiter__stelle"
+    ).order_by("-zeitpunkt")[:20]
     aktiver_schluessel = None
     offener_antrag = None
 
@@ -483,14 +670,29 @@ def dokument_detail(request, pk):
 
     # Laufende Workflow-Instanzen fuer dieses Dokument laden
     from django.contrib.contenttypes.models import ContentType
-    from workflow.models import WorkflowInstance
+    from workflow.models import WorkflowInstance, WorkflowTask
     dok_ct = ContentType.objects.get_for_model(Dokument)
-    workflow_instanzen = (
+    workflow_instanzen = list(
         WorkflowInstance.objects
         .filter(content_type=dok_ct, object_id=dok.pk)
         .select_related("template", "gestartet_von")
         .order_by("-gestartet_am")[:10]
     )
+    # Offene Tasks pro Instanz vorladen (wer hat die Kugel gerade?)
+    instanz_ids = [i.pk for i in workflow_instanzen]
+    offene_tasks = (
+        WorkflowTask.objects
+        .filter(instance_id__in=instanz_ids, status__in=["offen", "in_bearbeitung"])
+        .select_related("step", "zugewiesen_an_stelle", "zugewiesen_an_user",
+                        "zugewiesen_an_team")
+        .order_by("instance_id", "step__reihenfolge")
+    )
+    # Tasks nach Instanz gruppieren
+    tasks_by_instanz = {}
+    for task in offene_tasks:
+        tasks_by_instanz.setdefault(task.instance_id, []).append(task)
+    for inst in workflow_instanzen:
+        inst.offene_tasks = tasks_by_instanz.get(inst.pk, [])
 
     return render(request, "dms/dokument_detail.html", {
         "dok": dok,
@@ -503,6 +705,9 @@ def dokument_detail(request, pk):
         "onlyoffice_url": getattr(django_settings, "ONLYOFFICE_URL", ""),
         "onlyoffice_unterstuetzt": dok.dateityp in _ONLYOFFICE_MIME_TYPEN,
         "workflow_instanzen": workflow_instanzen,
+        "dms_kategorien": DokumentKategorie.objects.order_by("name"),
+        "templates": WorkflowTemplate.objects.filter(ist_aktiv=True).order_by("kategorie", "name"),
+        "ist_dms_admin": _ist_dms_admin(request.user) or request.user.is_staff,
     })
 
 
@@ -797,7 +1002,9 @@ def onlyoffice_editor(request, pk):
         return redirect("dms:detail", pk=pk)
 
     onlyoffice_url = getattr(django_settings, "ONLYOFFICE_URL", "")
-    prima_base = getattr(django_settings, "PRIMA_BASE_URL", "").rstrip("/")
+    # Interne URL fuer OnlyOffice-Server-Callbacks (erreichbar vom Docker-Container)
+    prima_base = getattr(django_settings, "PRIMA_ONLYOFFICE_BASE_URL", "").rstrip("/") \
+        or getattr(django_settings, "PRIMA_BASE_URL", "").rstrip("/")
 
     if not onlyoffice_url:
         messages.error(request, "OnlyOffice ist nicht konfiguriert.")
@@ -925,14 +1132,32 @@ def onlyoffice_callback(request, pk):
     if not download_url:
         return JsonResponse({"error": 0})
 
+    # Download-URL auf interne OnlyOffice-URL umschreiben.
+    # OnlyOffice generiert die URL mit seinem oeffentlichen Hostnamen
+    # (z.B. https://office.georg-klein.com/cache/files/...).
+    # Vom Docker-Container aus muss jedoch die interne URL verwendet werden,
+    # da Cloudflare den Authorization-Header entfernt und JWT-Auth fehlschlaegt.
+    onlyoffice_public   = getattr(django_settings, "ONLYOFFICE_URL", "").rstrip("/")
+    onlyoffice_internal = getattr(django_settings, "ONLYOFFICE_INTERNAL_URL", "").rstrip("/")
+    if onlyoffice_public and onlyoffice_internal and download_url.startswith(onlyoffice_public):
+        download_url_intern = download_url.replace(onlyoffice_public, onlyoffice_internal, 1)
+        logger.debug("OnlyOffice Callback: URL umgeschrieben %s -> %s", onlyoffice_public, onlyoffice_internal)
+    else:
+        download_url_intern = download_url
+
+    logger.info("OnlyOffice Callback Dok %s: status=%s intern_url=%s", pk, status, download_url_intern)
+
     dok = get_object_or_404(Dokument, pk=pk)
 
     try:
-        # Datei vom OnlyOffice-Server herunterladen
-        with urllib.request.urlopen(download_url, timeout=30) as resp:
+        dl_req = urllib.request.Request(download_url_intern)
+        if secret:
+            dl_token = jwt.encode({"url": download_url_intern}, secret, algorithm="HS256")
+            dl_req.add_header("Authorization", f"Bearer {dl_token}")
+        with urllib.request.urlopen(dl_req, timeout=30) as resp:
             neuer_inhalt = resp.read()
     except Exception as exc:
-        logger.error("OnlyOffice Callback: Download fehlgeschlagen fuer Dok %s: %s", pk, exc)
+        logger.error("OnlyOffice Callback: Download fehlgeschlagen Dok %s: %s | url=%s", pk, exc, download_url_intern)
         return JsonResponse({"error": 1})
 
     # Bearbeitenden User ermitteln (aus actions-Array wenn vorhanden)
@@ -1013,7 +1238,9 @@ def onlyoffice_forcesave(request, pk):
         return JsonResponse({"ok": False, "fehler": "Nur POST erlaubt"})
 
     dok = get_object_or_404(Dokument, pk=pk)
-    onlyoffice_url = getattr(django_settings, "ONLYOFFICE_URL", "").rstrip("/")
+    # Interne URL fuer API-Call zum OnlyOffice-Server (nicht durch Cloudflare)
+    onlyoffice_url = getattr(django_settings, "ONLYOFFICE_INTERNAL_URL", "").rstrip("/") \
+        or getattr(django_settings, "ONLYOFFICE_URL", "").rstrip("/")
 
     if not onlyoffice_url:
         return JsonResponse({"ok": False, "fehler": "OnlyOffice nicht konfiguriert"})
@@ -1126,12 +1353,21 @@ def version_restore(request, pk, version_nr):
 
 @login_required
 def version_vorschau(request, pk, version_nr):
-    """Zeigt eine archivierte Version inline im Browser (PDF, Bilder)."""
+    """Zeigt eine archivierte Version inline im Browser.
+
+    Office-Dateien werden in OnlyOffice (read-only) geöffnet.
+    PDF/Bilder werden direkt inline ausgeliefert.
+    """
     dok = get_object_or_404(Dokument, pk=pk)
 
     if dok.klasse == "sensibel" and not _darf_sensibel_zugreifen(request, dok):
         messages.error(request, "Sie benoetigen einen gueltigen Zugriffsschluessel.")
         return redirect("dms:detail", pk=pk)
+
+    # Office-Dateien in OnlyOffice (read-only) oeffnen
+    onlyoffice_url = getattr(django_settings, "ONLYOFFICE_URL", "")
+    if onlyoffice_url and dok.dateityp in _ONLYOFFICE_MIME_TYPEN and dok.dateityp != "application/pdf":
+        return redirect("dms:version_onlyoffice", pk=pk, version_nr=version_nr)
 
     version = get_object_or_404(DokumentVersion, dokument=dok, version_nr=version_nr)
 
@@ -1149,6 +1385,100 @@ def version_vorschau(request, pk, version_nr):
     response = HttpResponse(inhalt, content_type=dok.dateityp or "application/octet-stream")
     response["Content-Disposition"] = f'inline; filename="{version.dateiname}"'
     return response
+
+
+@login_required
+def version_onlyoffice(request, pk, version_nr):
+    """Oeffnet eine archivierte Dokumentversion read-only in OnlyOffice."""
+    dok = get_object_or_404(Dokument, pk=pk)
+
+    if dok.klasse == "sensibel" and not _darf_sensibel_zugreifen(request, dok):
+        messages.error(request, "Kein Zugriffsrecht fuer dieses Dokument.")
+        return redirect("dms:detail", pk=pk)
+
+    onlyoffice_url = getattr(django_settings, "ONLYOFFICE_URL", "")
+    prima_base = getattr(django_settings, "PRIMA_ONLYOFFICE_BASE_URL", "").rstrip("/") \
+        or getattr(django_settings, "PRIMA_BASE_URL", "").rstrip("/")
+
+    if not onlyoffice_url:
+        messages.error(request, "OnlyOffice ist nicht konfiguriert.")
+        return redirect("dms:detail", pk=pk)
+
+    version = get_object_or_404(DokumentVersion, dokument=dok, version_nr=version_nr)
+
+    file_type = _MIME_ZU_EXT.get(dok.dateityp, "docx")
+    # Eigener Key damit kein Konflikt mit dem aktiven Edit-Key entsteht
+    doc_key = f"prima-{dok.pk}-archive-v{version_nr}"
+
+    config = {
+        "document": {
+            "fileType": file_type,
+            "key":      doc_key,
+            "title":    version.dateiname,
+            "url":      f"{prima_base}/dms/{dok.pk}/versionen/{version_nr}/onlyoffice/laden/",
+            "permissions": {
+                "edit":     False,
+                "download": True,
+                "print":    True,
+            },
+        },
+        "documentType": _document_type(file_type),
+        "editorConfig": {
+            "lang": "de-DE",
+            "mode": "view",
+            "user": {
+                "id":   str(request.user.pk),
+                "name": request.user.get_full_name() or request.user.username,
+            },
+            "customization": {
+                "spellcheck": True,
+            },
+        },
+    }
+
+    token = _onlyoffice_jwt(config)
+
+    _protokolliere(request, dok, "vorschau",
+                   f"Version {version_nr} in OnlyOffice (Archiv-Vorschau)")
+
+    return render(request, "dms/onlyoffice_editor.html", {
+        "dok":           dok,
+        "onlyoffice_url": onlyoffice_url,
+        "config_json":   json.dumps(config),
+        "token":         token,
+    })
+
+
+def onlyoffice_version_laden(request, pk, version_nr):
+    """Liefert eine archivierte Version an OnlyOffice aus (JWT-gesichert).
+
+    Wird server-seitig von OnlyOffice aufgerufen – kein login_required.
+    """
+    import jwt as pyjwt
+
+    secret = getattr(django_settings, "ONLYOFFICE_JWT_SECRET", "")
+    if secret:
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return HttpResponse("Unauthorized", status=401)
+        try:
+            pyjwt.decode(auth_header[7:], secret, algorithms=["HS256"])
+        except pyjwt.PyJWTError:
+            return HttpResponse("Unauthorized", status=401)
+
+    dok = get_object_or_404(Dokument, pk=pk)
+    version = get_object_or_404(DokumentVersion, dokument=dok, version_nr=version_nr)
+
+    if dok.klasse == "sensibel":
+        from .services import entschluessel_inhalt
+        inhalt = entschluessel_inhalt(
+            bytes(version.inhalt_verschluesselt),
+            version.verschluessel_nonce,
+        )
+    else:
+        inhalt = bytes(version.inhalt_roh)
+
+    return HttpResponse(inhalt, content_type=dok.dateityp or "application/octet-stream")
 
 
 @login_required
@@ -1333,6 +1663,183 @@ def dms_workflow_starten(request, pk):
 
 
 @login_required
+def stelle_autocomplete(request):
+    """JSON-Autocomplete fuer Stellen (Kuerzel + Bezeichnung).
+
+    GET ?q=ma_el → gibt passende Stellen zurueck.
+    Wird vom Laufzettel-Builder verwendet.
+    """
+    from hr.models import Stelle
+    q = request.GET.get("q", "").strip()
+    stellen = Stelle.objects.select_related("org_einheit").order_by("kuerzel")
+    if q:
+        stellen = stellen.filter(
+            db_models.Q(kuerzel__icontains=q) | db_models.Q(bezeichnung__icontains=q)
+        )
+    ergebnis = [
+        {
+            "id": s.pk,
+            "kuerzel": s.kuerzel,
+            "bezeichnung": s.bezeichnung,
+            "org": s.org_einheit.bezeichnung if s.org_einheit else "",
+            "label": f"{s.kuerzel} – {s.bezeichnung}",
+        }
+        for s in stellen[:20]
+    ]
+    return JsonResponse({"stellen": ergebnis})
+
+
+@login_required
+def dms_laufzettel_starten(request, pk):
+    """Erstellt einen ad-hoc Laufzettel und startet den Workflow.
+
+    POST-Body (JSON):
+        steps: [{stelle_id, aktion, titel}, ...]
+        vorlage_name: optional – speichert als Laufzettel-Vorlage
+        ablage_kategorie_id: optional – setzt Kategorie am Ende
+    """
+    from workflow.models import WorkflowTemplate, WorkflowStep
+    from workflow.services import WorkflowEngine
+    from hr.models import Stelle
+
+    dok = get_object_or_404(Dokument, pk=pk)
+
+    if dok.klasse == "sensibel" and not _darf_sensibel_zugreifen(request, dok):
+        return JsonResponse({"fehler": "Kein Zugriffsrecht."}, status=403)
+
+    if request.method != "POST":
+        return JsonResponse({"fehler": "Nur POST erlaubt."}, status=405)
+
+    try:
+        daten = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"fehler": "Ungueltige JSON-Daten."}, status=400)
+
+    schritte = daten.get("steps", [])
+    if not schritte:
+        return JsonResponse({"fehler": "Mindestens ein Schritt erforderlich."}, status=400)
+
+    vorlage_name = daten.get("vorlage_name", "").strip()
+    ablage_kategorie_id = daten.get("ablage_kategorie_id")
+
+    # Auto-Name aus Kuerzeln bauen
+    AKTION_KUERZEL = {
+        "pruefen": "PR",
+        "genehmigen": "GEN",
+        "bearbeiten": "BE",
+        "informieren": "KEN",
+        "entscheiden": "ENT",
+    }
+    kuerzel_kette = []
+    for schritt in schritte:
+        try:
+            stelle = Stelle.objects.get(pk=schritt["stelle_id"])
+            aktion_kz = AKTION_KUERZEL.get(schritt["aktion"], schritt["aktion"].upper()[:3])
+            kuerzel_kette.append(f"{stelle.kuerzel}:{aktion_kz}")
+        except (Stelle.DoesNotExist, KeyError):
+            return JsonResponse({"fehler": f"Stelle {schritt.get('stelle_id')} nicht gefunden."}, status=400)
+
+    auto_name = " → ".join(kuerzel_kette)
+    template_name = vorlage_name or f"Laufzettel {auto_name}"
+
+    # WorkflowTemplate erstellen (oder als Vorlage speichern)
+    template = WorkflowTemplate.objects.create(
+        name=template_name,
+        beschreibung=f"Laufzettel: {auto_name}",
+        kategorie="bearbeitung",
+        ist_aktiv=True,
+        ist_laufzettel=True,
+        ist_graph_workflow=False,
+        erstellt_von=request.user,
+        trigger_event="",
+    )
+
+    # Schritte anlegen
+    for i, schritt_daten in enumerate(schritte, start=1):
+        stelle = Stelle.objects.get(pk=schritt_daten["stelle_id"])
+        aktion = schritt_daten["aktion"]
+        WorkflowStep.objects.create(
+            template=template,
+            reihenfolge=i,
+            titel=schritt_daten.get("titel") or f"{stelle.kuerzel} – {aktion.capitalize()}",
+            aktion_typ=aktion,
+            zustaendig_rolle="spezifische_stelle",
+            zustaendig_stelle=stelle,
+            frist_tage=3,
+            ist_parallel=False,
+        )
+
+    # Optionaler Ablage-Schritt (auto)
+    if ablage_kategorie_id:
+        WorkflowStep.objects.create(
+            template=template,
+            reihenfolge=len(schritte) + 1,
+            titel="Ablage",
+            aktion_typ="python_code",
+            zustaendig_rolle="direkter_vorgesetzter",
+            frist_tage=0,
+            ist_parallel=False,
+            auto_config={"ablage_kategorie_id": ablage_kategorie_id},
+            schritt_typ="auto",
+        )
+
+    # Workflow starten
+    try:
+        engine = WorkflowEngine()
+        instance = engine.start_workflow(template, dok, request.user)
+        # Kein Vorlage-Namen → Template ist einmalig, nach Nutzung als inaktiv markieren
+        if not vorlage_name:
+            template.ist_aktiv = False
+            template.save(update_fields=["ist_aktiv"])
+
+        _protokolliere(
+            request, dok, "geaendert",
+            f"Laufzettel gestartet: {auto_name} (Instanz #{instance.pk})",
+        )
+        return JsonResponse({
+            "ok": True,
+            "instanz_id": instance.pk,
+            "name": auto_name,
+            "redirect": f"/dms/{pk}/",
+        })
+    except Exception as exc:
+        logger.error("Laufzettel-Start fehlgeschlagen fuer Dokument %s: %s", pk, exc)
+        template.delete()
+        return JsonResponse({"fehler": str(exc)}, status=500)
+
+
+@login_required
+def laufzettel_vorlagen(request):
+    """Gibt gespeicherte Laufzettel-Vorlagen des aktuellen Users als JSON zurueck."""
+    from workflow.models import WorkflowTemplate, WorkflowStep
+    vorlagen = (
+        WorkflowTemplate.objects
+        .filter(ist_laufzettel=True, ist_aktiv=True)
+        .prefetch_related("schritte__zustaendig_stelle")
+        .order_by("-erstellt_am")[:50]
+    )
+    ergebnis = []
+    for v in vorlagen:
+        schritte_liste = []
+        for s in v.schritte.order_by("reihenfolge"):
+            if s.zustaendig_stelle:
+                schritte_liste.append({
+                    "stelle_id": s.zustaendig_stelle_id,
+                    "kuerzel": s.zustaendig_stelle.kuerzel,
+                    "bezeichnung": s.zustaendig_stelle.bezeichnung,
+                    "aktion": s.aktion_typ,
+                    "titel": s.titel,
+                })
+        ergebnis.append({
+            "id": v.pk,
+            "name": v.name,
+            "erstellt_von": v.erstellt_von.get_full_name() if v.erstellt_von else "",
+            "steps": schritte_liste,
+        })
+    return JsonResponse({"vorlagen": ergebnis})
+
+
+@login_required
 def api_dokumentation(request):
     """Zeigt die API-Dokumentation fuer externe Systeme (SAP, Paperless, etc.)."""
     from django.conf import settings as conf_settings
@@ -1343,3 +1850,320 @@ def api_dokumentation(request):
         "api_tokens": api_tokens,
         "api_version": "1.0",
     })
+
+
+# ---------------------------------------------------------------------------
+# Ablage-Kategorien verwalten (DMS-Admin)
+# ---------------------------------------------------------------------------
+
+@login_required
+def ablage_liste(request):
+    """Liste aller Ablage-Kategorien mit Anlegen-Moeglichkeit."""
+    if not (_ist_dms_admin(request.user) or request.user.is_staff):
+        messages.error(request, "Keine Berechtigung fuer diese Seite.")
+        return redirect("dms:liste")
+
+    kategorien = DokumentKategorie.objects.select_related("elternkategorie").order_by("sortierung", "name")
+    form = DokumentKategorieForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        kat = form.save()
+        messages.success(request, f'Ablage "{kat.name}" wurde angelegt.')
+        return redirect("dms:ablage_liste")
+
+    return render(request, "dms/ablage_liste.html", {
+        "kategorien": kategorien,
+        "form": form,
+    })
+
+
+@login_required
+def ablage_bearbeiten(request, pk):
+    """Ablage-Kategorie bearbeiten."""
+    if not (_ist_dms_admin(request.user) or request.user.is_staff):
+        messages.error(request, "Keine Berechtigung fuer diese Seite.")
+        return redirect("dms:liste")
+
+    kat = get_object_or_404(DokumentKategorie, pk=pk)
+    form = DokumentKategorieForm(request.POST or None, instance=kat)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, f'Ablage "{kat.name}" wurde gespeichert.')
+        return redirect("dms:ablage_liste")
+
+    return render(request, "dms/ablage_bearbeiten.html", {
+        "kat": kat,
+        "form": form,
+    })
+
+
+@login_required
+def ablage_loeschen(request, pk):
+    """Ablage-Kategorie loeschen (nur wenn keine Dokumente zugeordnet)."""
+    if not (_ist_dms_admin(request.user) or request.user.is_staff):
+        messages.error(request, "Keine Berechtigung fuer diese Seite.")
+        return redirect("dms:liste")
+
+    kat = get_object_or_404(DokumentKategorie, pk=pk)
+
+    if request.method == "POST":
+        anzahl = kat.dokumente.count()
+        if anzahl > 0:
+            messages.error(request, f'Ablage "{kat.name}" kann nicht geloescht werden – {anzahl} Dokument(e) zugeordnet.')
+        else:
+            name = kat.name
+            kat.delete()
+            messages.success(request, f'Ablage "{name}" wurde geloescht.')
+        return redirect("dms:ablage_liste")
+
+    return render(request, "dms/ablage_loeschen.html", {"kat": kat})
+
+
+# ---------------------------------------------------------------------------
+# Loeschplanung (DMS-Admin + DSB-Workflow)
+# ---------------------------------------------------------------------------
+
+@login_required
+def dokument_loeschen_planen(request, pk):
+    """DMS-Admin plant die Loeschung eines Dokuments.
+
+    Setzt loeschen_am + loeschen_begruendung, startet den DSB-Loeschworkflow.
+    Dreifache Sicherheitsabfrage erfolgt im Frontend (dms_loeschen_planung.js).
+    Nur DMS-Admin oder Staff darf diese View aufrufen.
+    """
+    if not (_ist_dms_admin(request.user) or request.user.is_staff):
+        return JsonResponse({"ok": False, "fehler": "Keine Berechtigung."}, status=403)
+
+    dok = get_object_or_404(Dokument, pk=pk)
+
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "fehler": "Nur POST erlaubt."}, status=405)
+
+    # Bereits ein aktiver Loeschantrag?
+    if dok.loeschen_am and dok.loeschen_genehmigt:
+        return JsonResponse(
+            {"ok": False, "fehler": "Loeschung bereits freigegeben – Dokument wird am geplanten Datum geloescht."},
+            status=400,
+        )
+
+    import re
+    from datetime import date
+
+    loeschen_am_str = request.POST.get("loeschen_am", "").strip()
+    begruendung = request.POST.get("begruendung", "").strip()
+    bestaetigung = request.POST.get("bestaetigung", "").strip()
+
+    # Pflichtfelder
+    if not loeschen_am_str:
+        return JsonResponse({"ok": False, "fehler": "Loeschdatum ist Pflichtfeld."})
+    if not begruendung:
+        return JsonResponse({"ok": False, "fehler": "Begruendung ist Pflichtfeld."})
+    if bestaetigung != "LOESCHEN":
+        return JsonResponse({"ok": False, "fehler": "Bestaetigung muss exakt 'LOESCHEN' lauten."})
+
+    # Datum parsen
+    try:
+        loeschen_am = date.fromisoformat(loeschen_am_str)
+    except ValueError:
+        return JsonResponse({"ok": False, "fehler": "Ungaeltiges Datum (erwartet YYYY-MM-DD)."})
+
+    if loeschen_am < date.today():
+        return JsonResponse({"ok": False, "fehler": "Loeschdatum muss in der Zukunft liegen."})
+
+    # Loeschkennzeichen setzen
+    dok.loeschen_am = loeschen_am
+    dok.loeschen_begruendung = begruendung
+    dok.loeschen_beantragt_von = request.user
+    dok.loeschen_genehmigt = False
+    dok.save(update_fields=[
+        "loeschen_am", "loeschen_begruendung", "loeschen_beantragt_von", "loeschen_genehmigt"
+    ])
+
+    # Protokoll
+    ZugriffsProtokoll.objects.create(
+        dokument=dok,
+        user=request.user,
+        aktion="loeschen",
+        zeitpunkt=timezone.now(),
+        notiz=(
+            f"Loeschantrag gestellt. Geplantes Datum: {loeschen_am}. "
+            f"Begruendung: {begruendung}"
+        ),
+    )
+
+    # DSB-Workflow starten
+    try:
+        from workflow.models import WorkflowTemplate
+        from workflow.services import WorkflowEngine
+        template = WorkflowTemplate.objects.filter(
+            trigger_event="dms_loeschantrag_eingereicht", ist_aktiv=True
+        ).first()
+        if template:
+            engine = WorkflowEngine()
+            engine.start_workflow(template, dok, request.user)
+        else:
+            logger.warning(
+                "DSB-Loeschworkflow-Template nicht gefunden – Loeschantrag ohne Workflow gesetzt."
+            )
+    except Exception as exc:
+        logger.error("Fehler beim Starten des DSB-Loeschworkflows: %s", exc)
+
+    return JsonResponse({
+        "ok": True,
+        "meldung": (
+            f"Loeschantrag gestellt. Dokument wird am {loeschen_am:%d.%m.%Y} "
+            "geloescht – sobald der DSB die Freigabe erteilt."
+        ),
+    })
+
+
+# ---------------------------------------------------------------------------
+# Persoenliche Ablage
+# ---------------------------------------------------------------------------
+
+@login_required
+def meine_ablage(request):
+    """Zeigt die persoenliche Ablage des eingeloggten Users.
+
+    Zwei Abschnitte:
+    - Meine Dokumente: selbst hochgeladen (erstellt_von=user)
+    - Freigaben: andere haben diese Dokumente fuer mich freigegeben (sichtbar_fuer=user)
+    """
+    eigene = (
+        Dokument.objects
+        .filter(ist_persoenlich=True, erstellt_von=request.user)
+        .order_by("-erstellt_am")
+    )
+    freigaben = (
+        Dokument.objects
+        .filter(ist_persoenlich=True, sichtbar_fuer=request.user)
+        .exclude(erstellt_von=request.user)
+        .order_by("-erstellt_am")
+    )
+    return render(request, "dms/meine_ablage.html", {
+        "eigene": eigene,
+        "freigaben": freigaben,
+    })
+
+
+@login_required
+def meine_ablage_upload(request):
+    """Upload eines Dokuments in die persoenliche Ablage mit Virenscan."""
+    from utils.virusscanner import scan_datei
+
+    form = PersoenlicheAblageUploadForm(request.POST or None, request.FILES or None)
+
+    if request.method == "POST" and form.is_valid():
+        datei = form.cleaned_data["datei"]
+
+        # Virenscan vor dem Speichern
+        scan = scan_datei(datei)
+        if not scan.sauber:
+            if scan.bedrohung:
+                messages.error(
+                    request,
+                    f"Upload abgelehnt: Virenscanner hat eine Bedrohung gefunden ({scan.bedrohung}).",
+                )
+            else:
+                messages.error(request, f"Upload abgelehnt: {scan.fehler}")
+            return render(request, "dms/meine_ablage_upload.html", {"form": form})
+
+        inhalt_bytes = datei.read()
+        mime = datei.content_type or mimetypes.guess_type(datei.name)[0] or "application/octet-stream"
+
+        dok = Dokument(
+            titel=form.cleaned_data["titel"],
+            klasse=form.cleaned_data["klasse"],
+            beschreibung=form.cleaned_data["beschreibung"],
+            dateiname=datei.name,
+            dateityp=mime,
+            groesse_bytes=len(inhalt_bytes),
+            erstellt_von=request.user,
+            ist_persoenlich=True,
+        )
+
+        try:
+            speichere_dokument(dok, inhalt_bytes)
+        except ValueError as exc:
+            messages.error(request, f"Verschluesselung fehlgeschlagen: {exc}")
+            return render(request, "dms/meine_ablage_upload.html", {"form": form})
+
+        dok.save()
+        suchvektor_befuellen(dok)
+        _protokolliere(request, dok, aktion="erstellt", notiz="Persoenliche Ablage")
+        messages.success(request, f'"{dok.titel}" wurde in deine persoenliche Ablage hochgeladen.')
+        return redirect("dms:meine_ablage")
+
+    return render(request, "dms/meine_ablage_upload.html", {"form": form})
+
+
+@login_required
+def meine_ablage_freigabe(request, pk):
+    """Verwaltet Freigaben eines persoenlichen Dokuments.
+
+    Nur der Eigentuemer darf Freigaben verwalten.
+    """
+    dok = get_object_or_404(Dokument, pk=pk, ist_persoenlich=True, erstellt_von=request.user)
+    form = PersoenlicheAblageFreigabeForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        ziel_user = form.cleaned_data["user"]
+        if ziel_user == request.user:
+            messages.warning(request, "Du hast bereits Zugriff auf dein eigenes Dokument.")
+        elif dok.sichtbar_fuer.filter(pk=ziel_user.pk).exists():
+            messages.warning(request, f"{ziel_user.get_full_name() or ziel_user.username} hat bereits Zugriff.")
+        else:
+            dok.sichtbar_fuer.add(ziel_user)
+            _protokolliere(
+                request, dok, aktion="zugriff_genehmigt",
+                notiz=f"Freigabe fuer {ziel_user.username} durch Eigentuemer",
+            )
+            messages.success(
+                request,
+                f"Dokument fuer {ziel_user.get_full_name() or ziel_user.username} freigegeben.",
+            )
+        return redirect("dms:meine_ablage_freigabe", pk=pk)
+
+    freigegebene = dok.sichtbar_fuer.all().order_by("last_name", "first_name")
+    return render(request, "dms/meine_ablage_freigabe.html", {
+        "dok": dok,
+        "freigegebene": freigegebene,
+        "form": form,
+    })
+
+
+@login_required
+def meine_ablage_freigabe_entfernen(request, pk, user_pk):
+    """Entfernt die Freigabe eines Users von einem persoenlichen Dokument (POST)."""
+    from django.contrib.auth.models import User as AuthUser
+
+    dok = get_object_or_404(Dokument, pk=pk, ist_persoenlich=True, erstellt_von=request.user)
+    ziel_user = get_object_or_404(AuthUser, pk=user_pk)
+
+    if request.method == "POST":
+        dok.sichtbar_fuer.remove(ziel_user)
+        _protokolliere(
+            request, dok, aktion="zugriff_widerrufen",
+            notiz=f"Freigabe fuer {ziel_user.username} entfernt durch Eigentuemer",
+        )
+        messages.success(
+            request,
+            f"Freigabe fuer {ziel_user.get_full_name() or ziel_user.username} wurde entfernt.",
+        )
+
+    return redirect("dms:meine_ablage_freigabe", pk=pk)
+
+
+@login_required
+def meine_ablage_loeschen(request, pk):
+    """Loescht ein persoenliches Dokument (nur Eigentuemer, POST)."""
+    dok = get_object_or_404(Dokument, pk=pk, ist_persoenlich=True, erstellt_von=request.user)
+
+    if request.method == "POST":
+        titel = dok.titel
+        dok.delete()
+        messages.success(request, f'"{titel}" wurde geloescht.')
+        return redirect("dms:meine_ablage")
+
+    return redirect("dms:meine_ablage")

@@ -593,8 +593,8 @@
         var svg = document.getElementById("rack-svg");
         if (!svg) return;
 
-        var maxHe  = typeof MAX_HE !== "undefined" ? MAX_HE : 42;
-        var daten  = typeof RACK_DATEN !== "undefined" ? RACK_DATEN : [];
+        var maxHe  = JSON.parse(document.getElementById("rack-max-he").textContent || "42");
+        var daten  = JSON.parse(document.getElementById("rack-daten").textContent || "[]");
 
         var svgH   = PAD_T + maxHe * HE_H + PAD_B;
         svg.setAttribute("width",   SVG_W);

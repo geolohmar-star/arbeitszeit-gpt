@@ -201,11 +201,28 @@ class Raum(models.Model):
     geschoss = models.ForeignKey(
         Geschoss, on_delete=models.PROTECT, related_name="raeume"
     )
+    hat_kundenkontakt = models.BooleanField(
+        default=False,
+        verbose_name="Kundenkontakt-Raum",
+        help_text="Stiller Alarm Button in Buchungsdetail anzeigen",
+    )
     ist_aktiv = models.BooleanField(default=True)
     ist_leer = models.BooleanField(default=False)
     kapazitaet = models.IntegerField(null=True, blank=True)
     nutzungsmodell = models.CharField(
         max_length=20, choices=NUTZUNG_CHOICES, default="statisch"
+    )
+    jitsi_room_url = models.URLField(
+        blank=True,
+        default="",
+        verbose_name="Jitsi-Raum-URL",
+        help_text="Fester Jitsi-Meeting-Link fuer diesen Raum (optional). Ueberschreibt den automatisch generierten Link.",
+    )
+    matrix_room_url = models.URLField(
+        blank=True,
+        default="",
+        verbose_name="Matrix-Raum-URL",
+        help_text="Direkte Element-URL, z.B. https://app.element.io/#/room/!ID:georg-klein.com",
     )
     raumname = models.CharField(max_length=200, blank=True)
     raumnummer = models.CharField(max_length=20)
@@ -729,6 +746,12 @@ class Raumbuchung(models.Model):
         ("storniert", "Storniert"),
     ]
 
+    VIRTUAL_MEETING_CHOICES = [
+        ("", "Kein virtuelles Meeting"),
+        ("jitsi", "Jitsi Meet (Video)"),
+        ("matrix", "Matrix/Element (Chat)"),
+    ]
+
     betreff = models.CharField(max_length=200)
     bis = models.TimeField()
     buchender = models.ForeignKey(
@@ -751,6 +774,13 @@ class Raumbuchung(models.Model):
         verbose_name="Jitsi-Meeting-Link",
     )
     teilnehmerzahl = models.IntegerField(null=True, blank=True)
+    virtual_meeting = models.CharField(
+        max_length=10,
+        choices=VIRTUAL_MEETING_CHOICES,
+        blank=True,
+        default="",
+        verbose_name="Virtuelles Meeting",
+    )
     von = models.TimeField()
 
     class Meta:

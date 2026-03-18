@@ -241,17 +241,54 @@ def stoermeldung_erstellen(request):
                 prioritaet=prioritaet,
             )
             logger.info("Stoermeldung %s erstellt von User %s", meldung.pk, request.user)
-            # Matrix-Benachrichtigung an Facility-Team senden (falls konfiguriert)
+            # Matrix-Benachrichtigung an das zustaendige FM-Team senden
+            # Zuerst team-spezifischen Raum suchen, dann allgemeinen Facility-Raum
+            _KATEGORIE_PING_TYP = {
+                "elektro": "fm_elektro",
+                "sanitaer_heizung": "fm_sanitaer",
+                "schlosser": "fm_schlosser",
+                "schreiner": "fm_schreiner",
+                "maler": "fm_maler",
+            }
             room_id = getattr(settings, "MATRIX_FACILITY_ROOM_ID", "")
+            if not room_id:
+                try:
+                    from matrix_integration.models import MatrixRaum
+                    team_ping_typ = _KATEGORIE_PING_TYP.get(kategorie)
+                    ping_raum = None
+                    if team_ping_typ:
+                        ping_raum = MatrixRaum.objects.filter(
+                            ping_typ=team_ping_typ, ist_aktiv=True
+                        ).exclude(room_id="").first()
+                    if not ping_raum:
+                        ping_raum = MatrixRaum.objects.filter(
+                            ping_typ="facility", ist_aktiv=True
+                        ).exclude(room_id="").first()
+                    if ping_raum:
+                        room_id = ping_raum.room_id
+                except Exception:
+                    pass
             if room_id:
                 prioritaet_label = dict(Stoermeldung.PRIORITAET_CHOICES).get(
                     meldung.prioritaet, meldung.prioritaet
                 )
+                melder_name = (
+                    request.user.get_full_name() or request.user.username
+                )
+                raum_info = meldung.raumnummer or meldung.raum_freitext or "unbekannt"
+                beschreibung_kurz = (
+                    (meldung.beschreibung[:120] + "...") if len(meldung.beschreibung) > 120
+                    else meldung.beschreibung
+                ) if meldung.beschreibung else "–"
                 matrix_text = (
-                    f"[PRIMA] Neue Stoermeldung #{meldung.pk} | "
-                    f"Raum: {meldung.raumnummer} | "
-                    f"Kategorie: {meldung.get_kategorie_display()} | "
-                    f"Prioritaet: {prioritaet_label}"
+                    f"NEUE STOERMELDUNG #{meldung.pk}\n"
+                    f"Prioritaet : {prioritaet_label}\n"
+                    f"Kategorie  : {meldung.get_kategorie_display()}\n"
+                    f"Ort        : {raum_info}\n"
+                    f"Gemeldet   : {melder_name}\n"
+                    f"Beschreibung: {beschreibung_kurz}\n"
+                    f"Link       : {getattr(settings, 'PRIMA_BASE_URL', '').rstrip('/')}"
+                    f"/facility/{meldung.pk}/"
                 )
                 matrix_nachricht_senden(room_id, matrix_text)
             # Workflow-Trigger: Meldung in die richtige Team-Queue einreihen

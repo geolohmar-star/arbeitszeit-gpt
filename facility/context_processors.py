@@ -77,6 +77,31 @@ def facility_context(request):
         except Exception:
             pass
 
+    # Arbeitsschutz-Beauftragter: Kuerzel al_as oder Staff
+    ist_arbeitsschutz = request.user.is_staff
+    if not ist_arbeitsschutz:
+        try:
+            ist_arbeitsschutz = (
+                request.user.hr_mitarbeiter.stelle.kuerzel == "al_as"
+            )
+        except Exception:
+            pass
+
+    # Sicherheits-Zugang: Security-Stellen oder Staff
+    _SECURITY_KUERZEL = frozenset([
+        "al_sec", "sv_sec",
+        "ma_sec1", "ma_sec2", "ma_sec3", "ma_sec4",
+        "pf_sec", "al_as", "ba_as", "gf1", "gf_tech", "gf_verw",
+    ])
+    ist_security_zugang = request.user.is_staff or ist_arbeitsschutz
+    if not ist_security_zugang:
+        try:
+            ist_security_zugang = (
+                request.user.hr_mitarbeiter.stelle.kuerzel in _SECURITY_KUERZEL
+            )
+        except Exception:
+            pass
+
     return {
         "ist_facility_mitglied": ist_facility_mitglied,
         "facility_queue_anzahl": facility_queue_anzahl,
@@ -85,4 +110,6 @@ def facility_context(request):
         "al_queue_anzahl": al_queue_anzahl,
         "ist_security_mitglied": ist_security_mitglied,
         "token_anfragen_anzahl": token_anfragen_anzahl,
+        "ist_arbeitsschutz": ist_arbeitsschutz,
+        "ist_security_zugang": ist_security_zugang,
     }

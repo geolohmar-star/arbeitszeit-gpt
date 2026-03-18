@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Brandmeldung Fehler – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="alert alert-danger">
+        <h5 class="alert-heading">Brandmeldung nicht moeglich</h5>
+        <p>{{ fehler }}</p>
+        <hr>
+        <a href="javascript:history.back()" class="btn btn-outline-danger btn-sm">Zurueck</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

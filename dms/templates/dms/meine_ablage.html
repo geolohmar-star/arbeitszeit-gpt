@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Meine Ablage – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Meine Ablage</h2>
+    <a href="{% url 'dms:meine_ablage_upload' %}" class="btn btn-primary">
+      Dokument hochladen
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {# ---- Eigene Dokumente ---- #}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">
+      Meine Dokumente
+      <span class="badge bg-secondary ms-1">{{ eigene.count }}</span>
+    </div>
+    <div class="card-body p-0">
+      {% if eigene %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Titel</th>
+              <th>Klasse</th>
+              <th>Grösse</th>
+              <th>Hochgeladen</th>
+              <th>Freigaben</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dok in eigene %}
+            <tr>
+              <td>
+                <a href="{% url 'dms:detail' dok.pk %}">{{ dok.titel }}</a>
+                {% if dok.klasse == "sensibel" %}
+                  <span class="badge bg-warning text-dark ms-1" title="Verschluesselt">
+                    <small>AES-256</small>
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                {% if dok.klasse == "offen" %}
+                  <span class="badge bg-success">Klasse 1</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Klasse 2</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ dok.groesse_lesbar }}</td>
+              <td class="text-muted small">{{ dok.erstellt_am|date:"d.m.Y" }}</td>
+              <td>
+                {% with anzahl=dok.sichtbar_fuer.count %}
+                  {% if anzahl %}
+                    <span class="badge bg-info text-dark">{{ anzahl }} Person{{ anzahl|pluralize:"en" }}</span>
+                  {% else %}
+                    <span class="text-muted small">Nur ich</span>
+                  {% endif %}
+                {% endwith %}
+              </td>
+              <td class="text-end">
+                <a href="{% url 'dms:download' dok.pk %}" class="btn btn-sm btn-outline-secondary" title="Herunterladen">
+                  ↓
+                </a>
+                <a href="{% url 'dms:meine_ablage_freigabe' dok.pk %}" class="btn btn-sm btn-outline-primary" title="Freigaben verwalten">
+                  Freigabe
+                </a>
+                <form method="post" action="{% url 'dms:meine_ablage_loeschen' dok.pk %}"
+                      class="d-inline" id="loeschen-{{ dok.pk }}">
+                  {% csrf_token %}
+                  <button type="button" class="btn btn-sm btn-outline-danger"
+                          data-action="loeschen-persoenlich" data-form-id="loeschen-{{ dok.pk }}"
+                          data-titel="{{ dok.titel }}">
+                    Löschen
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="p-4 text-center text-muted">
+        Noch keine eigenen Dokumente.
+        <a href="{% url 'dms:meine_ablage_upload' %}">Jetzt hochladen</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ---- Freigaben von anderen ---- #}
+  {% if freigaben %}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-semibold">
+      Für mich freigegeben
+      <span class="badge bg-secondary ms-1">{{ freigaben.count }}</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Titel</th>
+              <th>Klasse</th>
+              <th>Von</th>
+              <th>Hochgeladen</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dok in freigaben %}
+            <tr>
+              <td>
+                <a href="{% url 'dms:detail' dok.pk %}">{{ dok.titel }}</a>
+              </td>
+              <td>
+                {% if dok.klasse == "offen" %}
+                  <span class="badge bg-success">Klasse 1</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Klasse 2</span>
+                {% endif %}
+              </td>
+              <td class="small">{{ dok.erstellt_von.get_full_name|default:dok.erstellt_von.username }}</td>
+              <td class="text-muted small">{{ dok.erstellt_am|date:"d.m.Y" }}</td>
+              <td class="text-end">
+                <a href="{% url 'dms:download' dok.pk %}" class="btn btn-sm btn-outline-secondary">↓</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/meine_ablage.js' %}"></script>
+{% endblock %}

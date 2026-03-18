@@ -220,28 +220,11 @@
     </div>
 </div>
 
-<!-- Rack-Daten als JSON fuer SVG-Renderer -->
-<script>
-const RACK_DATEN = [
-    {% for k in komponenten %}
-    {
-        he_start: {{ k.rack_einheit_start|default:"null" }},
-        he_anzahl: {{ k.rack_einheiten }},
-        bezeichnung: "{{ k.bezeichnung }}",
-        typ: "{{ k.typ }}",
-        typ_label: "{{ k.get_typ_display }}",
-        hersteller: "{{ k.hersteller }}",
-        modell: "{{ k.modell|truncatechars:40 }}",
-        ip: "{{ k.ip_adresse }}",
-        ports_ges: {{ k.ports_gesamt|default:"null" }},
-        ports_bel: {{ k.ports_belegt|default:"null" }},
-        vlan: "{{ k.vlan }}",
-        bemerkung: "{{ k.bemerkung|escapejs }}",
-    },
-    {% endfor %}
-];
-const MAX_HE = {{ max_he }};
-</script>
+<!-- Rack-Daten CSP-sicher als JSON-Script-Elemente -->
+{{ rack_daten|json_script:"rack-daten" }}
+{{ max_he|json_script:"rack-max-he" }}
+{% block extra_js %}
 <script src="{% static 'js/netzwerkplan_rack.js' %}"></script>
+{% endblock %}
 
 {% endblock %}

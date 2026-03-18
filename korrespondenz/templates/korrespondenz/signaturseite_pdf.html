@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<style>
+  /* A4-Seite exakt – WeasyPrint verwendet diese Masse */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    color: #1a1a1a;
+    width: 210mm;
+    height: 297mm;
+    background: #fff;
+  }
+
+  /* ---------------------------------------------------------------
+     Seiten-Layout: Kopfband + Inhaltsbereich + Stempelzone + Fuss
+  --------------------------------------------------------------- */
+  .seite {
+    width: 210mm;
+    height: 297mm;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  /* Kopfband – dunkelgruen */
+  .kopfband {
+    background: #1a4d2e;
+    color: #fff;
+    padding: 14pt 20pt 12pt 20pt;
+    flex-shrink: 0;
+  }
+  .kopfband .titel {
+    font-size: 13pt;
+    font-weight: bold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .kopfband .untertitel {
+    font-size: 8pt;
+    opacity: 0.8;
+    margin-top: 2pt;
+  }
+
+  /* Dokumentinfo-Bereich */
+  .dokinfo {
+    padding: 16pt 20pt 12pt 20pt;
+    border-bottom: 1.5pt solid #1a4d2e;
+    flex-shrink: 0;
+  }
+  .dokinfo table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .dokinfo td {
+    padding: 3pt 6pt 3pt 0;
+    vertical-align: top;
+    font-size: 9.5pt;
+  }
+  .dokinfo td:first-child {
+    width: 105pt;
+    color: #555;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  /* Signatur-Typ-Erklaerung */
+  .sigtyp {
+    padding: 12pt 20pt 10pt 20pt;
+    border-bottom: 1pt solid #d0d5db;
+    flex-shrink: 0;
+    background: #f8f9fa;
+  }
+  .sigtyp .abschnitt-titel {
+    font-size: 8.5pt;
+    font-weight: bold;
+    color: #1a4d2e;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6pt;
+  }
+  .sigtyp-zeile {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 5pt;
+    font-size: 9pt;
+  }
+  .sigtyp-zeile .bullet {
+    width: 14pt;
+    flex-shrink: 0;
+    color: #1a4d2e;
+    font-weight: bold;
+  }
+  .sigtyp-aktiv { color: #1a4d2e; }
+  .sigtyp-inaktiv { color: #9ca3af; }
+
+  /* Stempelzone – hier platziert pyhanko und sign-me ihren Stempel.
+     Position auf der Seite:
+       - Von links:   20pt = 28px (ca. 7mm)
+       - Von oben:    ~175pt (vom Kopf gemessen)
+       - Breite:      170mm = ~482pt
+       - Hoehe:        45mm = ~128pt
+     In PDF-Koordinaten (Ursprung unten links, A4 = 595x842pt):
+       box = (20, 842 - 175 - 128, 20 + 482, 842 - 175)
+           = (20, 539, 502, 667)      <-- fuer pyhanko
+     sign-me visibleSignature (Ursprung oben links):
+       x=20, y=175, width=482, height=128
+  */
+  .stempelzone {
+    margin: 14pt 20pt 0 20pt;
+    flex-shrink: 0;
+  }
+  .stempelzone .abschnitt-titel {
+    font-size: 8.5pt;
+    font-weight: bold;
+    color: #1a4d2e;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8pt;
+  }
+  .stempel-rahmen {
+    width: 100%;
+    height: 45mm;
+    border: 1.5pt dashed #1a4d2e;
+    border-radius: 3pt;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f7f0;
+    position: relative;
+  }
+  .stempel-rahmen .platzhalter-text {
+    font-size: 8pt;
+    color: #6b7280;
+    text-align: center;
+    line-height: 1.6;
+  }
+  .stempel-ecke {
+    position: absolute;
+    font-size: 7pt;
+    color: #9ca3af;
+    font-style: italic;
+  }
+  .stempel-ecke-tl { top: 4pt; left: 6pt; }
+  .stempel-ecke-tr { top: 4pt; right: 6pt; }
+
+  /* Spacer */
+  .spacer { flex-grow: 1; }
+
+  /* Fusszeile */
+  .fusszeile {
+    padding: 10pt 20pt;
+    border-top: 1pt solid #d0d5db;
+    background: #f8f9fa;
+    flex-shrink: 0;
+  }
+  .fusszeile-text {
+    font-size: 7.5pt;
+    color: #6b7280;
+    line-height: 1.5;
+  }
+  .fusszeile-text strong {
+    color: #374151;
+  }
+
+  /* Rechtliche Hinweisbox */
+  .hinweisbox {
+    margin: 14pt 20pt 0 20pt;
+    padding: 9pt 12pt;
+    border-left: 3pt solid #1a4d2e;
+    background: #f0f7f0;
+    font-size: 8.5pt;
+    color: #374151;
+    line-height: 1.5;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+<div class="seite">
+
+  <!-- Kopfband -->
+  <div class="kopfband">
+    <div class="titel">Elektronische Signatur</div>
+    <div class="untertitel">PRIMA &ndash; Digitales Dokumentenmanagementsystem</div>
+  </div>
+
+  <!-- Dokumentinformationen -->
+  <div class="dokinfo">
+    <table>
+      <tr>
+        <td>Dokument:</td>
+        <td>{{ brief.betreff }}</td>
+      </tr>
+      <tr>
+        <td>Empf&auml;nger:</td>
+        <td>{{ brief.empfaenger_name }}{% if brief.empfaenger_plz_ort %}, {{ brief.empfaenger_plz_ort }}{% endif %}</td>
+      </tr>
+      <tr>
+        <td>Datum:</td>
+        <td>{{ brief.datum }}</td>
+      </tr>
+      <tr>
+        <td>Unterzeichner:</td>
+        <td>
+          <strong>{{ unterzeichner_name }}</strong>
+          {% if unterzeichner_funktion %}&nbsp;&middot;&nbsp;{{ unterzeichner_funktion }}{% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td>Signiert am:</td>
+        <td>{{ signiert_am }}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Signaturtyp-Erklaerung -->
+  <div class="sigtyp">
+    <div class="abschnitt-titel">Signaturstandard</div>
+    <div class="sigtyp-zeile sigtyp-aktiv">
+      <span class="bullet">&#10003;</span>
+      <span>
+        <strong>Fortgeschrittene Elektronische Signatur (FES)</strong> nach eIDAS Art.&nbsp;26 &ndash;
+        interne PRIMA-CA, vollst&auml;ndig offline verifizierbar
+      </span>
+    </div>
+    <div class="sigtyp-zeile sigtyp-inaktiv">
+      <span class="bullet">&#9675;</span>
+      <span>
+        <strong>Qualifizierte Elektronische Signatur (QES)</strong> &ndash;
+        erfordert Bundesdruckerei sign-me Anbindung (konfigurierbar in PRIMA)
+      </span>
+    </div>
+  </div>
+
+  <!-- Stempelzone -->
+  <div class="stempelzone">
+    <div class="abschnitt-titel">Digitaler Signaturstempel</div>
+    <div class="stempel-rahmen">
+      <span class="stempel-ecke stempel-ecke-tl">FES / QES</span>
+      <span class="stempel-ecke stempel-ecke-tr">PRIMA &ndash; eIDAS konform</span>
+      <div class="platzhalter-text">
+        Der digitale Signaturstempel wird in diesem Bereich eingebettet.<br>
+        Bitte mit einem PDF-Viewer &ouml;ffnen um die Signatur zu pr&uuml;fen.
+      </div>
+    </div>
+  </div>
+
+  <!-- Rechtlicher Hinweis -->
+  <div class="hinweisbox">
+    Dieses Dokument ist mit einer elektronischen Signatur versehen. Die Signatur sichert die
+    Integrit&auml;t und Authentizit&auml;t des Dokuments gem&auml;&szlig; der eIDAS-Verordnung
+    (EU) Nr.&nbsp;910/2014. Eine Ver&auml;nderung des Dokuments nach der Signierung macht die
+    Signatur ung&uuml;ltig.
+  </div>
+
+  <div class="spacer"></div>
+
+  <!-- Fusszeile -->
+  <div class="fusszeile">
+    <div class="fusszeile-text">
+      <strong>PRIMA &ndash; Internes Dokumentenmanagementsystem</strong>
+      &nbsp;&nbsp;&middot;&nbsp;&nbsp;
+      Signatur-Backend: {{ signatur_backend }}
+      &nbsp;&nbsp;&middot;&nbsp;&nbsp;
+      Dieses Blatt ist Bestandteil des signierten Dokuments und darf nicht entfernt werden.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

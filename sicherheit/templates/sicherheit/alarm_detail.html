@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Alarm #{{ alarm.pk }} – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width:700px;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>
+      {% if alarm.typ == 'amok' %}
+      <span class="badge bg-danger me-2">AMOK-Alarm</span>
+      {% else %}
+      <span class="badge bg-secondary me-2">Stiller Alarm</span>
+      {% endif %}
+      #{{ alarm.pk }}
+    </h2>
+    <a href="{% url 'sicherheit:alarm_liste' %}" class="btn btn-sm btn-outline-secondary">
+      &larr; Zur Liste
+    </a>
+  </div>
+
+  <div class="card mb-4 {% if alarm.status == 'aktiv' %}border-danger{% else %}border-success{% endif %}">
+    <div class="card-header {% if alarm.status == 'aktiv' %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
+      Status:
+      {% if alarm.status == 'aktiv' %}
+      <strong>AKTIV</strong>
+      {% else %}
+      <strong>GESCHLOSSEN</strong>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-4">Ort</dt>
+        <dd class="col-sm-8">
+          {% if alarm.ort %}
+            {{ alarm.ort }}
+          {% elif aktueller_raum %}
+            {{ aktueller_raum }}
+            <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">aus Raumbuch</span>
+          {% else %}
+            <span class="text-muted">nicht angegeben</span>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-4">Ausgeloest von</dt>
+        <dd class="col-sm-8">
+          {{ alarm.ausgeloest_von.get_full_name|default:alarm.ausgeloest_von.username|default:"–" }}
+        </dd>
+
+        <dt class="col-sm-4">Alarmzeit</dt>
+        <dd class="col-sm-8">{{ alarm.erstellt_am|date:"d.m.Y H:i" }} Uhr</dd>
+
+        {% if alarm.geschlossen_am %}
+        <dt class="col-sm-4">Geschlossen am</dt>
+        <dd class="col-sm-8">{{ alarm.geschlossen_am|date:"d.m.Y H:i" }} Uhr</dd>
+
+        <dt class="col-sm-4">Geschlossen von</dt>
+        <dd class="col-sm-8">
+          {{ alarm.geschlossen_von.get_full_name|default:alarm.geschlossen_von.username|default:"–" }}
+        </dd>
+        {% endif %}
+
+        {% if alarm.notiz %}
+        <dt class="col-sm-4">Notiz</dt>
+        <dd class="col-sm-8">{{ alarm.notiz }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+  </div>
+
+  {% if alarm.status == 'aktiv' %}
+  <div class="card border-success">
+    <div class="card-header bg-success text-white">Alarm schliessen</div>
+    <div class="card-body">
+      <form method="post" action="{% url 'sicherheit:alarm_schliessen' alarm.pk %}">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="ort" class="form-label">Raumnummer / Ort</label>
+          <input type="text"
+                 id="ort"
+                 name="ort"
+                 class="form-control"
+                 value="{{ alarm.ort }}"
+                 placeholder="z.B. Raum 1.12, Empfang, Kantine"
+                 maxlength="200">
+          <div class="form-text">
+            Kann hier ergaenzt oder korrigiert werden.
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="notiz" class="form-label">Abschlussnotiz (optional)</label>
+          <textarea id="notiz" name="notiz" class="form-control" rows="3"
+                    placeholder="z.B. Falschalarm, Uebung, Lage bereinigt...">{{ alarm.notiz }}</textarea>
+        </div>
+        <button type="submit" class="btn btn-success">
+          Alarm jetzt schliessen
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

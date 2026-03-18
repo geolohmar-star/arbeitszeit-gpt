@@ -1,0 +1,14 @@
+{% comment %}
+Kontext-Variablen: ma (HRMitarbeiter), feld (str), wert (bool)
+Wird sowohl im Dashboard-Loop als auch als HTMX-Antwort verwendet.
+{% endcomment %}
+<button type="button"
+        class="cb-label {% if wert %}cb-ja{% else %}cb-nein{% endif %}"
+        hx-post="{% url 'sicherheit:arbeitsschutz_rolle_toggle' pk=ma.pk %}"
+        hx-vals='{"feld": "{{ feld }}"}'
+        hx-target="#zelle-{{ ma.pk }}-{{ feld }}"
+        hx-swap="innerHTML"
+        title="{{ bezeichnung|default:feld }}: {% if wert %}aktiv – klicken zum Entfernen{% else %}inaktiv – klicken zum Setzen{% endif %}"
+        aria-label="{{ bezeichnung|default:feld }}">
+  {% if wert %}&#10003;{% else %}&ndash;{% endif %}
+</button>

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titel }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 720px;">
+    <div class="mb-3">
+        <a href="{% url 'matrix_integration:template_liste' %}" class="text-muted text-decoration-none">
+            &larr; Teilnehmer-Templates
+        </a>
+        <h2 class="mt-1">{{ titel }}</h2>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Name *</label>
+                    <input type="text" name="name" class="form-control" required
+                           value="{{ tmpl.name|default:'' }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Typ *</label>
+                    <select name="typ" class="form-select" id="id_typ">
+                        <option value="manuell" {% if not tmpl or tmpl.typ == "manuell" %}selected{% endif %}>
+                            Manuell zusammengestellt
+                        </option>
+                        <option value="org_einheit" {% if tmpl.typ == "org_einheit" %}selected{% endif %}>
+                            Aus Org-Einheit (automatisch)
+                        </option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Beschreibung</label>
+                    <textarea name="beschreibung" class="form-control" rows="2">{{ tmpl.beschreibung|default:'' }}</textarea>
+                </div>
+
+                <div id="row-org-einheit" class="mb-3 {% if not tmpl or tmpl.typ != 'org_einheit' %}d-none{% endif %}">
+                    <label class="form-label">Org-Einheit</label>
+                    <select name="org_einheit" class="form-select">
+                        <option value="">-- bitte waehlen --</option>
+                        {% for oe in org_einheiten %}
+                        <option value="{{ oe.pk }}"
+                            {% if tmpl.org_einheit_id == oe.pk %}selected{% endif %}>
+                            {{ oe.kuerzel }} – {{ oe.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">
+                        Alle Mitarbeiter dieser Einheit werden automatisch als Mitglieder behandelt.
+                    </small>
+                </div>
+
+                <div id="row-mitglieder" class="mb-3 {% if tmpl.typ == 'org_einheit' %}d-none{% endif %}">
+                    <label class="form-label">Mitglieder</label>
+                    <select name="mitglieder" class="form-select" multiple size="10">
+                        {% for user in alle_user %}
+                        <option value="{{ user.pk }}"
+                            {% if tmpl and user in tmpl.mitglieder.all %}selected{% endif %}>
+                            {{ user.last_name }}, {{ user.first_name }} ({{ user.username }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Strg + Klick fuer Mehrfachauswahl.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">Speichern</button>
+            <a href="{% url 'matrix_integration:template_liste' %}" class="btn btn-outline-secondary">Abbrechen</a>
+        </div>
+    </form>
+</div>
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/matrix_template_form.js' %}"></script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Template löschen{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 540px;">
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white fw-semibold">
+            Teilnehmer-Template löschen
+        </div>
+        <div class="card-body">
+            <p>Soll das Template <strong>{{ tmpl.name }}</strong> wirklich gelöscht werden?</p>
+            {% if tmpl.matrix_raeume.exists %}
+            <div class="alert alert-warning">
+                Achtung: Dieses Template ist noch
+                <strong>{{ tmpl.matrix_raeume.count }} Raum/Räumen</strong> zugeordnet.
+                Nach dem Löschen wird es dort auf „kein Template" gesetzt.
+            </div>
+            {% endif %}
+            <form method="post" class="d-flex gap-2 mt-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Ja, löschen</button>
+                <a href="{% url 'matrix_integration:template_liste' %}" class="btn btn-outline-secondary">Abbrechen</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

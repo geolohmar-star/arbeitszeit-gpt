@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}DMS – Ablagen verwalten{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:900px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{% url 'dms:liste' %}" class="text-muted text-decoration-none small">&larr; Zurück zum DMS</a>
+            <h1 class="h3 fw-bold mb-0 mt-1" style="color:#1a4d2e;">Ablagen verwalten</h1>
+            <p class="text-muted small mb-0">Ablage-Kategorien für den Workflow-Abschluss</p>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mb-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show py-2">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+
+        <!-- Bestehende Ablagen -->
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-2 px-4 fw-semibold d-flex align-items-center justify-content-between">
+                    <span>Vorhandene Ablagen</span>
+                    <span class="badge bg-secondary">{{ kategorien|length }}</span>
+                </div>
+                {% if kategorien %}
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead style="font-size:0.75rem;text-transform:uppercase;color:#6b7280;background:#f8f9fa;">
+                            <tr>
+                                <th class="px-4 py-2">Name</th>
+                                <th class="py-2">Klasse</th>
+                                <th class="py-2">Übergeordnet</th>
+                                <th class="py-2">Dokumente</th>
+                                <th class="py-2"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for kat in kategorien %}
+                            <tr>
+                                <td class="px-4 py-2 fw-semibold" style="font-size:0.88rem;">
+                                    {{ kat.name }}
+                                    {% if kat.beschreibung %}
+                                    <div class="text-muted fw-normal" style="font-size:0.75rem;">{{ kat.beschreibung|truncatechars:60 }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if kat.klasse == "sensibel" %}
+                                    <span class="badge bg-danger" style="font-size:0.68rem;">Sensibel</span>
+                                    {% else %}
+                                    <span class="badge bg-success" style="font-size:0.68rem;">Offen</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size:0.82rem;color:#6b7280;">
+                                    {{ kat.elternkategorie|default:"—" }}
+                                </td>
+                                <td style="font-size:0.82rem;">
+                                    <span class="badge bg-light text-dark border">{{ kat.dokumente.count }}</span>
+                                </td>
+                                <td class="text-end pe-3">
+                                    <div class="d-flex gap-1 justify-content-end">
+                                        <a href="{% url 'dms:ablage_bearbeiten' kat.pk %}"
+                                           class="btn btn-sm btn-outline-secondary"
+                                           style="font-size:0.75rem;">Bearbeiten</a>
+                                        <form method="post" action="{% url 'dms:ablage_loeschen' kat.pk %}"
+                                              onsubmit="return confirm('Ablage \'{{ kat.name }}\' wirklich löschen?');">
+                                            {% csrf_token %}
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    style="font-size:0.75rem;"
+                                                    {% if kat.dokumente.count > 0 %}disabled title="Ablage hat Dokumente"{% endif %}>
+                                                Löschen
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="card-body text-center text-muted py-4 small">
+                    Noch keine Ablagen angelegt.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Neue Ablage anlegen -->
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-2 px-4 fw-semibold" style="color:#1a4d2e;">
+                    Neue Ablage anlegen
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold mb-1">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                            <div class="text-danger" style="font-size:0.78rem;">{{ field.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        <button type="submit" class="btn btn-sm w-100"
+                                style="background:#1a4d2e;color:white;">
+                            Ablage anlegen
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

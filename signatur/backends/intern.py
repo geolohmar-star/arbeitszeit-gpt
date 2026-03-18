@@ -260,18 +260,28 @@ class InternBackend:
         )
 
         # Signaturfeldposition (sichtbarer Stempel)
-        # Jede Signatur bekommt einen eigenen Bereich nebeneinander (je 170pt breit)
+        # Standard-Modus (mehrere Unterzeichner): Stempel nebeneinander je 170pt breit.
+        # Auf der PRIMA-Signaturseite (A4, 595x842pt) liegt der Stempelrahmen bei:
+        #   box = (20, 539, 502, 667)
+        # Fuer einzelne Signaturen auf der Signaturseite wird der volle Rahmen genutzt.
         sig_field_spec = None
         if sichtbar:
             total_pages = reader.root["/Pages"]["/Count"]
             zielseite = int(total_pages) - 1 if seite < 0 else min(seite, int(total_pages) - 1)
-            # Stempel nebeneinander: Signatur_1 links, _2 mitte, _3 rechts
-            x_start = 30 + (feld_nr - 1) * 175
-            x_end = x_start + 165
+
+            if feld_nr == 1:
+                # Erste Signatur: voller Stempelbereich der PRIMA-Signaturseite
+                box = (20, 539, 502, 667)
+            else:
+                # Weitere Signaturen: nebeneinander im unteren Bereich
+                x_start = 20 + (feld_nr - 1) * 162
+                x_end   = x_start + 155
+                box = (x_start, 539, x_end, 667)
+
             sig_field_spec = fields.SigFieldSpec(
                 sig_field_name=feld_name,
                 on_page=zielseite,
-                box=(x_start, 30, x_end, 90),
+                box=box,
             )
             fields.append_signature_field(writer, sig_field_spec)
 

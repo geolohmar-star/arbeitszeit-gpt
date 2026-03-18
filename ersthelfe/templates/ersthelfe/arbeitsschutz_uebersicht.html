@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Arbeitsschutz – EH-Übersicht{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Arbeitsschutz – Erste-Hilfe-Übersicht</h2>
+    <a href="{% url 'ersthelfe:vorfall_liste' %}" class="btn btn-outline-secondary btn-sm">&larr; Vorfallsliste</a>
+  </div>
+
+  <!-- Zeitraum-Filter -->
+  <div class="card mb-4">
+    <div class="card-body py-2">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-auto">
+          <label class="form-label mb-0 small">Von</label>
+          <input type="date" name="von" class="form-control form-control-sm"
+                 value="{{ von_datum|date:'Y-m-d' }}">
+        </div>
+        <div class="col-auto">
+          <label class="form-label mb-0 small">Bis</label>
+          <input type="date" name="bis" class="form-control form-control-sm"
+                 value="{{ bis_datum|date:'Y-m-d' }}">
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
+        </div>
+        <div class="col-auto text-muted small">
+          Zeitraum: {{ von_datum|date:"d.m.Y" }} – {{ bis_datum|date:"d.m.Y" }}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Kennzahlen -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-4">
+      <div class="card text-center">
+        <div class="card-body">
+          <div class="display-5 fw-bold">{{ gesamt }}</div>
+          <div class="text-muted">Vorfälle gesamt</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="card text-center border-danger">
+        <div class="card-body">
+          <div class="display-5 fw-bold text-danger">{{ offen }}</div>
+          <div class="text-muted">Noch offen</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="card text-center border-success">
+        <div class="card-body">
+          <div class="display-5 fw-bold text-success">{{ abgeschlossen }}</div>
+          <div class="text-muted">Abgeschlossen</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kritische Rückmeldungen -->
+  {% if kritische_rueckmeldungen %}
+  <div class="card mb-4 border-danger">
+    <div class="card-header bg-danger text-white d-flex justify-content-between">
+      <strong>Kritische / dringende Rückmeldungen</strong>
+      <span class="badge bg-light text-danger">{{ kritische_rueckmeldungen|length }}</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-danger mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th>Vorfall</th>
+              <th>Ersthelfer/in</th>
+              <th>Meldung</th>
+              <th>Uhrzeit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in kritische_rueckmeldungen %}
+            <tr>
+              <td>
+                <a href="{% url 'ersthelfe:vorfall_detail' r.vorfall.pk %}">#{{ r.vorfall.pk }} – {{ r.vorfall.ort }}</a>
+              </td>
+              <td>{{ r.ersthelfer.vollname }}</td>
+              <td><span class="badge bg-danger">{{ r.get_status_display }}</span></td>
+              <td>{{ r.gemeldet_am|date:"d.m.Y H:i" }} Uhr</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Freitext-Nachrichten aus Matrix -->
+  {% if freitextnachrichten %}
+  <div class="card mb-4 border-warning">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>Freitext-Nachrichten der Ersthelfer (aus Matrix)</strong>
+      <span class="badge bg-warning text-dark">{{ freitextnachrichten|length }}</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Vorfall</th>
+              <th>Absender</th>
+              <th>Nachricht</th>
+              <th>Uhrzeit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for n in freitextnachrichten %}
+            <tr>
+              <td>
+                <a href="{% url 'ersthelfe:vorfall_detail' n.vorfall.pk %}">#{{ n.vorfall.pk }} – {{ n.vorfall.ort }}</a>
+              </td>
+              <td>{{ n.absender_name }}</td>
+              <td>{{ n.text }}</td>
+              <td>{{ n.gesendet_am|date:"d.m.Y H:i" }} Uhr</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Rückmeldungs-Statistik -->
+  {% if status_statistik %}
+  <div class="card mb-4">
+    <div class="card-header"><strong>Rückmeldungs-Statistik im Zeitraum</strong></div>
+    <div class="card-body">
+      <div class="row g-2">
+        {% for s in status_statistik %}
+        <div class="col-sm-6 col-md-4">
+          <div class="d-flex justify-content-between align-items-center p-2 rounded border">
+            <span class="badge bg-{{ s.farbe }} me-2">{{ s.label }}</span>
+            <strong>{{ s.anzahl }}x</strong>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Vorfallsliste -->
+  <div class="card">
+    <div class="card-header"><strong>Alle Vorfälle im Zeitraum</strong></div>
+    <div class="card-body p-0">
+      {% if not vorfaelle %}
+        <p class="text-muted p-3 mb-0">Keine Vorfälle im gewählten Zeitraum.</p>
+      {% else %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Datum</th>
+                <th>Ort</th>
+                <th>Rückmeldungen</th>
+                <th>Nachrichten</th>
+                <th>Status</th>
+                <th>Protokoll</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in vorfaelle %}
+              <tr>
+                <td>
+                  <a href="{% url 'ersthelfe:vorfall_detail' v.pk %}">{{ v.pk }}</a>
+                </td>
+                <td>{{ v.erstellt_am|date:"d.m.Y H:i" }}</td>
+                <td>{{ v.ort }}</td>
+                <td>{{ v.rueckmeldungen.count }}</td>
+                <td>{{ v.nachrichten.count }}</td>
+                <td>
+                  {% if v.ist_offen %}
+                    <span class="badge bg-danger">Offen</span>
+                  {% else %}
+                    <span class="badge bg-success">Abgeschlossen</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if v.protokoll_erstellt_am %}
+                    <a href="{% url 'ersthelfe:protokoll_bearbeiten' v.pk %}" class="small">vorhanden</a>
+                  {% else %}
+                    <span class="text-muted small">–</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Jitsi-Raum löschen{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 540px;">
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white fw-semibold">
+            Jitsi-Raum löschen
+        </div>
+        <div class="card-body">
+            <p>Soll der Jitsi-Raum <strong>{{ raum.name }}</strong> wirklich gelöscht werden?</p>
+            {% with url=raum.get_url %}
+            {% if url %}
+            <p class="text-muted small">URL: <code>{{ url }}</code></p>
+            {% endif %}
+            {% endwith %}
+            <form method="post" class="d-flex gap-2 mt-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Ja, löschen</button>
+                <a href="{% url 'matrix_integration:jitsi_liste' %}" class="btn btn-outline-secondary">Abbrechen</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

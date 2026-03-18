@@ -1,11 +1,13 @@
+import json
 import logging
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from hr.models import Abteilung, Bereich, HRMitarbeiter
 from .models import Feier, FeierteilnahmeAnmeldung, FeierteilnahmeGutschrift
@@ -40,7 +42,9 @@ def _starte_gutschrift_workflow(gutschrift, user):
         return
 
     try:
-        WorkflowEngine().start_workflow(template, gutschrift, user)
+        instanz = WorkflowEngine().start_workflow(template, gutschrift, user)
+        gutschrift.workflow_instance = instanz
+        gutschrift.save(update_fields=["workflow_instance"])
         logger.info("Gutschrift-Workflow gestartet fuer Gutschrift pk=%s", gutschrift.pk)
     except Exception as exc:
         logger.error("Fehler beim Starten des Gutschrift-Workflows: %s", exc)
@@ -105,29 +109,36 @@ def _auto_signiere_gutschrift(gutschrift, request):
 
 
 def _hole_workflow_tasks_fuer_gutschrift(gutschrift):
-    """Gibt alle WorkflowTasks der laufenden/abgeschlossenen Instanz zurueck."""
+    """Gibt alle WorkflowTasks der Workflow-Instanz zurueck.
+
+    Nutzt zuerst den direkten FK (workflow_instance), faellt auf
+    ContentType-Suche zurueck fuer aeltere Datensaetze ohne FK.
+    """
     try:
         from workflow.models import WorkflowInstance, WorkflowTask
-        from django.contrib.contenttypes.models import ContentType
 
-        ct = ContentType.objects.get_for_model(gutschrift)
-        instanz = (
-            WorkflowInstance.objects.filter(
-                content_type=ct,
-                object_id=gutschrift.pk,
-            )
-            .order_by("-gestartet_am")
-            .first()
-        )
+        instanz = gutschrift.workflow_instance
         if not instanz:
-            return []
-        return list(
+            from django.contrib.contenttypes.models import ContentType
+            ct = ContentType.objects.get_for_model(gutschrift)
+            instanz = (
+                WorkflowInstance.objects.filter(
+                    content_type=ct,
+                    object_id=gutschrift.pk,
+                )
+                .order_by("-gestartet_am")
+                .first()
+            )
+        if not instanz:
+            return [], None
+        tasks = list(
             WorkflowTask.objects.filter(instance=instanz)
-            .select_related("step", "bearbeitet_von", "claimed_von")
+            .select_related("step", "zugewiesen_an_stelle", "zugewiesen_an_team", "erledigt_von")
             .order_by("step__reihenfolge")
         )
+        return tasks, instanz
     except Exception:
-        return []
+        return [], None
 
 
 def _get_aktueller_hrma(request):
@@ -442,6 +453,32 @@ def gutschrift_pdf(request, pk):
     teilnehmer = gutschrift.teilnehmer_bestaetigt()
     vorbereitungsteam = gutschrift.vorbereitungsteam_bestaetigt()
 
+    workflow_tasks, workflow_instanz = _hole_workflow_tasks_fuer_gutschrift(gutschrift)
+
+    # Workflow-Template fuer Editor-Link (Staff)
+    from workflow.models import WorkflowTemplate
+    ve_template = WorkflowTemplate.objects.filter(
+        trigger_event="veranstaltung_gutschrift_eingereicht"
+    ).first()
+
+    aktueller_hrma = _get_aktueller_hrma(request)
+    ist_verantwortlicher = (
+        feier.verantwortlicher_id is not None
+        and aktueller_hrma is not None
+        and feier.verantwortlicher_id == aktueller_hrma.pk
+    ) or (
+        gutschrift.erstellt_von_id is not None
+        and aktueller_hrma is not None
+        and gutschrift.erstellt_von_id == aktueller_hrma.pk
+    )
+
+    laufzettel_starten_url = f"/veranstaltungen/{feier.pk}/gutschrift/laufzettel/starten/"
+    laufzettel_config = {
+        "stelle_url": "/dms/api/stellen/",
+        "vorlagen_url": "/dms/api/laufzettel-vorlagen/",
+        "starten_url": laufzettel_starten_url,
+    }
+
     context = {
         "feier": feier,
         "gutschrift": gutschrift,
@@ -449,6 +486,13 @@ def gutschrift_pdf(request, pk):
         "vorbereitungsteam": vorbereitungsteam,
         "jetzt": timezone.now(),
         "hat_signatur": _hat_signatur(gutschrift),
+        "workflow_tasks": workflow_tasks,
+        "workflow_instanz": workflow_instanz,
+        "ve_template": ve_template,
+        "aktueller_hrma": aktueller_hrma,
+        "ist_verantwortlicher": ist_verantwortlicher,
+        "laufzettel_starten_url": laufzettel_starten_url,
+        "laufzettel_config": laufzettel_config,
     }
     return render(request, "veranstaltungen/gutschrift_pdf.html", context)
 
@@ -504,7 +548,7 @@ def gutschrift_pdf_download(request, pk):
 
         teilnehmer = gutschrift.teilnehmer_bestaetigt()
         vorbereitungsteam = gutschrift.vorbereitungsteam_bestaetigt()
-        workflow_tasks = _hole_workflow_tasks_fuer_gutschrift(gutschrift)
+        workflow_tasks, _ = _hole_workflow_tasks_fuer_gutschrift(gutschrift)
 
         teilnehmer_gesamt = feier.gutschrift_teilnehmer_gesamt * teilnehmer.count()
         vorbereitung_gesamt = feier.gutschrift_vorbereitung_gesamt * vorbereitungsteam.count()
@@ -599,3 +643,92 @@ def status_aendern(request, pk):
             )
 
     return redirect("veranstaltungen:detail", pk=pk)
+
+
+@login_required
+@require_POST
+def gutschrift_laufzettel_starten(request, pk):
+    """Startet einen manuellen Laufzettel-Workflow fuer eine Veranstaltungs-Gutschrift.
+
+    Gleicher Mechanismus wie betriebssport – erzeugt ein ad-hoc WorkflowTemplate
+    und verknuepft die Instanz per FK mit der FeierteilnahmeGutschrift.
+    """
+    feier = get_object_or_404(Feier, pk=pk)
+    gutschrift = get_object_or_404(FeierteilnahmeGutschrift, feier=feier)
+
+    aktueller_hrma = _get_aktueller_hrma(request)
+    ist_berechtigt = (
+        request.user.is_staff
+        or (aktueller_hrma and feier.verantwortlicher_id == aktueller_hrma.pk)
+        or (aktueller_hrma and gutschrift.erstellt_von_id == aktueller_hrma.pk)
+    )
+    if not ist_berechtigt:
+        return JsonResponse({"ok": False, "fehler": "Keine Berechtigung."}, status=403)
+
+    try:
+        payload = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "fehler": "Ungueltige JSON-Daten."}, status=400)
+
+    schritte = payload.get("steps", [])
+    vorlage_name = payload.get("vorlage_name", "").strip()
+
+    if not schritte:
+        return JsonResponse({"ok": False, "fehler": "Keine Schritte angegeben."}, status=400)
+
+    from workflow.models import WorkflowTemplate, WorkflowStep
+    from workflow.services import WorkflowEngine
+    from hr.models import Stelle
+
+    stellen = {s.pk: s for s in Stelle.objects.filter(pk__in=[s["stelle_id"] for s in schritte])}
+    AKTION_KUERZEL = {
+        "pruefen": "PR", "genehmigen": "GEN", "bearbeiten": "BE",
+        "informieren": "KEN", "entscheiden": "ENT",
+    }
+    auto_name = " -> ".join(
+        f"{stellen[s['stelle_id']].kuerzel}:{AKTION_KUERZEL.get(s['aktion'], s['aktion'][:3].upper())}"
+        for s in schritte if s["stelle_id"] in stellen
+    )
+    template_name = f"VE-Laufzettel: {feier.titel[:40]} -- {auto_name}"
+
+    try:
+        template = WorkflowTemplate.objects.create(
+            name=template_name,
+            kategorie="sonstiges",
+            ist_laufzettel=True,
+            ist_aktiv=True,
+            trigger_event=f"ve_laufzettel_{gutschrift.pk}_{timezone.now().strftime('%s')}",
+        )
+        for i, schritt in enumerate(schritte, start=1):
+            stelle = stellen.get(schritt["stelle_id"])
+            if not stelle:
+                template.delete()
+                return JsonResponse(
+                    {"ok": False, "fehler": f"Stelle {schritt['stelle_id']} nicht gefunden."},
+                    status=400,
+                )
+            WorkflowStep.objects.create(
+                template=template,
+                titel=f"{stelle.kuerzel} -- {dict(WorkflowStep.AKTION_CHOICES).get(schritt['aktion'], schritt['aktion'])}",
+                reihenfolge=i,
+                aktion_typ=schritt["aktion"],
+                zustaendig_stelle=stelle,
+                frist_tage=3,
+            )
+
+        engine = WorkflowEngine()
+        instanz = engine.start_workflow(template, gutschrift, request.user)
+
+        gutschrift.workflow_instance = instanz
+        gutschrift.save(update_fields=["workflow_instance"])
+
+        if vorlage_name:
+            template.name = vorlage_name
+            template.save()
+
+        redirect_url = f"/veranstaltungen/{feier.pk}/gutschrift/pdf/"
+        return JsonResponse({"ok": True, "redirect": redirect_url})
+
+    except Exception as exc:
+        logger.error("Veranstaltungs-Laufzettel fehlgeschlagen: %s", exc)
+        return JsonResponse({"ok": False, "fehler": str(exc)}, status=500)

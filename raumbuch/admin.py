@@ -73,6 +73,13 @@ class RaumAdmin(admin.ModelAdmin):
     list_filter = ["raumtyp", "nutzungsmodell", "ist_aktiv", "ist_leer", "geschoss__gebaeude"]
     search_fields = ["raumnummer", "raumname"]
     inlines = [BelegungInline]
+    fieldsets = [
+        (None, {"fields": ["raumnummer", "raumname", "raumtyp", "geschoss", "bereich",
+                           "nutzungsmodell", "kapazitaet", "flaeche_m2", "beschreibung",
+                           "ist_aktiv", "ist_leer"]}),
+        ("Virtuelle Meeting-Raeume", {"fields": ["jitsi_room_url", "matrix_room_url"],
+                                      "classes": ["collapse"]}),
+    ]
 
 
 @admin.register(Belegung)

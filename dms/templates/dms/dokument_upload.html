@@ -61,6 +61,49 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Tags</label>
                     {{ form.tags }}
+
+                    {# Badge-Vorschau der ausgewaehlten Tags #}
+                    <div id="tag-vorschau" class="mt-2 d-flex flex-wrap gap-1"></div>
+
+                    {# Inline: neuen Tag anlegen #}
+                    <div class="mt-2">
+                        <button type="button" id="tag-anlegen-btn"
+                                class="btn btn-sm btn-outline-secondary"
+                                data-url="{% url 'dms:tag_anlegen' %}">
+                            + Tag anlegen
+                        </button>
+                    </div>
+
+                    <div id="tag-anlegen-panel" class="border rounded p-3 mt-2 bg-light" style="display:none;">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-sm-6">
+                                <label class="form-label form-label-sm mb-1">Name</label>
+                                <input type="text" id="tag-neu-name" class="form-control form-control-sm"
+                                       placeholder="Tag-Name..." maxlength="50">
+                            </div>
+                            <div class="col-sm-3">
+                                <label class="form-label form-label-sm mb-1">Farbe</label>
+                                <input type="color" id="tag-neu-farbe" class="form-control form-control-sm form-control-color"
+                                       value="#6c757d" style="height:31px;">
+                            </div>
+                            <div class="col-sm-3 d-flex gap-1">
+                                <button type="button" id="tag-anlegen-speichern"
+                                        class="btn btn-sm" style="background:#1a4d2e;color:white;">
+                                    Anlegen
+                                </button>
+                                <button type="button" id="tag-anlegen-abbrechen"
+                                        class="btn btn-sm btn-outline-secondary">
+                                    Abbrechen
+                                </button>
+                            </div>
+                        </div>
+                        <div id="tag-anlegen-fehler" class="text-danger small mt-1" style="display:none;"></div>
+                    </div>
+
+                    {# Toast-Bestaetigung #}
+                    <div id="tag-toast" class="alert alert-success py-2 mt-2 small" style="display:none;">
+                        <span id="tag-toast-text"></span>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -84,4 +127,9 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/dms_tag_anlegen.js' %}"></script>
 {% endblock %}

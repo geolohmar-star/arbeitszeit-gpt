@@ -1,0 +1,11 @@
+{% if not server_konfiguriert %}
+<span class="badge bg-warning text-dark">Matrix nicht konfiguriert</span>
+{% elif fehler == 0 %}
+<span class="badge bg-success">
+  &#10003; {{ gesendet }} Einladungen gesendet
+</span>
+{% else %}
+<span class="badge bg-warning text-dark">
+  {{ gesendet }} OK &middot; {{ fehler }} Rate-Limit – bitte nochmal senden
+</span>
+{% endif %}

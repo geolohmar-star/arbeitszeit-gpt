@@ -499,6 +499,9 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 <select onchange="ladeEtwas()">...</select>
 <input oninput="filtere()">
 
+<!-- FALSCH: onclick zum Wechseln von Bootstrap-Tabs -->
+<button onclick="document.getElementById('mein-tab').click()">Zum Tab</button>
+
 <!-- FALSCH: Server-Daten direkt in Script einspeisen -->
 <script>var DATA = {{ daten|safe }};</script>
 ```
@@ -521,7 +524,14 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 ```
 
-**3. Event Delegation fuer dynamisch gerenderte Elemente:**
+**3. Bootstrap-Tabs ohne onclick wechseln:**
+```html
+<!-- RICHTIG: Bootstrap data-Attribute reichen, kein onclick noetig -->
+<button data-bs-toggle="tab" data-bs-target="#pane-ziel">Zum Tab</button>
+```
+Bootstrap verarbeitet `data-bs-toggle="tab"` selbst – kein JavaScript, kein onclick erforderlich.
+
+**4. Event Delegation fuer dynamisch gerenderte Elemente:**
 ```html
 <!-- Template: data-action statt onclick -->
 <button data-action="loeschen" data-id="{{ obj.pk }}">Loeschen</button>

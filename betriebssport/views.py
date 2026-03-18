@@ -1,10 +1,11 @@
 import calendar
+import json
 import logging
 from datetime import date
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -310,24 +311,28 @@ def gruppe_detail(request, pk):
     # Workflow-Status zur Gutschrift laden
     workflow_tasks = []
     workflow_instanz = None
-    if gutschrift and gutschrift.status in ("eingereicht", "abgeschlossen", "abgelehnt"):
-        try:
-            from workflow.models import WorkflowInstance, WorkflowTask
-            from django.contrib.contenttypes.models import ContentType
-            ct = ContentType.objects.get_for_model(gutschrift)
-            workflow_instanz = WorkflowInstance.objects.filter(
-                content_type=ct, object_id=gutschrift.pk
-            ).order_by("-gestartet_am").first()
-            if workflow_instanz:
-                workflow_tasks = list(
-                    WorkflowTask.objects.filter(instance=workflow_instanz)
-                    .select_related("step", "zugewiesen_an_team", "zugewiesen_an_stelle")
-                    .order_by("step__reihenfolge")
-                )
-        except Exception:
-            pass
+    if gutschrift and gutschrift.workflow_instance_id:
+        from workflow.models import WorkflowTask
+        workflow_instanz = gutschrift.workflow_instance
+        workflow_tasks = list(
+            WorkflowTask.objects.filter(instance=workflow_instanz)
+            .select_related("step", "zugewiesen_an_team", "zugewiesen_an_stelle", "erledigt_von")
+            .order_by("step__reihenfolge")
+        )
 
     vormonat, naechster_monat = _monat_navigation(monat)
+
+    # Betriebssport-Workflow-Template fuer Editor-Link
+    from workflow.models import WorkflowTemplate
+    bs_template = WorkflowTemplate.objects.filter(
+        trigger_event="betriebssport_gutschrift_eingereicht"
+    ).first()
+
+    # URL fuer manuellen Laufzettel (fuer JS-Config im Template)
+    laufzettel_starten_url = (
+        f"/betriebssport/{gruppe.pk}/gutschrift/{monat.strftime('%Y-%m')}/laufzettel/starten/"
+        if gutschrift else ""
+    )
 
     context = {
         "gruppe": gruppe,
@@ -345,6 +350,13 @@ def gruppe_detail(request, pk):
         "heute": heute,
         "workflow_tasks": workflow_tasks,
         "workflow_instanz": workflow_instanz,
+        "bs_template": bs_template,
+        "laufzettel_starten_url": laufzettel_starten_url,
+        "laufzettel_config": {
+            "stelle_url": "/dms/api/stellen/",
+            "vorlagen_url": "/dms/api/laufzettel-vorlagen/",
+            "starten_url": laufzettel_starten_url,
+        },
     }
     return render(request, "betriebssport/gruppe_detail.html", context)
 
@@ -766,3 +778,101 @@ def gutschrift_download(request, pk, monat_str):
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="{dateiname}"'
     return response
+
+
+# ---------------------------------------------------------------------------
+# Manueller Laufzettel fuer Gutschrift
+# ---------------------------------------------------------------------------
+
+@login_required
+def gutschrift_laufzettel_starten(request, pk, monat_str):
+    """Startet einen manuellen Laufzettel-Workflow fuer eine Betriebssport-Gutschrift.
+
+    Gleicher Mechanismus wie dms_laufzettel_starten – erzeugt ein
+    ad-hoc WorkflowTemplate und verknuepft die Instanz via ContentType
+    mit der BetriebssportGutschrift.
+    """
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "fehler": "Nur POST erlaubt."}, status=405)
+
+    gruppe = get_object_or_404(Sportgruppe, pk=pk)
+    hrma = _get_hrma(request)
+    if not (_ist_verantwortlicher(gruppe, hrma) or request.user.is_staff):
+        return JsonResponse({"ok": False, "fehler": "Keine Berechtigung."}, status=403)
+
+    try:
+        teile = monat_str.split("-")
+        monat = _erster_des_monats(int(teile[0]), int(teile[1]))
+    except (ValueError, IndexError):
+        return JsonResponse({"ok": False, "fehler": "Ungueltige Monatsangabe."}, status=400)
+
+    gutschrift = get_object_or_404(BetriebssportGutschrift, gruppe=gruppe, monat=monat)
+
+    try:
+        payload = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "fehler": "Ungueltige JSON-Daten."}, status=400)
+
+    schritte = payload.get("steps", [])
+    vorlage_name = payload.get("vorlage_name", "").strip()
+
+    if not schritte:
+        return JsonResponse({"ok": False, "fehler": "Keine Schritte angegeben."}, status=400)
+
+    from workflow.models import WorkflowTemplate, WorkflowStep, WorkflowInstance
+    from workflow.services import WorkflowEngine
+    from hr.models import Stelle
+    from django.contrib.contenttypes.models import ContentType
+
+    # Routing-Kette als Template-Name
+    stellen = {s.pk: s for s in Stelle.objects.filter(pk__in=[s["stelle_id"] for s in schritte])}
+    AKTION_KUERZEL = {
+        "pruefen": "PR", "genehmigen": "GEN", "bearbeiten": "BE",
+        "informieren": "KEN", "entscheiden": "ENT",
+    }
+    auto_name = " -> ".join(
+        f"{stellen[s['stelle_id']].kuerzel}:{AKTION_KUERZEL.get(s['aktion'], s['aktion'][:3].upper())}"
+        for s in schritte if s["stelle_id"] in stellen
+    )
+    template_name = f"BS-Laufzettel: {gutschrift.gruppe.name} {gutschrift.monat.strftime('%m/%Y')} – {auto_name}"
+
+    try:
+        template = WorkflowTemplate.objects.create(
+            name=template_name,
+            kategorie="sonstiges",
+            ist_laufzettel=True,
+            ist_aktiv=True,
+            trigger_event=f"bs_laufzettel_{gutschrift.pk}_{timezone.now().strftime('%s')}",
+        )
+        for i, schritt in enumerate(schritte, start=1):
+            stelle = stellen.get(schritt["stelle_id"])
+            if not stelle:
+                template.delete()
+                return JsonResponse({"ok": False, "fehler": f"Stelle {schritt['stelle_id']} nicht gefunden."}, status=400)
+            WorkflowStep.objects.create(
+                template=template,
+                titel=f"{stelle.kuerzel} – {dict(WorkflowStep.AKTION_CHOICES).get(schritt['aktion'], schritt['aktion'])}",
+                reihenfolge=i,
+                aktion_typ=schritt["aktion"],
+                zustaendig_stelle=stelle,
+                frist_tage=3,
+            )
+
+        engine = WorkflowEngine()
+        instanz = engine.start_workflow(template, gutschrift, request.user)
+
+        # Workflow-Instanz am Gutschrift-Objekt speichern
+        gutschrift.workflow_instance = instanz
+        gutschrift.save(update_fields=["workflow_instance"])
+
+        # Vorlage dauerhaft speichern falls gewuenscht
+        if vorlage_name:
+            template.name = vorlage_name
+            template.save()
+
+        redirect_url = f"/betriebssport/{gruppe.pk}/?monat={gutschrift.monat_str}"
+        return JsonResponse({"ok": True, "redirect": redirect_url})
+
+    except Exception as exc:
+        logger.error("Betriebssport-Laufzettel fehlgeschlagen: %s", exc)
+        return JsonResponse({"ok": False, "fehler": str(exc)}, status=500)

@@ -33,6 +33,11 @@ urlpatterns = [
     path('stellenportal/', include('stellenportal.urls', namespace='stellenportal')),
     path('betriebssport/', include('betriebssport.urls', namespace='betriebssport')),
     path('dms/', include('dms.urls', namespace='dms')),
+    path('matrix/', include('matrix_integration.urls', namespace='matrix_integration')),
+    path('korrespondenz/', include('korrespondenz.urls', namespace='korrespondenz')),
+    path('it-status/', include('it_status.urls', namespace='it_status')),
+    path('ersthelfe/', include('ersthelfe.urls', namespace='ersthelfe')),
+    path('sicherheit/', include('sicherheit.urls', namespace='sicherheit')),
 ]
 
 # Media-Files (nur in Development)

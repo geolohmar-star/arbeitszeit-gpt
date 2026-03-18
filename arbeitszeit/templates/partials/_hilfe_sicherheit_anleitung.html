@@ -1,0 +1,343 @@
+{# Sicherheits-App: Anleitung mit praktischen Beispielen #}
+
+<div style="max-width:900px;">
+
+  <p class="text-muted mb-1" style="font-size:0.9rem;">
+    Die <strong>Sicherheits-App</strong> digitalisiert den gesamten Alarm-Ablauf bei Brand,
+    AMOK und anderen Gefahrenlagen &mdash; vollstaendig im Intranet, ohne Cloud-Abhaengigkeit.
+  </p>
+  <p class="text-muted mb-4" style="font-size:0.82rem;">
+    Die App kennt drei Rollen: <strong>Erkunder</strong> (meldet zum Brandort vor),
+    <strong>Security-Personal</strong> (al_sec, ma_sec, al_as &mdash; entscheidet ueber Vollalarm),
+    <strong>Arbeitsschutz-Leitung</strong> (al_as &mdash; Nachbewertung nach Alarm-Schluss).
+  </p>
+
+  <!-- ===== BRAND-ALARM ===== -->
+  <div style="border-left:4px solid #991b1b; padding-left:1rem; margin-bottom:2rem;">
+    <h6 class="fw-bold mb-3" style="color:#7f1d1d; font-size:0.95rem;">
+      Szenario 1 &mdash; Brandalarm ausloesen &amp; Erkunder steuern
+    </h6>
+
+    <!-- Schritt 1 -->
+    <div style="display:flex; gap:0.75rem; align-items:flex-start; margin-bottom:1rem;">
+      <div style="display:inline-flex; align-items:center; justify-content:center; min-width:1.7rem; height:1.7rem; background:#991b1b; color:white; border-radius:50%; font-size:0.75rem; font-weight:700; margin-top:0.05rem;">1</div>
+      <div>
+        <div class="fw-semibold" style="font-size:0.85rem; color:#374151;">Alarm ausloesen (Security-Personal oder Melder)</div>
+        <div class="text-muted" style="font-size:0.8rem; line-height:1.6;">
+          Navigation <strong>Sicherheit &rarr; Brand &rarr; Neuer Alarm</strong> &rarr; Ort eingeben und bestaetigen.<br>
+          PRIMA erstellt sofort einen <code>Brandalarm</code>-Eintrag (Status: AKTIV) und loest automatisch aus:
+          <ul style="margin-top:0.3rem; margin-bottom:0;">
+            <li>Matrix-DM an alle Erkunder &mdash; <em>naechste Etage zuerst</em>, dann stufenweise (Wellenstaffelung)</li>
+            <li>ntfy-Push an alle Abonnenten von <code>brand-alarm-prima</code></li>
+            <li>Vollbild-Overlay im Browser fuer alle eingeloggten Mitarbeiter (10 Sek. Verzoegerung)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schritt 2 -->
+    <div style="display:flex; gap:0.75rem; align-items:flex-start; margin-bottom:1rem;">
+      <div style="display:inline-flex; align-items:center; justify-content:center; min-width:1.7rem; height:1.7rem; background:#991b1b; color:white; border-radius:50%; font-size:0.75rem; font-weight:700; margin-top:0.05rem;">2</div>
+      <div>
+        <div class="fw-semibold" style="font-size:0.85rem; color:#374151;">Erkunder erhaelt Matrix-DM (kein Login noetig)</div>
+        <div class="text-muted" style="font-size:0.8rem; line-height:1.6;">
+          Der Matrix-Bot <code>@prima-bot</code> sendet jedem Erkunder eine persoenliche Direktnachricht mit:<br>
+          &bull; Alarmort und Alarmzeit<br>
+          &bull; Einem persoenlichen Token-Link (z.&nbsp;B. <code>/sicherheit/brand/42/erkunder/?token=abc123</code>)<br><br>
+          Der Erkunder oeffnet den Link am Smartphone und sieht vier grosse Schaltflaechen:
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.5rem;">
+          <span style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; font-size:0.78rem; font-weight:700; padding:4px 12px; border-radius:6px; font-family:monospace;">1 &mdash; Bin unterwegs</span>
+          <span style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; font-size:0.78rem; font-weight:700; padding:4px 12px; border-radius:6px; font-family:monospace;">2 &mdash; Bin vor Ort</span>
+          <span style="background:#fff7ed; border:1px solid #fed7aa; color:#92400e; font-size:0.78rem; font-weight:700; padding:4px 12px; border-radius:6px; font-family:monospace;">3 &mdash; Brauche Unterstuetzung</span>
+          <span style="background:#f3f4f6; border:1px solid #d1d5db; color:#374151; font-size:0.78rem; font-weight:700; padding:4px 12px; border-radius:6px; font-family:monospace;">9 &mdash; Kann nicht</span>
+        </div>
+        <div class="text-muted mt-2" style="font-size:0.78rem;">
+          Jede Rueckmeldung erscheint sofort auf der Einsatzleitstelle und im Matrix-Raum <code>SECURITY_PING</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Schritt 3 -->
+    <div style="display:flex; gap:0.75rem; align-items:flex-start; margin-bottom:1rem;">
+      <div style="display:inline-flex; align-items:center; justify-content:center; min-width:1.7rem; height:1.7rem; background:#991b1b; color:white; border-radius:50%; font-size:0.75rem; font-weight:700; margin-top:0.05rem;">3</div>
+      <div>
+        <div class="fw-semibold" style="font-size:0.85rem; color:#374151;">Einsatzleitstelle (Security-Personal)</div>
+        <div class="text-muted" style="font-size:0.8rem; line-height:1.6;">
+          Security-Personal (al_sec, ma_sec, al_as) wird beim Login direkt zur Einsatzleitstelle weitergeleitet.<br>
+          Die Seite zeigt in Echtzeit:
+          <ul style="margin-top:0.3rem; margin-bottom:0;">
+            <li>Alle Erkunder mit aktuellem Status (Ausstehend / Unterwegs / Vor Ort / Kann nicht)</li>
+            <li>Zeitstempel jeder Rueckmeldung</li>
+            <li>Alarmort und Alarmdauer</li>
+          </ul>
+          Die Seite aktualisiert sich automatisch alle 10 Sekunden (Countdown-Button oben rechts).<br>
+          <strong>Kein Flackern</strong> &mdash; nur Seiten-Reload, keine AJAX-Grid-Updates.
+        </div>
+      </div>
+    </div>
+
+    <!-- Schritt 4 -->
+    <div style="display:flex; gap:0.75rem; align-items:flex-start; margin-bottom:1rem;">
+      <div style="display:inline-flex; align-items:center; justify-content:center; min-width:1.7rem; height:1.7rem; background:#991b1b; color:white; border-radius:50%; font-size:0.75rem; font-weight:700; margin-top:0.05rem;">4</div>
+      <div>
+        <div class="fw-semibold" style="font-size:0.85rem; color:#374151;">Security-Review: Vollalarm oder Entwarnung</div>
+        <div class="text-muted" style="font-size:0.8rem; line-height:1.6;">
+          Nach Rueckmeldung der Erkunder navigiert Security zur <strong>Security-Review-Seite</strong>
+          (<code>/sicherheit/brand/&lt;pk&gt;/security/</code>).<br>
+          Dort ist eine von zwei Aktionen moeglich:
+        </div>
+        <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.5rem;">
+          <div style="background:#fee2e2; border:1px solid #fca5a5; border-radius:6px; padding:0.5rem 0.75rem; flex:1; min-width:150px;">
+            <div style="font-weight:700; color:#991b1b; font-size:0.78rem;">Vollalarm ausloesen</div>
+            <div style="font-size:0.75rem; color:#374151; margin-top:2px;">
+              Evakuierung aller Gebaeude &middot; ntfy-Alarm &middot; AMOK-Overlay fuer alle Mitarbeiter
+            </div>
+          </div>
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:0.5rem 0.75rem; flex:1; min-width:150px;">
+            <div style="font-weight:700; color:#166534; font-size:0.78rem;">Entwarnung geben</div>
+            <div style="font-size:0.75rem; color:#374151; margin-top:2px;">
+              Alarm wird als ENTWARNT geschlossen &middot; Overlay verschwindet &middot; Protokoll abgeschlossen
+            </div>
+          </div>
+        </div>
+        <div class="text-muted mt-2" style="font-size:0.78rem;">
+          <strong>Hinweis:</strong> Das Brand-Overlay auf normalen Seiten verschwindet automatisch,
+          sobald der Alarm auf ENTWARNT oder GESCHLOSSEN gesetzt wird.
+          Security-Seiten (<code>/sicherheit/</code>) zeigen das Overlay grundsaetzlich nicht &mdash;
+          damit Security weiterarbeiten kann.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== AMOK / STILLER ALARM ===== -->
+  <div style="border-left:4px solid #b45309; padding-left:1rem; margin-bottom:2rem;">
+    <h6 class="fw-bold mb-3" style="color:#92400e; font-size:0.95rem;">
+      Szenario 2 &mdash; AMOK / Stiller Alarm
+    </h6>
+
+    <div class="text-muted mb-3" style="font-size:0.8rem; line-height:1.6;">
+      AMOK-Alarm hat einen anderen Ablauf als Brand: <strong>keine lautstarke Warnung</strong>,
+      dafuer sofortige stille Benachrichtigung des Security-Personals.
+      Mitarbeiter sehen ein diskretes Overlay mit Verhaltenshinweisen (kein Panik-Ton).
+    </div>
+
+    <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:0.75rem 1rem; font-size:0.8rem; line-height:1.6; margin-bottom:1rem;">
+      <strong style="color:#92400e;">Ablauf:</strong><br>
+      Security loest AMOK aus &rarr; PRIMA sendet Matrix-Ping an <code>SECURITY_PING</code> &rarr;
+      alle eingeloggten Mitarbeiter sehen (beim naechsten Seitenaufruf, max. 10 Sek.) ein
+      oranges Vollbild-Overlay mit Verhaltensregeln &rarr;
+      Security-Seiten sind davon ausgenommen (damit Security-Personal weiterarbeiten kann).
+    </div>
+
+    <div style="font-size:0.8rem; color:#374151;">
+      <strong>Ueblich nach AMOK-Alarm:</strong>
+      Security koordiniert ueber Matrix direkt &mdash; PRIMA liefert den initialen Ping und
+      das Overlay, den Rest uebernimmt das Security-Team eigenstaendig.
+    </div>
+  </div>
+
+  <!-- ===== NACHBEWERTUNG ===== -->
+  <div style="border-left:4px solid #0369a1; padding-left:1rem; margin-bottom:2rem;">
+    <h6 class="fw-bold mb-3" style="color:#0c4a6e; font-size:0.95rem;">
+      Szenario 3 &mdash; Nachbewertung nach Alarmabschluss (al_as)
+    </h6>
+
+    <div class="text-muted mb-3" style="font-size:0.8rem; line-height:1.6;">
+      Die <strong>Arbeitsschutz-Leitung</strong> (Stelle <code>al_as</code>) hat als einzige Rolle
+      Zugriff auf die Nachbewertung. Diese wird erst nach Alarm-Schluss (ENTWARNT oder GESCHLOSSEN) freigeschaltet.
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:0.6rem; margin-bottom:1rem;">
+      <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:0.6rem 0.75rem;">
+        <div style="font-weight:700; color:#1d4ed8; font-size:0.78rem; margin-bottom:3px;">Ursachenbewertung</div>
+        <div style="font-size:0.74rem; color:#374151;">
+          Fehlalarm / Technisch / Brand / Sonstiges &middot; Freitext-Begruendung
+        </div>
+      </div>
+      <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:0.6rem 0.75rem;">
+        <div style="font-weight:700; color:#1d4ed8; font-size:0.78rem; margin-bottom:3px;">Massnahmen</div>
+        <div style="font-size:0.74rem; color:#374151;">
+          Was wurde veranlasst? Wer ist zustaendig? Frist?
+        </div>
+      </div>
+      <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:0.6rem 0.75rem;">
+        <div style="font-weight:700; color:#1d4ed8; font-size:0.78rem; margin-bottom:3px;">Nachsorgepflicht</div>
+        <div style="font-size:0.74rem; color:#374151;">
+          Psychosoziale Nachsorge benoetigt? (j/n) &middot; Protokoll unveraenderlich
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#f0f9ff; border:1px solid #7dd3fc; border-radius:6px; padding:0.6rem 0.8rem; font-size:0.78rem; color:#0369a1;">
+      <strong>Navigation:</strong> Sicherheit &rarr; Brand &rarr; Alarm-Detail &rarr; Nachbewertung (erscheint nur nach Alarm-Schluss)
+    </div>
+  </div>
+
+  <!-- ===== ROLLEN-UEBERSICHT ===== -->
+  <div style="border-left:4px solid #374151; padding-left:1rem; margin-bottom:2rem;">
+    <h6 class="fw-bold mb-3" style="color:#374151; font-size:0.95rem;">
+      Rollen in der Sicherheits-App
+    </h6>
+
+    <div style="overflow-x:auto;">
+      <table class="table table-sm table-bordered" style="font-size:0.78rem;">
+        <thead style="background:#1f2937; color:white;">
+          <tr>
+            <th>Stelle / Gruppe</th>
+            <th>Darf</th>
+            <th>Sieht</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>al_sec</code>, <code>ma_sec1&ndash;3</code></td>
+            <td>Brand ausloesen, Security-Review, Vollalarm, Entwarnung</td>
+            <td>Einsatzleitstelle, alle Erkunder-Rueckmeldungen</td>
+          </tr>
+          <tr style="background:#f9fafb;">
+            <td><code>al_as</code> (Arbeitsschutz-Leitung)</td>
+            <td>Brand ausloesen, Security-Review, Vollalarm, Entwarnung, <strong>Nachbewertung</strong></td>
+            <td>Alles &mdash; inkl. Nachbewertungs-Formular nach Alarm-Schluss</td>
+          </tr>
+          <tr>
+            <td>Erkunder (hr.HRMitarbeiter mit Matrix-ID)</td>
+            <td>Per Token-Link rueckmelden (kein Login)</td>
+            <td>Eigene Token-Seite (nur ihren Status, nicht andere)</td>
+          </tr>
+          <tr style="background:#f9fafb;">
+            <td>Alle eingeloggten Mitarbeiter</td>
+            <td>&mdash;</td>
+            <td>Vollbild-Overlay bei Brand/AMOK (automatisch, max. 10 Sek. Verzoegerung)</td>
+          </tr>
+          <tr>
+            <td>Alle (auch anonym)</td>
+            <td>Token-Rueckmeldung senden (kein Login noetig)</td>
+            <td>Token-Seite mit 4 Buttons</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== MATRIX-DM RAUM-WIEDERVERWENDUNG ===== -->
+  <div style="border-left:4px solid #6366f1; padding-left:1rem; margin-bottom:2rem;">
+    <h6 class="fw-bold mb-3" style="color:#3730a3; font-size:0.95rem;">
+      Technischer Hintergrund: Matrix-DM-Raumwiederverwendung
+    </h6>
+
+    <div class="text-muted mb-2" style="font-size:0.8rem; line-height:1.6;">
+      PRIMA erstellt beim <strong>ersten Alarm</strong> fuer jeden Erkunder einen persoenlichen
+      Matrix-DM-Raum (prima-bot &harr; Erkunder) und speichert die Raum-ID in
+      <code>HRMitarbeiter.matrix_bot_dm_room_id</code>.
+    </div>
+    <div class="text-muted mb-2" style="font-size:0.8rem; line-height:1.6;">
+      Bei <strong>jedem weiteren Alarm</strong> wird der bestehende Raum wiederverwendet &mdash;
+      kein neues Invite noetig. Die Nachricht erscheint direkt, ohne dass der Erkunder
+      erst &bdquo;Annehmen&ldquo; klicken muss.
+    </div>
+    <div style="background:#eef2ff; border:1px solid #c7d2fe; border-radius:6px; padding:0.6rem 0.8rem; font-size:0.78rem; color:#3730a3;">
+      <strong>Erster Alarm:</strong> Raum erstellt &rarr; Einladung &rarr; Erkunder muss &bdquo;Annehmen&ldquo; klicken &rarr; Nachricht sichtbar<br>
+      <strong>Folge-Alarme:</strong> Bestehender Raum &rarr; Nachricht sofort sichtbar (kein Klick noetig)
+    </div>
+    <div class="text-muted mt-2" style="font-size:0.77rem;">
+      Synapse Rate-Limits muessen fuer Masse-DMs konfiguriert sein:
+      <code>rc_room_creation: per_second: 10, burst_count: 100</code>
+      (homeserver.yaml). Standard-Limit erlaubt nur ~3 Raumerststellungen gleichzeitig.
+    </div>
+  </div>
+
+  <!-- ===== HAEUFIGE FRAGEN ===== -->
+  <div style="border-left:4px solid #0f766e; padding-left:1rem; margin-bottom:1rem;">
+    <h6 class="fw-bold mb-3" style="color:#134e4a; font-size:0.95rem;">
+      Haeufige Fragen
+    </h6>
+
+    <div class="accordion accordion-flush" id="acc-sicherheit-faq">
+
+      <div class="accordion-item" style="border:1px solid #ccfbf1; border-radius:6px; margin-bottom:0.5rem;">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed fw-semibold" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#faq-s1"
+                  style="font-size:0.82rem; color:#134e4a; background:#f0fdfa; border-radius:6px;">
+            Die Einsatzleitstelle flackert &mdash; was tun?
+          </button>
+        </h2>
+        <div id="faq-s1" class="accordion-collapse collapse">
+          <div class="accordion-body" style="font-size:0.8rem; color:#374151; line-height:1.6;">
+            Die Seite laedt alle 10 Sekunden komplett neu (kein AJAX). Das ist kein Fehler.
+            Falls <em>sichtbares Flackern</em> stoert: der Button &bdquo;&#8635; Aktualisieren (Xs)&ldquo; oben rechts
+            zeigt den Countdown. Solange der Zaehler laeuft ist alles normal.
+            Kein Flackern = kein Grid-Update, nur voller Seiten-Reload.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item" style="border:1px solid #ccfbf1; border-radius:6px; margin-bottom:0.5rem;">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed fw-semibold" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#faq-s2"
+                  style="font-size:0.82rem; color:#134e4a; background:#f0fdfa; border-radius:6px;">
+            Erkunder erhaelt keine Matrix-DM &mdash; was pruefen?
+          </button>
+        </h2>
+        <div id="faq-s2" class="accordion-collapse collapse">
+          <div class="accordion-body" style="font-size:0.8rem; color:#374151; line-height:1.6;">
+            <ol style="margin:0; padding-left:1.2rem;">
+              <li>Hat der Erkunder eine <code>matrix_id</code> in seinem HRMitarbeiter-Datensatz?<br>
+                  Admin &rarr; HR &rarr; HRMitarbeiter &rarr; Feld <em>Matrix-ID</em> (Format: <code>@name:georg-klein.com</code>)</li>
+              <li>Synapse-Logs pruefen auf 429-Fehler:
+                  <code>docker logs matrix-synapse-1 | grep "Too Many"</code><br>
+                  Ursache: <code>rc_room_creation</code> Limit nicht konfiguriert &rarr;
+                  homeserver.yaml pruefen &rarr; Synapse neu starten</li>
+              <li>matrix_scheduler pruefen: der Scheduler muss laufen.
+                  <code>docker compose logs -f web | grep scheduler</code><br>
+                  Befehl <code>brand_rueckmeldung_poller</code> muss alle 10 Sek. erscheinen.</li>
+              <li>Beim ersten Alarm muss der Erkunder die Einladung in Element <em>annehmen</em>
+                  bevor die Nachricht sichtbar ist (history_visibility: invited).</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item" style="border:1px solid #ccfbf1; border-radius:6px; margin-bottom:0.5rem;">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed fw-semibold" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#faq-s3"
+                  style="font-size:0.82rem; color:#134e4a; background:#f0fdfa; border-radius:6px;">
+            Security-Personal wird auf die Einsatzleitstelle umgeleitet &mdash; aber ich will zur Security-Review-Seite.
+          </button>
+        </h2>
+        <div id="faq-s3" class="accordion-collapse collapse">
+          <div class="accordion-body" style="font-size:0.8rem; color:#374151; line-height:1.6;">
+            Dieses Verhalten ist beabsichtigt: Waehrend ein Alarm aktiv ist, leitet der Status-Poller
+            Security-Personal direkt zur Einsatzleitstelle. Innerhalb der Einsatzleitstelle gibt es
+            einen Link zur Security-Review-Seite. Der Poller unterdrueckt die Weiterleitung auf allen
+            <code>/sicherheit/brand/</code>-Seiten &mdash; also auch auf der Review-Seite selbst.
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item" style="border:1px solid #ccfbf1; border-radius:6px; margin-bottom:0.5rem;">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed fw-semibold" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#faq-s4"
+                  style="font-size:0.82rem; color:#134e4a; background:#f0fdfa; border-radius:6px;">
+            Das Brand-Overlay erscheint bei Security auf der eigenen Seite.
+          </button>
+        </h2>
+        <div id="faq-s4" class="accordion-collapse collapse">
+          <div class="accordion-body" style="font-size:0.8rem; color:#374151; line-height:1.6;">
+            Alle Seiten unter <code>/sicherheit/</code> sind vom Overlay ausgenommen
+            (<code>aufSicherheitsSeite</code>-Flag in <code>sicherheit_poller.js</code>).
+            Tritt das Overlay trotzdem auf: Cache leeren (Strg+Shift+R) &mdash; evtl.
+            liegt noch eine alte JS-Version im Browser-Cache.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>

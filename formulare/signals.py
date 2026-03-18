@@ -16,9 +16,22 @@ def start_dienstreise_workflow(sender, instance, created, **kwargs):
     """Startet automatisch Workflow bei neuem Dienstreiseantrag.
 
     Trigger: dienstreise_erstellt
+    Hinweis: Wird uebersprungen wenn dieser Trigger per GUI (WorkflowTrigger) konfiguriert ist.
     """
     if not created:
         return
+
+    # Ueberspringe wenn per GUI konfigurierter Trigger existiert (verhindert Doppel-Start)
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from workflow.models import WorkflowTrigger
+        ct = ContentType.objects.get_for_model(Dienstreiseantrag)
+        if WorkflowTrigger.objects.filter(
+            content_type=ct, trigger_auf="erstellt", ist_aktiv=True
+        ).exists():
+            return
+    except Exception:
+        pass
 
     # Suche passendes Workflow-Template
     try:
@@ -63,9 +76,22 @@ def start_zeitgutschrift_workflow(sender, instance, created, **kwargs):
     """Startet automatisch Workflow bei neuer Zeitgutschrift.
 
     Trigger: zeitgutschrift_erstellt
+    Hinweis: Wird uebersprungen wenn dieser Trigger per GUI (WorkflowTrigger) konfiguriert ist.
     """
     if not created:
         return
+
+    # Ueberspringe wenn per GUI konfigurierter Trigger existiert
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from workflow.models import WorkflowTrigger
+        ct = ContentType.objects.get_for_model(Zeitgutschrift)
+        if WorkflowTrigger.objects.filter(
+            content_type=ct, trigger_auf="erstellt", ist_aktiv=True
+        ).exists():
+            return
+    except Exception:
+        pass
 
     # Suche passendes Workflow-Template
     try:
@@ -110,9 +136,22 @@ def start_aenderung_workflow(sender, instance, created, **kwargs):
     """Startet automatisch Workflow bei neuer Aenderung Zeiterfassung.
 
     Trigger: aenderung_zeiterfassung_erstellt
+    Hinweis: Wird uebersprungen wenn dieser Trigger per GUI (WorkflowTrigger) konfiguriert ist.
     """
     if not created:
         return
+
+    # Ueberspringe wenn per GUI konfigurierter Trigger existiert
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from workflow.models import WorkflowTrigger
+        ct = ContentType.objects.get_for_model(AenderungZeiterfassung)
+        if WorkflowTrigger.objects.filter(
+            content_type=ct, trigger_auf="erstellt", ist_aktiv=True
+        ).exists():
+            return
+    except Exception:
+        pass
 
     # Suche passendes Workflow-Template
     try:

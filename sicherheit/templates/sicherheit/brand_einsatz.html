@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Einsatzleitstelle – Brandalarm #{{ brandalarm.pk }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  body { background: #0d0d0d; }
+
+  .einsatz-header {
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .einsatz-header.gemeldet    { background: #78350f; border: 2px solid #ea580c; }
+  .einsatz-header.bestaetigung { background: #7c2d12; border: 2px solid #f97316; }
+  .einsatz-header.evakuierung  { background: #7f1d1d; border: 2px solid #ef4444;
+                                  animation: puls 1.5s infinite; }
+  .einsatz-header.geschlossen  { background: #1f2937; border: 2px solid #6b7280; }
+
+  @keyframes puls {
+    0%, 100% { border-color: #ef4444; }
+    50%       { border-color: #fca5a5; }
+  }
+
+  .zaehler-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .zaehler-box {
+    flex: 1; min-width: 90px;
+    border-radius: 8px; padding: 0.75rem 0.5rem;
+    text-align: center;
+  }
+  .zaehler-zahl  { font-size: 2rem; font-weight: 900; line-height: 1; }
+  .zaehler-label { font-size: 0.72rem; opacity: 0.8; margin-top: 0.2rem; }
+
+  .erkunder-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .erkunder-box {
+    border-radius: 6px; padding: 6px 10px;
+    font-size: 0.78rem; font-weight: 600;
+    line-height: 1.3; min-width: 110px; max-width: 160px;
+    cursor: default;
+  }
+  .erkunder-box .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .erkunder-box .staat { font-weight: 400; font-size: 0.72rem; opacity: 0.85; }
+  .erkunder-box .ort  { font-weight: 400; font-size: 0.68rem; opacity: 0.8;
+                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .e-ausstehend  { background: #e5e7eb; color: #374151; }
+  .e-unterwegs   { background: #1d4ed8; color: #bfdbfe; }
+  .e-am_ort      { background: #d97706; color: #fef3c7; }
+  .e-bestaetigt  { background: #dc2626; color: #fff; }
+  .e-fehlalarm   { background: #15803d; color: #bbf7d0; }
+
+  .meldung-zeile {
+    background: #1f2937; border-radius: 6px;
+    padding: 0.6rem 1rem; margin-bottom: 0.4rem;
+    font-size: 0.88rem; color: #e5e7eb;
+  }
+  .meldung-zeile .absender { font-weight: 700; color: #fff; }
+
+  .aktions-btn { border-radius: 8px; font-weight: 700; padding: 0.75rem 1.25rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3 px-3" style="max-width:1000px;">
+
+  <!-- Header -->
+  <div class="einsatz-header {{ brandalarm.status }} text-white mb-3">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+      <div>
+        <div style="font-size:1.4rem; font-weight:900; letter-spacing:0.04em;">
+          {% if brandalarm.status == "evakuierung" %}&#128680; EVAKUIERUNG AKTIV
+          {% elif brandalarm.status == "bestaetigung" %}&#9888; SECURITY-REVIEW ERFORDERLICH
+          {% elif brandalarm.status == "gemeldet" %}&#128293; BRANDALARM – ERKUNDER UNTERWEGS
+          {% else %}&#10003; Einsatz abgeschlossen{% endif %}
+        </div>
+        <div style="font-size:1.05rem; opacity:0.9; margin-top:0.3rem;">
+          Ort: <strong>{{ brandalarm.ort }}</strong>
+          {% if brandalarm.ort_praezise %}
+          <span style="opacity:0.8;"> &rarr; {{ brandalarm.ort_praezise }}</span>
+          {% endif %}
+        </div>
+        <div style="font-size:0.82rem; opacity:0.7; margin-top:0.2rem;">
+          Alarm #{{ brandalarm.pk }} &middot; {{ brandalarm.erstellt_am|date:"d.m.Y H:i" }} Uhr
+          &middot; {{ brandalarm.melder_anzahl }} Melder
+        </div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap align-items-start">
+        {% if brandalarm.status != "geschlossen" %}
+        <a id="btn-autorefresh" href="{{ request.path }}"
+           class="btn btn-warning btn-sm fw-semibold text-decoration-none">
+          &#8635; Aktualisieren
+        </a>
+        {% endif %}
+        {% if brandalarm.status != "geschlossen" %}
+        <a href="{% url 'sicherheit:brand_detail' brandalarm.pk %}"
+           class="btn btn-outline-light btn-sm">Detail</a>
+        {% endif %}
+        <a href="{% url 'sicherheit:brand_liste' %}"
+           class="btn btn-outline-light btn-sm">&larr; Liste</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aktionen -->
+  {% if brandalarm.status != "geschlossen" %}
+  <div class="d-flex gap-2 flex-wrap mb-3">
+
+    {% if brandalarm.status == "bestaetigung" %}
+    <a href="{% url 'sicherheit:brand_security' brandalarm.pk %}"
+       class="btn aktions-btn"
+       style="background:#dc2626; color:#fff; font-size:1rem;">
+      &#128680; Vollalarm ausloesen / Security-Review
+    </a>
+    {% endif %}
+
+    {% if brandalarm.status == "evakuierung" %}
+    <form method="post" action="{% url 'sicherheit:brand_schliessen' brandalarm.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn aktions-btn btn-success"
+              data-confirm="Entwarnung geben und Alarm schliessen?">
+        &#10003; Entwarnung geben
+      </button>
+    </form>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="aktion" value="abbrechen">
+      <button type="submit" class="btn aktions-btn btn-outline-secondary"
+              data-confirm="Einsatz abbrechen und Alarm schliessen?">
+        Einsatz abbrechen
+      </button>
+    </form>
+
+  </div>
+  {% endif %}
+
+  <div class="row g-3">
+
+    <!-- Linke Spalte: Erkunder-Grid -->
+    <div class="col-lg-8">
+
+      <!-- Zaehler -->
+      <div class="zaehler-row" id="zaehler-row">
+        <div class="zaehler-box" style="background:#dc2626; color:#fff;">
+          <div class="zaehler-zahl">{{ zaehler.bestaetigt }}</div>
+          <div class="zaehler-label">Brand bestaetigt</div>
+        </div>
+        <div class="zaehler-box" style="background:#d97706; color:#fef3c7;">
+          <div class="zaehler-zahl">{{ zaehler.am_ort }}</div>
+          <div class="zaehler-label">Am Ort</div>
+        </div>
+        <div class="zaehler-box" style="background:#1d4ed8; color:#bfdbfe;">
+          <div class="zaehler-zahl">{{ zaehler.unterwegs }}</div>
+          <div class="zaehler-label">Unterwegs</div>
+        </div>
+        <div class="zaehler-box" style="background:#15803d; color:#bbf7d0;">
+          <div class="zaehler-zahl">{{ zaehler.fehlalarm }}</div>
+          <div class="zaehler-label">Fehlalarm</div>
+        </div>
+        <div class="zaehler-box" style="background:#374151; color:#9ca3af;">
+          <div class="zaehler-zahl">{{ zaehler.ausstehend }}</div>
+          <div class="zaehler-label">Ausstehend</div>
+        </div>
+      </div>
+
+      <!-- Erkunder-Klötzchen -->
+      <div class="erkunder-grid" id="erkunder-grid">
+        {% for tok in tokens %}
+        <div class="erkunder-box e-{{ tok.status }}"
+             title="{{ tok.notiz }}{% if tok.ort_praezise %} | {{ tok.ort_praezise }}{% endif %}">
+          <div class="name">{{ tok.erkunder.vollname }}</div>
+          <div class="staat">
+            {% if tok.status == "bestaetigt" %}Brand bestaetigt
+            {% elif tok.status == "unterwegs" %}Unterwegs
+            {% elif tok.status == "am_ort" %}Am Ort
+            {% elif tok.status == "fehlalarm" %}Fehlalarm
+            {% else %}Ausstehend{% endif %}
+          </div>
+          {% if tok.ort_praezise %}
+          <div class="ort">{{ tok.ort_praezise }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+    </div>
+
+    <!-- Rechte Spalte: Meldungen -->
+    <div class="col-lg-4">
+      <div style="background:#111827; border-radius:10px; padding:1rem;">
+        <div style="color:#9ca3af; font-size:0.78rem; font-weight:700;
+                    text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">
+          Erkunder-Meldungen
+        </div>
+        <div id="meldungen-liste">
+          {% if not meldungen %}
+          <p style="color:#6b7280; font-size:0.85rem;">Noch keine Meldungen.</p>
+          {% else %}
+          {% for tok in meldungen %}
+          <div class="meldung-zeile">
+            <div class="absender">{{ tok.erkunder.vollname }}</div>
+            {% if tok.ort_praezise %}
+            <div style="color:#fb923c; font-size:0.8rem;">{{ tok.ort_praezise }}</div>
+            {% endif %}
+            <div>{{ tok.notiz }}</div>
+          </div>
+          {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Nachbewertung (al_as, geschlossen) -->
+  {% if brandalarm.status == "geschlossen" and ist_arbeitsschutz %}
+  <div class="card mt-3 border-info">
+    <div class="card-header bg-info bg-opacity-25 fw-bold">&#9997; Nachbewertung</div>
+    <div class="card-body">
+      {% if brandalarm.nachbewertung %}
+        <span class="badge bg-success me-2">{{ brandalarm.get_nachbewertung_display }}</span>
+      {% else %}
+        <span class="text-muted me-2">Noch keine Nachbewertung.</span>
+      {% endif %}
+      <a href="{% url 'sicherheit:brand_nachbewertung' brandalarm.pk %}"
+         class="btn btn-outline-info btn-sm">
+        {% if brandalarm.nachbewertung %}Bearbeiten{% else %}Eintragen{% endif %}
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/brand_einsatz.js' %}"></script>
+{{ brandalarm.pk|json_script:"alarm-pk" }}
+{{ brandalarm.status|json_script:"alarm-status" }}
+{% endblock %}

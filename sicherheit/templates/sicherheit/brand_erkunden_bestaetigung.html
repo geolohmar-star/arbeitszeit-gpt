@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rueckmeldung gespeichert – PRIMA</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #1a0a00;
+      color: #fed7aa;
+      margin: 0;
+      padding: 1rem;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .box {
+      background: #3d1a00;
+      border: 2px solid #ea580c;
+      border-radius: 8px;
+      padding: 2rem;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+    }
+    .icon { font-size: 3rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.5rem; color: #fff; margin-bottom: 0.5rem; }
+    .text { font-size: 1rem; opacity: 0.9; margin-bottom: 1.5rem; }
+    .back-link {
+      display: inline-block;
+      padding: 0.6rem 1.5rem;
+      background: #374151;
+      color: #9ca3af;
+      border-radius: 4px;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    {% if meldung == "unterwegs" %}
+      <div class="icon">&#128693;</div>
+      <h1>Auf dem Weg</h1>
+      <p class="text">
+        Rueckmeldung gespeichert. Security informiert.<br>
+        Bitte begeben Sie sich zum gemeldeten Ort:<br>
+        <strong style="color:#fb923c;">{{ brandalarm.ort }}</strong>
+      </p>
+
+    {% elif meldung == "am_ort" %}
+      <div class="icon">&#128205;</div>
+      <h1>Am Brandort</h1>
+      <p class="text">
+        Rueckmeldung gespeichert. Security informiert.<br>
+        Bitte Lage einschaetzen und Rueckmeldung geben.
+      </p>
+
+    {% elif meldung == "lage" %}
+      <div class="icon">&#128276;</div>
+      <h1>Lagemeldung gesendet</h1>
+      <p class="text">
+        Security wurde benachrichtigt:<br>
+        <strong style="color:#fb923c;">{{ lage_text }}</strong>
+      </p>
+
+    {% elif meldung == "nachricht" %}
+      <div class="icon">&#128172;</div>
+      <h1>Nachricht gesendet</h1>
+      <p class="text">
+        Security wurde benachrichtigt:<br>
+        <strong style="color:#fb923c;">{{ lage_text }}</strong>
+      </p>
+
+    {% elif meldung == "bestaetigt" %}
+      <div class="icon">&#128293;</div>
+      <h1 style="color:#dc2626;">Brand bestaetigt</h1>
+      <p class="text">
+        Security wurde sofort benachrichtigt.<br>
+        {% if token_obj.ort_praezise %}
+          Gemeldeter Ort: <strong style="color:#fb923c;">{{ token_obj.ort_praezise }}</strong>
+        {% else %}
+          Ort: <strong style="color:#fb923c;">{{ brandalarm.ort }}</strong>
+        {% endif %}
+      </p>
+      <div style="background:rgba(220,38,38,0.2); border:1px solid #dc2626;
+                  border-radius:4px; padding:0.8rem; margin-bottom:1rem; color:#fca5a5;">
+        <strong>Bitte jetzt:</strong><br>
+        Gebaeude verlassen – Sammelplatz aufsuchen – Auf Security warten
+      </div>
+
+    {% elif meldung == "fehlalarm" %}
+      <div class="icon">&#10003;</div>
+      <h1 style="color:#4ade80;">Fehlalarm gemeldet</h1>
+      <p class="text">
+        Ihre Meldung wurde gespeichert. Security informiert.<br>
+        Wenn alle Erkunder Fehlalarm melden, wird der Alarm automatisch geschlossen.
+      </p>
+    {% endif %}
+
+    <a href="{% url 'sicherheit:brand_erkunden_token' token=token_obj.token %}" class="back-link">
+      Zurueck zur Erkunden-Seite
+    </a>
+  </div>
+</body>
+</html>

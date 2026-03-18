@@ -9,9 +9,14 @@
             <h2>Workflow-Trigger Uebersicht</h2>
             <p class="text-muted mb-0">Automatische Workflow-Ausloesungen</p>
         </div>
-        <a href="{% url 'workflow:workflow_editor' %}" class="btn btn-outline-primary">
-            Workflow-Editor
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'workflow:trigger_konfiguration' %}" class="btn btn-primary">
+                Trigger konfigurieren
+            </a>
+            <a href="{% url 'workflow:workflow_editor' %}" class="btn btn-outline-primary">
+                Workflow-Editor
+            </a>
+        </div>
     </div>
 
     <!-- Registrierte Events -->
@@ -103,8 +108,9 @@
             </div>
             <hr>
             <p class="mb-0 small text-muted">
-                <strong>Hinweis:</strong> Trigger-Events werden in <code>formulare/signals.py</code> registriert.
-                Um einen neuen Trigger hinzuzufuegen, muss ein Signal-Handler im Code erstellt werden.
+                <strong>Neu:</strong> Trigger koennen jetzt per GUI konfiguriert werden –
+                kein Code mehr noetig.
+                <a href="{% url 'workflow:trigger_konfiguration' %}">Zur Trigger-Konfiguration</a>
             </p>
         </div>
     </div>

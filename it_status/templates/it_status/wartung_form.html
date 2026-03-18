@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titel }} – IT-Status{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:600px;">
+
+    <a href="{% url 'it_status:uebersicht' %}" class="text-muted text-decoration-none small">&larr; Systemstatus</a>
+
+    <h1 class="h3 fw-bold mt-2 mb-4" style="color:#1a4d2e;">{{ titel }}</h1>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <form method="post">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">System</label>
+                    {{ form.system }}
+                    {% if form.system.errors %}<div class="text-danger small">{{ form.system.errors }}</div>{% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Titel</label>
+                    {{ form.titel }}
+                    {% if form.titel.errors %}<div class="text-danger small">{{ form.titel.errors }}</div>{% endif %}
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold">Von</label>
+                        {{ form.start }}
+                        {% if form.start.errors %}<div class="text-danger small">{{ form.start.errors }}</div>{% endif %}
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label fw-semibold">Bis</label>
+                        {{ form.ende }}
+                        {% if form.ende.errors %}<div class="text-danger small">{{ form.ende.errors }}</div>{% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Beschreibung <span class="text-muted fw-normal">(optional)</span></label>
+                    {{ form.beschreibung }}
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Wartung speichern</button>
+                    <a href="{% url 'it_status:uebersicht' %}" class="btn btn-outline-secondary">Abbrechen</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

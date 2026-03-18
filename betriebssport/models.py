@@ -251,6 +251,14 @@ class BetriebssportGutschrift(models.Model):
         default="entwurf",
         verbose_name="Status",
     )
+    workflow_instance = models.ForeignKey(
+        "workflow.WorkflowInstance",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="bs_gutschriften",
+        verbose_name="Workflow-Instanz",
+    )
 
     class Meta:
         ordering = ["-monat"]
@@ -265,6 +273,131 @@ class BetriebssportGutschrift(models.Model):
     def antragsteller(self):
         """Fuer WorkflowEngine: Ersteller der Gutschrift."""
         return self.erstellt_von
+
+    def archiviere_in_dms(self, kategorie_id):
+        """Legt ein DMS-Dokument fuer diese Gutschrift an (idempotent).
+
+        Bevorzugt vorhandene SignaturJob-PDF-Bytes; faellt auf WeasyPrint zurueck.
+        """
+        from dms.models import Dokument, DokumentKategorie
+        from dms.services import speichere_dokument, suchvektor_befuellen
+
+        kategorie = DokumentKategorie.objects.filter(pk=kategorie_id).first()
+        titel = f"BS-Gutschrift {self.gruppe.name} {self.monat:%m/%Y}"
+        dateiname = (
+            f"BS-{self.pk}_{self.gruppe.name}_{self.monat:%Y-%m}.pdf"
+            .replace(" ", "_")
+        )
+
+        pdf_bytes = self._pdf_bytes_holen()
+        if not pdf_bytes:
+            logger.warning(
+                "DMS-Archivierung: keine PDF-Bytes fuer BetriebssportGutschrift pk=%s", self.pk
+            )
+            return None
+
+        # Idempotent: vorhandenes Dokument aktualisieren
+        bestehendes = Dokument.objects.filter(dateiname=dateiname).first()
+        if bestehendes:
+            speichere_dokument(bestehendes, pdf_bytes)
+            bestehendes.groesse_bytes = len(pdf_bytes)
+            if kategorie:
+                bestehendes.kategorie = kategorie
+            bestehendes.save()
+            suchvektor_befuellen(bestehendes)
+            return bestehendes
+
+        dok = Dokument(
+            titel=titel,
+            dateiname=dateiname,
+            dateityp="application/pdf",
+            groesse_bytes=len(pdf_bytes),
+            kategorie=kategorie,
+            klasse="offen",
+            beschreibung=(
+                f"Betriebssport-Zeitgutschrift – {self.gruppe.name} – "
+                f"{self.monat:%B %Y}"
+            ),
+            erstellt_von=(
+                self.erstellt_von.user
+                if self.erstellt_von and self.erstellt_von.user_id
+                else None
+            ),
+        )
+        speichere_dokument(dok, pdf_bytes)
+        dok.save()
+        suchvektor_befuellen(dok)
+        return dok
+
+    def _pdf_bytes_holen(self):
+        """Gibt PDF-Bytes zurueck: bevorzugt signiertes PDF, sonst WeasyPrint."""
+        try:
+            from signatur.models import SignaturJob
+            job = (
+                SignaturJob.objects
+                .filter(
+                    content_type="betriebssportgutschrift",
+                    object_id=self.pk,
+                    status="completed",
+                )
+                .order_by("-erstellt_am")
+                .first()
+            )
+            if job and job.signiertes_pdf:
+                return bytes(job.signiertes_pdf)
+        except Exception:
+            pass
+        try:
+            from weasyprint import HTML
+            from django.template.loader import render_to_string
+            from django.conf import settings
+            from django.utils import timezone as tz
+            from .models import Sportteilnahme  # selbe App, kein Zirkularimport
+
+            gruppe = self.gruppe
+            einheiten = list(self.einheiten.order_by("datum"))
+            mitglieder = list(
+                gruppe.mitglieder.select_related("abteilung")
+                .order_by("nachname", "vorname")
+            )
+            alle_teilnahmen = set(
+                Sportteilnahme.objects.filter(einheit__in=einheiten)
+                .values_list("einheit_id", "mitarbeiter_id")
+            )
+            teilnehmer_daten = []
+            gesamt_stunden = 0
+            for ma in mitglieder:
+                anzahl = sum(
+                    1 for e in einheiten
+                    if (e.pk, ma.pk) in alle_teilnahmen and e.status == "stattgefunden"
+                )
+                stunden = gruppe.gutschrift_stunden * anzahl
+                gesamt_stunden += stunden
+                if anzahl > 0:
+                    teilnehmer_daten.append({
+                        "mitarbeiter": ma,
+                        "anzahl_einheiten": anzahl,
+                        "stunden": stunden,
+                    })
+            ctx = {
+                "gutschrift": self,
+                "gruppe": gruppe,
+                "einheiten": einheiten,
+                "teilnehmer_daten": teilnehmer_daten,
+                "gesamt_stunden": gesamt_stunden,
+                "workflow_tasks": [],
+                "jetzt": tz.now(),
+            }
+            html_string = render_to_string("betriebssport/pdf/gutschrift_pdf.html", ctx)
+            host = getattr(settings, "SITE_URL", None) or (
+                f"http://{settings.ALLOWED_HOSTS[0]}"
+                if settings.ALLOWED_HOSTS and settings.ALLOWED_HOSTS[0] != "*"
+                else "http://localhost:8000"
+            )
+            return HTML(string=html_string, base_url=host).write_pdf()
+        except Exception as exc:
+            logger.warning("WeasyPrint-Fallback fehlgeschlagen fuer BS pk=%s: %s", self.pk, exc)
+            return None
 
     def get_betreff(self):
         """Betreffzeile fuer Workflow und PDF."""

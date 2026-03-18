@@ -1,0 +1,101 @@
+{% load static %}
+{# Hilfe & App-Info Modal – eingebunden in base.html #}
+<div class="modal fade" id="hilfeModal" tabindex="-1" aria-labelledby="hilfeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <div class="modal-header" style="background:#1a4d2e; color:white;">
+        <h5 class="modal-title fw-bold" id="hilfeModalLabel">
+          PRIMA &mdash; Hilfe &amp; App-Info
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body p-0">
+        <ul class="nav nav-tabs px-3 pt-3" id="hilfeTabs" role="tablist" style="border-bottom:2px solid #e5e7eb;">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-semibold" id="tab-highlights" data-bs-toggle="tab"
+                    data-bs-target="#pane-highlights" type="button" role="tab">
+              App-Highlights
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-tech" data-bs-toggle="tab"
+                    data-bs-target="#pane-tech" type="button" role="tab">
+              Technologie-Stack
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-security" data-bs-toggle="tab"
+                    data-bs-target="#pane-security" type="button" role="tab">
+              Sicherheitsbewertung
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-bedienung" data-bs-toggle="tab"
+                    data-bs-target="#pane-bedienung" type="button" role="tab">
+              Bedienung
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-sicherheit-anleitung" data-bs-toggle="tab"
+                    data-bs-target="#pane-sicherheit-anleitung" type="button" role="tab">
+              Sicherheits-App
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-anleitungen" data-bs-toggle="tab"
+                    data-bs-target="#pane-anleitungen" type="button" role="tab">
+              &#128196; Anleitungen
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content p-4">
+
+          <!-- Tab 1: App-Highlights -->
+          <div class="tab-pane fade show active" id="pane-highlights" role="tabpanel">
+            {% include "partials/_hilfe_highlights.html" %}
+          </div>
+
+          <!-- Tab 2: Technologie-Stack -->
+          <div class="tab-pane fade" id="pane-tech" role="tabpanel">
+            {% include "partials/_hilfe_techstack.html" %}
+          </div>
+
+          <!-- Tab 3: Sicherheitsbewertung -->
+          <div class="tab-pane fade" id="pane-security" role="tabpanel">
+            {% include "partials/_hilfe_sicherheit.html" %}
+          </div>
+
+          <!-- Tab 4: Bedienung -->
+          <div class="tab-pane fade" id="pane-bedienung" role="tabpanel">
+            {% include "partials/_hilfe_bedienung.html" %}
+          </div>
+
+          <!-- Tab 5: Sicherheits-App Anleitung -->
+          <div class="tab-pane fade" id="pane-sicherheit-anleitung" role="tabpanel">
+            {% include "partials/_hilfe_sicherheit_anleitung.html" %}
+          </div>
+
+          <!-- Tab 6: Anleitungen -->
+          <div class="tab-pane fade" id="pane-anleitungen" role="tabpanel">
+            {% include "partials/_hilfe_anleitungen.html" %}
+          </div>
+
+        </div><!-- end tab-content -->
+      </div><!-- end modal-body -->
+
+      <div class="modal-footer" style="background:#f9fafb;">
+        <span class="text-muted" style="font-size:0.78rem;">
+          Version: Django {{ "6.0.2" }} &middot; Python 3.11+ &middot;
+          PRIMA &mdash; Intranet-Betriebssystem
+        </span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">
+          Schliessen
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

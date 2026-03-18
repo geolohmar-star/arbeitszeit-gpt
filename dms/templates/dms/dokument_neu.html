@@ -3,15 +3,12 @@
 {% block title %}DMS – Neues Dokument{% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width:640px;">
+<div class="container py-4" style="max-width:760px;">
 
     <div class="mb-4">
         <a href="{% url 'dms:liste' %}" class="text-muted text-decoration-none small">&larr; Zurueck zur Liste</a>
         <h1 class="h3 fw-bold mt-2 mb-0" style="color:#1a4d2e;">Neues Dokument erstellen</h1>
-        <p class="text-muted small mt-1">
-            Leere Vorlage wird angelegt und sofort in OnlyOffice geoeffnet.
-            Beim Schliessen des Editors wird das Dokument automatisch gespeichert.
-        </p>
+        <p class="text-muted small mt-1">Was moechten Sie erstellen?</p>
     </div>
 
     {% if messages %}
@@ -25,7 +22,91 @@
     </div>
     {% endif %}
 
-    <div class="card border-0 shadow-sm">
+    {# ---- Auswahl-Kacheln ---- #}
+    <div class="row g-3 mb-4">
+
+        {# Kachel 1: Leeres Dokument #}
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100" id="kachel-leer"
+                 style="cursor:pointer; transition: box-shadow .15s;"
+                 data-target="form-leer">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="mb-3" style="font-size:2rem; color:#1a4d2e;">&#128196;</div>
+                    <h5 class="fw-bold mb-1">Leeres Dokument</h5>
+                    <p class="text-muted small mb-3">
+                        Word (.docx) oder Excel (.xlsx) anlegen und direkt in OnlyOffice bearbeiten.
+                    </p>
+                    <div class="mt-auto">
+                        <span class="btn btn-sm btn-outline-success">Weiter &rsaquo;</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Kachel 2: Tabellenkalkulation xlsx #}
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100" id="kachel-xlsx"
+                 style="cursor:pointer; transition: box-shadow .15s;"
+                 data-dateityp="xlsx">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="mb-3" style="font-size:2rem; color:#1a4d2e;">&#128202;</div>
+                    <h5 class="fw-bold mb-1">Tabellenkalkulation (.xlsx)</h5>
+                    <p class="text-muted small mb-3">
+                        Leere Excel-Tabelle anlegen und direkt in OnlyOffice bearbeiten.
+                    </p>
+                    <div class="mt-auto">
+                        <span class="btn btn-sm btn-outline-success">Weiter &rsaquo;</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Kachel 3: Praesentation pptx #}
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100" id="kachel-pptx"
+                 style="cursor:pointer; transition: box-shadow .15s;"
+                 data-dateityp="pptx">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="mb-3" style="font-size:2rem; color:#1a4d2e;">&#128250;</div>
+                    <h5 class="fw-bold mb-1">Praesentation (.pptx)</h5>
+                    <p class="text-muted small mb-3">
+                        Leere Praesentation anlegen und direkt in OnlyOffice bearbeiten.
+                    </p>
+                    <div class="mt-auto">
+                        <span class="btn btn-sm btn-outline-success">Weiter &rsaquo;</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Kachel 4: Geschaeftsbrief #}
+        <div class="col-md-6">
+            <a href="{% url 'korrespondenz:brief_erstellen' %}"
+               class="text-decoration-none">
+                <div class="card border-0 shadow-sm h-100"
+                     style="transition: box-shadow .15s;">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="mb-3" style="font-size:2rem; color:#1a4d2e;">&#9993;</div>
+                        <h5 class="fw-bold mb-1">Geschaeftsbrief (DIN 5008)</h5>
+                        <p class="text-muted small mb-3">
+                            Brief aus Firmenvorlage erstellen – Absender vorbelegt,
+                            Empfaenger und Text frei.
+                        </p>
+                        <div class="mt-auto">
+                            <span class="btn btn-sm btn-outline-success">Weiter &rsaquo;</span>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+    </div>
+
+    {# ---- Formular: Leeres Dokument (anfangs ausgeblendet) ---- #}
+    <div id="form-leer" class="card border-0 shadow-sm" style="display:none;">
+        <div class="card-header bg-white fw-semibold py-2 px-4" style="color:#1a4d2e;">
+            Leeres Dokument anlegen
+        </div>
         <div class="card-body p-4">
             <form method="post">
                 {% csrf_token %}
@@ -69,7 +150,8 @@
                 </div>
 
                 <div class="d-flex gap-2 justify-content-end">
-                    <a href="{% url 'dms:liste' %}" class="btn btn-outline-secondary">Abbrechen</a>
+                    <button type="button" id="btn-abbrechen-leer"
+                            class="btn btn-outline-secondary">Zurueck</button>
                     <button type="submit" class="btn btn-success fw-semibold">
                         Erstellen &amp; in OnlyOffice oeffnen
                     </button>
@@ -79,4 +161,9 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/dms_neu.js' %}"></script>
 {% endblock %}

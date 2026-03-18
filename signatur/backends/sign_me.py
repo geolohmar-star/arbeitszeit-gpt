@@ -146,10 +146,20 @@ class SignMeBackend:
         }
 
         if meta.get("sichtbar", True):
+            # Koordinaten abgestimmt auf PRIMA-Signaturseite (A4, Ursprung oben-links):
+            #   x=20, y=175 entspricht dem Stempelrahmen auf der Signaturseite.
+            #   Fuer allgemeine Dokumente ohne Signaturseite: x=30, y=30 (Seitenrand).
+            sig_x      = meta.get("sig_x", 20)
+            sig_y      = meta.get("sig_y", 175)
+            sig_breite = meta.get("sig_breite", 482)
+            sig_hoehe  = meta.get("sig_hoehe", 128)
             payload["visibleSignature"] = {
-                "page": meta.get("seite", -1),
-                "x": 30, "y": 30, "width": 250, "height": 60,
-                "text": f"Signiert von {user.get_full_name()}",
+                "page":   meta.get("seite", -1),
+                "x":      sig_x,
+                "y":      sig_y,
+                "width":  sig_breite,
+                "height": sig_hoehe,
+                "text":   f"Signiert von {user.get_full_name()}",
             }
 
         try:

@@ -34,11 +34,19 @@ class Command(BaseCommand):
 
         existing = WorkflowTemplate.objects.filter(trigger_event=TRIGGER).first()
         if existing:
+            # Nur Archivierungs-Schritt ergaenzen falls noch nicht vorhanden
+            hat_archivierung = existing.schritte.filter(aktion_typ="archivieren").exists()
+            if hat_archivierung:
+                self.stdout.write(
+                    f"  [SKIP] Template 'Betriebssport' (pk={existing.pk}) "
+                    f"hat bereits Archivierungs-Schritt."
+                )
+                return
             self.stdout.write(
-                f"  [INFO] Bestehendes Template 'Betriebssport' (pk={existing.pk}) "
-                f"wird durch neue Version ersetzt."
+                f"  [INFO] Ergaenze Archivierungs-Schritt zu Template pk={existing.pk}."
             )
-            existing.delete()
+            self._ergaenze_archivierungs_schritt(existing)
+            return
 
         # Team-Queues suchen
         zg_team = (
@@ -152,10 +160,36 @@ class Command(BaseCommand):
                 prioritaet=1,
             )
 
-        # Ende
+        # Schritt 5: DMS-Archivierung (auto)
+        from dms.models import DokumentKategorie
+        ablage = DokumentKategorie.objects.filter(
+            name="Betriebssport-Gutschriften"
+        ).first()
+        s5 = WorkflowStep.objects.create(
+            template=template,
+            reihenfolge=5,
+            schritt_typ="auto",
+            titel="DMS-Ablage: Betriebssport-Gutschrift",
+            beschreibung="Gutschrift automatisch im DMS unter 'Zeitgutschriften > Betriebssport-Gutschriften' ablegen.",
+            aktion_typ="archivieren",
+            zustaendig_rolle="direkter_vorgesetzter",
+            frist_tage=0,
+            auto_config={"kategorie_id": ablage.pk if ablage else None},
+        )
+
+        # Transition: Schritt 4 -> Schritt 5 (Archivierung)
         WorkflowTransition.objects.create(
             template=template,
             von_schritt=s4,
+            zu_schritt=s5,
+            bedingung_typ="immer",
+            prioritaet=1,
+        )
+
+        # Ende
+        WorkflowTransition.objects.create(
+            template=template,
+            von_schritt=s5,
             zu_schritt=None,
             bedingung_typ="immer",
             prioritaet=1,
@@ -163,7 +197,57 @@ class Command(BaseCommand):
 
         self.stdout.write(
             f"  [OK]   WorkflowTemplate 'Betriebssport' (pk={template.pk}) "
-            f"mit 4 Schritten und 4 Transitionen erstellt."
+            f"mit 5 Schritten und 5 Transitionen erstellt."
         )
         self.stdout.write(f"         ZG-Team: {zg_team.name} (pk={zg_team.pk})")
         self.stdout.write(f"         ZA-Team: {za_team.name} (pk={za_team.pk})")
+
+    def _ergaenze_archivierungs_schritt(self, template):
+        """Haengt Archivierungs-Schritt an ein bestehendes Template an."""
+        from workflow.models import WorkflowStep, WorkflowTransition
+        from dms.models import DokumentKategorie
+
+        ablage = DokumentKategorie.objects.filter(name="Betriebssport-Gutschriften").first()
+
+        # Letzten Schritt (vor Ende) suchen
+        letzter = (
+            WorkflowStep.objects.filter(template=template)
+            .order_by("-reihenfolge")
+            .first()
+        )
+        naechste_reihenfolge = (letzter.reihenfolge + 1) if letzter else 5
+
+        s_archiv = WorkflowStep.objects.create(
+            template=template,
+            reihenfolge=naechste_reihenfolge,
+            schritt_typ="auto",
+            titel="DMS-Ablage: Betriebssport-Gutschrift",
+            beschreibung=(
+                "Gutschrift automatisch im DMS unter "
+                "'Zeitgutschriften > Betriebssport-Gutschriften' ablegen."
+            ),
+            aktion_typ="archivieren",
+            zustaendig_rolle="direkter_vorgesetzter",
+            frist_tage=0,
+            auto_config={"kategorie_id": ablage.pk if ablage else None},
+        )
+
+        # Bisherige Abschluss-Transition (zu_schritt=None) umlenken
+        alte_ende_transition = WorkflowTransition.objects.filter(
+            template=template, zu_schritt=None
+        ).order_by("-prioritaet").first()
+
+        if alte_ende_transition and letzter:
+            alte_ende_transition.zu_schritt = s_archiv
+            alte_ende_transition.save()
+            WorkflowTransition.objects.create(
+                template=template,
+                von_schritt=s_archiv,
+                zu_schritt=None,
+                bedingung_typ="immer",
+                prioritaet=1,
+            )
+
+        self.stdout.write(
+            f"  [OK]  Archivierungs-Schritt pk={s_archiv.pk} zu Template pk={template.pk} ergaenzt."
+        )

@@ -1,318 +1,370 @@
 {% extends "base.html" %}
 
-{% block title %}Arbeitsstapel - Workflow{% endblock %}
-
-{% block extra_css %}
-<style>
-    .task-card {
-        border-left: 4px solid #6c757d;
-        transition: transform 0.2s;
-    }
-
-    .task-card:hover {
-        transform: translateX(5px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-
-    .task-card.ueberfaellig {
-        border-left-color: #dc3545;
-        background-color: #fff5f5;
-    }
-
-    .task-card.heute {
-        border-left-color: #ffc107;
-        background-color: #fffbf0;
-    }
-
-    .task-card.demnaechst {
-        border-left-color: #0d6efd;
-    }
-
-    .badge-ueberfaellig {
-        background-color: #dc3545;
-    }
-
-    .badge-heute {
-        background-color: #ffc107;
-        color: #000;
-    }
-
-    .badge-demnaechst {
-        background-color: #0d6efd;
-    }
-
-    .stats-card {
-        border-left: 4px solid;
-    }
-
-    .stats-card.danger {
-        border-left-color: #dc3545;
-    }
-
-    .stats-card.warning {
-        border-left-color: #ffc107;
-    }
-
-    .stats-card.primary {
-        border-left-color: #0d6efd;
-    }
-</style>
-{% endblock %}
+{% block title %}Workflow-Zentrale{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row mb-4">
-        <div class="col">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="mb-3">Arbeitsstapel</h1>
-                    <p class="text-muted">Ihre offenen Workflow-Aufgaben</p>
+<div class="container-fluid py-4" style="max-width:1400px;">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-0" style="color:#1a4d2e;">Workflow-Zentrale</h1>
+            <p class="text-muted small mb-0">Meine Aufgaben &amp; Team-Arbeitsstapel</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if request.user.is_staff %}
+            <a href="{% url 'workflow:trigger_konfiguration' %}" class="btn btn-sm btn-outline-secondary">
+                Trigger
+            </a>
+            <a href="{% url 'workflow:workflow_editor' %}" class="btn btn-sm btn-outline-secondary">
+                Workflow-Editor
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Kennzahlen-Leiste -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #dc3545 !important;">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:42px;height:42px;background:#fff0f0;">
+                            <span style="font-size:1.1rem;">!</span>
+                        </div>
+                        <div>
+                            <div class="fw-bold" style="font-size:1.6rem;line-height:1;color:#dc3545;">
+                                {{ anzahl_ueberfaellig }}
+                            </div>
+                            <div class="text-muted small">Überfällig</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="d-flex gap-2">
-                    <a href="{% url 'workflow:trigger_uebersicht' %}" class="btn btn-outline-secondary">
-                        Trigger-Uebersicht
-                    </a>
-                    <a href="{% url 'workflow:workflow_editor' %}" class="btn btn-outline-primary">
-                        Workflow-Editor
-                    </a>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #f59e0b !important;">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:42px;height:42px;background:#fffbf0;">
+                            <span style="font-size:1.1rem;">&#9679;</span>
+                        </div>
+                        <div>
+                            <div class="fw-bold" style="font-size:1.6rem;line-height:1;color:#f59e0b;">
+                                {{ anzahl_heute }}
+                            </div>
+                            <div class="text-muted small">Heute fällig</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #1a4d2e !important;">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:42px;height:42px;background:#f0faf4;">
+                            <span style="font-size:1.1rem;">&#9632;</span>
+                        </div>
+                        <div>
+                            <div class="fw-bold" style="font-size:1.6rem;line-height:1;color:#1a4d2e;">
+                                {{ anzahl_gesamt }}
+                            </div>
+                            <div class="text-muted small">Meine Aufgaben</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #6c757d !important;">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:42px;height:42px;background:#f8f9fa;">
+                            <span style="font-size:1.1rem;">&#10003;</span>
+                        </div>
+                        <div>
+                            <div class="fw-bold" style="font-size:1.6rem;line-height:1;color:#6c757d;">
+                                {{ erledigte_tasks|length }}
+                            </div>
+                            <div class="text-muted small">Erledigt (14 Tage)</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Statistik-Karten -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card stats-card danger">
-                <div class="card-body">
-                    <h5 class="card-title text-danger">Überfällig</h5>
-                    <p class="display-4">{{ anzahl_ueberfaellig }}</p>
-                    <p class="text-muted mb-0">Tasks über Frist</p>
+    <div class="row g-4">
+
+        <!-- ── Linke Spalte: Meine Aufgaben ──────────────────────── -->
+        <div class="col-lg-7">
+
+            {% if anzahl_gesamt == 0 %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div style="font-size:2.5rem;color:#d1fae5;">&#10003;</div>
+                    <p class="fw-semibold mb-1 mt-2" style="color:#1a4d2e;">Alles erledigt!</p>
+                    <p class="text-muted small mb-0">Keine offenen Aufgaben.</p>
                 </div>
             </div>
+            {% else %}
+
+            <!-- Überfällig -->
+            {% if ueberfaellig %}
+            <div class="card border-0 shadow-sm mb-3" style="border-left:4px solid #dc3545 !important;">
+                <div class="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center gap-2">
+                    <span class="rounded-circle bg-danger d-inline-block"
+                          style="width:10px;height:10px;"></span>
+                    <span class="fw-semibold text-danger">Überfällig</span>
+                    <span class="badge bg-danger ms-auto">{{ ueberfaellig|length }}</span>
+                </div>
+                {% for task in ueberfaellig %}
+                <a href="{% url 'workflow:task_detail' task.pk %}"
+                   class="d-block text-decoration-none border-bottom px-3 py-2 task-row"
+                   style="background:{% if forloop.last %}transparent{% else %}transparent{% endif %};">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-semibold small" style="color:#111;">{{ task.step.titel }}</div>
+                            <div class="text-muted" style="font-size:0.75rem;">
+                                {{ task.instance.template.name }}
+                                {% if task.zugewiesen_an_stelle %}
+                                &middot; <span class="font-monospace">{{ task.zugewiesen_an_stelle.kuerzel }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-end flex-shrink-0 ms-3">
+                            <div class="text-danger" style="font-size:0.75rem;font-weight:600;">
+                                {{ task.frist|date:"d.m.Y" }}
+                            </div>
+                            {% if task.status == "in_bearbeitung" %}
+                            <span class="badge bg-warning text-dark" style="font-size:0.6rem;">in Bearbeitung</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Heute fällig -->
+            {% if heute_faellig %}
+            <div class="card border-0 shadow-sm mb-3" style="border-left:4px solid #f59e0b !important;">
+                <div class="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center gap-2">
+                    <span class="rounded-circle d-inline-block"
+                          style="width:10px;height:10px;background:#f59e0b;"></span>
+                    <span class="fw-semibold" style="color:#b45309;">Heute fällig</span>
+                    <span class="badge ms-auto" style="background:#f59e0b;color:#000;">{{ heute_faellig|length }}</span>
+                </div>
+                {% for task in heute_faellig %}
+                <a href="{% url 'workflow:task_detail' task.pk %}"
+                   class="d-block text-decoration-none border-bottom px-3 py-2 task-row">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-semibold small" style="color:#111;">{{ task.step.titel }}</div>
+                            <div class="text-muted" style="font-size:0.75rem;">
+                                {{ task.instance.template.name }}
+                                {% if task.zugewiesen_an_stelle %}
+                                &middot; <span class="font-monospace">{{ task.zugewiesen_an_stelle.kuerzel }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-end flex-shrink-0 ms-3">
+                            <div style="font-size:0.75rem;font-weight:600;color:#b45309;">
+                                {{ task.frist|date:"d.m.Y" }}
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Demnächst -->
+            {% if demnaechst %}
+            <div class="card border-0 shadow-sm mb-3" style="border-left:4px solid #1a4d2e !important;">
+                <div class="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center gap-2">
+                    <span class="rounded-circle d-inline-block"
+                          style="width:10px;height:10px;background:#1a4d2e;"></span>
+                    <span class="fw-semibold" style="color:#1a4d2e;">Demnächst</span>
+                    <span class="badge ms-auto" style="background:#1a4d2e;">{{ demnaechst|length }}</span>
+                </div>
+                {% for task in demnaechst %}
+                <a href="{% url 'workflow:task_detail' task.pk %}"
+                   class="d-block text-decoration-none border-bottom px-3 py-2 task-row">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-semibold small" style="color:#111;">{{ task.step.titel }}</div>
+                            <div class="text-muted" style="font-size:0.75rem;">
+                                {{ task.instance.template.name }}
+                                {% if task.zugewiesen_an_stelle %}
+                                &middot; <span class="font-monospace">{{ task.zugewiesen_an_stelle.kuerzel }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-end flex-shrink-0 ms-3">
+                            <div class="text-muted" style="font-size:0.75rem;">
+                                {{ task.frist|date:"d.m.Y" }}
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% endif %}{# end anzahl_gesamt #}
+
+            <!-- Zuletzt erledigt -->
+            {% if erledigte_tasks %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center gap-2">
+                    <span class="rounded-circle d-inline-block"
+                          style="width:10px;height:10px;background:#6c757d;"></span>
+                    <span class="fw-semibold text-muted">Zuletzt erledigt</span>
+                    <span class="badge bg-secondary ms-auto">{{ erledigte_tasks|length }}</span>
+                </div>
+                {% for task in erledigte_tasks %}
+                <a href="{% url 'workflow:workflow_status' task.instance.pk %}"
+                   class="d-block text-decoration-none border-bottom px-3 py-2 task-row">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-semibold small" style="color:#555;">{{ task.step.titel }}</div>
+                            <div class="text-muted" style="font-size:0.75rem;">
+                                {{ task.instance.template.name }}
+                                {% if task.entscheidung %}
+                                &middot;
+                                <span class="badge
+                                    {% if task.entscheidung == 'genehmigt' %}bg-success
+                                    {% elif task.entscheidung == 'abgelehnt' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}"
+                                      style="font-size:0.6rem;">
+                                    {{ task.get_entscheidung_display }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-muted text-end flex-shrink-0 ms-3" style="font-size:0.75rem;">
+                            {{ task.erledigt_am|date:"d.m.Y" }}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+
         </div>
-        <div class="col-md-4">
-            <div class="card stats-card warning">
-                <div class="card-body">
-                    <h5 class="card-title text-warning">Heute fällig</h5>
-                    <p class="display-4">{{ anzahl_heute }}</p>
-                    <p class="text-muted mb-0">Tasks heute zu erledigen</p>
+
+        <!-- ── Rechte Spalte: Arbeitsstapel ──────────────────────── -->
+        <div class="col-lg-5">
+
+            <!-- Meine Team-Queues -->
+            {% if stapel_liste %}
+            <h6 class="fw-bold text-muted text-uppercase mb-2" style="font-size:0.7rem;letter-spacing:.06em;">
+                Meine Team-Arbeitsstapel
+            </h6>
+            {% for eintrag in stapel_liste %}
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center gap-2">
+                    <span class="fw-semibold" style="color:#1a4d2e;">{{ eintrag.queue.name }}</span>
+                    <span class="badge ms-auto
+                        {% if eintrag.anzahl == 0 %}bg-secondary
+                        {% else %}bg-success{% endif %}">
+                        {{ eintrag.anzahl }}
+                    </span>
+                </div>
+                {% if eintrag.tasks %}
+                {% for task in eintrag.tasks %}
+                <a href="{% url 'workflow:task_detail' task.pk %}"
+                   class="d-block text-decoration-none border-bottom px-3 py-2 task-row">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-semibold small" style="color:#111;">{{ task.step.titel }}</div>
+                            <div class="text-muted" style="font-size:0.75rem;">
+                                {{ task.instance.template.name }}
+                                {% if task.claimed_von %}
+                                &middot; <span class="text-warning" style="font-size:0.7rem;">
+                                    übernommen von {{ task.claimed_von.get_short_name|default:task.claimed_von.username }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="text-end flex-shrink-0 ms-3">
+                            {% if task.frist %}
+                            <div class="{% if task.ist_ueberfaellig %}text-danger{% else %}text-muted{% endif %}"
+                                 style="font-size:0.75rem;">
+                                {{ task.frist|date:"d.m.Y" }}
+                            </div>
+                            {% endif %}
+                            {% if task.status == "in_bearbeitung" %}
+                            <span class="badge bg-warning text-dark" style="font-size:0.6rem;">aktiv</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+                {% else %}
+                <div class="px-3 py-3 text-muted small">Keine offenen Eintraege.</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <!-- Staff: alle Queues mit Tasks -->
+            {% if request.user.is_staff and alle_queues_tasks %}
+            <h6 class="fw-bold text-muted text-uppercase mb-2 mt-3" style="font-size:0.7rem;letter-spacing:.06em;">
+                Alle Arbeitsstapel (Überblick)
+            </h6>
+            {% for eintrag in alle_queues_tasks %}
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center gap-2">
+                    <span class="fw-semibold small">{{ eintrag.queue.name }}</span>
+                    <span class="badge bg-success ms-auto">{{ eintrag.anzahl }}</span>
+                </div>
+                {% for task in eintrag.tasks %}
+                <a href="{% url 'workflow:task_detail' task.pk %}"
+                   class="d-block text-decoration-none border-bottom px-3 py-2 task-row">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-semibold small" style="color:#111;">{{ task.step.titel }}</div>
+                            <div class="text-muted" style="font-size:0.75rem;">{{ task.instance.template.name }}</div>
+                        </div>
+                        <div class="text-end flex-shrink-0 ms-3">
+                            {% if task.frist %}
+                            <div class="{% if task.ist_ueberfaellig %}text-danger{% else %}text-muted{% endif %}"
+                                 style="font-size:0.75rem;">{{ task.frist|date:"d.m." }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            {% elif request.user.is_staff and not stapel_liste %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-4 text-muted small">
+                    Keine Team-Queues mit offenen Eintraegen.
                 </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card stats-card primary">
-                <div class="card-body">
-                    <h5 class="card-title text-primary">Gesamt</h5>
-                    <p class="display-4">{{ anzahl_gesamt }}</p>
-                    <p class="text-muted mb-0">Offene Tasks</p>
+            {% elif not stapel_liste %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-4 text-muted small">
+                    Sie sind keinem Team-Arbeitsstapel zugeordnet.
                 </div>
             </div>
+            {% endif %}
+
         </div>
-    </div>
 
-    {% if not tasks %}
-    <!-- Keine Tasks -->
-    <div class="alert alert-success">
-        <h4 class="alert-heading">Gut gemacht!</h4>
-        <p class="mb-0">Sie haben derzeit keine offenen Aufgaben.</p>
-    </div>
-    {% else %}
-
-    <!-- Überfällige Tasks -->
-    {% if ueberfaellig %}
-    <div class="mb-4">
-        <h3 class="text-danger mb-3">
-            <i class="bi bi-exclamation-triangle-fill"></i> Überfällig ({{ ueberfaellig|length }})
-        </h3>
-        {% for task in ueberfaellig %}
-        <div class="card task-card ueberfaellig mb-3">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-8">
-                        <h5 class="card-title">
-                            {{ task.step.titel }}
-                            <span class="badge badge-ueberfaellig">ÜBERFÄLLIG</span>
-                        </h5>
-                        <p class="card-text text-muted mb-2">
-                            <strong>Workflow:</strong> {{ task.instance.template.name }}
-                        </p>
-                        <p class="card-text text-muted mb-2">
-                            <strong>Aktion:</strong> {{ task.step.get_aktion_typ_display }}
-                        </p>
-                        {% if task.step.beschreibung %}
-                        <p class="card-text">{{ task.step.beschreibung|truncatewords:20 }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-4 text-end">
-                        <p class="text-danger mb-2">
-                            <strong>Frist:</strong> {{ task.frist|date:"d.m.Y H:i" }}
-                        </p>
-                        <p class="text-muted mb-3">
-                            <strong>Erstellt:</strong> {{ task.erstellt_am|date:"d.m.Y" }}
-                        </p>
-                        <a href="{% url 'workflow:task_detail' task.pk %}" class="btn btn-danger">
-                            Jetzt bearbeiten
-                        </a>
-                        <a href="{% url 'workflow:workflow_status' task.instance.pk %}" class="btn btn-outline-secondary btn-sm mt-1">
-                            <i class="bi bi-diagram-3"></i> Status
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Heute fällige Tasks -->
-    {% if heute_faellig %}
-    <div class="mb-4">
-        <h3 class="text-warning mb-3">
-            Heute fällig ({{ heute_faellig|length }})
-        </h3>
-        {% for task in heute_faellig %}
-        <div class="card task-card heute mb-3">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-8">
-                        <h5 class="card-title">
-                            {{ task.step.titel }}
-                            <span class="badge badge-heute">HEUTE</span>
-                        </h5>
-                        <p class="card-text text-muted mb-2">
-                            <strong>Workflow:</strong> {{ task.instance.template.name }}
-                        </p>
-                        <p class="card-text text-muted mb-2">
-                            <strong>Aktion:</strong> {{ task.step.get_aktion_typ_display }}
-                        </p>
-                        {% if task.step.beschreibung %}
-                        <p class="card-text">{{ task.step.beschreibung|truncatewords:20 }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-4 text-end">
-                        <p class="text-warning mb-2">
-                            <strong>Frist:</strong> {{ task.frist|date:"d.m.Y H:i" }}
-                        </p>
-                        <p class="text-muted mb-3">
-                            <strong>Erstellt:</strong> {{ task.erstellt_am|date:"d.m.Y" }}
-                        </p>
-                        <a href="{% url 'workflow:task_detail' task.pk %}" class="btn btn-warning">
-                            Bearbeiten
-                        </a>
-                        <a href="{% url 'workflow:workflow_status' task.instance.pk %}" class="btn btn-outline-secondary btn-sm mt-1">
-                            <i class="bi bi-diagram-3"></i> Status
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Demnächst fällige Tasks -->
-    {% if demnaechst %}
-    <div class="mb-4">
-        <h3 class="text-primary mb-3">
-            Demnächst ({{ demnaechst|length }})
-        </h3>
-        {% for task in demnaechst %}
-        <div class="card task-card demnaechst mb-3">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-8">
-                        <h5 class="card-title">
-                            {{ task.step.titel }}
-                            <span class="badge bg-secondary">{{ task.status|upper }}</span>
-                        </h5>
-                        <p class="card-text text-muted mb-2">
-                            <strong>Workflow:</strong> {{ task.instance.template.name }}
-                        </p>
-                        <p class="card-text text-muted mb-2">
-                            <strong>Aktion:</strong> {{ task.step.get_aktion_typ_display }}
-                        </p>
-                        {% if task.step.beschreibung %}
-                        <p class="card-text">{{ task.step.beschreibung|truncatewords:20 }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-4 text-end">
-                        <p class="text-muted mb-2">
-                            <strong>Frist:</strong> {{ task.frist|date:"d.m.Y H:i" }}
-                        </p>
-                        <p class="text-muted mb-3">
-                            <strong>Erstellt:</strong> {{ task.erstellt_am|date:"d.m.Y" }}
-                        </p>
-                        <a href="{% url 'workflow:task_detail' task.pk %}" class="btn btn-primary">
-                            Ansehen
-                        </a>
-                        <a href="{% url 'workflow:workflow_status' task.instance.pk %}" class="btn btn-outline-secondary btn-sm mt-1">
-                            <i class="bi bi-diagram-3"></i> Status
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Von mir genehmigte Antraege -->
-    {% if erledigte_tasks %}
-    <div class="mb-4">
-        <h3 class="text-success mb-3">
-            <i class="bi bi-check-circle-fill"></i> Von mir genehmigt (letzte 30 Tage)
-        </h3>
-        {% for task in erledigte_tasks %}
-        <div class="card task-card mb-3" style="border-left-color: #28a745; opacity: 0.85;">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-8">
-                        <h5 class="card-title">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            {{ task.step.titel }}
-                            <span class="badge bg-success ms-2">{{ task.get_entscheidung_display|upper }}</span>
-                        </h5>
-                        <p class="card-text text-muted mb-2">
-                            <strong>Workflow:</strong> {{ task.instance.template.name }}
-                        </p>
-                        <p class="card-text text-muted mb-2">
-                            <strong>Aktion:</strong> {{ task.step.get_aktion_typ_display }}
-                        </p>
-                        {% if task.kommentar %}
-                        <p class="card-text small">
-                            <strong>Mein Kommentar:</strong> {{ task.kommentar|truncatewords:15 }}
-                        </p>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-4 text-end">
-                        <p class="text-success mb-2">
-                            <strong>Erledigt am:</strong><br>
-                            {{ task.erledigt_am|date:"d.m.Y H:i" }} Uhr
-                        </p>
-                        <p class="text-muted small mb-3">
-                            Workflow-Status:
-                            <span class="badge bg-{{ task.instance.status|slice:':1' }}">
-                                {{ task.instance.get_status_display }}
-                            </span>
-                        </p>
-                        <a href="{% url 'workflow:workflow_status' task.instance.pk %}" class="btn btn-outline-success btn-sm">
-                            <i class="bi bi-diagram-3"></i> Workflow anzeigen
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-
-        {% if anzahl_erledigt >= 20 %}
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> Es werden maximal die 20 neuesten erledigten Tasks angezeigt.
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    {% endif %}
+    </div><!-- /.row -->
 </div>
+
+<style>
+.task-row:hover { background:#f8fffe !important; }
+.task-row:last-child { border-bottom: none !important; }
+</style>
 {% endblock %}

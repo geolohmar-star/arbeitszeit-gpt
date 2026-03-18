@@ -45,8 +45,6 @@ logger = logging.getLogger(__name__)
 @login_required
 def gebaeude_grundriss(request):
     """Interaktiver SVG-Grundriss mit Statusanzeigen."""
-    import json
-
     # Navigationsstruktur fuer Sidebar
     struktur = []
     for gb in Gebaeude.objects.prefetch_related("geschosse").order_by("pk"):
@@ -109,10 +107,11 @@ def gebaeude_grundriss(request):
         return HttpResponseRedirect(f"?geschoss={first_id}")
 
     return render(request, "raumbuch/gebaeude_grundriss.html", {
-        "struktur_json": json.dumps(struktur, ensure_ascii=False),
-        "raeume_json": json.dumps(raeume_data, ensure_ascii=False),
+        "struktur": struktur,
+        "raeume": raeume_data,
         "geschoss": geschoss,
         "geschoss_id": geschoss_id or "",
+        "geschoss_kuerzel": geschoss.kuerzel if geschoss else "",
     })
 
 
@@ -1284,13 +1283,25 @@ def buchung_kalender(request):
 
 
 @login_required
+@login_required
 def buchung_erstellen(request, raum_pk=None):
     """Buchung erstellen mit Konfliktpruefung."""
     buchbare_raeume = Raum.objects.filter(
         nutzungsmodell="dynamisch", ist_aktiv=True
     ).select_related("geschoss__gebaeude")
 
-    vorausgewaehlter_raum = get_object_or_404(Raum, pk=raum_pk) if raum_pk else None
+    # raum_pk aus URL-Route oder GET-Parameter (?raum=) vom Kalender
+    if not raum_pk:
+        raum_pk = request.GET.get("raum") or None
+    vorausgewaehlter_raum = None
+    if raum_pk:
+        try:
+            vorausgewaehlter_raum = Raum.objects.get(pk=raum_pk)
+        except (Raum.DoesNotExist, ValueError):
+            pass
+
+    # Datum aus GET-Parameter vorausfuellen
+    vorausdatum = request.GET.get("datum", "")
 
     konflikt = None
 
@@ -1301,6 +1312,7 @@ def buchung_erstellen(request, raum_pk=None):
         bis = request.POST.get("bis")
         betreff = request.POST.get("betreff", "")
         teilnehmerzahl = request.POST.get("teilnehmerzahl") or None
+        virtual_meeting = request.POST.get("virtual_meeting", "")
 
         if not raum_id or not datum or not von or not bis:
             messages.error(request, "Raum, Datum, Von und Bis sind Pflichtfelder.")
@@ -1324,14 +1336,17 @@ def buchung_erstellen(request, raum_pk=None):
                 )
             else:
                 buchungs_nr = Raumbuchung.generiere_buchungsnummer()
-                # Raum-Objekt laden fuer Jitsi-Link-Generierung
                 raum = get_object_or_404(Raum, pk=raum_id)
                 raumname_slug = (
                     f"{raum.raumnummer}-{raum.raumname}"
                     if raum.raumname
                     else raum.raumnummer
                 )
-                jitsi_url = jitsi_link_generieren(raumname_slug, datum, buchungs_nr)
+                # Jitsi-Link nur generieren wenn Jitsi explizit gewaehlt
+                # Fester Raum-Link hat Vorrang vor automatisch generiertem
+                jitsi_url = ""
+                if virtual_meeting == "jitsi":
+                    jitsi_url = raum.jitsi_room_url or jitsi_link_generieren(raumname_slug, datum, buchungs_nr)
                 buchung = Raumbuchung.objects.create(
                     raum_id=raum_id,
                     datum=datum,
@@ -1342,6 +1357,7 @@ def buchung_erstellen(request, raum_pk=None):
                     buchender=request.user,
                     buchungs_nr=buchungs_nr,
                     jitsi_link=jitsi_url,
+                    virtual_meeting=virtual_meeting,
                     status="offen",
                 )
                 _log(raum, "Buchung erstellt", buchungs_nr, request.user, "Raumbuchung", buchung.pk)
@@ -1356,6 +1372,7 @@ def buchung_erstellen(request, raum_pk=None):
             "vorausgewaehlter_raum": vorausgewaehlter_raum,
             "konflikt": konflikt,
             "heute": date.today(),
+            "vorausdatum": vorausdatum,
         },
     )
 
@@ -1364,11 +1381,14 @@ def buchung_erstellen(request, raum_pk=None):
 def buchung_detail(request, pk):
     """Buchungsdetail mit Jitsi- und Matrix-Links."""
     buchung = get_object_or_404(Raumbuchung, pk=pk)
-    matrix_link = matrix_raum_link(
-        f"{buchung.raum.raumnummer}-{buchung.raum.raumname}"
-        if buchung.raum.raumname
-        else buchung.raum.raumnummer
-    )
+    # Matrix-Link: feste Raum-URL hat Vorrang, sonst automatisch generiert
+    matrix_link = ""
+    if buchung.virtual_meeting == "matrix":
+        matrix_link = buchung.raum.matrix_room_url or matrix_raum_link(
+            f"{buchung.raum.raumnummer}-{buchung.raum.raumname}"
+            if buchung.raum.raumname
+            else buchung.raum.raumnummer
+        )
     return render(
         request,
         "raumbuch/buchung_detail.html",
@@ -1574,6 +1594,25 @@ def raum_netzwerkplan(request, pk):
     gesamt_ports = sum(k.ports_gesamt or 0 for k in komponenten)
     belegte_ports = sum(k.ports_belegt or 0 for k in komponenten)
 
+    # Rack-Daten als Python-Liste (CSP-sicher via json_script im Template)
+    rack_daten = [
+        {
+            "he_start": k.rack_einheit_start,
+            "he_anzahl": k.rack_einheiten,
+            "bezeichnung": k.bezeichnung,
+            "typ": k.typ,
+            "typ_label": k.get_typ_display(),
+            "hersteller": k.hersteller or "",
+            "modell": (k.modell or "")[:40],
+            "ip": k.ip_adresse or "",
+            "ports_ges": k.ports_gesamt,
+            "ports_bel": k.ports_belegt,
+            "vlan": k.vlan or "",
+            "bemerkung": k.bemerkung or "",
+        }
+        for k in komponenten
+    ]
+
     return render(request, "raumbuch/netzwerkplan.html", {
         "raum": raum,
         "komponenten": komponenten,
@@ -1582,4 +1621,5 @@ def raum_netzwerkplan(request, pk):
         "verbundene_raeume": verbundene_raeume,
         "gesamt_ports": gesamt_ports,
         "belegte_ports": belegte_ports,
+        "rack_daten": rack_daten,
     })

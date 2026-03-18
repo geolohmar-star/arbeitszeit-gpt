@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Brief – {{ brief.betreff }} – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  {# ---- Seitenkopf ---- #}
+  <div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+      <a href="{% url 'korrespondenz:brief_liste' %}" class="btn btn-sm btn-outline-secondary mb-2">
+        &larr; Zur Übersicht
+      </a>
+      <h2 class="mb-0">{{ brief.betreff }}</h2>
+      <p class="text-muted mb-0">
+        {{ brief.datum }} &middot; v{{ brief.version }} &middot;
+        {% if brief.status == "entwurf" %}
+          <span class="badge bg-warning text-dark">Entwurf</span>
+        {% elif brief.status == "fertig" %}
+          <span class="badge bg-success">Fertig</span>
+        {% else %}
+          <span class="badge bg-secondary">Archiviert</span>
+        {% endif %}
+      </p>
+    </div>
+
+    {# ---- Aktionsbuttons ---- #}
+    <div class="d-flex gap-2 flex-wrap justify-content-end">
+      {% if brief.inhalt %}
+      <a href="{% url 'korrespondenz:brief_editor' brief.pk %}"
+         class="btn btn-success" target="_blank">
+        In OnlyOffice bearbeiten
+      </a>
+      <a href="{% url 'korrespondenz:brief_download' brief.pk %}"
+         class="btn btn-outline-primary">
+        DOCX herunterladen
+      </a>
+      <a href="{% url 'korrespondenz:brief_pdf_exportieren' brief.pk %}"
+         class="btn btn-outline-secondary">
+        Als PDF exportieren (signiert)
+      </a>
+      <form method="post" action="{% url 'korrespondenz:brief_in_ablage' brief.pk %}" class="d-inline">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-dark">In Meine Ablage</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    {# ---- Linke Spalte: Briefvorschau ---- #}
+    <div class="col-lg-8">
+
+      {# ---- DIN 5008 Briefvorschau (visuell) ---- #}
+      <div class="card shadow-sm mb-4" style="font-family: Arial, sans-serif; font-size: 11pt;">
+        <div class="card-body p-4">
+
+          {# Absenderkurzangabe #}
+          <p style="font-size: 8pt; color: #555; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 12px;">
+            {{ brief.absender_name }}
+            {% if brief.absender_strasse %} &middot; {{ brief.absender_strasse }}{% endif %}
+            {% if brief.absender_ort %} &middot; {{ brief.absender_ort }}{% endif %}
+          </p>
+
+          {# Empfaengeranschrift #}
+          <div style="margin-bottom: 24px;">
+            <div>{{ brief.empfaenger_name }}</div>
+            {% if brief.empfaenger_zusatz %}<div>{{ brief.empfaenger_zusatz }}</div>{% endif %}
+            {% if brief.empfaenger_strasse %}<div>{{ brief.empfaenger_strasse }}</div>{% endif %}
+            {% if brief.empfaenger_plz_ort %}<div>{{ brief.empfaenger_plz_ort }}</div>{% endif %}
+            {% if brief.empfaenger_land %}<div>{{ brief.empfaenger_land }}</div>{% endif %}
+          </div>
+
+          {# Ort und Datum (rechtsbündig) #}
+          <div style="text-align: right; margin-bottom: 16px;">
+            {{ brief.ort }}, {{ brief.datum }}
+          </div>
+
+          {# Betreff (fett) #}
+          <p style="font-weight: bold; margin-bottom: 16px;">{{ brief.betreff }}</p>
+
+          {# Anrede #}
+          <p style="margin-bottom: 12px;">{{ brief.anrede }}</p>
+
+          {# Brieftext #}
+          <div style="margin-bottom: 24px; white-space: pre-wrap;">{{ brief.brieftext }}</div>
+
+          {# Grussformel + Unterschrift #}
+          <p style="margin-bottom: 40px;">{{ brief.grussformel }}</p>
+          <p style="margin-bottom: 0;">
+            <strong>{{ brief.unterschrift_name }}</strong><br>
+            {% if brief.unterschrift_titel %}<span style="font-size: 9pt; color: #555;">{{ brief.unterschrift_titel }}</span>{% endif %}
+          </p>
+
+        </div>
+      </div>
+
+    </div>
+
+    {# ---- Rechte Spalte: Metadaten + Aktionen ---- #}
+    <div class="col-lg-4">
+
+      {# ---- Status ändern ---- #}
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">Status</div>
+        <div class="card-body">
+          <form method="post" action="{% url 'korrespondenz:brief_status_aendern' brief.pk %}">
+            {% csrf_token %}
+            <select name="status" class="form-select mb-2">
+              {% for wert, label in brief.STATUS_CHOICES %}
+              <option value="{{ wert }}" {% if brief.status == wert %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Status speichern</button>
+          </form>
+        </div>
+      </div>
+
+      {# ---- Absenderdaten ---- #}
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">Absender</div>
+        <div class="card-body small">
+          <strong>{{ brief.absender_name }}</strong>
+          {% if brief.absender_strasse %}<br>{{ brief.absender_strasse }}{% endif %}
+          {% if brief.absender_ort %}<br>{{ brief.absender_ort }}{% endif %}
+          {% if brief.absender_telefon %}<br>Tel: {{ brief.absender_telefon }}{% endif %}
+          {% if brief.absender_email %}<br>{{ brief.absender_email }}{% endif %}
+        </div>
+      </div>
+
+      {# ---- Metadaten ---- #}
+      <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">Metadaten</div>
+        <div class="card-body small">
+          <table class="table table-sm mb-0">
+            <tr><th>Vorlage</th><td>{{ brief.vorlage.titel }}</td></tr>
+            <tr><th>Version</th><td>v{{ brief.version }}</td></tr>
+            <tr><th>Erstellt</th><td>{{ brief.erstellt_am|date:"d.m.Y H:i" }}</td></tr>
+            <tr><th>Geändert</th><td>{{ brief.geaendert_am|date:"d.m.Y H:i" }}</td></tr>
+          </table>
+        </div>
+      </div>
+
+      {# ---- Brief löschen ---- #}
+      <div class="card shadow-sm border-danger">
+        <div class="card-header fw-semibold text-danger">Brief löschen</div>
+        <div class="card-body">
+          <form method="post" action="{% url 'korrespondenz:brief_loeschen' brief.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger w-100"
+                    id="btn-loeschen">Endgültig löschen</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/korrespondenz_brief.js' %}"></script>
+{% endblock %}

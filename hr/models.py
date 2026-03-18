@@ -167,6 +167,11 @@ class Stelle(models.Model):
         related_name="vertritt_stellen",
         verbose_name="Vertreten durch",
     )
+    ist_betriebsarzt = models.BooleanField(
+        default=False,
+        verbose_name="Ist Betriebsarzt/Betriebsaerztin",
+        help_text="Diese Stelle ist der Betriebsarzt / die Betriebsaerztin",
+    )
     vertretung_bis = models.DateField(
         null=True,
         blank=True,
@@ -306,6 +311,44 @@ class HRMitarbeiter(models.Model):
     )
     eintrittsdatum = models.DateField(null=True, blank=True)
     email = models.EmailField(blank=True)
+    ersthelfer_gueltig_bis = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Ersthelfer-Schein gueltig bis",
+        help_text="Ablaufdatum des Erste-Hilfe-Scheins",
+    )
+    ersthelfer_seit = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Ersthelfer seit",
+        help_text="Datum der Ersthelfer-Ausbildung",
+    )
+    ist_ersthelfer = models.BooleanField(
+        default=False,
+        verbose_name="Ist Ersthelfer/in",
+        help_text="Diese Person ist ausgebildete Ersthelfer/in",
+    )
+    ist_brandbekaempfer = models.BooleanField(
+        default=False,
+        verbose_name="Ist Brandbekaempfer/in",
+        help_text="Erste-Loesch-Versuch bis Feuerwehr eintrifft",
+    )
+    ist_branderkunder = models.BooleanField(
+        default=False,
+        verbose_name="Ist Branderkunder/in",
+        help_text="Erkundet gemeldeten Brandort und bestaetigt oder verneint",
+    )
+    ist_raeumungshelfer = models.BooleanField(
+        default=False,
+        verbose_name="Ist Raeumungshelfer/in",
+        help_text="Unterstuetzt die Evakuierung des Gebaeudes",
+    )
+    matrix_bot_dm_room_id = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Matrix-Bot-DM-Raum",
+        help_text="Persistente DM-Raum-ID zwischen prima-bot und diesem Mitarbeiter (wird automatisch gesetzt)",
+    )
 
     class Meta:
         ordering = ["nachname", "vorname"]

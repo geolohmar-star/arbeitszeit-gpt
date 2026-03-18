@@ -273,6 +273,70 @@ class WorkflowEngine:
         elif step.aktion_typ == "verteilen":
             self._verteilen(step, instance, content_object)
 
+        elif step.aktion_typ == "archivieren":
+            self._archiviere_in_dms(step, instance, content_object)
+
+        elif step.aktion_typ == "loeschung_freigeben":
+            self._loeschfreigabe_setzen(step, instance, content_object)
+
+    def _archiviere_in_dms(self, step, instance, content_object):
+        """Archiviert das verknuepfte Objekt in der angegebenen DMS-Kategorie.
+
+        Erwartet in step.auto_config: {"kategorie_id": <int>}
+
+        Unterstuetzte content_object-Typen:
+          - dms.Dokument        → Kategorie des bestehenden Dokuments aendern
+          - alle anderen        → archiviere_in_dms(kategorie_id)-Methode aufrufen
+        """
+        config = step.auto_config or {}
+        kategorie_id = config.get("kategorie_id")
+        if not kategorie_id:
+            logger.warning(
+                "archivieren-Schritt %s hat keine kategorie_id in auto_config", step.pk
+            )
+            return
+        try:
+            if hasattr(content_object, "archiviere_in_dms"):
+                content_object.archiviere_in_dms(kategorie_id)
+                logger.info(
+                    "DMS-Archivierung OK: %s pk=%s -> Kategorie %s",
+                    type(content_object).__name__, content_object.pk, kategorie_id,
+                )
+            else:
+                logger.warning(
+                    "DMS-Archivierung: %s hat keine archiviere_in_dms-Methode",
+                    type(content_object).__name__,
+                )
+        except Exception as exc:
+            logger.error(
+                "DMS-Archivierung fehlgeschlagen fuer %s pk=%s: %s",
+                type(content_object).__name__, content_object.pk, exc,
+            )
+
+    def _loeschfreigabe_setzen(self, step, instance, content_object):
+        """Setzt das Loeschfreigabe-Flag am verknuepften DMS-Dokument.
+
+        Wird aufgerufen wenn DSB-Team den Loeschantrag genehmigt hat.
+        Erwartet content_object mit loeschfreigabe_setzen()-Methode (dms.Dokument).
+        """
+        try:
+            if hasattr(content_object, "loeschfreigabe_setzen"):
+                content_object.loeschfreigabe_setzen()
+                logger.info(
+                    "Loeschfreigabe gesetzt: %s pk=%s",
+                    type(content_object).__name__, content_object.pk,
+                )
+            else:
+                logger.warning(
+                    "Loeschfreigabe: %s hat keine loeschfreigabe_setzen-Methode",
+                    type(content_object).__name__,
+                )
+        except Exception as exc:
+            logger.error(
+                "Loeschfreigabe fehlgeschlagen fuer %s pk=%s: %s",
+                type(content_object).__name__, content_object.pk, exc,
+            )
+
     def _send_notification(self, step, instance, content_object):
         """Sendet Benachrichtigung an User/Team.
 
@@ -671,11 +735,23 @@ class WorkflowEngine:
         Returns:
             str: Text mit aufgeloesten Platzhaltern
         """
+        # Workflow-Starter (gestartet_von)
+        starter = instance.gestartet_von
+        starter_name = (
+            starter.get_full_name() or starter.username if starter else ""
+        )
+
         werte = {
             "{{template_name}}": instance.template.name,
             "{{datum}}": timezone.now().strftime("%d.%m.%Y"),
+            "{{uhrzeit}}": timezone.now().strftime("%H:%M"),
             "{{status}}": str(getattr(content_object, "status", "")),
             "{{objekt}}": str(content_object) if content_object else "",
+            "{{user_name}}": starter_name,
+            # Generische Felder die viele Content-Objects haben
+            "{{titel}}": str(getattr(content_object, "titel", "")),
+            "{{beschreibung}}": str(getattr(content_object, "beschreibung", "")),
+            "{{system}}": str(getattr(getattr(content_object, "system", None), "__str__", lambda: "")()),
         }
 
         # Antragsteller ermitteln
@@ -683,6 +759,8 @@ class WorkflowEngine:
         if content_object:
             if hasattr(content_object, "antragsteller"):
                 antragsteller = content_object.antragsteller
+            elif hasattr(content_object, "erstellt_von"):
+                antragsteller = content_object.erstellt_von
             elif (
                 hasattr(content_object, "mitarbeiter")
                 and hasattr(content_object.mitarbeiter, "user")
@@ -803,9 +881,19 @@ class WorkflowEngine:
         )
         raum_id = kanal.get("raum_id", "")
 
-        # Fallback auf konfigurierten Facility-Raum
+        # Fallback: Room-ID aus DB holen wenn nicht im Kanal konfiguriert
         if not raum_id:
             raum_id = getattr(django_settings, "MATRIX_FACILITY_ROOM_ID", "")
+        if not raum_id:
+            try:
+                from matrix_integration.models import MatrixRaum
+                ping_raum = MatrixRaum.objects.filter(
+                    ping_typ="facility", ist_aktiv=True
+                ).exclude(room_id="").first()
+                if ping_raum:
+                    raum_id = ping_raum.room_id
+            except Exception:
+                pass
 
         if not raum_id:
             logger.warning(
@@ -814,17 +902,19 @@ class WorkflowEngine:
             return
 
         bot_token = getattr(django_settings, "MATRIX_BOT_TOKEN", "")
-        homeserver = getattr(django_settings, "MATRIX_HOMESERVER_URL", "")
+        homeserver = getattr(django_settings, "MATRIX_HOMESERVER_INTERNAL_URL", "") or getattr(django_settings, "MATRIX_HOMESERVER_URL", "")
         if not bot_token or not homeserver:
             logger.warning(
                 "Verteiler Matrix: MATRIX_BOT_TOKEN oder MATRIX_HOMESERVER_URL fehlen"
             )
             return
 
+        import time
         import urllib.request
         import json as jsonlib
 
-        url = f"{homeserver}/_matrix/client/v3/rooms/{raum_id}/send/m.room.message"
+        txn_id = str(int(time.time() * 1000))
+        url = f"{homeserver}/_matrix/client/v3/rooms/{raum_id}/send/m.room.message/{txn_id}"
         payload = jsonlib.dumps({"msgtype": "m.text", "body": nachricht}).encode("utf-8")
         req = urllib.request.Request(
             url,

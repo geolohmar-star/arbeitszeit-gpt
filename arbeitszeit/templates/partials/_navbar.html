@@ -1,0 +1,472 @@
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="{% url 'arbeitszeit:dashboard' %}">PRIMA</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                {% if user.is_authenticated %}
+
+                <!-- Dashboard -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'arbeitszeit:dashboard' %}">Dashboard</a>
+                </li>
+
+                <!-- Aufgaben -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="aufgabenDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Aufgaben
+                        {% if workflow_tasks_anzahl or team_stapel_anzahl or facility_queue_anzahl or al_queue_anzahl %}
+                        <span class="badge bg-danger rounded-pill ms-1">
+                            {{ workflow_tasks_anzahl|add:team_stapel_anzahl|add:facility_queue_anzahl|add:al_queue_anzahl }}
+                        </span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="aufgabenDropdown">
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'workflow:arbeitsstapel' %}">
+                                Arbeitsstapel
+                                {% if workflow_tasks_anzahl %}<span class="badge bg-danger rounded-pill">{{ workflow_tasks_anzahl }}</span>{% endif %}
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'formulare:team_queue' %}">
+                                Team-Stapel
+                                {% if team_stapel_anzahl %}<span class="badge bg-danger rounded-pill">{{ team_stapel_anzahl }}</span>{% endif %}
+                            </a>
+                        </li>
+                        {% if ist_facility_mitglied %}
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'facility:queue' %}">
+                                Facility-Queue
+                                {% if facility_queue_anzahl %}<span class="badge bg-danger rounded-pill">{{ facility_queue_anzahl }}</span>{% endif %}
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if al_queue_anzahl %}
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'facility:al_queue' %}">
+                                Eskalationen
+                                <span class="badge bg-warning text-dark rounded-pill">{{ al_queue_anzahl }}</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if hat_genehmiger_rolle %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'formulare:genehmigung_uebersicht' %}">Genehmigungen</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+
+                <!-- Prozesse -->
+                {% if ist_prozessverantwortlicher %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="prozesseDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Prozesse
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="prozesseDropdown">
+                        <li>
+                            <a class="dropdown-item fw-semibold" href="{% url 'workflow:prozesszentrale' %}">
+                                Prozesszentrale
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Bearbeitung</h6></li>
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'workflow:arbeitsstapel' %}">
+                                Arbeitsstapel
+                                {% if workflow_tasks_anzahl %}<span class="badge bg-danger rounded-pill">{{ workflow_tasks_anzahl }}</span>{% endif %}
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Verwaltung</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'workflow:workflow_editor' %}">Workflow-Editor</a></li>
+                        <li><a class="dropdown-item" href="{% url 'workflow:trigger_uebersicht' %}">Trigger-Übersicht</a></li>
+                        {% if user.is_staff %}
+                        <li><a class="dropdown-item" href="{% url 'dms:workflow_regeln' %}">DMS-Workflow-Regeln</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+
+                <!-- Anträge (NEU) -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="antraegeDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Anträge
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="antraegeDropdown">
+                        <li><a class="dropdown-item" href="{% url 'formulare:dashboard' %}">Übersicht / Neuer Antrag</a></li>
+                        {% if hat_genehmiger_rolle %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'formulare:genehmigung_uebersicht' %}">Genehmigungen</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+
+                <!-- Personal -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="personalDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Personal
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="personalDropdown">
+                        {% if user.mitarbeiter %}
+                        <li><a class="dropdown-item" href="{% url 'arbeitszeit:mitarbeiter_soll_uebersicht' user.mitarbeiter.pk %}">Meine Soll-Stunden</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% endif %}
+                        <li><a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_dashboard' %}">Soll-Stunden Monat</a></li>
+                        <li><a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_jahresuebersicht' %}">Soll-Stunden Jahr</a></li>
+                        <li><a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_berechnen' %}">Soll-Stunden berechnen</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'hr:organigramm' %}">Organigramm</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Karriere</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'stellenportal:liste' %}">Stellenangebote</a></li>
+                        <li><a class="dropdown-item" href="{% url 'stellenportal:meine_bewerbungen' %}">Meine Bewerbungen</a></li>
+                        {% if stellenportal_kann_verwalten %}
+                        <li>
+                          <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'stellenportal:hr_dashboard' %}">
+                            Stellenportal verwalten
+                            {% if stellenportal_neue_bewerbungen %}
+                              <span class="badge bg-danger rounded-pill">{{ stellenportal_neue_bewerbungen }}</span>
+                            {% endif %}
+                          </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
+
+                <!-- Gebäude: Facility + Raumbuch -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="gebaeudeDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Gebäude
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="gebaeudeDropdown">
+                        <li><h6 class="dropdown-header">Facility</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:erstellen' %}">Störmeldung erfassen</a></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:meine' %}">Meine Störmeldungen</a></li>
+                        {% if ist_vorgesetzter %}
+                        <li><a class="dropdown-item" href="{% url 'facility:vorgesetzter' %}">Team-Meldungen</a></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:monatsreport' %}">Monatsbericht</a></li>
+                        {% endif %}
+                        {% if ist_facility_mitglied or user.is_staff %}
+                        <li><a class="dropdown-item" href="{% url 'facility:wartungsplan_liste' %}">Wartungspläne</a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Raumbuch</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:uebersicht' %}">Raumübersicht</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:grundriss' %}">Gebäudeplan</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:buchung_kalender' %}">Buchungen</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:belegungsplan' %}">Belegungsplan</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:besuch_liste' %}">Besuchsanmeldungen</a></li>
+                        {% if ist_fuehrungskraft %}
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:token_anfrage' %}">Token beantragen</a></li>
+                        {% endif %}
+                        {% if user.is_staff or ist_facility_mitglied or ist_security_mitglied %}
+                        <li><hr class="dropdown-divider"></li>
+                        {% if user.is_staff or ist_facility_mitglied %}
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:struktur' %}">Gebäudestruktur</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:schluessel_liste' %}">Schlüsselverwaltung</a></li>
+                        {% endif %}
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'raumbuch:token_liste' %}">
+                                Zutrittsgutschriften
+                                {% if token_anfragen_anzahl %}<span class="badge bg-warning text-dark ms-2">{{ token_anfragen_anzahl }}</span>{% endif %}
+                            </a>
+                        </li>
+                        {% if user.is_staff or ist_facility_mitglied %}
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:treppenhaus_liste' %}">Treppenhäuser</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:reinigung' %}">Reinigung</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:umzug_liste' %}">Umzugsaufträge</a></li>
+                        {% endif %}
+                        {% endif %}
+                    </ul>
+                </li>
+
+                <!-- Kommunikation (Matrix) -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="kommunikationDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Kommunikation
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="kommunikationDropdown">
+                        <li><h6 class="dropdown-header">Matrix / Chat</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'matrix_integration:raum_liste' %}">Matrix-Räume</a></li>
+                        <li><a class="dropdown-item" href="{% url 'matrix_integration:sitzung_liste' %}">Sitzungs-Kalender</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Jitsi / Video</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'matrix_integration:jitsi_liste' %}">Jitsi-Räume</a></li>
+                        {% if user.is_staff %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'matrix_integration:template_liste' %}">Teilnehmer-Templates</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+
+                <!-- Planung -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="planungDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Veranstaltungen
+                        {% if veranstaltungen_offen_anzahl > 0 %}
+                        <span class="badge bg-success rounded-pill ms-1">{{ veranstaltungen_offen_anzahl }}</span>
+                        {% elif offene_antraege_count > 0 %}
+                        <span class="badge bg-warning text-dark rounded-pill ms-1">{{ offene_antraege_count }}</span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="planungDropdown">
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'veranstaltungen:uebersicht' %}">
+                                Veranstaltungen
+                                {% if veranstaltungen_offen_anzahl > 0 %}
+                                <span class="badge bg-success rounded-pill ms-1">{{ veranstaltungen_offen_anzahl }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'betriebssport:uebersicht' %}">
+                                Betriebssport
+                            </a>
+                        </li>
+                        {% if hat_schichtplan_zugang %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'schichtplan:dashboard' %}">Schichtplanung</a></li>
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'schichtplan:genehmigungen_uebersicht' %}">
+                                Urlaubsgenehmigungen
+                                {% if offene_antraege_count > 0 %}<span class="badge bg-warning text-dark rounded-pill">{{ offene_antraege_count }}</span>{% endif %}
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
+
+                <!-- Sicherheits-Dashboard (fuer Security/Arbeitsschutz ohne Staff-Rechte) -->
+                {% if ist_security_zugang and not user.is_staff %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="sicherheitDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Sicherheit
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="sicherheitDropdown">
+                        <li><a class="dropdown-item" href="{% url 'sicherheit:sicherheit_dashboard' %}">Dashboard</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'sicherheit:alarm_liste' %}">Sicherheitsalarme</a></li>
+                        <li><a class="dropdown-item" href="{% url 'sicherheit:brand_liste' %}">Brandalarme</a></li>
+                        {% if ist_arbeitsschutz %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'sicherheit:arbeitsschutz_dashboard' %}">Rollenverwaltung (AS)</a></li>
+                        <li><a class="dropdown-item" href="{% url 'ersthelfe:arbeitsschutz_uebersicht' %}">Erste-Hilfe – Uebersicht</a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+
+                <!-- Admin (nur Staff) -->
+                {% if user.is_staff %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="adminDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Admin
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                        <li><h6 class="dropdown-header">Verwaltung</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'berechtigungen:uebersicht' %}">Rechtevergabe</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Facility / Gebäude</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:textbaustein_liste' %}">Textbausteine</a></li>
+                        <li><a class="dropdown-item" href="{% url 'facility:einstellungen' %}">Trend-Einstellungen</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Personal & Onboarding</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'bewerbung:hr_liste' %}">Bewerbungseingang (extern)</a></li>
+                        <li><a class="dropdown-item" href="{% url 'bewerbung:hr_einladungscodes' %}">Einladungscodes</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Sicherheit & Compliance</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'sicherheit:alarm_liste' %}">Sicherheitsalarme</a></li>
+                        <li><a class="dropdown-item" href="{% url 'sicherheit:arbeitsschutz_dashboard' %}">Arbeitsschutz – Rollen</a></li>
+                        <li><a class="dropdown-item" href="{% url 'raumbuch:gesamtlog' %}">Audit-Trail</a></li>
+                        <li><a class="dropdown-item" href="{% url 'signatur:dashboard' %}">Digitale Signatur</a></li>
+                        <li><a class="dropdown-item" href="{% url 'signatur:dokumentation_pdf' %}" target="_blank">Signatur-Doku ↗</a></li>
+                        <li><a class="dropdown-item" href="{% url 'datenschutz:dashboard' %}">Datenschutz (DSGVO)</a></li>
+                        <li><a class="dropdown-item" href="{% url 'dokumente:liste' %}">Sensible Dokumente</a></li>
+                        <li><a class="dropdown-item" href="{% url 'dms:liste' %}">DMS – Dokumentenmanagement</a></li>
+                        <li><a class="dropdown-item" href="{% url 'dms:meine_ablage' %}">DMS – Meine Ablage</a></li>
+                        <li><a class="dropdown-item" href="{% url 'korrespondenz:brief_liste' %}">Korrespondenz (DIN 5008)</a></li>
+                        <li>
+                          <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'dms:zugriffsantraege' %}">
+                            DMS – Zugriffsantraege
+                            {% if dms_zugriffsantraege_anzahl %}<span class="badge bg-danger rounded-pill ms-2">{{ dms_zugriffsantraege_anzahl }}</span>{% endif %}
+                          </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'admin:index' %}" target="_blank">Django-Admin ↗</a></li>
+                    </ul>
+                </li>
+                {% endif %}
+
+                {% endif %}<!-- end is_authenticated -->
+            </ul>
+
+            <!-- Rechte Seite: Suche + User-Dropdown -->
+            <ul class="navbar-nav align-items-center">
+                {% if user.is_authenticated %}
+                <li class="nav-item me-1">
+                    <button class="nav-link cmd-open-btn" title="Schnellsuche (/)">
+                        Suche
+                        <span style="font-size:10px; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); border-radius:3px; padding:1px 5px; margin-left:4px;">/</span>
+                    </button>
+                </li>
+                <li class="nav-item me-2">
+                    <button class="nav-link cmd-open-btn" data-bs-toggle="modal" data-bs-target="#hilfeModal" title="Hilfe &amp; App-Info">
+                        ? Hilfe
+                    </button>
+                </li>
+                <!-- IT-Systemstatus Ampel -->
+                <li class="nav-item me-2">
+                    <a href="{% url 'it_status:uebersicht' %}" class="nav-link d-flex align-items-center gap-1"
+                       title="IT-Systemstatus">
+                        <span class="rounded-circle d-block"
+                              style="width:12px;height:12px;flex-shrink:0;background:{% if it_ampel_farbe == 'success' %}#22c55e{% elif it_ampel_farbe == 'warning' %}#f59e0b{% elif it_ampel_farbe == 'danger' %}#ef4444{% else %}#9ca3af{% endif %};"></span>
+                        <span style="font-size:0.8rem;">IT</span>
+                    </a>
+                </li>
+                <!-- Erste-Hilfe -->
+                {% if ist_eh_verantwortlicher %}
+                <li class="nav-item dropdown me-1">
+                    <button class="btn btn-danger btn-sm fw-bold px-2 py-1 dropdown-toggle"
+                            style="font-size:0.8rem;"
+                            data-bs-toggle="dropdown" aria-expanded="false"
+                            title="Erste Hilfe">
+                        &#9888; SOS
+                        {% if eh_offene_vorfaelle %}
+                          <span class="badge bg-warning text-dark ms-1">{{ eh_offene_vorfaelle }}</span>
+                        {% endif %}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <button class="dropdown-item fw-semibold"
+                                    data-bs-toggle="modal" data-bs-target="#sosModal">
+                                &#9888; Alarm auslösen
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'ersthelfe:vorfall_liste' %}">
+                                Vorfälle verwalten
+                                {% if eh_offene_vorfaelle %}
+                                  <span class="badge bg-danger rounded-pill ms-2">{{ eh_offene_vorfaelle }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item"
+                               href="{% url 'ersthelfe:arbeitsschutz_uebersicht' %}">
+                                Arbeitsschutz-Übersicht
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                {% elif ist_eh_ersthelfer and eh_laufender_vorfall_pk %}
+                <li class="nav-item dropdown me-1">
+                    <button class="btn btn-danger btn-sm fw-bold px-2 py-1 dropdown-toggle"
+                            style="font-size:0.8rem; animation: pulse 1.5s infinite;"
+                            data-bs-toggle="dropdown" aria-expanded="false"
+                            title="Laufender Einsatz">
+                        &#9888; SOS <span class="badge bg-warning text-dark ms-1">!</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item fw-semibold text-danger"
+                               href="{% url 'ersthelfe:vorfall_detail' eh_laufender_vorfall_pk %}">
+                                &#9888; Laufender Einsatz
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <button class="dropdown-item"
+                                    data-bs-toggle="modal" data-bs-target="#sosModal">
+                                Neuen Alarm auslösen
+                            </button>
+                        </li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item me-1">
+                    <button id="eh-alarm-btn"
+                            class="btn btn-danger btn-sm fw-bold px-2 py-1"
+                            style="font-size:0.8rem;"
+                            title="Erste-Hilfe-Alarm ausloesen"
+                            data-bs-toggle="modal" data-bs-target="#sosModal">
+                        &#9888; SOS
+                    </button>
+                </li>
+                {% endif %}
+                <!-- Benutzer-Dropdown -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle user-btn" href="#" id="userDropdown"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        {{ user.get_full_name|default:user.username }}
+                        {% if user.is_staff %}<span class="badge bg-danger ms-1" style="font-size:0.65rem;">Admin</span>{% endif %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><h6 class="dropdown-header">{{ user.username }}</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'datenschutz:auskunft_pdf' %}">Meine Daten (DSGVO)</a></li>
+                        <li><a class="dropdown-item" href="{% url 'dokumente:liste' %}">Meine Dokumente</a></li>
+                        <li><a class="dropdown-item" href="{% url 'dms:liste' %}">DMS – Dokumente</a></li>
+                        <li><a class="dropdown-item" href="{% url 'dms:meine_ablage' %}">Meine Ablage</a></li>
+                        {% if ist_dms_admin %}
+                        <li>
+                          <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'dms:zugriffsantraege' %}">
+                            DMS – Zugriffsantraege
+                            {% if dms_zugriffsantraege_anzahl %}<span class="badge bg-danger rounded-pill ms-2">{{ dms_zugriffsantraege_anzahl }}</span>{% endif %}
+                          </a>
+                        </li>
+                        {% endif %}
+                        {% if ist_pg_mitglied %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Personalgewinnung</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'bewerbung:hr_liste' %}">Bewerbungseingang (extern)</a></li>
+                        <li><a class="dropdown-item" href="{% url 'bewerbung:hr_einladungscodes' %}">Einladungscodes</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% endif %}
+                        <li><a class="dropdown-item" href="{% url 'signatur:dashboard' %}">Digitale Signatur</a></li>
+                        {% if bentopdf_url %}
+                        <li><a class="dropdown-item" href="{{ bentopdf_url }}" target="_blank">PDF-Werkzeuge (BentoPDF) ↗</a></li>
+                        {% endif %}
+                        {% if onlyoffice_url %}
+                        <li><a class="dropdown-item" href="{% url 'dms:neu' %}">Neues Dokument (OnlyOffice)</a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="dropdown-item text-danger">Abmelden</button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'login' %}">Anmelden</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>

@@ -277,6 +277,14 @@ class FeierteilnahmeGutschrift(models.Model):
         default="entwurf",
         verbose_name="Status",
     )
+    workflow_instance = models.ForeignKey(
+        "workflow.WorkflowInstance",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="veranstaltungs_gutschriften",
+        verbose_name="Workflow-Instanz",
+    )
 
     class Meta:
         ordering = ["-erstellt_am"]
@@ -308,3 +316,111 @@ class FeierteilnahmeGutschrift(models.Model):
             teilnahme_bestaetigt=True,
             ist_vorbereitungsteam=True,
         ).select_related("mitarbeiter", "mitarbeiter__stelle")
+
+    def archiviere_in_dms(self, kategorie_id):
+        """Legt ein DMS-Dokument fuer diese Gutschrift an (idempotent).
+
+        Bevorzugt vorhandene SignaturJob-PDF-Bytes; faellt auf WeasyPrint zurueck.
+        """
+        from dms.models import Dokument, DokumentKategorie
+        from dms.services import speichere_dokument, suchvektor_befuellen
+
+        feier = self.feier
+        kategorie = DokumentKategorie.objects.filter(pk=kategorie_id).first()
+        titel = f"VE-Gutschrift {feier.titel} {feier.datum}"
+        dateiname = (
+            f"VE-{self.pk}_{feier.titel}_{feier.datum}.pdf"
+            .replace(" ", "_")
+        )
+
+        pdf_bytes = self._pdf_bytes_holen()
+        if not pdf_bytes:
+            logger.warning(
+                "DMS-Archivierung: keine PDF-Bytes fuer FeierteilnahmeGutschrift pk=%s", self.pk
+            )
+            return None
+
+        bestehendes = Dokument.objects.filter(dateiname=dateiname).first()
+        if bestehendes:
+            speichere_dokument(bestehendes, pdf_bytes)
+            bestehendes.groesse_bytes = len(pdf_bytes)
+            if kategorie:
+                bestehendes.kategorie = kategorie
+            bestehendes.save()
+            suchvektor_befuellen(bestehendes)
+            return bestehendes
+
+        dok = Dokument(
+            titel=titel,
+            dateiname=dateiname,
+            dateityp="application/pdf",
+            groesse_bytes=len(pdf_bytes),
+            kategorie=kategorie,
+            klasse="offen",
+            beschreibung=(
+                f"Zeitgutschrift-Sammelliste – {feier.get_art_display()} – "
+                f"{feier.titel} ({feier.datum})"
+            ),
+            erstellt_von=(
+                self.erstellt_von.user
+                if self.erstellt_von and self.erstellt_von.user_id
+                else None
+            ),
+        )
+        speichere_dokument(dok, pdf_bytes)
+        dok.save()
+        suchvektor_befuellen(dok)
+        return dok
+
+    def _pdf_bytes_holen(self):
+        """Gibt PDF-Bytes zurueck: bevorzugt signiertes PDF, sonst WeasyPrint."""
+        try:
+            from signatur.models import SignaturJob
+            job = (
+                SignaturJob.objects
+                .filter(
+                    content_type="feierteilnahmegutschrift",
+                    object_id=self.pk,
+                    status="completed",
+                )
+                .order_by("-erstellt_am")
+                .first()
+            )
+            if job and job.signiertes_pdf:
+                return bytes(job.signiertes_pdf)
+        except Exception:
+            pass
+        try:
+            from weasyprint import HTML
+            from django.template.loader import render_to_string
+            from django.conf import settings
+            from django.utils import timezone as tz
+
+            feier = self.feier
+            teilnehmer = self.teilnehmer_bestaetigt()
+            vorbereitungsteam = self.vorbereitungsteam_bestaetigt()
+            teilnehmer_gesamt = feier.gutschrift_teilnehmer_gesamt * teilnehmer.count()
+            vorbereitung_gesamt = feier.gutschrift_vorbereitung_gesamt * vorbereitungsteam.count()
+            ctx = {
+                "feier": feier,
+                "gutschrift": self,
+                "teilnehmer": teilnehmer,
+                "vorbereitungsteam": vorbereitungsteam,
+                "workflow_tasks": [],
+                "teilnehmer_gesamt_stunden": teilnehmer_gesamt,
+                "vorbereitung_gesamt_stunden": vorbereitung_gesamt,
+                "gesamt_stunden": teilnehmer_gesamt + vorbereitung_gesamt,
+                "jetzt": tz.now(),
+            }
+            html_string = render_to_string("veranstaltungen/pdf/gutschrift_pdf.html", ctx)
+            host = getattr(settings, "SITE_URL", None) or (
+                f"http://{settings.ALLOWED_HOSTS[0]}"
+                if settings.ALLOWED_HOSTS and settings.ALLOWED_HOSTS[0] != "*"
+                else "http://localhost:8000"
+            )
+            return HTML(string=html_string, base_url=host).write_pdf()
+        except Exception as exc:
+            logger.warning(
+                "WeasyPrint-Fallback fehlgeschlagen fuer VE pk=%s: %s", self.pk, exc
+            )
+            return None

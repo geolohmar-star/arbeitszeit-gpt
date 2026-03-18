@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Matrix-Räume{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Matrix-Räume</h2>
+        {% if user.is_staff %}
+        <a href="{% url 'matrix_integration:raum_anlegen' %}" class="btn btn-primary">
+            + Raum anlegen
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="row g-3">
+        {% for raum in raeume %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 {% if not raum.ist_aktiv %}border-secondary opacity-75{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ raum.name }}</h5>
+                        <span class="badge {% if raum.ist_aktiv %}bg-success{% else %}bg-secondary{% endif %}">
+                            {% if raum.ist_aktiv %}aktiv{% else %}inaktiv{% endif %}
+                        </span>
+                    </div>
+                    <p class="text-muted small mb-1">
+                        {{ raum.get_typ_display }}
+                        {% if raum.ping_typ %}
+                        &middot; Ping: {{ raum.get_ping_typ_display }}
+                        {% endif %}
+                    </p>
+                    {% if raum.org_einheit %}
+                    <p class="text-muted small mb-1">Einheit: {{ raum.org_einheit }}</p>
+                    {% endif %}
+                    {% if raum.teilnehmer_template %}
+                    <p class="text-muted small mb-1">
+                        Template:
+                        <a href="{% url 'matrix_integration:template_bearbeiten' raum.teilnehmer_template.pk %}">
+                            {{ raum.teilnehmer_template }}
+                        </a>
+                    </p>
+                    {% endif %}
+                    {% if raum.beschreibung %}
+                    <p class="card-text small">{{ raum.beschreibung }}</p>
+                    {% endif %}
+                    {% if raum.room_id %}
+                    <p class="text-muted small mb-0">
+                        <code>{{ raum.room_id }}</code>
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent d-flex gap-2">
+                    {% with url=raum.get_element_url %}
+                    {% if url %}
+                    <a href="{{ url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        Element öffnen
+                    </a>
+                    {% endif %}
+                    {% endwith %}
+                    <a href="{% url 'matrix_integration:raum_detail' raum.pk %}" class="btn btn-sm btn-outline-secondary">
+                        Details
+                    </a>
+                    {% if user.is_staff %}
+                    <a href="{% url 'matrix_integration:raum_bearbeiten' raum.pk %}" class="btn btn-sm btn-outline-warning ms-auto">
+                        Bearbeiten
+                    </a>
+                    <a href="{% url 'matrix_integration:raum_loeschen' raum.pk %}" class="btn btn-sm btn-outline-danger">
+                        Löschen
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                Noch keine Matrix-Räume konfiguriert.
+                {% if user.is_staff %}
+                <a href="{% url 'matrix_integration:raum_anlegen' %}">Ersten Raum anlegen</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if user.is_staff %}
+    <hr class="mt-4">
+    <div class="d-flex gap-3">
+        <a href="{% url 'matrix_integration:template_liste' %}" class="btn btn-outline-secondary">
+            Teilnehmer-Templates
+        </a>
+        <a href="{% url 'matrix_integration:sitzung_liste' %}" class="btn btn-outline-secondary">
+            Sitzungs-Kalender
+        </a>
+    </div>
+    {% endif %}
+
+    <hr class="mt-4">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div>
+            <strong>Matrix-Passwort vergessen?</strong>
+            <span class="text-muted ms-2" style="font-size:0.88rem;">
+                Setzt dein Passwort auf den Standardwert &bdquo;hrmitarbeiter2026&ldquo; zurueck.
+            </span>
+        </div>
+        <form method="post" action="{% url 'matrix_integration:passwort_reset_self' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-warning btn-sm">
+                Matrix-Passwort zuruecksetzen
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -66,11 +66,14 @@
                                 {% for buchung in buchungen %}
                                 {% if buchung.raum_id == raum.pk %}
                                 <div class="mb-1">
-                                    <span class="badge bg-primary">
-                                        {{ buchung.von|time:"H:i" }} – {{ buchung.bis|time:"H:i" }}
-                                    </span>
-                                    {{ buchung.betreff }}
-                                    <span class="text-muted small">({{ buchung.gebucht_von }})</span>
+                                    <a href="{% url 'raumbuch:buchung_detail' buchung.pk %}"
+                                       class="text-decoration-none">
+                                        <span class="badge bg-primary">
+                                            {{ buchung.von|time:"H:i" }} – {{ buchung.bis|time:"H:i" }}
+                                        </span>
+                                        {{ buchung.betreff }}
+                                    </a>
+                                    <span class="text-muted small">({{ buchung.buchender }})</span>
                                 </div>
                                 {% endif %}
                                 {% endfor %}

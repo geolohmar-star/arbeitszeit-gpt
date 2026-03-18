@@ -186,84 +186,167 @@ def cmd_items(request):
     ist_fk = getattr(request, "ist_fuehrungskraft", False)
     al_anzahl = getattr(request, "al_queue_anzahl", 0)
     ist_facility_oder_staff = ist_facility or u.is_staff
+    ist_security = getattr(request, "ist_security_zugang", False)
+    ist_arbeitsschutz = getattr(request, "ist_arbeitsschutz", False)
+    ist_eh_verantwortlicher = getattr(request, "ist_eh_verantwortlicher", False)
+    ist_eh_ersthelfer = getattr(request, "ist_eh_ersthelfer", False)
+    ist_prozess = getattr(request, "ist_prozessverantwortlicher", False)
+    ist_pg = getattr(request, "ist_pg_mitglied", False)
+    ist_dms_admin = getattr(request, "ist_dms_admin", False)
+    stellenportal_verwalten = getattr(request, "stellenportal_kann_verwalten", False)
+    matrix_konfiguriert = getattr(request, "matrix_konfiguriert", False)
 
     items = [
-        {"l": "Dashboard",                  "u": url("arbeitszeit:dashboard"),                         "g": "Allgemein"},
-        {"l": "Arbeitsstapel",               "u": url("workflow:arbeitsstapel"),                        "g": "Aufgaben"},
-        {"l": "Team-Stapel",                 "u": url("formulare:team_queue"),                          "g": "Aufgaben"},
-        {"l": "Antraege / Neuer Antrag",     "u": url("formulare:dashboard"),                           "g": "Antraege"},
-        {"l": "Soll-Stunden Monat",          "u": url("arbeitszeit:soll_stunden_dashboard"),            "g": "Personal"},
-        {"l": "Soll-Stunden Jahr",           "u": url("arbeitszeit:soll_stunden_jahresuebersicht"),     "g": "Personal"},
-        {"l": "Soll-Stunden berechnen",      "u": url("arbeitszeit:soll_stunden_berechnen"),            "g": "Personal"},
-        {"l": "Organigramm",                 "u": url("hr:organigramm"),                                "g": "Personal"},
-        {"l": "Stoermeldung erfassen",        "u": url("facility:erstellen"),                            "g": "Gebaeude"},
-        {"l": "Meine Stoermeldungen",         "u": url("facility:meine"),                                "g": "Gebaeude"},
-        {"l": "Raumuebersicht",              "u": url("raumbuch:uebersicht"),                           "g": "Gebaeude"},
-        {"l": "Gebaeudeplan",                "u": url("raumbuch:grundriss"),                            "g": "Gebaeude"},
-        {"l": "Buchungen",                   "u": url("raumbuch:buchung_kalender"),                     "g": "Gebaeude"},
-        {"l": "Belegungsplan",               "u": url("raumbuch:belegungsplan"),                        "g": "Gebaeude"},
-        {"l": "Besuchsanmeldungen",          "u": url("raumbuch:besuch_liste"),                         "g": "Gebaeude"},
-        {"l": "Veranstaltungen",             "u": url("veranstaltungen:uebersicht"),                    "g": "Veranstaltungen"},
-        {"l": "Meine Daten (DSGVO-Auskunft)","u": url("datenschutz:auskunft_pdf"),                     "g": "Konto"},
-        {"l": "Digitale Signatur",           "u": url("signatur:dashboard"),                            "g": "Konto"},
-        {"l": "DMS – Dokumente",             "u": url("dms:liste"),                                     "g": "Dokumente"},
+        # --- Allgemein ---
+        {"l": "Dashboard",                   "u": url("arbeitszeit:dashboard"),                      "g": "Allgemein"},
+        {"l": "IT-Systemstatus",             "u": url("it_status:uebersicht"),                       "g": "Allgemein"},
+
+        # --- Aufgaben ---
+        {"l": "Arbeitsstapel",               "u": url("workflow:arbeitsstapel"),                     "g": "Aufgaben"},
+        {"l": "Team-Stapel",                 "u": url("formulare:team_queue"),                       "g": "Aufgaben"},
+
+        # --- Antraege ---
+        {"l": "Antraege / Neuer Antrag",     "u": url("formulare:dashboard"),                        "g": "Antraege"},
+
+        # --- Personal ---
+        {"l": "Soll-Stunden Monat",          "u": url("arbeitszeit:soll_stunden_dashboard"),         "g": "Personal"},
+        {"l": "Soll-Stunden Jahr",           "u": url("arbeitszeit:soll_stunden_jahresuebersicht"),  "g": "Personal"},
+        {"l": "Soll-Stunden berechnen",      "u": url("arbeitszeit:soll_stunden_berechnen"),         "g": "Personal"},
+        {"l": "Organigramm",                 "u": url("hr:organigramm"),                             "g": "Personal"},
+        {"l": "Stellenangebote",             "u": url("stellenportal:liste"),                        "g": "Personal"},
+        {"l": "Meine Bewerbungen",           "u": url("stellenportal:meine_bewerbungen"),            "g": "Personal"},
+
+        # --- Gebaeude ---
+        {"l": "Stoermeldung erfassen",       "u": url("facility:erstellen"),                         "g": "Gebaeude"},
+        {"l": "Meine Stoermeldungen",        "u": url("facility:meine"),                             "g": "Gebaeude"},
+        {"l": "Raumuebersicht",             "u": url("raumbuch:uebersicht"),                        "g": "Gebaeude"},
+        {"l": "Gebaeudeplan",               "u": url("raumbuch:grundriss"),                         "g": "Gebaeude"},
+        {"l": "Buchungen",                   "u": url("raumbuch:buchung_kalender"),                  "g": "Gebaeude"},
+        {"l": "Belegungsplan",               "u": url("raumbuch:belegungsplan"),                     "g": "Gebaeude"},
+        {"l": "Besuchsanmeldungen",          "u": url("raumbuch:besuch_liste"),                      "g": "Gebaeude"},
+
+        # --- Kommunikation ---
+        {"l": "Matrix-Raeume",              "u": url("matrix_integration:raum_liste"),              "g": "Kommunikation"},
+        {"l": "Sitzungs-Kalender",           "u": url("matrix_integration:sitzung_liste"),           "g": "Kommunikation"},
+        {"l": "Jitsi-Raeume",               "u": url("matrix_integration:jitsi_liste"),             "g": "Kommunikation"},
+
+        # --- Veranstaltungen ---
+        {"l": "Veranstaltungen",             "u": url("veranstaltungen:uebersicht"),                 "g": "Veranstaltungen"},
+        {"l": "Betriebssport",               "u": url("betriebssport:uebersicht"),                   "g": "Veranstaltungen"},
+
+        # --- Dokumente ---
+        {"l": "DMS – Dokumente",             "u": url("dms:liste"),                                  "g": "Dokumente"},
+        {"l": "DMS – Meine Ablage",          "u": url("dms:meine_ablage"),                           "g": "Dokumente"},
+        {"l": "Meine Dokumente",             "u": url("dokumente:liste"),                            "g": "Dokumente"},
+
+        # --- Konto ---
+        {"l": "Meine Daten (DSGVO-Auskunft)","u": url("datenschutz:auskunft_pdf"),                  "g": "Konto"},
+        {"l": "Digitale Signatur",           "u": url("signatur:dashboard"),                         "g": "Konto"},
     ]
 
-    # BentoPDF: direkter Link zur Toolbox (sinnvoll als externer Aufruf)
+    # BentoPDF
     bentopdf_url = getattr(settings, "BENTOPDF_URL", "")
     if bentopdf_url:
         items.append({"l": "PDF-Werkzeuge (BentoPDF)", "u": bentopdf_url, "g": "Dienste"})
 
-    # OnlyOffice: Einstieg immer ueber DMS, nie direkt zum Server
+    # OnlyOffice
     if getattr(settings, "ONLYOFFICE_URL", ""):
-        items.append({"l": "Neues Dokument (OnlyOffice)", "u": url("dms:neu"),  "g": "Dokumente"})
-        items.append({"l": "Dokumente bearbeiten",        "u": url("dms:liste"), "g": "Dokumente"})
+        items.append({"l": "Neues Dokument (OnlyOffice)",          "u": url("dms:neu"),        "g": "Dokumente"})
+        items.append({"l": "Neue Tabellenkalkulation (OnlyOffice)", "u": url("dms:neu") + "?typ=xlsx", "g": "Dokumente"})
+        items.append({"l": "Neue Praesentation (OnlyOffice)",       "u": url("dms:neu") + "?typ=pptx", "g": "Dokumente"})
+        items.append({"l": "Dokumente bearbeiten",                  "u": url("dms:liste"),              "g": "Dokumente"})
 
+    # Korrespondenz
+    items.append({"l": "Korrespondenz (DIN 5008)", "u": url("korrespondenz:brief_liste"), "g": "Dokumente"})
+
+    # Genehmigungen
     if hat_genehmiger:
         items.append({"l": "Genehmigungen", "u": url("formulare:genehmigung_uebersicht"), "g": "Aufgaben"})
 
+    # Facility-Aufgaben
     if ist_facility:
         items.append({"l": "Facility-Queue", "u": url("facility:queue"), "g": "Aufgaben"})
 
     if al_anzahl:
         items.append({"l": "Eskalationen", "u": url("facility:al_queue"), "g": "Aufgaben"})
 
+    # Meine Soll-Stunden
     try:
         ma_pk = u.mitarbeiter.pk
         items.append({"l": "Meine Soll-Stunden", "u": url("arbeitszeit:mitarbeiter_soll_uebersicht", ma_pk), "g": "Personal"})
     except Exception:
         pass
 
+    # Vorgesetzten-Bereich
     if ist_vorg:
-        items.append({"l": "Team-Meldungen",       "u": url("facility:vorgesetzter"),  "g": "Gebaeude"})
-        items.append({"l": "Monatsbericht Facility","u": url("facility:monatsreport"), "g": "Gebaeude"})
+        items.append({"l": "Team-Meldungen",        "u": url("facility:vorgesetzter"),  "g": "Gebaeude"})
+        items.append({"l": "Monatsbericht Facility", "u": url("facility:monatsreport"), "g": "Gebaeude"})
 
+    # Facility / Staff
     if ist_facility_oder_staff:
-        items.append({"l": "Wartungsplaene",      "u": url("facility:wartungsplan_liste"),  "g": "Gebaeude"})
-        items.append({"l": "Gebaeudestruktur",    "u": url("raumbuch:struktur"),            "g": "Gebaeude"})
-        items.append({"l": "Schluesselverwaltung","u": url("raumbuch:schluessel_liste"),     "g": "Gebaeude"})
-        items.append({"l": "Zutrittsgutschriften","u": url("raumbuch:token_liste"),          "g": "Gebaeude"})
-        items.append({"l": "Treppenhaeuser",      "u": url("raumbuch:treppenhaus_liste"),   "g": "Gebaeude"})
-        items.append({"l": "Reinigung",           "u": url("raumbuch:reinigung"),           "g": "Gebaeude"})
-        items.append({"l": "Umzugsauftraege",     "u": url("raumbuch:umzug_liste"),         "g": "Gebaeude"})
+        items.append({"l": "Wartungsplaene",       "u": url("facility:wartungsplan_liste"),  "g": "Gebaeude"})
+        items.append({"l": "Gebaeudestruktur",     "u": url("raumbuch:struktur"),            "g": "Gebaeude"})
+        items.append({"l": "Schluesselverwaltung", "u": url("raumbuch:schluessel_liste"),    "g": "Gebaeude"})
+        items.append({"l": "Zutrittsgutschriften", "u": url("raumbuch:token_liste"),         "g": "Gebaeude"})
+        items.append({"l": "Treppenhaeuser",       "u": url("raumbuch:treppenhaus_liste"),  "g": "Gebaeude"})
+        items.append({"l": "Reinigung",            "u": url("raumbuch:reinigung"),           "g": "Gebaeude"})
+        items.append({"l": "Umzugsauftraege",      "u": url("raumbuch:umzug_liste"),         "g": "Gebaeude"})
 
     if ist_fk:
         items.append({"l": "Token beantragen", "u": url("raumbuch:token_anfrage"), "g": "Gebaeude"})
 
+    # Schichtplan
     if hat_schicht:
-        items.append({"l": "Schichtplanung",       "u": url("schichtplan:dashboard"),                    "g": "Planung"})
-        items.append({"l": "Urlaubsgenehmigungen", "u": url("schichtplan:genehmigungen_uebersicht"),     "g": "Planung"})
+        items.append({"l": "Schichtplanung",       "u": url("schichtplan:dashboard"),                "g": "Planung"})
+        items.append({"l": "Urlaubsgenehmigungen", "u": url("schichtplan:genehmigungen_uebersicht"), "g": "Planung"})
 
+    # Sicherheit
+    if ist_security:
+        items.append({"l": "Sicherheits-Dashboard", "u": url("sicherheit:sicherheit_dashboard"), "g": "Sicherheit"})
+        items.append({"l": "Sicherheitsalarme",      "u": url("sicherheit:alarm_liste"),          "g": "Sicherheit"})
+        items.append({"l": "Brandalarme",            "u": url("sicherheit:brand_liste"),           "g": "Sicherheit"})
+
+    if ist_arbeitsschutz:
+        items.append({"l": "Arbeitsschutz – Rollenverwaltung", "u": url("sicherheit:arbeitsschutz_dashboard"), "g": "Sicherheit"})
+
+    # Erste Hilfe
+    if ist_eh_verantwortlicher:
+        items.append({"l": "Erste-Hilfe – Vorfaelle",    "u": url("ersthelfe:vorfall_liste"),          "g": "Sicherheit"})
+        items.append({"l": "Erste-Hilfe – Arbeitsschutz","u": url("ersthelfe:arbeitsschutz_uebersicht"),"g": "Sicherheit"})
+    elif ist_eh_ersthelfer:
+        items.append({"l": "Erste-Hilfe – Einsatz", "u": url("ersthelfe:arbeitsschutz_uebersicht"), "g": "Sicherheit"})
+
+    # Prozesse / Workflow
+    if ist_prozess:
+        items.append({"l": "Prozesszentrale",   "u": url("workflow:prozesszentrale"),    "g": "Prozesse"})
+        items.append({"l": "Workflow-Editor",   "u": url("workflow:workflow_editor"),    "g": "Prozesse"})
+        items.append({"l": "Trigger-Uebersicht","u": url("workflow:trigger_uebersicht"), "g": "Prozesse"})
+
+    # Personalgewinnung
+    if ist_pg:
+        items.append({"l": "Bewerbungseingang (extern)", "u": url("bewerbung:hr_liste"),             "g": "Personal"})
+        items.append({"l": "Einladungscodes",             "u": url("bewerbung:hr_einladungscodes"),   "g": "Personal"})
+
+    # Stellenportal verwalten
+    if stellenportal_verwalten:
+        items.append({"l": "Stellenportal verwalten", "u": url("stellenportal:hr_dashboard"), "g": "Personal"})
+
+    # DMS-Admin
+    if ist_dms_admin:
+        items.append({"l": "DMS – Zugriffsantraege", "u": url("dms:zugriffsantraege"), "g": "Dokumente"})
+
+    # Admin (Staff)
     if u.is_staff:
         items += [
-            {"l": "Rechtevergabe",          "u": url("berechtigungen:uebersicht"),          "g": "Admin"},
-            {"l": "Workflow-Editor",         "u": url("workflow:workflow_editor"),            "g": "Admin"},
-            {"l": "Textbausteine",           "u": url("facility:textbaustein_liste"),         "g": "Admin"},
-            {"l": "Trend-Einstellungen",     "u": url("facility:einstellungen"),              "g": "Admin"},
-            {"l": "Audit-Trail",             "u": url("raumbuch:gesamtlog"),                  "g": "Admin"},
-            {"l": "Digitale Signatur",       "u": url("signatur:dashboard"),                  "g": "Admin"},
-            {"l": "Signatur-Dokumentation",  "u": url("signatur:dokumentation_pdf"),          "g": "Admin"},
-            {"l": "Datenschutz DSGVO",       "u": url("datenschutz:dashboard"),               "g": "Admin"},
+            {"l": "Rechtevergabe",           "u": url("berechtigungen:uebersicht"),        "g": "Admin"},
+            {"l": "Textbausteine",           "u": url("facility:textbaustein_liste"),       "g": "Admin"},
+            {"l": "Trend-Einstellungen",     "u": url("facility:einstellungen"),            "g": "Admin"},
+            {"l": "Audit-Trail",             "u": url("raumbuch:gesamtlog"),                "g": "Admin"},
+            {"l": "Signatur-Dokumentation",  "u": url("signatur:dokumentation_pdf"),        "g": "Admin"},
+            {"l": "Datenschutz DSGVO",       "u": url("datenschutz:dashboard"),             "g": "Admin"},
+            {"l": "DMS – Workflow-Regeln",   "u": url("dms:workflow_regeln"),               "g": "Admin"},
+            {"l": "Sensible Dokumente",      "u": url("dokumente:liste"),                   "g": "Admin"},
+            {"l": "Matrix-Templates",        "u": url("matrix_integration:template_liste"), "g": "Admin"},
         ]
 
     return {"cmd_items_json": items}

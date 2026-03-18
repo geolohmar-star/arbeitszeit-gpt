@@ -34,4 +34,9 @@ urlpatterns = [
         views.status_aendern,
         name="status_aendern",
     ),
+    path(
+        "<int:pk>/gutschrift/laufzettel/starten/",
+        views.gutschrift_laufzettel_starten,
+        name="gutschrift_laufzettel_starten",
+    ),
 ]

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}DMS – Ablage bearbeiten{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:600px;">
+
+    <a href="{% url 'dms:ablage_liste' %}" class="text-muted text-decoration-none small">&larr; Zurück zur Übersicht</a>
+    <h1 class="h3 fw-bold mt-2 mb-4" style="color:#1a4d2e;">Ablage bearbeiten</h1>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold mb-1">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <div class="text-danger" style="font-size:0.78rem;">{{ field.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-sm"
+                            style="background:#1a4d2e;color:white;">Speichern</button>
+                    <a href="{% url 'dms:ablage_liste' %}" class="btn btn-sm btn-outline-secondary">Abbrechen</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -127,5 +127,16 @@
       "name": "Personalgewinnung",
       "mitglieder": []
     }
+  },
+  {
+    "model": "formulare.teamqueue",
+    "pk": 14,
+    "fields": {
+      "antragstypen": [],
+      "beschreibung": "Datenschutzbeauftragter – prueft DMS-Loeschantraege und gibt Loeschfreigabe.",
+      "kuerzel": "DSB",
+      "name": "DSB-Team",
+      "mitglieder": []
+    }
   }
 ]

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Arbeitsschutz – Rollenverwaltung{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cb-label {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+    font-size: 1rem; font-weight: 700;
+    transition: background 0.12s, transform 0.1s;
+    border: none; padding: 0;
+    background: none;
+  }
+  .cb-ja   { background: #198754 !important; color: #fff; }
+  .cb-nein { background: #dee2e6 !important; color: #aaa; }
+  .cb-label:hover { filter: brightness(0.88); transform: scale(1.1); }
+  .htmx-request .cb-label { opacity: 0.45; pointer-events: none; }
+
+  .zaehler-card {
+    border-radius: 10px; padding: 1rem 1.25rem;
+    text-align: center;
+  }
+  .zaehler-zahl  { font-size: 2.5rem; font-weight: 900; line-height: 1; }
+  .zaehler-label { font-size: 0.8rem; margin-top: 0.3rem; opacity: 0.8; }
+
+  #matrix-ergebnis { min-height: 36px; }
+  .spinner-border { display: none; }
+  .htmx-request .spinner-border { display: inline-block; }
+  .htmx-request .btn-text { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 px-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+    <div>
+      <h4 class="mb-1">Arbeitsschutz – Rollenverwaltung</h4>
+      <p class="text-muted small mb-0">{{ gesamt }} Mitarbeiter &middot; Aenderungen werden sofort gespeichert</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <div id="matrix-ergebnis"></div>
+      <button id="btn-matrix"
+              hx-post="{% url 'sicherheit:arbeitsschutz_matrix_einladen' %}"
+              hx-target="#matrix-ergebnis"
+              hx-swap="innerHTML"
+              class="btn btn-primary">
+        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+        <span class="btn-text">Matrix-Einladungen senden</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Zaehlkarten -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="zaehler-card bg-danger text-white">
+        <div class="zaehler-zahl">{{ zaehler.ist_ersthelfer }}</div>
+        <div class="zaehler-label">Ersthelfer</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="zaehler-card bg-warning text-dark">
+        <div class="zaehler-zahl">{{ zaehler.ist_branderkunder }}</div>
+        <div class="zaehler-label">Branderkunder</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="zaehler-card bg-success text-white">
+        <div class="zaehler-zahl">{{ zaehler.ist_raeumungshelfer }}</div>
+        <div class="zaehler-label">Raeumungshelfer</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="zaehler-card bg-secondary text-white">
+        <div class="zaehler-zahl">{{ zaehler.ist_brandbekaempfer }}</div>
+        <div class="zaehler-label">Brandbekaempfer</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suchfeld -->
+  <div class="mb-3">
+    <input type="search" id="suche" class="form-control" placeholder="Stelle oder Name suchen..."
+           style="max-width:360px;">
+  </div>
+
+  <!-- Tabelle -->
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover align-middle mb-0" id="ma-tabelle">
+        <thead class="table-light sticky-top">
+          <tr>
+            <th style="min-width:200px;">Stelle</th>
+            <th style="min-width:130px;">Name</th>
+            <th class="text-muted small" style="min-width:140px;">Abteilung</th>
+            <th class="text-center" style="min-width:80px;">
+              <span class="badge bg-danger">EH</span>
+            </th>
+            <th class="text-center" style="min-width:90px;">
+              <span class="badge bg-warning text-dark">Erkunder</span>
+            </th>
+            <th class="text-center" style="min-width:90px;">
+              <span class="badge bg-success">Raeumung</span>
+            </th>
+            <th class="text-center" style="min-width:90px;">
+              <span class="badge bg-secondary">Bekaempfer</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ma, rollen_werte in mitarbeiter_daten %}
+          <tr data-suche="{{ ma.stelle.bezeichnung|lower|default:'' }} {{ ma.vollname|lower }}">
+            <td>
+              <span class="fw-semibold">{{ ma.stelle.bezeichnung|default:"–" }}</span>
+              <span class="text-muted small ms-1">({{ ma.stelle.kuerzel|default:"?" }})</span>
+            </td>
+            <td class="text-muted small">{{ ma.vollname }}</td>
+            <td class="text-muted small">{{ ma.stelle.org_einheit.bezeichnung|default:"–" }}</td>
+            {% for feld, bezeichnung, wert in rollen_werte %}
+            <td class="text-center" id="zelle-{{ ma.pk }}-{{ feld }}">
+              {% include "sicherheit/partials/_arbeitsschutz_checkbox.html" %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/arbeitsschutz_dashboard.js' %}"></script>
+{% endblock %}

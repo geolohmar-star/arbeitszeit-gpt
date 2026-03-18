@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Brand-Review Security – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+
+      <!-- Entscheidungsformular OBEN -->
+      <div class="card border-0 mb-4" style="background:#1a0a00; border:2px solid #ea580c !important;">
+        <div class="card-header" style="background:#7c2d12; border:none;">
+          <h4 class="mb-0" style="color:#fff;">&#128293; Brandalarm – Security-Review</h4>
+        </div>
+        <div class="card-body">
+
+          <!-- Kurzinfo -->
+          <div class="mb-3 p-3 rounded" style="background:#3d1a00;">
+            <div class="mb-1">
+              <span style="color:#fb923c; font-weight:600;">Ort:</span>
+              <span style="color:#fff;" class="ms-2 fw-bold">{{ brandalarm.ort }}</span>
+              {% if brandalarm.ort_praezise %}
+              <span style="color:#fb923c;" class="ms-2">&rarr; {{ brandalarm.ort_praezise }}</span>
+              {% endif %}
+            </div>
+            <div class="mb-1">
+              <span style="color:#fb923c; font-weight:600;">Gemeldet:</span>
+              <span style="color:#fed7aa;" class="ms-2">
+                {{ brandalarm.erstellt_am|date:"H:i" }} Uhr &middot;
+                {{ brandalarm.melder_anzahl }} Melder
+              </span>
+            </div>
+            <div>
+              <span style="color:#fb923c; font-weight:600;">Erkunder:</span>
+              {% for tok in brandalarm.erkunder_tokens.all %}
+                {% if tok.status == "bestaetigt" %}
+                  <span class="badge bg-danger ms-1">{{ tok.erkunder.vollname }}: Brand bestaetigt</span>
+                {% elif tok.status == "unterwegs" %}
+                  <span class="badge bg-primary ms-1">{{ tok.erkunder.vollname }}: Unterwegs</span>
+                {% elif tok.status == "am_ort" %}
+                  <span class="badge ms-1" style="background:#d97706;">{{ tok.erkunder.vollname }}: Am Ort</span>
+                {% elif tok.status == "fehlalarm" %}
+                  <span class="badge bg-success ms-1">{{ tok.erkunder.vollname }}: Fehlalarm</span>
+                {% else %}
+                  <span class="badge bg-secondary ms-1">{{ tok.erkunder.vollname }}: Ausstehend</span>
+                {% endif %}
+              {% empty %}
+                <span style="color:#9ca3af;" class="ms-2">keine Erkunder</span>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Entscheidung -->
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label" style="color:#fed7aa;">Notiz (optional)</label>
+              <input type="text" name="notiz" class="form-control bg-dark text-white border-secondary"
+                     placeholder="z.B. Feuerwehr vor Ort, Brand im Keller K1">
+            </div>
+            <div class="d-flex gap-3">
+              <button type="submit" name="entscheidung" value="bestaetigt"
+                      class="btn btn-lg fw-bold flex-fill"
+                      style="background:#dc2626; color:#fff; border:none;"
+                      data-confirm="BRAND BESTAETIGEN? Vollalarm wird ausgeloest – alle Mitarbeiter werden zur Evakuierung aufgefordert!">
+                &#128680; Brand bestaetigen – VOLLALARM
+              </button>
+              <button type="submit" name="entscheidung" value="fehlalarm"
+                      class="btn btn-outline-secondary btn-lg flex-fill"
+                      data-confirm="Fehlalarm? Alarm wird geschlossen.">
+                &#10003; Fehlalarm – Alarm schliessen
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Erkunder-Detailtabelle UNTEN -->
+      {% if brandalarm.erkunder_tokens.all %}
+      <div class="card border-0 mb-3" style="background:#3d1a00;">
+        <div class="card-header" style="background:#5c2210; border:none;">
+          <h6 class="mb-0" style="color:#fb923c;">Erkunder-Details</h6>
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0" style="color:#fed7aa;">
+            <thead>
+              <tr style="border-color:#7c2d12;">
+                <th style="color:#fb923c;">Erkunder</th>
+                <th style="color:#fb923c;">Status</th>
+                <th style="color:#fb923c;">Meldung / Notiz</th>
+                <th style="color:#fb923c;">Ort praezise</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for tok in brandalarm.erkunder_tokens.all %}
+              <tr style="border-color:#3d1a00;">
+                <td style="color:#fff;">{{ tok.erkunder.vollname }}</td>
+                <td>
+                  {% if tok.status == "bestaetigt" %}
+                    <span class="badge bg-danger">Brand bestaetigt</span>
+                  {% elif tok.status == "unterwegs" %}
+                    <span class="badge bg-primary">Unterwegs</span>
+                  {% elif tok.status == "am_ort" %}
+                    <span class="badge" style="background:#d97706;">Am Brandort</span>
+                  {% elif tok.status == "fehlalarm" %}
+                    <span class="badge bg-success">Fehlalarm</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Ausstehend</span>
+                  {% endif %}
+                </td>
+                <td style="font-size:0.88rem;">{{ tok.notiz|default:"–" }}</td>
+                <td style="font-size:0.88rem;">{{ tok.ort_praezise|default:"–" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="mt-2">
+        <a href="{% url 'sicherheit:brand_liste' %}" class="text-muted small">
+          &larr; Zur Brandalarmliste
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/brand_security.js' %}"></script>
+{% endblock %}

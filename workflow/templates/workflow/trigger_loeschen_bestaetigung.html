@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Trigger loeschen{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 500px;">
+    <h2 class="mb-4">Trigger loeschen</h2>
+
+    <div class="alert alert-warning">
+        <strong>Wirklich loeschen?</strong><br>
+        Trigger <strong>{{ trigger.name }}</strong>
+        (<code>{{ trigger.trigger_event }}</code>) wird unwiderruflich entfernt.
+        Bereits laufende Workflows sind nicht betroffen.
+    </div>
+
+    <div class="d-flex gap-2">
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Ja, loeschen</button>
+        </form>
+        <a href="{% url 'workflow:trigger_konfiguration' %}" class="btn btn-outline-secondary">
+            Abbrechen
+        </a>
+    </div>
+</div>
+{% endblock %}

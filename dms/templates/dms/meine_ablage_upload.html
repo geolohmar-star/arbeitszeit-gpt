@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Dokument hochladen – Meine Ablage – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 640px;">
+
+  <a href="{% url 'dms:meine_ablage' %}" class="btn btn-sm btn-outline-secondary mb-3">
+    &larr; Zurück zur Ablage
+  </a>
+
+  <h2 class="mb-4">Dokument hochladen</h2>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label for="{{ form.titel.id_for_label }}" class="form-label fw-semibold">
+            {{ form.titel.label }}
+          </label>
+          {{ form.titel }}
+          {% if form.titel.errors %}
+            <div class="text-danger small mt-1">{{ form.titel.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.klasse.id_for_label }}" class="form-label fw-semibold">
+            {{ form.klasse.label }}
+          </label>
+          {{ form.klasse }}
+          <div class="form-text">
+            Klasse 2 verschluesselt den Inhalt mit AES-256-GCM –
+            nur du und explizit freigegebene Personen koennen es lesen.
+          </div>
+          {% if form.klasse.errors %}
+            <div class="text-danger small mt-1">{{ form.klasse.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.beschreibung.id_for_label }}" class="form-label fw-semibold">
+            {{ form.beschreibung.label }} <span class="text-muted fw-normal">(optional)</span>
+          </label>
+          {{ form.beschreibung }}
+        </div>
+
+        <div class="mb-4">
+          <label for="{{ form.datei.id_for_label }}" class="form-label fw-semibold">
+            {{ form.datei.label }}
+          </label>
+          <input type="file" name="datei" id="{{ form.datei.id_for_label }}" class="form-control">
+          <div class="form-text">{{ form.datei.help_text }}</div>
+          {% if form.datei.errors %}
+            <div class="text-danger small mt-1">{{ form.datei.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Hochladen</button>
+          <a href="{% url 'dms:meine_ablage' %}" class="btn btn-outline-secondary">Abbrechen</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

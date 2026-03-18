@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}IT-Systemstatus{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:900px;">
+
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center"
+                 style="width:48px;height:48px;background:var(--bs-{{ gesamt_farbe }}-bg-subtle,#f8f9fa);">
+                <span class="rounded-circle d-block"
+                      style="width:20px;height:20px;background:var(--bs-{{ gesamt_farbe }},#6c757d);"></span>
+            </div>
+            <div>
+                <h1 class="h3 fw-bold mb-0" style="color:#1a4d2e;">IT-Systemstatus</h1>
+                <p class="text-muted small mb-0">
+                    {% if gesamt_status == "ok" %}Alle Systeme in Betrieb
+                    {% elif gesamt_status == "warnung" %}Hinweise vorhanden
+                    {% elif gesamt_status == "gestoert" %}Stoerung aktiv
+                    {% else %}Wartung laeuft
+                    {% endif %}
+                    &nbsp;&middot;&nbsp; Stand: {{ jetzt|date:"d.m.Y H:i" }} Uhr
+                </p>
+            </div>
+        </div>
+        {% if ist_helpdesk %}
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'it_status:meldung_neu' %}" class="btn btn-sm btn-danger">
+                + Stoerung melden
+            </a>
+            <a href="{% url 'it_status:wartung_neu' %}" class="btn btn-sm btn-outline-secondary">
+                + Wartung planen
+            </a>
+            <a href="{% url 'it_status:system_neu' %}" class="btn btn-sm btn-outline-primary">
+                + System anlegen
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ---- Systemliste ---- #}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0 align-middle">
+                <thead style="background:#f8f9fa;">
+                    <tr>
+                        <th class="px-3 py-2" style="width:32px;"></th>
+                        <th class="py-2">System</th>
+                        <th class="py-2">Status</th>
+                        <th class="py-2">Letzte Meldung</th>
+                        <th class="py-2">Naechste Wartung</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in systeme %}
+                    <tr style="cursor:pointer;" data-href="{% url 'it_status:system_detail' s.pk %}">
+                        <td class="px-3">
+                            <span class="rounded-circle d-block"
+                                  style="width:14px;height:14px;background:var(--bs-{{ s.status_farbe }},#6c757d);margin:auto;"></span>
+                        </td>
+                        <td class="fw-semibold">{{ s.bezeichnung }}</td>
+                        <td>
+                            <span class="badge bg-{{ s.status_farbe }} bg-opacity-75">
+                                {{ s.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="text-muted small">
+                            {% with m=s.meldungen.first %}
+                            {% if m %}{{ m.titel|truncatechars:40 }}{% else %}&mdash;{% endif %}
+                            {% endwith %}
+                        </td>
+                        <td class="text-muted small">
+                            {% with w=s.aktuelle_wartung %}
+                            {% if w %}
+                                {{ w.start|date:"d.m.Y H:i" }}
+                                {% if w.ist_aktiv %}<span class="badge bg-warning text-dark ms-1">Laeuft</span>{% endif %}
+                            {% else %}&mdash;{% endif %}
+                            {% endwith %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            Noch keine Systeme eingetragen.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {# ---- Naechste Wartungen ---- #}
+    {% if naechste_wartungen %}
+    <h2 class="h5 fw-semibold mb-3" style="color:#1a4d2e;">Geplante Wartungen</h2>
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <table class="table mb-0 align-middle">
+                <thead style="background:#f8f9fa;">
+                    <tr>
+                        <th class="px-3 py-2">System</th>
+                        <th class="py-2">Titel</th>
+                        <th class="py-2">Von</th>
+                        <th class="py-2">Bis</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in naechste_wartungen %}
+                    <tr>
+                        <td class="px-3 text-muted small">{{ w.system }}</td>
+                        <td class="fw-semibold">{{ w.titel }}</td>
+                        <td class="text-muted small">{{ w.start|date:"d.m.Y H:i" }}</td>
+                        <td class="text-muted small">{{ w.ende|date:"d.m.Y H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/it_status.js' %}"></script>
+{% endblock %}

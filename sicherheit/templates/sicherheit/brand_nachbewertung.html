@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Nachbewertung Brandalarm #{{ brandalarm.pk }} – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 750px;">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">&#128293; Nachbewertung – Brandalarm #{{ brandalarm.pk }}</h4>
+    <a href="{% url 'sicherheit:brand_detail' brandalarm.pk %}" class="btn btn-outline-secondary btn-sm">
+      &larr; Zurück zum Alarm
+    </a>
+  </div>
+
+  <!-- Alarm-Kurzinfo -->
+  <div class="card mb-4">
+    <div class="card-header bg-secondary text-white">
+      <strong>Abgeschlossener Alarm – Stammdaten</strong>
+    </div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-3">Ort</dt>
+        <dd class="col-sm-9">
+          {{ brandalarm.ort }}
+          {% if brandalarm.ort_praezise %}
+          <span class="text-muted ms-1">({{ brandalarm.ort_praezise }})</span>
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">Datum</dt>
+        <dd class="col-sm-9">{{ brandalarm.erstellt_am|date:"d.m.Y H:i" }} Uhr</dd>
+
+        <dt class="col-sm-3">Geschlossen</dt>
+        <dd class="col-sm-9">{{ brandalarm.geschlossen_am|date:"d.m.Y H:i" }} Uhr</dd>
+
+        {% if brandalarm.notiz %}
+        <dt class="col-sm-3">Notiz</dt>
+        <dd class="col-sm-9">{{ brandalarm.notiz }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+  </div>
+
+  <!-- Nachbewertungsformular -->
+  <div class="card mb-4">
+    <div class="card-header bg-warning fw-bold">
+      &#9997; Nachbewertung eintragen
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Gesamtbewertung *</label>
+          <div class="d-flex gap-3 flex-wrap">
+
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="bewertung"
+                     id="bew-positiv" value="positiv"
+                     {% if brandalarm.nachbewertung == "positiv" %}checked{% endif %}>
+              <label class="form-check-label text-success fw-semibold" for="bew-positiv">
+                &#10003; Positiv – alles lief korrekt
+              </label>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="bewertung"
+                     id="bew-verbesserung" value="verbesserungsbedarf"
+                     {% if brandalarm.nachbewertung == "verbesserungsbedarf" %}checked{% endif %}>
+              <label class="form-check-label text-warning fw-semibold" for="bew-verbesserung">
+                &#9888; Verbesserungsbedarf
+              </label>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="bewertung"
+                     id="bew-kritisch" value="kritisch"
+                     {% if brandalarm.nachbewertung == "kritisch" %}checked{% endif %}>
+              <label class="form-check-label text-danger fw-semibold" for="bew-kritisch">
+                &#10007; Kritisch – Maßnahmen erforderlich
+              </label>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="nachbewertung-text" class="form-label fw-semibold">
+            Bewertungstext / Protokollnotiz
+          </label>
+          <textarea id="nachbewertung-text" name="text" class="form-control" rows="6"
+                    placeholder="Verlauf beschreiben, Mängel dokumentieren, Maßnahmen festhalten...">{{ brandalarm.nachbewertung_text|default:vortext }}</textarea>
+          <div class="form-text">
+            Der vorausgefüllte Text ist ein Vorschlag – bitte anpassen.
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-warning fw-bold">
+            Nachbewertung speichern
+          </button>
+          <a href="{% url 'sicherheit:brand_detail' brandalarm.pk %}"
+             class="btn btn-outline-secondary">
+            Abbrechen
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if brandalarm.nachbewertung %}
+  <div class="alert alert-info">
+    <strong>Letzte Bewertung:</strong>
+    {{ brandalarm.get_nachbewertung_display }}
+    {% if brandalarm.nachbewertung_erstellt_von %}
+    – {{ brandalarm.nachbewertung_erstellt_von.get_full_name|default:brandalarm.nachbewertung_erstellt_von.username }}
+    {% endif %}
+    {% if brandalarm.nachbewertung_erstellt_am %}
+    am {{ brandalarm.nachbewertung_erstellt_am|date:"d.m.Y H:i" }} Uhr
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

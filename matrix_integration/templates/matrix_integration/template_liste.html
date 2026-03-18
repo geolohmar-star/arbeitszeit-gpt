@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Teilnehmer-Templates{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <a href="{% url 'matrix_integration:raum_liste' %}" class="text-muted text-decoration-none">
+                &larr; Matrix-Räume
+            </a>
+            <h2 class="mt-1 mb-0">Teilnehmer-Templates</h2>
+        </div>
+        <a href="{% url 'matrix_integration:template_anlegen' %}" class="btn btn-primary">
+            + Template anlegen
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Typ</th>
+                        <th>Org-Einheit</th>
+                        <th>Mitglieder</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tmpl in templates %}
+                    <tr>
+                        <td class="fw-semibold">{{ tmpl.name }}</td>
+                        <td>{{ tmpl.get_typ_display }}</td>
+                        <td>{{ tmpl.org_einheit|default:"–" }}</td>
+                        <td>
+                            {% if tmpl.typ == "org_einheit" %}
+                            <span class="text-muted small">automatisch aus Einheit</span>
+                            {% else %}
+                            {{ tmpl.mitglieder.count }} Mitglieder
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'matrix_integration:template_bearbeiten' tmpl.pk %}"
+                               class="btn btn-sm btn-outline-warning">
+                                Bearbeiten
+                            </a>
+                            <a href="{% url 'matrix_integration:template_loeschen' tmpl.pk %}"
+                               class="btn btn-sm btn-outline-danger ms-1">
+                                Löschen
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            Noch keine Templates vorhanden.
+                            <a href="{% url 'matrix_integration:template_anlegen' %}">Erstes anlegen</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

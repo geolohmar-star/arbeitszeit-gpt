@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Briefvorlagen – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Briefvorlagen</h2>
+    <a href="{% url 'korrespondenz:brief_erstellen' %}" class="btn btn-success">
+      + Neuer Brief
+    </a>
+  </div>
+
+  {% if vorlagen %}
+  <div class="row g-3">
+    {% for vorlage in vorlagen %}
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title">{{ vorlage.titel }}</h5>
+          {% if vorlage.beschreibung %}
+          <p class="card-text text-muted small">{{ vorlage.beschreibung }}</p>
+          {% endif %}
+        </div>
+        <div class="card-footer bg-transparent">
+          <a href="{% url 'korrespondenz:brief_erstellen' %}?vorlage={{ vorlage.pk }}"
+             class="btn btn-sm btn-outline-success">Brief erstellen</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    Keine Briefvorlagen vorhanden. Bitte zuerst eine Vorlage mit dem Management-Command
+    <code>python manage.py erstelle_briefvorlage_din5008</code> anlegen.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}EH-Vorfall #{{ vorfall.pk }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Erste-Hilfe-Vorfall #{{ vorfall.pk }}</h2>
+    <div class="d-flex gap-2 align-items-center">
+      {% if vorfall.ist_offen %}
+      <a id="btn-autorefresh" href="{{ request.path }}" class="btn btn-outline-secondary btn-sm text-decoration-none">
+        &#8635; Auto-Refresh
+      </a>
+      {% endif %}
+      {% if ist_verantwortlicher %}
+        <a href="{% url 'ersthelfe:vorfall_liste' %}" class="btn btn-outline-secondary btn-sm">
+          &larr; Alle Vorfälle
+        </a>
+      {% elif ist_ersthelfer %}
+        <span class="badge bg-info text-dark fs-6">Ersthelfer-Ansicht (nur lesen)</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if ist_melder and not ist_verantwortlicher and vorfall.ist_offen %}
+  <div class="card border-danger mb-4">
+    <div class="card-header bg-danger text-white fw-bold">
+      &#9888; Ihr Alarm wurde ausgelöst – aktueller Stand
+    </div>
+    <div class="card-body">
+      {% if not status_zusammenfassung %}
+        <p class="text-muted mb-0">Noch keine Rückmeldung der Ersthelfer eingegangen. Seite aktualisiert sich automatisch.</p>
+      {% else %}
+        <div class="row g-2">
+          {% for r in status_zusammenfassung %}
+          <div class="col-sm-6 col-md-4">
+            <div class="d-flex align-items-center gap-2 p-2 border rounded">
+              <span class="badge bg-{{ r.farbe }}">{{ r.get_status_display }}</span>
+              <span class="fw-semibold">{{ r.ersthelfer.vollname }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Vorfall-Info -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>Vorfalldetails</strong>
+      {% if vorfall.status == "offen" %}
+        <span class="badge bg-danger fs-6">Offen</span>
+      {% else %}
+        <span class="badge bg-success fs-6">Abgeschlossen</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-3">Ort</dt>
+        <dd class="col-sm-9">{{ vorfall.ort }}</dd>
+
+        <dt class="col-sm-3">Gemeldet von</dt>
+        <dd class="col-sm-9">
+          {% if vorfall.gemeldet_von.hr_mitarbeiter %}
+            {{ vorfall.gemeldet_von.hr_mitarbeiter.vollname }}
+          {% else %}
+            {{ vorfall.gemeldet_von.username }}
+          {% endif %}
+        </dd>
+
+        <dt class="col-sm-3">Datum / Uhrzeit</dt>
+        <dd class="col-sm-9">{{ vorfall.erstellt_am|date:"d.m.Y H:i" }} Uhr</dd>
+
+        {% if vorfall.beschreibung %}
+        <dt class="col-sm-3">Beschreibung</dt>
+        <dd class="col-sm-9">{{ vorfall.beschreibung }}</dd>
+        {% endif %}
+
+        {% if vorfall.geschlossen_am %}
+        <dt class="col-sm-3">Abgeschlossen am</dt>
+        <dd class="col-sm-9">{{ vorfall.geschlossen_am|date:"d.m.Y H:i" }} Uhr</dd>
+        {% endif %}
+      </dl>
+    </div>
+    {% if ist_verantwortlicher and vorfall.status == "offen" %}
+    <div class="card-footer">
+      <form method="post" action="{% url 'ersthelfe:vorfall_schliessen' vorfall.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success btn-sm"
+                onclick="return confirm('Vorfall als abgeschlossen markieren?')">
+          Vorfall abschließen
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Rückmeldungen -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>Ersthelfer-Rückmeldungen</strong>
+      <span class="badge bg-primary">{{ rueckmeldungen|length }}</span>
+    </div>
+    <div class="card-body">
+      {% if not rueckmeldungen %}
+        <p class="text-muted mb-0">Noch keine Rückmeldungen eingegangen.</p>
+      {% else %}
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Ersthelfer/in</th>
+                <th>Status</th>
+                <th>Notiz</th>
+                <th>Uhrzeit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in rueckmeldungen %}
+              <tr{% if r.status in r.STATUS_KRITISCH %} class="table-danger"{% endif %}>
+                <td>{{ r.ersthelfer.vollname }}</td>
+                <td>
+                  <span class="badge bg-{{ r.farbe }}">{{ r.get_status_display }}</span>
+                </td>
+                <td>{{ r.notiz|default:"-" }}</td>
+                <td>{{ r.gemeldet_am|date:"H:i" }} Uhr</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Freitext-Nachrichten (Matrix) -->
+  {% if nachrichten %}
+  <div class="card mb-4 border-warning">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>Freitext-Nachrichten aus Matrix</strong>
+      <span class="badge bg-warning text-dark">{{ nachrichten|length }}</span>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Absender</th>
+              <th>Nachricht</th>
+              <th>Uhrzeit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for n in nachrichten %}
+            <tr>
+              <td>{{ n.absender_name }}</td>
+              <td>{{ n.text }}</td>
+              <td>{{ n.gesendet_am|date:"H:i" }} Uhr</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Einsatzprotokoll (nur fuer Verantwortliche) -->
+  {% if ist_verantwortlicher %}
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <strong>Einsatzprotokoll</strong>
+      {% if vorfall.protokoll_erstellt_am %}
+        <span class="text-muted small">
+          zuletzt gespeichert {{ vorfall.protokoll_erstellt_am|date:"d.m.Y H:i" }} Uhr
+        </span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      {% if vorfall.protokoll_bewertung %}
+        <p class="mb-2">
+          Bewertung:
+          <span class="badge
+            {% if vorfall.protokoll_bewertung == 'positiv' %}bg-success
+            {% elif vorfall.protokoll_bewertung == 'kritisch' %}bg-danger
+            {% else %}bg-warning text-dark{% endif %}">
+            {{ vorfall.get_protokoll_bewertung_display }}
+          </span>
+        </p>
+      {% endif %}
+      {% if vorfall.protokoll_text %}
+        <pre class="bg-light p-3 rounded small mb-3" style="white-space:pre-wrap;">{{ vorfall.protokoll_text }}</pre>
+      {% else %}
+        <p class="text-muted mb-3">Noch kein Protokoll erstellt.</p>
+      {% endif %}
+      <div class="d-flex gap-2">
+        <a href="{% url 'ersthelfe:protokoll_bearbeiten' vorfall.pk %}" class="btn btn-sm btn-primary">
+          {% if vorfall.protokoll_text %}Protokoll bearbeiten{% else %}Protokoll erstellen{% endif %}
+        </a>
+        {% if vorfall.protokoll_erstellt_am %}
+          <a href="{% url 'ersthelfe:protokoll_pdf' vorfall.pk %}" class="btn btn-sm btn-outline-danger" target="_blank">
+            PDF &#8599;
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Ersthelfer-Tokens (nur fuer Verantwortliche) -->
+  {% if ist_verantwortlicher %}
+  <div class="card">
+    <div class="card-header">
+      <strong>Benachrichtigte Ersthelfer/innen</strong>
+    </div>
+    <div class="card-body">
+      {% if not tokens %}
+        <p class="text-muted mb-0">Keine Tokens erstellt.</p>
+      {% else %}
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Ersthelfer/in</th>
+                <th>Token-Link</th>
+                <th>Erstellt</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in tokens %}
+              <tr>
+                <td>{{ t.ersthelfer.vollname }}</td>
+                <td>
+                  <a href="{% url 'ersthelfe:rueckmeldung' t.token %}" class="small" target="_blank">
+                    Rueckmelde-Link
+                  </a>
+                </td>
+                <td>{{ t.erstellt_am|date:"H:i" }} Uhr</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/eh_vorfall_detail.js' %}"></script>
+{% endblock %}

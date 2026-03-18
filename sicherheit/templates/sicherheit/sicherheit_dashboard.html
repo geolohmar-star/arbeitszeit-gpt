@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sicherheit – Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+  .sec-header { background: #1e1e2e; border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+  .sec-card { background: #1e1e2e; border-radius: 10px; margin-bottom: 1.25rem; overflow: hidden; }
+  .sec-card-header { padding: 0.75rem 1.25rem; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  .sec-card-header.brand { background: #7c2d12; color: #fed7aa; }
+  .sec-card-header.amok  { background: #7f1d1d; color: #fecaca; }
+  .sec-card-header.gruen { background: #14532d; color: #bbf7d0; }
+  .sec-card-header.grau  { background: #374151; color: #d1d5db; }
+  .sec-card-body { padding: 1rem 1.25rem; }
+
+  .alarm-zeile { background: #111827; border-radius: 8px; padding: 0.8rem 1rem; margin-bottom: 0.6rem; }
+  .alarm-zeile:last-child { margin-bottom: 0; }
+
+  .erkunder-pill { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; margin: 2px; }
+  .pill-ausstehend  { background: #374151; color: #9ca3af; }
+  .pill-unterwegs   { background: #1d4ed8; color: #bfdbfe; }
+  .pill-am_ort      { background: #d97706; color: #fef3c7; }
+  .pill-bestaetigt  { background: #dc2626; color: #fee2e2; }
+  .pill-fehlalarm   { background: #15803d; color: #bbf7d0; }
+
+  .schnell-btn { border-radius: 8px; font-weight: 600; padding: 0.7rem 1.2rem; margin-bottom: 0.5rem; display: block; text-align: center; }
+
+  .zaehler-row { display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+  .zaehler-box { flex: 1; min-width: 120px; background: #111827; border-radius: 10px; padding: 1rem; text-align: center; }
+  .zaehler-zahl  { font-size: 2rem; font-weight: 900; line-height: 1; }
+  .zaehler-label { font-size: 0.78rem; opacity: 0.7; margin-top: 0.3rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 px-4" style="max-width: 1100px;">
+
+  <!-- Header -->
+  <div class="sec-header text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h4 class="mb-1 fw-bold">Sicherheits-Dashboard</h4>
+      <p class="mb-0 text-muted small">
+        {% if user.is_staff %}Vollzugriff (Staff){% elif ist_arbeitsschutz %}Arbeitsschutz (al_as){% else %}Security{% endif %}
+      </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if ist_arbeitsschutz %}
+      <a href="{% url 'sicherheit:arbeitsschutz_dashboard' %}" class="btn btn-outline-warning btn-sm fw-semibold">
+        Rollen verwalten
+      </a>
+      {% endif %}
+      <a href="{% url 'sicherheit:alarm_liste' %}" class="btn btn-outline-light btn-sm">
+        Alle Sicherheitsalarme
+      </a>
+      <a href="{% url 'sicherheit:brand_liste' %}" class="btn btn-outline-light btn-sm">
+        Alle Brandalarme
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- Linke Spalte: Alarme -->
+    <div class="col-lg-8">
+
+      <!-- Aktive Brandalarme -->
+      <div class="sec-card">
+        <div class="sec-card-header brand">
+          &#128293; Brandalarme
+          {% if aktive_brandalarme %}
+          <span class="badge bg-danger ms-2">{{ aktive_brandalarme|length }} aktiv</span>
+          {% endif %}
+        </div>
+        <div class="sec-card-body">
+          {% if not aktive_brandalarme %}
+          <p class="text-success mb-0 fw-semibold">Kein aktiver Brandalarm.</p>
+          {% else %}
+          {% for alarm in aktive_brandalarme %}
+          <div class="alarm-zeile">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <div>
+                <span class="text-white fw-bold">{{ alarm.ort }}</span>
+                {% if alarm.ort_praezise %}
+                <span class="text-muted small ms-1">({{ alarm.ort_praezise }})</span>
+                {% endif %}
+                <br>
+                <span class="text-muted small">
+                  {{ alarm.erstellt_am|date:"d.m.Y H:i" }} Uhr &middot;
+                  Melder: {{ alarm.melder_anzahl }} &middot;
+                  Status:
+                  {% if alarm.status == "gemeldet" %}
+                  <span style="color:#fb923c;">Erkunder unterwegs</span>
+                  {% elif alarm.status == "bestaetigung" %}
+                  <span style="color:#f59e0b;">Security-Review ausstehend</span>
+                  {% elif alarm.status == "evakuierung" %}
+                  <span style="color:#ef4444; font-weight:700;">EVAKUIERUNG AKTIV</span>
+                  {% endif %}
+                </span>
+              </div>
+              <div class="d-flex gap-1 flex-wrap">
+                {% if alarm.status == "bestaetigung" %}
+                <a href="{% url 'sicherheit:brand_security' alarm.pk %}"
+                   class="btn btn-danger btn-sm fw-bold">
+                  Review
+                </a>
+                {% endif %}
+                {% if alarm.status == "evakuierung" %}
+                <form method="post" action="{% url 'sicherheit:brand_schliessen' alarm.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-success btn-sm"
+                          data-confirm="Alarm schliessen / Entwarnung geben?">
+                    Entwarnung
+                  </button>
+                </form>
+                {% endif %}
+                <a href="{% url 'sicherheit:brand_einsatz' alarm.pk %}"
+                   class="btn btn-outline-warning btn-sm">Einsatz</a>
+              </div>
+            </div>
+
+            <!-- Erkunder-Status -->
+            {% if alarm.erkunder_tokens.all %}
+            <div class="mt-2">
+              {% for tok in alarm.erkunder_tokens.all %}
+              <span class="erkunder-pill pill-{{ tok.status }}">
+                {{ tok.erkunder.vollname }} – {{ tok.get_status_display }}
+              </span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Aktive Sicherheitsalarme -->
+      <div class="sec-card">
+        <div class="sec-card-header amok">
+          &#9888; Sicherheitsalarme (AMOK / Still)
+          {% if aktive_sicherheitsalarme %}
+          <span class="badge bg-danger ms-2">{{ aktive_sicherheitsalarme|length }} aktiv</span>
+          {% endif %}
+        </div>
+        <div class="sec-card-body">
+          {% if not aktive_sicherheitsalarme %}
+          <p class="text-success mb-0 fw-semibold">Kein aktiver Sicherheitsalarm.</p>
+          {% else %}
+          {% for alarm in aktive_sicherheitsalarme %}
+          <div class="alarm-zeile">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                {% if alarm.typ == "amok" %}
+                <span class="badge bg-danger fw-bold me-1">AMOK</span>
+                {% else %}
+                <span class="badge bg-secondary me-1">Stiller Alarm</span>
+                {% endif %}
+                <span class="text-white">{{ alarm.ort|default:"Ort unbekannt" }}</span>
+                <br>
+                <span class="text-muted small">
+                  {{ alarm.erstellt_am|date:"d.m.Y H:i" }} Uhr
+                  {% if alarm.ausgeloest_von %}&middot; {{ alarm.ausgeloest_von.get_full_name|default:alarm.ausgeloest_von.username }}{% endif %}
+                </span>
+              </div>
+              <div class="d-flex gap-1">
+                <a href="{% url 'sicherheit:alarm_detail' alarm.pk %}"
+                   class="btn btn-outline-secondary btn-sm">Detail</a>
+                <form method="post" action="{% url 'sicherheit:alarm_schliessen' alarm.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-success btn-sm"
+                          data-confirm="Alarm schliessen?">
+                    Schliessen
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Rechte Spalte: Schnellzugriff -->
+    <div class="col-lg-4">
+
+      <div class="sec-card">
+        <div class="sec-card-header grau">Schnellzugriff</div>
+        <div class="sec-card-body">
+          <a href="{% url 'sicherheit:alarm_liste' %}" class="btn btn-outline-light schnell-btn">
+            Sicherheitsalarme verwalten
+          </a>
+          <a href="{% url 'sicherheit:brand_liste' %}" class="btn btn-outline-warning schnell-btn"
+             style="color:#fb923c; border-color:#ea580c;">
+            Brandalarme verwalten
+          </a>
+          {% if ist_arbeitsschutz %}
+          <hr style="border-color:#374151;">
+          <a href="{% url 'sicherheit:arbeitsschutz_dashboard' %}" class="btn btn-outline-info schnell-btn">
+            Rollenverwaltung (AS)
+          </a>
+          <a href="{% url 'ersthelfe:arbeitsschutz_uebersicht' %}" class="btn btn-outline-light schnell-btn">
+            Erste-Hilfe – Uebersicht
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="sec-card">
+        <div class="sec-card-header gruen">Legende – Erkunder-Status</div>
+        <div class="sec-card-body">
+          <div class="mb-1"><span class="erkunder-pill pill-ausstehend">Ausstehend</span></div>
+          <div class="mb-1"><span class="erkunder-pill pill-unterwegs">Unterwegs</span></div>
+          <div class="mb-1"><span class="erkunder-pill pill-am_ort">Am Brandort</span></div>
+          <div class="mb-1"><span class="erkunder-pill pill-bestaetigt">Brand bestaetigt</span></div>
+          <div class="mb-1"><span class="erkunder-pill pill-fehlalarm">Fehlalarm</span></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/sicherheit_dashboard.js' %}"></script>
+{% endblock %}

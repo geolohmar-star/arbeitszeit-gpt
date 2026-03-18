@@ -1,196 +1,79 @@
 {% extends "base.html" %}
 
-{% block title %}Soll-Arbeitsstunden - {{ monat_name }} {{ jahr }}{% endblock %}
+{% block title %}Meine Soll-Stunden{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- Header mit Navigation -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h2>📊 Soll-Arbeitsstunden</h2>
+<div class="container py-4" style="max-width:640px;">
+
+    <h1 class="h3 fw-bold mb-4" style="color:#1a4d2e;">Meine Soll-Stunden</h1>
+
+    {% if eintrag %}
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body p-4">
+
+            <div class="d-flex justify-content-between align-items-start mb-4">
                 <div>
-                    <a href="{% url 'arbeitszeit:soll_stunden_berechnen' %}" class="btn btn-primary">
-                        🔄 Neu berechnen
-                    </a>
-                    <a href="{% url 'arbeitszeit:soll_stunden_jahresuebersicht' %}?jahr={{ jahr }}" class="btn btn-secondary">
-                        📅 Jahresübersicht
-                    </a>
+                    <div class="fw-semibold fs-5">{{ eintrag.hr.vollname }}</div>
+                    {% if eintrag.hr.stelle %}
+                    <div class="text-muted small">{{ eintrag.hr.stelle.bezeichnung }}</div>
+                    {% endif %}
                 </div>
+                <span class="badge bg-success bg-opacity-10 text-success fw-semibold px-3 py-2" style="font-size:0.9rem;">
+                    {{ eintrag.wochenstunden }} h / Woche
+                </span>
             </div>
-        </div>
-    </div>
 
-    <!-- Monats-Navigation -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <nav aria-label="Monats-Navigation">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item">
-                        <a class="page-link" href="?jahr={{ vorheriger.jahr }}&monat={{ vorheriger.monat }}">
-                            « {{ vorheriger.monat }}/{{ vorheriger.jahr }}
-                        </a>
-                    </li>
-                    <li class="page-item active">
-                        <span class="page-link">
-                            <strong>{{ monat_name }} {{ jahr }}</strong>
-                            {% if ist_aktueller_monat %}
-                                <span class="badge bg-success ms-2">Aktuell</span>
-                            {% endif %}
-                        </span>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?jahr={{ naechster.jahr }}&monat={{ naechster.monat }}">
-                            {{ naechster.monat }}/{{ naechster.jahr }} »
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </div>
-    </div>
+            <hr class="my-3">
 
-    <!-- Arbeitstage-Info -->
-    {% if arbeitstage_info %}
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card bg-light">
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-3">
-                            <h5 class="text-muted">Arbeitstage (Mo-Fr)</h5>
-                            <h3>{{ arbeitstage_info.gesamt }}</h3>
-                        </div>
-                        <div class="col-md-3">
-                            <h5 class="text-danger">Feiertage</h5>
-                            <h3>{{ arbeitstage_info.feiertage }}</h3>
-                        </div>
-                        <div class="col-md-3">
-                            <h5 class="text-success">Effektive Arbeitstage</h5>
-                            <h3><strong>{{ arbeitstage_info.effektiv }}</strong></h3>
-                        </div>
-                        <div class="col-md-3">
-                            <button class="btn btn-sm btn-outline-info" 
-                                    data-bs-toggle="collapse" 
-                                    data-bs-target="#feiertageListe">
-                                📋 Feiertage anzeigen
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Feiertage-Liste (ausklappbar) -->
-                    {% if arbeitstage_info.feiertage_liste %}
-                    <div class="collapse mt-3" id="feiertageListe">
-                        <hr>
-                        <h6>Feiertage in NRW:</h6>
-                        <ul class="list-unstyled">
-                            {% for ft in arbeitstage_info.feiertage_liste %}
-                            <li>
-                                <strong>{{ ft.datum }}</strong> ({{ ft.wochentag }}): 
-                                {{ ft.name }}
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="text-muted small mb-1">Vereinbarung gültig ab</div>
+                    <div class="fw-semibold">{{ eintrag.gueltig_ab|date:"d.m.Y" }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="text-muted small mb-1">Berechnet bis</div>
+                    <div class="fw-semibold">{{ heute|date:"d.m.Y" }}</div>
+                </div>
+                <div class="col-6">
+                    <div class="text-muted small mb-1">Vereinbarungsart</div>
+                    <div class="fw-semibold">{{ eintrag.vereinbarung.get_antragsart_display }}</div>
+                </div>
+                <div class="col-6">
+                    {% if eintrag.vereinbarung.gueltig_bis %}
+                    <div class="text-muted small mb-1">Befristet bis</div>
+                    <div class="fw-semibold">{{ eintrag.vereinbarung.gueltig_bis|date:"d.m.Y" }}</div>
+                    {% else %}
+                    <div class="text-muted small mb-1">Befristung</div>
+                    <div class="fw-semibold">unbefristet</div>
                     {% endif %}
                 </div>
             </div>
+
+            <hr class="my-3">
+
+            <div class="text-center py-2">
+                <div class="text-muted small mb-1">Soll-Stunden gesamt</div>
+                <div class="fw-bold" style="font-size:2.2rem; color:#1a4d2e;">
+                    {{ gesamt_soll }} h
+                </div>
+                <div class="text-muted small mt-1">
+                    seit {{ eintrag.gueltig_ab|date:"d.m.Y" }} (Arbeitstage NRW, Feiertage abgezogen)
+                </div>
+            </div>
+
         </div>
+    </div>
+
+    {% elif vereinbarung == None and hr == None %}
+    <div class="alert alert-warning">
+        Kein HR-Profil mit deinem Account verknüpft.
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        Keine gültige Arbeitszeitvereinbarung gefunden oder Soll-Stunden noch nicht berechnet.
     </div>
     {% endif %}
 
-    <!-- Statistiken -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h6 class="text-muted">Gesamt Soll-Stunden</h6>
-                    <h2 class="text-primary">{{ stats.gesamt_soll|floatformat:2 }}h</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h6 class="text-muted">Durchschnitt pro MA</h6>
-                    <h2 class="text-success">{{ stats.durchschnitt|floatformat:2 }}h</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h6 class="text-muted">Mitarbeiter</h6>
-                    <h2 class="text-info">{{ stats.anzahl }}</h2>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Mitarbeiter-Liste -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header" style="background: #1a4d2e; color: white;">
-                    <h5 class="mb-0">
-                        Mitarbeiter-Übersicht ({{ soll_stunden_liste|length }})
-                    </h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Mitarbeiter</th>
-                                    <th class="text-center">Wochenstunden</th>
-                                    <th class="text-center">Arbeitstage</th>
-                                    <th class="text-center">Soll-Stunden</th>
-                                    <th class="text-center">Aktionen</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for soll in soll_stunden_liste %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ soll.mitarbeiter.vollname }}</strong>
-                                        <br>
-                                        <small class="text-muted">{{ soll.mitarbeiter.abteilung }}</small>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge bg-info">{{ soll.wochenstunden }}h</span>
-                                        {% if soll.mitarbeiter.verfuegbarkeit == 'teilzeit' %}
-                                        <span class="badge bg-warning">Teilzeit</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-center">
-                                        {{ soll.arbeitstage_effektiv }} Tage
-                                    </td>
-                                    <td class="text-center">
-                                        <strong class="text-primary">{{ soll.soll_stunden_formatiert }}</strong>
-                                    </td>
-                                    <td class="text-center">
-                                        <a href="{% url 'arbeitszeit:mitarbeiter_soll_uebersicht' soll.mitarbeiter.pk %}" 
-                                           class="btn btn-sm btn-outline-primary">
-                                            📊 Details
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">
-                                        Keine Daten für {{ monat_name }} {{ jahr }} vorhanden.
-                                        <br>
-                                        <a href="{% url 'arbeitszeit:soll_stunden_berechnen' %}" class="btn btn-sm btn-primary mt-2">
-                                            🔄 Jetzt berechnen
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 {% endblock %}

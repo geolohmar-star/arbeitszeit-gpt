@@ -21,8 +21,15 @@ urlpatterns = [
     # Workflow manuell starten (nur fuer Tests)
     path("start/<int:template_id>/", views.workflow_start_manual, name="workflow_start_manual"),
 
-    # Trigger-Uebersicht
+    # Trigger-Uebersicht (readonly)
     path("trigger/", views.trigger_uebersicht, name="trigger_uebersicht"),
+
+    # Trigger-Konfiguration (GUI)
+    path("trigger/konfiguration/", views.trigger_konfiguration, name="trigger_konfiguration"),
+    path("trigger/neu/", views.trigger_erstellen, name="trigger_erstellen"),
+    path("trigger/<int:pk>/bearbeiten/", views.trigger_bearbeiten, name="trigger_bearbeiten"),
+    path("trigger/<int:pk>/loeschen/", views.trigger_loeschen, name="trigger_loeschen"),
+    path("trigger/<int:pk>/toggle/", views.trigger_toggle, name="trigger_toggle"),
 
     # Prozesszentrale
     path("prozesse/", views.prozesszentrale, name="prozesszentrale"),

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Trigger-Konfiguration{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Workflow-Trigger Konfiguration</h2>
+            <p class="text-muted mb-0">Trigger per GUI verwalten – kein Code noetig</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'workflow:trigger_erstellen' %}" class="btn btn-primary">
+                + Neuer Trigger
+            </a>
+            <a href="{% url 'workflow:trigger_uebersicht' %}" class="btn btn-outline-secondary">
+                Uebersicht
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if trigger_liste %}
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Trigger-Event-Key</th>
+                            <th>Model</th>
+                            <th>Ausloesen bei</th>
+                            <th>Verknuepfte Templates</th>
+                            <th>Status</th>
+                            <th>Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trigger in trigger_liste %}
+                        <tr>
+                            <td>
+                                <strong>{{ trigger.name }}</strong>
+                                {% if trigger.beschreibung %}
+                                <br><small class="text-muted">{{ trigger.beschreibung }}</small>
+                                {% endif %}
+                            </td>
+                            <td><code class="small">{{ trigger.trigger_event }}</code></td>
+                            <td>
+                                {% if trigger.content_type %}
+                                <span class="badge bg-secondary">
+                                    {{ trigger.content_type.app_label }}.{{ trigger.content_type.model }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    {{ trigger.get_trigger_auf_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% for tmpl in trigger.templates %}
+                                <a href="{% url 'workflow:workflow_editor_load' tmpl.id %}"
+                                   class="badge text-decoration-none {% if tmpl.ist_aktiv %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                    {{ tmpl.name }}
+                                </a>
+                                {% empty %}
+                                <span class="text-muted small">Kein Template</span>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% if trigger.ist_aktiv %}
+                                <span class="badge bg-success">Aktiv</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inaktiv</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a href="{% url 'workflow:trigger_bearbeiten' trigger.pk %}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        Bearbeiten
+                                    </a>
+                                    <form method="post"
+                                          action="{% url 'workflow:trigger_toggle' trigger.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="btn btn-sm {% if trigger.ist_aktiv %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                                            {% if trigger.ist_aktiv %}Deaktivieren{% else %}Aktivieren{% endif %}
+                                        </button>
+                                    </form>
+                                    <a href="{% url 'workflow:trigger_loeschen' trigger.pk %}"
+                                       class="btn btn-sm btn-outline-danger">
+                                        Loeschen
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        Noch keine Trigger konfiguriert.
+        <a href="{% url 'workflow:trigger_erstellen' %}">Ersten Trigger anlegen</a>
+        oder
+        <code>python manage.py create_workflow_triggers</code>
+        ausfuehren um 10 vorbelegte Trigger zu erstellen.
+    </div>
+    {% endif %}
+
+    <div class="mt-3">
+        <a href="{% url 'workflow:arbeitsstapel' %}" class="btn btn-outline-secondary">
+            Zurueck zum Arbeitsstapel
+        </a>
+    </div>
+</div>
+{% endblock %}

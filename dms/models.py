@@ -168,6 +168,34 @@ class Dokument(models.Model):
     gueltig_bis = models.DateField(
         null=True, blank=True, verbose_name="Gueltig bis"
     )
+
+    # ------------------------------------------------------------------
+    # Loeschkennzeichen (gesetzt durch DMS-Admin, freigegeben durch DSB-Team)
+    # ------------------------------------------------------------------
+    loeschen_am = models.DateField(
+        null=True, blank=True, verbose_name="Loeschen am",
+        help_text="Geplantes Loeschdatum (nur wirksam nach DSB-Freigabe).",
+    )
+    loeschen_begruendung = models.TextField(
+        blank=True, verbose_name="Loeschbegruendung"
+    )
+    loeschen_beantragt_von = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="dms_loeschantraege",
+        verbose_name="Loeschantrag von",
+    )
+    loeschen_genehmigt = models.BooleanField(
+        default=False, verbose_name="Loeschung genehmigt"
+    )
+
+    ist_persoenlich = models.BooleanField(
+        default=False,
+        verbose_name="Persoenliche Ablage",
+        help_text="True = Dokument gehoert zur persoenlichen Ablage des Erstellers.",
+    )
     paperless_id = models.IntegerField(
         null=True,
         blank=True,
@@ -201,6 +229,15 @@ class Dokument(models.Model):
         default=False,
         verbose_name="Workflow-Vorschlag erledigt",
     )
+    # Laufende Workflow-Instanz fuer dieses Dokument (gesetzt durch WorkflowTrigger)
+    workflow_instance = models.ForeignKey(
+        "workflow.WorkflowInstance",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="dms_dokumente",
+        verbose_name="Workflow-Instanz",
+    )
 
     class Meta:
         ordering = ["-erstellt_am"]
@@ -221,6 +258,15 @@ class Dokument(models.Model):
             return f"{self.groesse_bytes / 1024:.1f} KB"
         else:
             return f"{self.groesse_bytes / (1024 * 1024):.1f} MB"
+
+    def loeschfreigabe_setzen(self):
+        """Setzt loeschen_genehmigt=True.
+
+        Wird durch den Workflow-Auto-Schritt 'loeschung_freigeben' aufgerufen,
+        nachdem das DSB-Team den Loeschantrag genehmigt hat.
+        """
+        self.loeschen_genehmigt = True
+        self.save(update_fields=["loeschen_genehmigt"])
 
     @property
     def ist_offen(self):

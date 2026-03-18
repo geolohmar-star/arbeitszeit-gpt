@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titel }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 720px;">
+    <div class="mb-3">
+        <a href="{% url 'matrix_integration:sitzung_liste' %}" class="text-muted text-decoration-none">
+            &larr; Sitzungs-Kalender
+        </a>
+        <h2 class="mt-1">{{ titel }}</h2>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Allgemein</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Name *</label>
+                    <input type="text" name="name" class="form-control" required
+                           value="{{ sitzung.name|default:'' }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Beschreibung</label>
+                    <textarea name="beschreibung" class="form-control" rows="2">{{ sitzung.beschreibung|default:'' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Matrix-Raum *</label>
+                    <select name="matrix_raum" class="form-select" required>
+                        <option value="">-- bitte waehlen --</option>
+                        {% for raum in raeume %}
+                        <option value="{{ raum.pk }}"
+                            {% if sitzung.matrix_raum_id == raum.pk %}selected{% endif %}>
+                            {{ raum.name }} ({{ raum.get_typ_display }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Teilnehmer-Template</label>
+                    <select name="teilnehmer_template" class="form-select">
+                        <option value="">-- keines (aus Raum-Template) --</option>
+                        {% for tmpl in templates %}
+                        <option value="{{ tmpl.pk }}"
+                            {% if sitzung.teilnehmer_template_id == tmpl.pk %}selected{% endif %}>
+                            {{ tmpl.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header fw-semibold">Zeitplanung</div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">Von *</label>
+                        <input type="time" name="von" class="form-control" required
+                               value="{{ sitzung.von|time:'H:i'|default:'' }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Bis *</label>
+                        <input type="time" name="bis" class="form-control" required
+                               value="{{ sitzung.bis|time:'H:i'|default:'' }}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Startdatum *</label>
+                    <input type="date" name="start_datum" class="form-control" required
+                           value="{{ sitzung.start_datum|date:'Y-m-d'|default:'' }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Enddatum</label>
+                    <input type="date" name="ende_datum" class="form-control"
+                           value="{{ sitzung.ende_datum|date:'Y-m-d'|default:'' }}">
+                    <small class="text-muted">Leer = läuft unbegrenzt.</small>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="ist_wiederkehrend"
+                               id="id_ist_wiederkehrend"
+                               {% if sitzung.ist_wiederkehrend %}checked{% endif %}>
+                        <label class="form-check-label" for="id_ist_wiederkehrend">
+                            Wiederkehrend
+                        </label>
+                    </div>
+                </div>
+                <div id="row-wochentag" class="mb-3 {% if not sitzung or not sitzung.ist_wiederkehrend %}d-none{% endif %}">
+                    <label class="form-label">Wochentag</label>
+                    <select name="wochentag" class="form-select">
+                        <option value="">-- bitte waehlen --</option>
+                        <option value="0" {% if sitzung.wochentag == 0 %}selected{% endif %}>Montag</option>
+                        <option value="1" {% if sitzung.wochentag == 1 %}selected{% endif %}>Dienstag</option>
+                        <option value="2" {% if sitzung.wochentag == 2 %}selected{% endif %}>Mittwoch</option>
+                        <option value="3" {% if sitzung.wochentag == 3 %}selected{% endif %}>Donnerstag</option>
+                        <option value="4" {% if sitzung.wochentag == 4 %}selected{% endif %}>Freitag</option>
+                        <option value="5" {% if sitzung.wochentag == 5 %}selected{% endif %}>Samstag</option>
+                        <option value="6" {% if sitzung.wochentag == 6 %}selected{% endif %}>Sonntag</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Erinnerung (Minuten vorher)</label>
+                    <input type="number" name="erinnerung_minuten" class="form-control" min="0"
+                           value="{{ sitzung.erinnerung_minuten|default:15 }}" style="max-width:120px;">
+                    <small class="text-muted">
+                        Matrix-Nachricht wird X Minuten vor der Sitzung automatisch gesendet.
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        {% if sitzung %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="ist_aktiv"
+                           id="id_ist_aktiv" {% if sitzung.ist_aktiv %}checked{% endif %}>
+                    <label class="form-check-label" for="id_ist_aktiv">Aktiv</label>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">Speichern</button>
+            <a href="{% url 'matrix_integration:sitzung_liste' %}" class="btn btn-outline-secondary">Abbrechen</a>
+        </div>
+    </form>
+</div>
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/matrix_sitzung_form.js' %}"></script>
+{% endblock %}
+{% endblock %}

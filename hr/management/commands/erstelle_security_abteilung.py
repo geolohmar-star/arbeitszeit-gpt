@@ -291,7 +291,7 @@ class Command(BaseCommand):
             },
         )
         if created:
-            user.set_password("testpass123")
+            user.set_password("hrmitarbeiter2026")
             user.save()
             self.stdout.write(f"    User {username} erstellt")
 

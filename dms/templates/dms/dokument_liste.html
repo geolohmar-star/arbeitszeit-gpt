@@ -15,6 +15,9 @@
         </div>
         <div class="d-flex gap-2 align-items-center flex-wrap">
             {% if request.user.is_staff %}
+            <a href="{% url 'dms:ablage_liste' %}" class="btn btn-sm btn-outline-secondary">
+                Ablagen
+            </a>
             <a href="{% url 'dms:workflow_regeln' %}" class="btn btn-sm btn-outline-secondary">
                 Workflow-Regeln
             </a>
@@ -88,6 +91,97 @@
     </div>
     {% endif %}
 
+    <!-- Meine Ablage (nur fuer den eingeloggten User) -->
+    {% if meine_ablage_docs or meine_freigaben %}
+    <div class="card border-0 mb-4 shadow-sm">
+        <div class="card-header py-2 px-4 d-flex justify-content-between align-items-center"
+             style="background:#f0f9ff; border-bottom:1px solid #bae6fd;">
+            <div class="d-flex align-items-center gap-2">
+                <span class="fw-semibold" style="color:#0369a1;">Meine Ablage</span>
+                <span class="badge" style="background:#0ea5e9; color:white;">
+                    {{ meine_ablage_docs|length }}{% if meine_freigaben %} + {{ meine_freigaben|length }}{% endif %}
+                </span>
+            </div>
+            <a href="{% url 'dms:meine_ablage' %}" class="btn btn-sm btn-outline-primary"
+               style="font-size:0.75rem;">Alle anzeigen &rarr;</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead style="font-size:0.75rem; text-transform:uppercase; color:#6b7280; background:#f0f9ff;">
+                    <tr>
+                        <th class="px-4 py-2">Titel</th>
+                        <th class="py-2">Klasse</th>
+                        <th class="py-2">Grösse</th>
+                        <th class="py-2">Hochgeladen</th>
+                        <th class="py-2">Freigaben</th>
+                        <th class="py-2">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dok in meine_ablage_docs %}
+                    <tr>
+                        <td class="px-4 py-2">
+                            <a href="{% url 'dms:detail' dok.pk %}" class="fw-semibold text-decoration-none"
+                               style="color:#0369a1;">{{ dok.titel }}</a>
+                        </td>
+                        <td>
+                            {% if dok.klasse == "sensibel" %}
+                            <span class="badge bg-warning text-dark" style="font-size:0.7rem;">Kl. 2</span>
+                            {% else %}
+                            <span class="badge bg-success" style="font-size:0.7rem;">Kl. 1</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:0.82rem; color:#6b7280;">{{ dok.groesse_lesbar }}</td>
+                        <td style="font-size:0.82rem; color:#6b7280;">{{ dok.erstellt_am|date:"d.m.Y" }}</td>
+                        <td style="font-size:0.82rem;">
+                            {% with anzahl=dok.sichtbar_fuer.count %}
+                                {% if anzahl %}<span class="badge bg-info text-dark">{{ anzahl }}</span>
+                                {% else %}<span class="text-muted">—</span>{% endif %}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{% url 'dms:download' dok.pk %}"
+                                   class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;">↓</a>
+                                <a href="{% url 'dms:meine_ablage_freigabe' dok.pk %}"
+                                   class="btn btn-sm btn-outline-primary" style="font-size:0.72rem;">Freigabe</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% for dok in meine_freigaben %}
+                    <tr style="background:#f8fafc;">
+                        <td class="px-4 py-2">
+                            <a href="{% url 'dms:detail' dok.pk %}" class="text-decoration-none text-dark">
+                                {{ dok.titel }}
+                            </a>
+                            <span class="badge bg-secondary ms-1" style="font-size:0.65rem;">freigegeben</span>
+                        </td>
+                        <td>
+                            {% if dok.klasse == "sensibel" %}
+                            <span class="badge bg-warning text-dark" style="font-size:0.7rem;">Kl. 2</span>
+                            {% else %}
+                            <span class="badge bg-success" style="font-size:0.7rem;">Kl. 1</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:0.82rem; color:#6b7280;">{{ dok.groesse_lesbar }}</td>
+                        <td style="font-size:0.82rem; color:#6b7280;">
+                            {{ dok.erstellt_am|date:"d.m.Y" }}
+                            <div style="font-size:0.72rem;">von {{ dok.erstellt_von.get_full_name|default:dok.erstellt_von.username }}</div>
+                        </td>
+                        <td>—</td>
+                        <td>
+                            <a href="{% url 'dms:download' dok.pk %}"
+                               class="btn btn-sm btn-outline-secondary" style="font-size:0.72rem;">↓</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Suchformular -->
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body py-3">
@@ -133,6 +227,7 @@
                         <th class="py-3">Tags</th>
                         <th class="py-3">Groesse</th>
                         <th class="py-3">Erstellt</th>
+                        <th class="py-3" title="Workflow-Status">WF</th>
                         <th class="py-3">Aktionen</th>
                     </tr>
                 </thead>
@@ -185,6 +280,29 @@
                             {{ dok.erstellt_am|date:"d.m.Y" }}
                             {% if dok.erstellt_von %}
                             <div style="font-size:0.75rem;">{{ dok.erstellt_von.get_full_name|default:dok.erstellt_von.username }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="text-center" style="width:36px;">
+                            {% if dok.pk in wf_laufend_ids %}
+                            <a href="{% url 'dms:detail' dok.pk %}" title="Workflow läuft" class="text-decoration-none">
+                                <span class="d-inline-block rounded-circle"
+                                      style="width:13px;height:13px;background:#f59e0b;
+                                             box-shadow:0 0 0 3px #fef3c7;"></span>
+                            </a>
+                            {% elif dok.pk in wf_abgeschlossen_ids %}
+                            <a href="{% url 'dms:detail' dok.pk %}" title="Workflow abgeschlossen" class="text-decoration-none">
+                                <span class="d-inline-block rounded-circle"
+                                      style="width:13px;height:13px;background:#16a34a;
+                                             box-shadow:0 0 0 3px #dcfce7;"></span>
+                            </a>
+                            {% elif dok.pk in wf_abgebrochen_ids %}
+                            <a href="{% url 'dms:detail' dok.pk %}" title="Workflow abgebrochen" class="text-decoration-none">
+                                <span class="d-inline-block rounded-circle"
+                                      style="width:13px;height:13px;background:#dc3545;
+                                             box-shadow:0 0 0 3px #fee2e2;"></span>
+                            </a>
+                            {% else %}
+                            <span style="color:#d1d5db;font-size:0.7rem;">—</span>
                             {% endif %}
                         </td>
                         <td>

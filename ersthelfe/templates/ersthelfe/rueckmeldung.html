@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Erste Hilfe – Rückmeldung</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+  <style>
+    body { background: #1a1a2e; color: #eee; }
+    .eh-card { background: #16213e; border: none; border-radius: 12px; }
+    .btn-eh { font-size: 1.2rem; padding: 1rem; border-radius: 10px; font-weight: 700; width: 100%; margin-bottom: 0.7rem; }
+    .btn-eh-sm { font-size: 1rem; padding: 0.8rem; border-radius: 8px; font-weight: 600; width: 100%; margin-bottom: 0.5rem; }
+    .trennlinie { border-top: 1px solid #444; margin: 0.8rem 0; }
+    .section-label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+<div class="container py-4">
+
+  <div class="text-center mb-4">
+    <h1 class="text-danger fw-bold">&#9888; ERSTE HILFE</h1>
+    <p class="lead text-warning">Vorfall #{{ vorfall.pk }} – {{ vorfall.ort }}</p>
+    <p class="text-light">{{ vorfall.erstellt_am|date:"d.m.Y H:i" }} Uhr</p>
+  </div>
+
+  {% if fehler %}
+  <div class="alert alert-danger">{{ fehler }}</div>
+  {% endif %}
+
+  {% if letzte %}
+  <div class="alert alert-info text-center">
+    Letzte Meldung: <strong>{{ letzte.get_status_display }}</strong>
+    ({{ letzte.gemeldet_am|date:"H:i" }} Uhr)
+    – Du kannst jederzeit neu melden.
+  </div>
+  {% endif %}
+
+  <div class="eh-card p-4 mb-4">
+    <h4 class="text-center text-white mb-4">{{ ersthelfer.vollname }} – was ist dein Status?</h4>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- Basis-Status -->
+      <div class="section-label">Wo bist du?</div>
+      <button type="submit" name="status" value="unterwegs"
+              class="btn btn-warning btn-eh">
+        Bin unterwegs
+      </button>
+      <button type="submit" name="status" value="am_ort"
+              class="btn btn-success btn-eh">
+        Bin vor Ort
+      </button>
+      <button type="submit" name="status" value="nicht_verfuegbar"
+              class="btn btn-secondary btn-eh">
+        Kann nicht kommen
+      </button>
+
+      <div class="trennlinie"></div>
+
+      <!-- Bedarfsmeldungen vor Ort -->
+      <div class="section-label">Bedarf vor Ort (mehrfach meldbar)</div>
+      <button type="submit" name="status" value="brauche_unterstuetzung"
+              class="btn btn-danger btn-eh-sm">
+        &#128680; Brauche Unterstützung
+      </button>
+      <button type="submit" name="status" value="brauche_defi"
+              class="btn btn-danger btn-eh-sm">
+        &#10013; Brauche Defibrillator
+      </button>
+      <button type="submit" name="status" value="brauche_rtw"
+              class="btn btn-danger btn-eh-sm">
+        &#128657; Bitte RTW verständigen (112)
+      </button>
+      <button type="submit" name="status" value="brauche_zweiten_eh"
+              class="btn btn-warning btn-eh-sm">
+        &#128100; Brauche zweiten Ersthelfer
+      </button>
+      <button type="submit" name="status" value="brauche_material"
+              class="btn btn-warning btn-eh-sm">
+        &#129657; Brauche Verbandsmaterial
+      </button>
+
+      <div class="trennlinie"></div>
+
+      <!-- Lagemeldungen -->
+      <div class="section-label">Lagemeldung</div>
+      <button type="submit" name="status" value="patient_transportfaehig"
+              class="btn btn-info btn-eh-sm">
+        Patient transportfähig
+      </button>
+      <button type="submit" name="status" value="einsatz_beendet"
+              class="btn btn-success btn-eh-sm">
+        Einsatz beendet / kein Arzt nötig
+      </button>
+
+      <div class="trennlinie"></div>
+
+      <!-- Freitext -->
+      <div class="section-label">Freitext-Nachricht</div>
+      <div class="mb-2">
+        <input type="text" name="notiz" id="id-notiz"
+               class="form-control bg-dark text-white border-secondary"
+               placeholder="Eigene Nachricht eingeben (z.B. 'Patient bewusstlos')"
+               maxlength="200">
+      </div>
+      <button type="submit" name="status" value="am_ort"
+              id="btn-freitext-senden"
+              class="btn btn-outline-light btn-eh-sm" style="display:none;">
+        Nachricht senden (mit Status: Bin vor Ort)
+      </button>
+
+    </form>
+  </div>
+
+  <p class="text-center text-muted small">
+    Notfall? Immer auch <strong>112</strong> anrufen!
+  </p>
+
+</div>
+{% load static %}
+<script src="{% static 'js/eh_rueckmeldung.js' %}"></script>
+</body>
+</html>

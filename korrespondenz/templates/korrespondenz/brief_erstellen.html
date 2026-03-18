@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Neuer Brief – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 900px;">
+
+  {# ---- Seitenkopf ---- #}
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <a href="{% url 'korrespondenz:brief_liste' %}" class="btn btn-sm btn-outline-secondary">&larr; Zurück</a>
+    <h2 class="mb-0">Neuer Geschäftsbrief (DIN 5008)</h2>
+  </div>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {# ---- Vorlage ---- #}
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">Briefvorlage</div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label">{{ form.vorlage.label }}</label>
+          {{ form.vorlage }}
+          {% if form.vorlage.errors %}
+            <div class="invalid-feedback d-block">{{ form.vorlage.errors.0 }}</div>
+          {% endif %}
+          <div class="form-text">Absender-Felder werden automatisch aus der Vorlage vorbelegt.</div>
+        </div>
+      </div>
+    </div>
+
+    {# ---- Absender ---- #}
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">Absender</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">{{ form.absender_name.label }} <span class="text-danger">*</span></label>
+            {{ form.absender_name }}
+            {% if form.absender_name.errors %}
+              <div class="invalid-feedback d-block">{{ form.absender_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.absender_strasse.label }}</label>
+            {{ form.absender_strasse }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.absender_ort.label }}</label>
+            {{ form.absender_ort }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.absender_telefon.label }}</label>
+            {{ form.absender_telefon }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.absender_email.label }}</label>
+            {{ form.absender_email }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ---- Empfaenger ---- #}
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">Empfänger</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">{{ form.empfaenger_name.label }} <span class="text-danger">*</span></label>
+            {{ form.empfaenger_name }}
+            {% if form.empfaenger_name.errors %}
+              <div class="invalid-feedback d-block">{{ form.empfaenger_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.empfaenger_zusatz.label }}</label>
+            {{ form.empfaenger_zusatz }}
+          </div>
+          <div class="col-md-8">
+            <label class="form-label">{{ form.empfaenger_strasse.label }}</label>
+            {{ form.empfaenger_strasse }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">{{ form.empfaenger_plz_ort.label }}</label>
+            {{ form.empfaenger_plz_ort }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.empfaenger_land.label }}</label>
+            {{ form.empfaenger_land }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ---- Briefinhalt ---- #}
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">Briefinhalt</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">{{ form.ort.label }} <span class="text-danger">*</span></label>
+            {{ form.ort }}
+            {% if form.ort.errors %}
+              <div class="invalid-feedback d-block">{{ form.ort.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.datum.label }} <span class="text-danger">*</span></label>
+            {{ form.datum }}
+            {% if form.datum.errors %}
+              <div class="invalid-feedback d-block">{{ form.datum.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.betreff.label }} <span class="text-danger">*</span></label>
+            {{ form.betreff }}
+            {% if form.betreff.errors %}
+              <div class="invalid-feedback d-block">{{ form.betreff.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.anrede.label }}</label>
+            {{ form.anrede }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.brieftext.label }} <span class="text-danger">*</span></label>
+            {{ form.brieftext }}
+            <div class="form-text">Grundtext – Formatierung und Layout in OnlyOffice anpassen.</div>
+            {% if form.brieftext.errors %}
+              <div class="invalid-feedback d-block">{{ form.brieftext.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ---- Gruss und Unterschrift ---- #}
+    <div class="card shadow-sm mb-4">
+      <div class="card-header fw-semibold">Grußformel &amp; Unterschrift</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">{{ form.grussformel.label }}</label>
+            {{ form.grussformel }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.unterschrift_name.label }} <span class="text-danger">*</span></label>
+            {{ form.unterschrift_name }}
+            {% if form.unterschrift_name.errors %}
+              <div class="invalid-feedback d-block">{{ form.unterschrift_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.unterschrift_titel.label }}</label>
+            {{ form.unterschrift_titel }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ---- Aktionen ---- #}
+    <div class="d-flex gap-2 mb-5">
+      <button type="submit" class="btn btn-success">Brief erstellen &amp; in OnlyOffice öffnen</button>
+      <a href="{% url 'korrespondenz:brief_liste' %}" class="btn btn-outline-secondary">Abbrechen</a>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+{{ vorlagen_defaults|json_script:"vorlagen-defaults" }}
+<script src="{% static 'js/korrespondenz_erstellen.js' %}"></script>
+{% endblock %}

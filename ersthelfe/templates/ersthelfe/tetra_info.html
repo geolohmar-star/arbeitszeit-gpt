@@ -1,0 +1,681 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}TETRA-BOS-Anbindung &ndash; PRIMA{% endblock %}
+
+{% block extra_css %}
+<style>
+  .tetra-hero {
+    background: linear-gradient(135deg, #1a4d2e 0%, #0f2d1a 100%);
+    color: white;
+    padding: 2.5rem 0 2rem;
+    margin-bottom: 2rem;
+  }
+  .tetra-hero h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 0.5rem; }
+  .tetra-hero .lead { font-size: 0.95rem; opacity: 0.85; max-width: 680px; }
+  .badge-tetra {
+    background: #dc3545; color: white;
+    font-size: 0.65rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 10px;
+    letter-spacing: 0.5px; vertical-align: middle;
+  }
+  .section-card {
+    border: 1px solid #e5e7eb;
+    border-top: 4px solid #1a4d2e;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    background: #fff;
+  }
+  .section-card.rot   { border-top-color: #dc3545; }
+  .section-card.blau  { border-top-color: #0d6efd; }
+  .section-card.gelb  { border-top-color: #f59e0b; }
+  .section-card.lila  { border-top-color: #6366f1; }
+  .section-card.cyan  { border-top-color: #0e7490; }
+  .section-card h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; }
+  .flow-step {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border-left: 3px solid #1a4d2e;
+    background: #f0fdf4;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 0.5rem;
+    font-size: 0.84rem;
+  }
+  .flow-step .step-nr {
+    background: #1a4d2e; color: white;
+    font-weight: 700; font-size: 0.72rem;
+    min-width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .flow-step.rot { border-left-color: #dc3545; background: #fff1f2; }
+  .flow-step.rot .step-nr { background: #dc3545; }
+  .flow-step.blau { border-left-color: #0d6efd; background: #eff6ff; }
+  .flow-step.blau .step-nr { background: #0d6efd; }
+  .status-table td, .status-table th { font-size: 0.82rem; vertical-align: middle; }
+  .code-block {
+    background: #0f172a; color: #e2e8f0;
+    border-radius: 8px; padding: 1rem 1.2rem;
+    font-size: 0.76rem; overflow-x: auto;
+    white-space: pre; font-family: monospace;
+    margin: 0.75rem 0;
+  }
+  .hardware-card {
+    border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 0.9rem; font-size: 0.8rem;
+  }
+  .hardware-card .hersteller { font-weight: 700; font-size: 0.78rem; color: #1a4d2e; margin-bottom: 0.3rem; }
+  .compare-badge {
+    display: inline-block;
+    font-size: 0.68rem; font-weight: 600;
+    padding: 2px 8px; border-radius: 10px;
+    margin: 1px;
+  }
+  .cb-gruen { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .cb-gelb  { background: #fefce8; color: #854d0e; border: 1px solid #fde047; }
+  .cb-rot   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+  .toc-link { color: #1a4d2e; text-decoration: none; font-size: 0.84rem; }
+  .toc-link:hover { text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="tetra-hero">
+  <div class="container">
+    <div class="mb-2">
+      <span class="badge-tetra">KONZEPT &amp; MACHBARKEIT</span>
+    </div>
+    <h1>&#128225; TETRA-BOS-Anbindung an PRIMA</html1>
+    <p class="lead">
+      Technische Analyse: Wie PRIMA den Erste-Hilfe-Alarm direkt an BOS-Digitalfunkger&auml;te
+      senden kann &mdash; inklusive bidirektionaler R&uuml;ckmeldung per Statusknopf,
+      Hardwareanforderungen und Implementierungsplan.
+    </p>
+    <a href="{% url 'ersthelfe:vorfall_liste' %}" class="btn btn-sm btn-outline-light mt-2">
+      &larr; Zur&uuml;ck zur EH-&Uuml;bersicht
+    </a>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <div class="row">
+
+    <!-- Inhaltsverzeichnis -->
+    <div class="col-lg-3 mb-4">
+      <div style="position: sticky; top: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; background: #fafafa;">
+        <div style="font-weight: 700; font-size: 0.82rem; color: #1a4d2e; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Inhalt</div>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+          <a href="#was-ist-tetra" class="toc-link">1. Was ist TETRA-BOS?</a>
+          <a href="#zugang" class="toc-link">2. Wer hat Zugang?</a>
+          <a href="#bidirektional" class="toc-link">3. Bidirektionale R&uuml;ckmeldung</a>
+          <a href="#architektur" class="toc-link">4. Technische Architektur</a>
+          <a href="#hardware" class="toc-link">5. Hardware</a>
+          <a href="#prima-integration" class="toc-link">6. PRIMA-Integration</a>
+          <a href="#alternativen" class="toc-link">7. Alternativen</a>
+          <a href="#vergleich" class="toc-link">8. Vergleich der Kan&auml;le</a>
+          <a href="#implementierung" class="toc-link">9. Implementierungsplan</a>
+          <a href="#fazit" class="toc-link">10. Fazit</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hauptinhalt -->
+    <div class="col-lg-9">
+
+      <!-- 1. Was ist TETRA -->
+      <div class="section-card" id="was-ist-tetra">
+        <h2 style="color:#1a4d2e;">1. Was ist TETRA-BOS?</h2>
+        <p style="font-size:0.88rem; color:#374151; line-height:1.7;">
+          <strong>TETRA</strong> (Terrestrial Trunked Radio) ist ein digitaler Bündelfunk-Standard,
+          der in Deutschland als <strong>BOS-Digitalfunk</strong> (Behörden und Organisationen mit
+          Sicherheitsaufgaben) betrieben wird. Das Netz wird von der
+          <strong>BDBOS</strong> (Bundesanstalt für den Digitalfunk der BOS) verwaltet und deckt
+          nahezu 100&nbsp;% des deutschen Staatsgebiets ab &mdash; einschließlich Tunneln, Bahnhöfen
+          und Gebäuden.
+        </p>
+        <div class="row g-3 mt-1">
+          <div class="col-sm-6">
+            <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:6px; padding:0.75rem; font-size:0.8rem;">
+              <div style="font-weight:700; color:#166534; margin-bottom:0.4rem;">Kerneigenschaften TETRA</div>
+              <ul style="margin:0; padding-left:1.1rem; color:#374151; line-height:1.8;">
+                <li>Verschlüsselte Sprach- &amp; Datenkommunikation (TEA2)</li>
+                <li>Gruppenruf (ein Sender, viele Empfänger gleichzeitig)</li>
+                <li>Direktbetrieb (ohne Basisstation, Gerät zu Gerät)</li>
+                <li>Priorisiertes Notfallnetz &mdash; funktioniert auch bei Netzüberlast</li>
+                <li>Eingebauter GPS-Ortungsdienst</li>
+                <li><strong>SDS</strong> (Short Data Service) &mdash; TETRA-eigenes Datennachrichtenformat</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:0.75rem; font-size:0.8rem;">
+              <div style="font-weight:700; color:#1e40af; margin-bottom:0.4rem;">Nutzer im BOS-Netz</div>
+              <ul style="margin:0; padding-left:1.1rem; color:#374151; line-height:1.8;">
+                <li>Polizei (Bund und Länder)</li>
+                <li>Feuerwehr (Berufs- und Freiwillige)</li>
+                <li>Rettungsdienst / Notarzt</li>
+                <li>THW, Katastrophenschutz</li>
+                <li><strong>Werksfeuerwehren</strong> (mit BOS-Zulassung)</li>
+                <li>Betriebssanitätsdienste (je nach Bundesland)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Zugang -->
+      <div class="section-card rot" id="zugang">
+        <h2 style="color:#dc3545;">2. Wer hat Zugang zum BOS-Netz?</h2>
+        <p style="font-size:0.88rem; color:#374151; line-height:1.7;">
+          Das BOS-TETRA-Netz ist <strong>kein offenes Netz</strong>. Der Zugang ist gesetzlich
+          geregelt (BDBOS-Gesetz) und erfordert eine offizielle Zulassung.
+        </p>
+        <table class="table table-sm table-bordered status-table">
+          <thead style="background:#fee2e2;">
+            <tr>
+              <th>Organisation</th>
+              <th>BOS-Zugang</th>
+              <th>Voraussetzung</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Polizei, Feuerwehr, Rettungsdienst, THW</td>
+              <td><span class="compare-badge cb-gruen">Ja</span></td>
+              <td>Gesetzlich zugewiesen</td>
+            </tr>
+            <tr>
+              <td><strong>Werksfeuerwehr</strong> (z.B. Chemie, Flughafen, Bahn)</td>
+              <td><span class="compare-badge cb-gruen">Ja</span></td>
+              <td>Anerkannte Werksfeuerwehr + Antrag beim Landesinnenministerium</td>
+            </tr>
+            <tr>
+              <td>Betriebssanitätsdienst (anerkannt)</td>
+              <td><span class="compare-badge cb-gelb">Eingeschränkt</span></td>
+              <td>Variiert je Bundesland, Kooperation mit Rettungsdienst erforderlich</td>
+            </tr>
+            <tr>
+              <td>Privates Unternehmen ohne BOS-Status</td>
+              <td><span class="compare-badge cb-rot">Nein</span></td>
+              <td>Kein direkter Zugang &mdash; privates TETRA oder Alternativen nutzen</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:6px; padding:0.75rem; font-size:0.82rem; color:#92400e;">
+          <strong>Zuständigkeit:</strong> Anträge auf BOS-Zulassung laufen über das jeweilige
+          <strong>Landesinnenministerium</strong> und die BDBOS. Für Werksfeuerwehren ist zusätzlich
+          die Brandschutzdienststelle des Landkreises einzubinden.
+        </div>
+      </div>
+
+      <!-- 3. Bidirektionale Rückmeldung -->
+      <div class="section-card blau" id="bidirektional">
+        <h2 style="color:#0d6efd;">3. Bidirektionale Rückmeldung &mdash; genau wie Element</h2>
+        <p style="font-size:0.88rem; color:#374151; line-height:1.7;">
+          Das ist der <strong>native Anwendungsfall von TETRA</strong> &mdash; das Protokoll wurde
+          von Grund auf für genau diesen Zweck gebaut: Alarm senden, Statusrückmeldung empfangen,
+          ohne dass der Ersthelfer tippen oder einen Link öffnen muss.
+        </p>
+
+        <div style="font-weight:700; font-size:0.85rem; color:#0d6efd; margin-bottom:0.75rem;">SDS-Typen im Überblick</div>
+        <table class="table table-sm table-bordered status-table mb-3">
+          <thead style="background:#eff6ff;">
+            <tr><th>SDS-Typ</th><th>Daten</th><th>Anwendung</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>SDS-1</td><td>1 Bit</td><td>Einzelnes Status-Flag</td></tr>
+            <tr><td>SDS-2</td><td>2 Bit</td><td>4 vordefinierte Statuscodes</td></tr>
+            <tr><td>SDS-3</td><td>4 Bit</td><td>16 vordefinierte Statuscodes (BOS-Standard)</td></tr>
+            <tr><td><strong>SDS-4 (SDS-TL)</strong></td><td>bis 140 Zeichen</td><td>Freie Textnachrichten (wie SMS), Alarmtexte mit Einsatzort</td></tr>
+          </tbody>
+        </table>
+
+        <div style="font-weight:700; font-size:0.85rem; color:#0d6efd; margin-bottom:0.75rem;">BOS-Standardstatuscodes (SDS-3) und PRIMA-Mapping</div>
+        <table class="table table-sm table-bordered status-table">
+          <thead style="background:#eff6ff;">
+            <tr>
+              <th>TETRA-Status</th>
+              <th>BOS-Bedeutung</th>
+              <th>PRIMA-Äquivalent</th>
+              <th>Rückmeldungstext</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Status 1</strong></td>
+              <td>Einsatzbereit über Funk</td>
+              <td>&mdash;</td>
+              <td>Bereit</td>
+            </tr>
+            <tr style="background:#f0fdf4;">
+              <td><strong>Status 3</strong></td>
+              <td>Einsatz übernommen / Bin unterwegs</td>
+              <td><code>unterwegs</code></td>
+              <td>Bin unterwegs</td>
+            </tr>
+            <tr style="background:#dcfce7;">
+              <td><strong>Status 4</strong></td>
+              <td>Am Einsatzort</td>
+              <td><code>am_ort</code></td>
+              <td>Bin vor Ort</td>
+            </tr>
+            <tr style="background:#fefce8;">
+              <td><strong>Status 5</strong></td>
+              <td>Sprechwunsch / Benötige Unterstützung</td>
+              <td><code>unterstuetzung</code></td>
+              <td>Brauche Unterstützung</td>
+            </tr>
+            <tr style="background:#fff1f2;">
+              <td><strong>Status 6</strong></td>
+              <td>Nicht einsatzbereit</td>
+              <td><code>abgelehnt</code></td>
+              <td>Kann nicht kommen</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:0.75rem; font-size:0.82rem; color:#1e40af; margin-top:0.5rem;">
+          <strong>Vorteil gegenüber Matrix/Element:</strong> Der Ersthelfer muss kein Smartphone
+          herausholen, keinen Link öffnen, sich nicht einloggen. Er drückt am Funkgerät eine
+          einzige Taste &mdash; PRIMA empfängt den Status sofort. Das funktioniert auch wenn das
+          Mobilfunknetz überlastet oder ausgefallen ist.
+        </div>
+      </div>
+
+      <!-- 4. Architektur -->
+      <div class="section-card" id="architektur">
+        <h2 style="color:#1a4d2e;">4. Technische Architektur</h2>
+        <div class="code-block">PRIMA Django (Alarm auslösen)
+    │
+    │  HTTP POST → Gateway-API
+    │  Nachricht: "EH-ALARM Serverraum EG – 09:42 Uhr"
+    │  Empfänger: ISSI-Gruppe "Ersthelfer" oder Einzel-ISSI
+    ▼
+TETRA-IP-Gateway  (z.B. Frequentis 3020 IDC / Sepura SRG3900)
+    │
+    │  SDS-4 Textnachricht (140 Zeichen) an Gruppe/Einzelgerät
+    ▼
+TETRA-Endgeräte der Ersthelfer
+    │  Bildschirm zeigt: "EH-ALARM Serverraum EG – 09:42"
+    │  Lautsprecher: Alarmton
+    │
+    │  Ersthelfer drückt  [Status 3 = Unterwegs]  oder  [Status 4 = Vor Ort]
+    ▼
+TETRA-IP-Gateway  (empfängt SDS-Status)
+    │
+    │  HTTP POST Webhook → /ersthelfe/tetra/rueckmeldung/
+    │  {"issi": "0912345", "status": 4}
+    ▼
+PRIMA Django (Rückmeldung verarbeiten)
+    │
+    │  ISSI → HRMitarbeiter auflösen
+    │  ErsteHilfeRueckmeldung anlegen (identisch zu Token-Rückmeldung)
+    │  Matrix-Ping im EH_PING-Raum
+    ▼
+Vorfall-Protokoll aktualisiert – Lauftext-Banner erlischt</div>
+
+        <div style="font-size:0.82rem; color:#374151; line-height:1.7; margin-top:0.75rem;">
+          Die <strong>ISSI</strong> (Individual Short Subscriber Identity) ist die eindeutige
+          Kennnummer jedes TETRA-Geräts &mdash; vergleichbar mit einer Mobilfunknummer.
+          In den HR-Stammdaten des Ersthelfers (Modell <code>HRMitarbeiter</code>) wird die ISSI
+          als neues Feld hinterlegt. PRIMA löst darüber den Mitarbeiter auf, legt die
+          <code>ErsteHilfeRueckmeldung</code> an &mdash; dieselbe Logik wie beim Token-Link.
+        </div>
+      </div>
+
+      <!-- 5. Hardware -->
+      <div class="section-card gelb" id="hardware">
+        <h2 style="color:#92400e;">5. Benötigte Hardware</h2>
+
+        <div style="font-weight:700; font-size:0.85rem; color:#92400e; margin-bottom:0.75rem;">
+          Weg A &mdash; BOS-Netz (Werksfeuerwehr / BOS-Zulassung)
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-md-4">
+            <div class="hardware-card">
+              <div class="hersteller">TETRA-IP-Gateway</div>
+              <div style="color:#6b7280; margin-bottom:0.3rem;">Verbindet IP-Netz mit TETRA-Netz, stellt REST/SOAP-API bereit</div>
+              <ul style="font-size:0.76rem; color:#374151; margin:0; padding-left:1.1rem; line-height:1.7;">
+                <li>Frequentis 3020 IDC</li>
+                <li>Airbus Tactilon Agnet Gateway</li>
+                <li>Motorola Solutions DIMETRA</li>
+                <li>Cassidian / EADS ICCS</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="hardware-card">
+              <div class="hersteller">TETRA-Handfunkgeräte</div>
+              <div style="color:#6b7280; margin-bottom:0.3rem;">Empfangen SDS, senden Statuscodes per Taste</div>
+              <ul style="font-size:0.76rem; color:#374151; margin:0; padding-left:1.1rem; line-height:1.7;">
+                <li>Sepura STP9000 / SC21</li>
+                <li>Motorola MTP6650 / MTP3550</li>
+                <li>Hytera PD985 / PT580H</li>
+                <li>Kenwood NX-5000</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="hardware-card">
+              <div class="hersteller">TETRA-SIM (OPTA)</div>
+              <div style="color:#6b7280; margin-bottom:0.3rem;">Netzzugang, vergleichbar mit SIM-Karte</div>
+              <ul style="font-size:0.76rem; color:#374151; margin:0; padding-left:1.1rem; line-height:1.7;">
+                <li>Beschaffung über BDBOS</li>
+                <li>Koordination durch Landesinnenministerium</li>
+                <li>Nur für zugelassene BOS-Nutzer</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-weight:700; font-size:0.85rem; color:#92400e; margin-bottom:0.75rem;">
+          Weg B &mdash; Privates TETRA-Netz (ohne BOS-Zulassung, für Industriebetriebe)
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <div class="hardware-card">
+              <div class="hersteller">Kompaktsystem für KMU: Rohill tetra:node</div>
+              <div style="font-size:0.76rem; color:#374151; line-height:1.7;">
+                Kleinstes eigenständiges TETRA-System auf dem Markt.<br>
+                Einstieg ab ca. 15.000 EUR (Basis-Infrastruktur).<br>
+                Eigene Frequenzlizenz bei Bundesnetzagentur erforderlich.<br>
+                IP-Schnittstelle für PRIMA-Anbindung vorhanden.
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="hardware-card">
+              <div class="hersteller">Enterprise-Systeme</div>
+              <div style="font-size:0.76rem; color:#374151; line-height:1.7;">
+                Hytera TETRA / DMR Konvergenz-Systeme<br>
+                Motorola Solutions DIMETRA Express (ab 5 Teilnehmer)<br>
+                Sepura Smart Infrastructure<br>
+                Alle bieten REST/HTTP-Gateway-Schnittstellen.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:0.75rem; font-size:0.82rem; color:#92400e;">
+          <strong>Gebrauchte Hardware:</strong> TETRA-Endgeräte (Handfunkgeräte) sind auf dem
+          Gebrauchtmarkt (eBay, BOS-Ausstatter) ab ca. 150–400 EUR je Gerät verfügbar.
+          Das Gateway ist die Hauptinvestition.
+        </div>
+      </div>
+
+      <!-- 6. PRIMA-Integration -->
+      <div class="section-card lila" id="prima-integration">
+        <h2 style="color:#4f46e5;">6. PRIMA-Integration im Detail</h2>
+        <p style="font-size:0.88rem; color:#374151; line-height:1.7;">
+          In PRIMA würde eine neue App <code>tetra/</code> entstehen. Der Aufwand ist gering,
+          weil die gesamte EH-Logik (Rückmeldeverarbeitung, Protokoll, Matrix-Ping) bereits
+          vorhanden ist &mdash; TETRA ist nur ein weiterer Eingangskanal.
+        </p>
+
+        <div style="font-weight:700; font-size:0.85rem; color:#4f46e5; margin-bottom:0.5rem;">Neues Feld in HR-Stammdaten</div>
+        <div class="code-block">
+# hr/models.py  (Ergänzung HRMitarbeiter)
+tetra_issi = models.CharField(
+    max_length=15, blank=True, default="",
+    verbose_name="TETRA ISSI",
+    help_text="Individuelle Teilnehmerkennung des TETRA-Funkgeraets"
+)</div>
+
+        <div style="font-weight:700; font-size:0.85rem; color:#4f46e5; margin-bottom:0.5rem; margin-top:1rem;">Webhook-Endpunkt (Rückmeldung empfangen)</div>
+        <div class="code-block">
+# tetra/views.py
+@require_POST
+def tetra_rueckmeldung(request):
+    """Empfaengt SDS-Statusmeldung vom TETRA-IP-Gateway."""
+    daten = json.loads(request.body)
+    issi   = daten.get("issi", "")
+    status = int(daten.get("status", 0))
+
+    # ISSI → Mitarbeiter auflösen
+    STATUS_MAP = {3: "unterwegs", 4: "am_ort", 5: "unterstuetzung", 6: "abgelehnt"}
+    prima_status = STATUS_MAP.get(status)
+    if not prima_status:
+        return JsonResponse({"ok": False, "fehler": "Unbekannter Status"}, status=400)
+
+    try:
+        mitarbeiter = HRMitarbeiter.objects.get(tetra_issi=issi)
+    except HRMitarbeiter.DoesNotExist:
+        return JsonResponse({"ok": False, "fehler": "ISSI unbekannt"}, status=404)
+
+    # Offenen Vorfall finden und Rückmeldung anlegen
+    vorfall = ErsteHilfeVorfall.objects.filter(status="offen").order_by("-erstellt_am").first()
+    if not vorfall:
+        return JsonResponse({"ok": False, "fehler": "Kein offener Vorfall"})
+
+    ErsteHilfeRueckmeldung.objects.create(
+        vorfall=vorfall, ersthelfer=mitarbeiter, status=prima_status
+    )
+    return JsonResponse({"ok": True})</div>
+
+        <div style="font-weight:700; font-size:0.85rem; color:#4f46e5; margin-bottom:0.5rem; margin-top:1rem;">Alarm senden (SDS-4 Textnachricht)</div>
+        <div class="code-block">
+# tetra/services.py
+def tetra_alarm_senden(vorfall):
+    """Sendet SDS-4-Textnachricht an die TETRA-Ersthelfer-Gruppe."""
+    from django.conf import settings
+    import urllib.request, json
+
+    nachricht = "EH-ALARM {} – {} Uhr – Rueckmeldung per Status 3/4/5/6".format(
+        vorfall.ort,
+        vorfall.erstellt_am.strftime("%H:%M"),
+    )
+    payload = {
+        "destination": settings.TETRA_EH_GRUPPE,   # z.B. Gruppen-GSSI
+        "message": nachricht,
+        "priority": 15,   # TETRA-Priorität 0–15, 15 = höchste
+    }
+    req = urllib.request.Request(
+        settings.TETRA_GATEWAY_URL + "/api/sds/send",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json",
+                 "Authorization": "Bearer " + settings.TETRA_GATEWAY_TOKEN},
+        method="POST",
+    )
+    urllib.request.urlopen(req, timeout=5)</div>
+
+        <div style="background:#f5f3ff; border:1px solid #c4b5fd; border-radius:6px; padding:0.75rem; font-size:0.82rem; color:#4c1d95; margin-top:0.75rem;">
+          <strong>settings.py</strong> benötigt drei neue Variablen:
+          <code>TETRA_GATEWAY_URL</code>, <code>TETRA_GATEWAY_TOKEN</code>,
+          <code>TETRA_EH_GRUPPE</code> (GSSI der Ersthelfer-Gruppe).
+          Alle aus <code>.env.prima</code> geladen &mdash; kein Hardcoding.
+        </div>
+      </div>
+
+      <!-- 7. Alternativen -->
+      <div class="section-card cyan" id="alternativen">
+        <h2 style="color:#0e7490;">7. Alternativen ohne TETRA-Zulassung</h2>
+        <p style="font-size:0.88rem; color:#374151; line-height:1.7;">
+          Wenn kein Zugang zum BOS-TETRA-Netz besteht und kein privates TETRA aufgebaut
+          werden soll, gibt es praxistaugliche Alternativen mit ähnlichen Eigenschaften:
+        </p>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div style="border:1px solid #a5f3fc; border-radius:8px; padding:0.9rem; background:#ecfeff;">
+              <div style="font-weight:700; font-size:0.82rem; color:#0e7490; margin-bottom:0.4rem;">DMR (Digital Mobile Radio)</div>
+              <div style="font-size:0.78rem; color:#374151; line-height:1.7;">
+                Günstigerer digitaler Funk, weit verbreitet in Industrie und Gewerbe.
+                Hytera, Motorola, Kenwood bieten DMR mit IP-Gateway.
+                Statusrückmeldungen per Tastendruck &mdash; identische Logik wie TETRA SDS.<br>
+                <strong>Hardware:</strong> Hytera IP SITE CONNECT Gateway (ab ca. 800 EUR),
+                DMR-Handfunkgeräte ab ca. 200 EUR.
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div style="border:1px solid #a5f3fc; border-radius:8px; padding:0.9rem; background:#ecfeff;">
+              <div style="font-weight:700; font-size:0.82rem; color:#0e7490; margin-bottom:0.4rem;">POCSAG-Pager</div>
+              <div style="font-size:0.78rem; color:#374151; line-height:1.7;">
+                Klassische Alarmierungstechnik, die in vielen Feuerwehren parallel zu TETRA
+                läuft. Nur Empfang (keine Rückmeldung per Gerät möglich).
+                Günstigste Einstiegslösung für reine Alarmierung.<br>
+                <strong>Hardware:</strong> Swissphone DE900, POCSAG-Sender für Intranet
+                (z.B. über RaspberryPi + CC1101-Modul).
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div style="border:1px solid #a5f3fc; border-radius:8px; padding:0.9rem; background:#ecfeff;">
+              <div style="font-weight:700; font-size:0.82rem; color:#0e7490; margin-bottom:0.4rem;">LTE-PTT (Push-to-Talk over LTE)</div>
+              <div style="font-size:0.78rem; color:#374151; line-height:1.7;">
+                Nutzt das öffentliche Mobilfunknetz. Kein eigenes Funknetz nötig.
+                Statusrückmeldungen per App oder Hardtaste möglich.
+                Abhängig von Mobilfunkabdeckung &mdash; versagt bei Netzausfall.<br>
+                <strong>Anbieter:</strong> Hytera PNC-Serie, Motorola WAVE PTX,
+                Zello (für einfache Anwendungen).
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div style="border:1px solid #a5f3fc; border-radius:8px; padding:0.9rem; background:#ecfeff;">
+              <div style="font-weight:700; font-size:0.82rem; color:#0e7490; margin-bottom:0.4rem;">Aktuell in PRIMA: ntfy + Matrix</div>
+              <div style="font-size:0.78rem; color:#374151; line-height:1.7;">
+                Bereits implementiert und funktionsfähig. Kein zusätzliches Gerät.
+                Abhängig von WLAN / Mobilfunknetz und Akku des Smartphones.
+                Rückmeldung per Token-Link (4 Buttons).<br>
+                Für die meisten Betriebe <strong>ausreichend</strong> &mdash;
+                TETRA/DMR nur sinnvoll wenn erhöhte Ausfallsicherheit benötigt wird.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. Vergleich -->
+      <div class="section-card" id="vergleich">
+        <h2 style="color:#1a4d2e;">8. Vergleich der Alarmierungskanäle</h2>
+        <div style="overflow-x:auto;">
+          <table class="table table-sm table-bordered status-table">
+            <thead style="background:#f0fdf4;">
+              <tr>
+                <th>Kanal</th>
+                <th>Gerät</th>
+                <th>Rückmeldung</th>
+                <th>Netz</th>
+                <th>Stromausfall</th>
+                <th>Kosten</th>
+                <th>Status in PRIMA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Matrix/Element</strong></td>
+                <td>Smartphone</td>
+                <td>Token-Link, 4 Buttons</td>
+                <td>WLAN / LTE</td>
+                <td><span class="compare-badge cb-rot">Gefährdet</span></td>
+                <td><span class="compare-badge cb-gruen">Kostenlos</span></td>
+                <td><span class="compare-badge cb-gruen">Implementiert</span></td>
+              </tr>
+              <tr>
+                <td><strong>ntfy</strong></td>
+                <td>Smartphone / Browser</td>
+                <td>Nur Empfang</td>
+                <td>WLAN / LTE</td>
+                <td><span class="compare-badge cb-rot">Gefährdet</span></td>
+                <td><span class="compare-badge cb-gruen">Kostenlos</span></td>
+                <td><span class="compare-badge cb-gruen">Implementiert</span></td>
+              </tr>
+              <tr>
+                <td><strong>DMR-Funk</strong></td>
+                <td>Handfunkgerät</td>
+                <td>Statustaste (1 Knopf)</td>
+                <td>Eigenes Funknetz</td>
+                <td><span class="compare-badge cb-gelb">Teilweise</span></td>
+                <td><span class="compare-badge cb-gelb">ab 1.000 EUR</span></td>
+                <td><span class="compare-badge cb-gelb">Geplant möglich</span></td>
+              </tr>
+              <tr>
+                <td><strong>POCSAG-Pager</strong></td>
+                <td>Pager</td>
+                <td>Kein</td>
+                <td>Eigener Sender</td>
+                <td><span class="compare-badge cb-gruen">USV möglich</span></td>
+                <td><span class="compare-badge cb-gelb">ab 500 EUR</span></td>
+                <td><span class="compare-badge cb-gelb">Geplant möglich</span></td>
+              </tr>
+              <tr>
+                <td><strong>LTE-PTT</strong></td>
+                <td>Handfunkgerät / App</td>
+                <td>Statustaste</td>
+                <td>Mobilfunk (LTE)</td>
+                <td><span class="compare-badge cb-rot">Gefährdet</span></td>
+                <td><span class="compare-badge cb-gelb">Abo-Modell</span></td>
+                <td><span class="compare-badge cb-gelb">Geplant möglich</span></td>
+              </tr>
+              <tr style="background:#f0fdf4;">
+                <td><strong>TETRA (BOS)</strong></td>
+                <td>BOS-Handfunkgerät</td>
+                <td>Statustaste (1 Knopf)</td>
+                <td>BOS-Netz (priorisiert)</td>
+                <td><span class="compare-badge cb-gruen">Ja (Redundanz)</span></td>
+                <td><span class="compare-badge cb-rot">ab 15.000 EUR</span></td>
+                <td><span class="compare-badge cb-gelb">Konzept vorhanden</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 9. Implementierungsplan -->
+      <div class="section-card" id="implementierung">
+        <h2 style="color:#1a4d2e;">9. Implementierungsplan (wenn Hardware vorhanden)</h2>
+        <p style="font-size:0.88rem; color:#374151; line-height:1.7;">
+          Sobald ein TETRA- oder DMR-Gateway im Netz erreichbar ist, wäre der
+          Implementierungsaufwand in PRIMA überschaubar &mdash; die EH-Kernlogik ist bereits vorhanden.
+        </p>
+        <div class="flow-step blau"><div class="step-nr">1</div><div><strong>hr/models.py:</strong> Neues Feld <code>tetra_issi</code> bei HRMitarbeiter + Migration. Admin-Eintrag ergänzen.</div></div>
+        <div class="flow-step blau"><div class="step-nr">2</div><div><strong>config/settings.py:</strong> Drei neue Variablen aus .env: <code>TETRA_GATEWAY_URL</code>, <code>TETRA_GATEWAY_TOKEN</code>, <code>TETRA_EH_GRUPPE</code>.</div></div>
+        <div class="flow-step blau"><div class="step-nr">3</div><div><strong>neue App tetra/:</strong> <code>services.py</code> (Alarm senden), <code>views.py</code> (Webhook empfangen), <code>urls.py</code>.</div></div>
+        <div class="flow-step blau"><div class="step-nr">4</div><div><strong>ersthelfe/views.py:</strong> <code>_benachrichtige_ersthelfer()</code> um <code>tetra_alarm_senden()</code> erweitern &mdash; läuft parallel zu Matrix und ntfy.</div></div>
+        <div class="flow-step blau"><div class="step-nr">5</div><div><strong>Testen:</strong> Gateway simulieren mit <code>curl -X POST /ersthelfe/tetra/rueckmeldung/ -d '{"issi":"0912345","status":4}'</code>. ISSI muss in HR-Stammdaten eingetragen sein.</div></div>
+        <div style="background:#dcfce7; border:1px solid #86efac; border-radius:6px; padding:0.75rem; font-size:0.82rem; color:#166534; margin-top:0.75rem;">
+          <strong>Geschätzter Aufwand:</strong> 1 Arbeitstag für PRIMA-Implementierung.
+          Hardware-Beschaffung und Gateway-Konfiguration beim Hersteller sind der eigentliche
+          Aufwand (1&ndash;3 Tage je nach Gateway-Typ und Hersteller-Support).
+        </div>
+      </div>
+
+      <!-- 10. Fazit -->
+      <div class="section-card rot" id="fazit">
+        <h2 style="color:#dc3545;">10. Fazit</h2>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div style="background:#fff1f2; border:1px solid #fca5a5; border-radius:6px; padding:0.9rem; font-size:0.82rem; line-height:1.7;">
+              <div style="font-weight:700; color:#b91c1c; margin-bottom:0.4rem;">Technisch: Vollständig lösbar</div>
+              PRIMA kann TETRA bidirektional anbinden. Die gesamte Rückmeldungslogik
+              (Vorfall, Protokoll, Matrix-Ping, Lauftext-Banner) ist bereits vorhanden
+              und muss nur um einen neuen Eingangskanal erweitert werden.
+              Aufwand PRIMA-seitig: 1 Tag.
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div style="background:#fff1f2; border:1px solid #fca5a5; border-radius:6px; padding:0.9rem; font-size:0.82rem; line-height:1.7;">
+              <div style="font-weight:700; color:#b91c1c; margin-bottom:0.4rem;">Organisatorisch: Klärungsbedarf</div>
+              BOS-TETRA erfordert offizielle Zulassung (Landesinnenministerium / BDBOS).
+              Privates TETRA/DMR ist ohne Zulassung möglich, erfordert aber
+              Frequenzlizenz (Bundesnetzagentur) und Gateway-Hardware.
+            </div>
+          </div>
+        </div>
+        <div style="background:#fee2e2; border:1px solid #fca5a5; border-radius:6px; padding:0.75rem; font-size:0.82rem; color:#991b1b; margin-top:0.75rem;">
+          <strong>Empfehlung:</strong> Für die meisten Betriebe ist das bestehende System
+          (ntfy + Matrix/Element) ausreichend. TETRA/DMR ist sinnvoll wenn der Betrieb
+          bereits eine Werksfeuerwehr, einen anerkannten Betriebsrettungsdienst oder
+          eine Umgebung hat, in der Mobilfunk nicht zuverlässig verfügbar ist
+          (Produktionshallen, Keller, Außengelände).
+        </div>
+      </div>
+
+    </div><!-- col -->
+  </div><!-- row -->
+</div><!-- container -->
+
+{% endblock %}

@@ -24,6 +24,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'host.docker.internal',
+    'prima.georg-klein.com',
     '.onrender.com',
     'arbeitszeit-gpt.up.railway.app',
     '.railway.app',
@@ -31,6 +32,7 @@ ALLOWED_HOSTS = [
 ]
 
 CSRF_TRUSTED_ORIGINS = [
+    'https://prima.georg-klein.com',
     'https://*.onrender.com',
     'https://arbeitszeit-gpt.up.railway.app',
     'https://*.railway.app',
@@ -65,6 +67,11 @@ INSTALLED_APPS = [
     'betriebssport.apps.BetriebssportConfig',
     'django.contrib.postgres',
     'dms.apps.DmsConfig',
+    'matrix_integration.apps.MatrixIntegrationConfig',
+    'korrespondenz.apps.KorrespondenzConfig',
+    'it_status.apps.ItStatusConfig',
+    'ersthelfe.apps.ErsthelfeConfig',
+    'sicherheit.apps.SicherheitConfig',
 ]
 
 # Verschluesselung fuer sensible Dokumente (Fernet AES-128)
@@ -92,8 +99,8 @@ SIGNATUR_SIGN_ME_TIMEOUT = 30
 
 AUTHENTICATION_BACKENDS = [
     'axes.backends.AxesStandaloneBackend',
-    # Erbt von ModelBackend + verwaltet PBKDF2-Signatur-Schluessel beim Login
-    'signatur.auth_backend.SignaturAuthBackend',
+    # Erbt von SignaturAuthBackend: Stellen-Kuerzel als Benutzername + Signatur-Schluessel
+    'hr.backends.StelleAuthBackend',
     'guardian.backends.ObjectPermissionBackend',
 ]
 
@@ -142,6 +149,10 @@ TEMPLATES = [
                 'facility.context_processors.facility_context',
                 'stellenportal.context_processors.stellenportal_context',
                 'veranstaltungen.context_processors.veranstaltungen_context',
+                'matrix_integration.context_processors.matrix_kontext',
+                'it_status.context_processors.it_status_ampel',
+                'ersthelfe.context_processors.eh_badge',
+                'sicherheit.context_processors.sicherheit_banner',
             ],
         },
     },
@@ -333,6 +344,10 @@ LOGGING = {
         "signatur":   {"handlers": ["konsole"], "level": "INFO", "propagate": False},
         "datenschutz":{"handlers": ["konsole"], "level": "INFO", "propagate": False},
         "config.kommunikation_utils": {"handlers": ["konsole"], "level": "INFO", "propagate": False},
+        "dms":          {"handlers": ["konsole"], "level": "DEBUG", "propagate": False},
+        "korrespondenz":{"handlers": ["konsole"], "level": "DEBUG", "propagate": False},
+        "sicherheit":   {"handlers": ["konsole"], "level": "INFO", "propagate": False},
+        "django.request":{"handlers": ["konsole"], "level": "ERROR", "propagate": False},
     },
 }
 
@@ -346,15 +361,23 @@ LOGGING = {
 # Beispiel: BENTOPDF_URL=https://pdf.georg-klein.com
 BENTOPDF_URL = os.environ.get("BENTOPDF_URL", "")
 
-# OnlyOffice: URL des selbst betriebenen Document Servers (ohne abschliessendes /)
-# Beispiel: ONLYOFFICE_URL=https://office.georg-klein.com
+# OnlyOffice: Oeffentliche URL fuer den Browser (Script-Tag im Template)
+# Beispiel: https://office.georg-klein.com
 ONLYOFFICE_URL = os.environ.get("ONLYOFFICE_URL", "")
+# OnlyOffice: Interne URL fuer server-seitige API-Calls (CommandService, forcesave)
+# Muss vom Django-Container erreichbar sein – nicht durch Cloudflare!
+ONLYOFFICE_INTERNAL_URL = os.environ.get("ONLYOFFICE_INTERNAL_URL", "http://host.docker.internal:8012")
 # JWT-Secret muss mit dem JWT_SECRET im OnlyOffice docker-compose.yml uebereinstimmen
 ONLYOFFICE_JWT_SECRET = os.environ.get("ONLYOFFICE_JWT_SECRET", "")
-# Basis-URL unter der PRIMA vom OnlyOffice-Container erreichbar ist
-# Lokal: host.docker.internal:8000 (Docker Desktop Windows/Mac)
-# Produktion: oeffentliche PRIMA-URL
+# Oeffentliche PRIMA-URL (fuer Browser-Links, CSRF etc.)
 PRIMA_BASE_URL = os.environ.get("PRIMA_BASE_URL", "http://host.docker.internal:8000")
+# Interne PRIMA-URL fuer OnlyOffice-Server-Callbacks (document.url + callbackUrl)
+# Muss vom OnlyOffice-Docker-Container erreichbar sein – nie durch Cloudflare!
+# Lokal und Produktion: host.docker.internal:8000 (direkt im LAN)
+PRIMA_ONLYOFFICE_BASE_URL = os.environ.get(
+    "PRIMA_ONLYOFFICE_BASE_URL",
+    "http://host.docker.internal:8000"
+)
 
 # Jitsi Meet: Basis-URL des eigenen Jitsi-Servers (ohne abschliessendes /)
 # Beispiel: JITSI_BASE_URL=https://meet.intranet.firma.de
@@ -363,8 +386,39 @@ JITSI_BASE_URL = os.environ.get("JITSI_BASE_URL", "")
 # Matrix/Element: Homeserver-URL + Bot-Token (Zugangstoken eines Bot-Accounts)
 # Beispiel: MATRIX_HOMESERVER_URL=https://matrix.intranet.firma.de
 MATRIX_HOMESERVER_URL = os.environ.get("MATRIX_HOMESERVER_URL", "")
+MATRIX_HOMESERVER_INTERNAL_URL = os.environ.get("MATRIX_HOMESERVER_INTERNAL_URL", "")
+MATRIX_SERVER_NAME = os.environ.get("MATRIX_SERVER_NAME", "")
 MATRIX_BOT_TOKEN = os.environ.get("MATRIX_BOT_TOKEN", "")
+MATRIX_ADMIN_TOKEN = os.environ.get("MATRIX_ADMIN_TOKEN", "")
 
 # Matrix-Raum-ID des Facility-Teams (fuer automatische Stoermeldungs-Pings)
 # Format: !raumid:server  – im Element-Client unter Raumeinstellungen abrufbar
 MATRIX_FACILITY_ROOM_ID = os.environ.get("MATRIX_FACILITY_ROOM_ID", "")
+
+# Matrix-Raum-ID des IT-Helpdesk-Teams (fuer automatische IT-Stoerungsmeldungen)
+MATRIX_IT_STOERUNG_ROOM_ID = os.environ.get(
+    "MATRIX_IT_STOERUNG_ROOM_ID", "!NfxKjqxMDsKXSmixhZ:georg-klein.com"
+)
+
+# Matrix-Raum-ID fuer Erste-Hilfe-Alarm (oeffentlicher Ping an alle Ersthelfer)
+MATRIX_EH_PING_ROOM_ID = os.environ.get("MATRIX_EH_PING_ROOM_ID", "")
+
+# ntfy – selbst gehosteter Push-Dienst fuer Android-Alarm-Benachrichtigungen
+# Interner Zugriff aus Docker: host.docker.internal:8014
+# Android-Zugriff im LAN: 192.168.178.82:8014
+NTFY_URL = os.environ.get("NTFY_URL", "http://host.docker.internal:8015")
+NTFY_EH_TOPIC = os.environ.get("NTFY_EH_TOPIC", "eh-alarm-prima")
+NTFY_AMOK_TOPIC = os.environ.get("NTFY_AMOK_TOPIC", "amok-alarm-prima")
+NTFY_STILL_TOPIC = os.environ.get("NTFY_STILL_TOPIC", "security-intern")
+NTFY_BRAND_TOPIC           = os.environ.get("NTFY_BRAND_TOPIC",           "brand-alarm-prima")
+NTFY_BRANDERKUNDER_TOPIC   = os.environ.get("NTFY_BRANDERKUNDER_TOPIC",   "branderkunder-prima")
+NTFY_RAEUMUNGSHELFER_TOPIC = os.environ.get("NTFY_RAEUMUNGSHELFER_TOPIC", "raeumungshelfer-prima")
+NTFY_BRANDBEKAEMPFER_TOPIC = os.environ.get("NTFY_BRANDBEKAEMPFER_TOPIC", "brandbekaempfer-prima")
+
+# Matrix-Raum-IDs fuer Sicherheitsalarme
+MATRIX_SECURITY_PING_ROOM_ID    = os.environ.get("MATRIX_SECURITY_PING_ROOM_ID", "")
+MATRIX_BRANDERKUNDER_ROOM_ID    = os.environ.get("MATRIX_BRANDERKUNDER_ROOM_ID", "")
+MATRIX_RAEUMUNGSHELFER_ROOM_ID  = os.environ.get("MATRIX_RAEUMUNGSHELFER_ROOM_ID", "")
+
+# Basis-URL fuer Token-Links in Matrix-DMs
+PRIMA_BASE_URL = os.environ.get("PRIMA_BASE_URL", "https://prima.georg-klein.com")

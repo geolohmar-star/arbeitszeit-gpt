@@ -1,0 +1,76 @@
+            <p class="text-muted mb-4" style="font-size:0.9rem;">
+              Alle Libraries sind lokal eingebunden &mdash; die Anwendung laeuft vollstaendig
+              ohne Internet-Verbindung (Intranet-only).
+            </p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+
+              <div>
+                <h6 class="fw-bold mb-3" style="color:#1a4d2e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Backend</h6>
+                <table class="table table-sm" style="font-size:0.85rem;">
+                  <tbody>
+                    <tr><td class="fw-semibold" style="width:45%;">Django</td><td class="text-muted">6.0.3 &mdash; Web-Framework (FBVs)</td></tr>
+                    <tr><td class="fw-semibold">Python</td><td class="text-muted">3.11+ &mdash; Laufzeitumgebung</td></tr>
+                    <tr><td class="fw-semibold">PostgreSQL</td><td class="text-muted">16 &mdash; Datenbank (Railway/Docker)</td></tr>
+                    <tr><td class="fw-semibold">psycopg2</td><td class="text-muted">2.9.11 &mdash; DB-Adapter</td></tr>
+                    <tr><td class="fw-semibold">django-guardian</td><td class="text-muted">3.2.0 &mdash; Object-Permissions (DMS, Antraege)</td></tr>
+                    <tr><td class="fw-semibold">django-axes</td><td class="text-muted">7.0.1 &mdash; Brute-Force-Schutz (BSI APP.3.1)</td></tr>
+                    <tr><td class="fw-semibold">WeasyPrint</td><td class="text-muted">68.1 &mdash; HTML &rarr; PDF</td></tr>
+                    <tr><td class="fw-semibold">pyhanko</td><td class="text-muted">0.34.0 &mdash; PDF-Signatur (PKCS#12 / PAdES) inkl. pyhanko-certvalidator</td></tr>
+                    <tr><td class="fw-semibold">cryptography</td><td class="text-muted">46.0.5 &mdash; AES-256-GCM (DMS Klasse 2) + PBKDF2-HMAC-SHA256 (Schluesselverwaltung)</td></tr>
+                    <tr><td class="fw-semibold">PyJWT</td><td class="text-muted">2.9.0 &mdash; JWT fuer OnlyOffice-Integration</td></tr>
+                    <tr><td class="fw-semibold">python-docx</td><td class="text-muted">1.2.0 &mdash; DOCX-Erzeugung (AZV, DMS-Neu)</td></tr>
+                    <tr><td class="fw-semibold">Pillow</td><td class="text-muted">12.1.1 &mdash; Bildverarbeitung (Profilfotos, Thumbnails)</td></tr>
+                    <tr><td class="fw-semibold">pandas</td><td class="text-muted">3.0.0 &mdash; Datenexporte + Excel-Auswertungen</td></tr>
+                    <tr><td class="fw-semibold">OR-Tools / CP-SAT</td><td class="text-muted">9.15 &mdash; Schichtplan-Optimierung (Constraint Programming Solver)</td></tr>
+                    <tr><td class="fw-semibold">workalendar</td><td class="text-muted">17.0 &mdash; Feiertagskalender alle 16 Bundeslaender (je Standort konfigurierbar)</td></tr>
+                    <tr><td class="fw-semibold">openpyxl</td><td class="text-muted">3.1.5 &mdash; Excel-Import + DMS xlsx-Vorlage</td></tr>
+                    <tr><td class="fw-semibold">dj-database-url</td><td class="text-muted">3.1.0 &mdash; DATABASE_URL-Parsing fuer Railway</td></tr>
+                    <tr><td class="fw-semibold">Gunicorn</td><td class="text-muted">25.0.3 &mdash; WSGI-Server (Produktion)</td></tr>
+                    <tr><td class="fw-semibold">Whitenoise</td><td class="text-muted">6.11 &mdash; Static-File-Serving</td></tr>
+                    <tr><td class="fw-semibold">pip-audit</td><td class="text-muted">2.10.0 &mdash; CVE-Scan bei jedem Deploy (BSI OPS.1.1.3)</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div>
+                <h6 class="fw-bold mb-3" style="color:#1a4d2e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Frontend (alle lokal)</h6>
+                <table class="table table-sm" style="font-size:0.85rem;">
+                  <tbody>
+                    <tr><td class="fw-semibold" style="width:45%;">Bootstrap 5</td><td class="text-muted">CSS/JS-Framework (lokal)</td></tr>
+                    <tr><td class="fw-semibold">HTMX</td><td class="text-muted">Partial-Rendering fuer Formulare-App</td></tr>
+                    <tr><td class="fw-semibold">D3.js v7</td><td class="text-muted">Interaktives Organigramm (SVG)</td></tr>
+                    <tr><td class="fw-semibold">Vanilla JS</td><td class="text-muted">Befehlspalette (Strg+K / /)</td></tr>
+                  </tbody>
+                </table>
+
+                <h6 class="fw-bold mt-4 mb-3" style="color:#1a4d2e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Deployment &amp; Infrastruktur</h6>
+                <table class="table table-sm" style="font-size:0.85rem;">
+                  <tbody>
+                    <tr><td class="fw-semibold" style="width:45%;">Railway</td><td class="text-muted">App-Hosting (nixpacks, auto-deploy via GitHub)</td></tr>
+                    <tr><td class="fw-semibold">PostgreSQL</td><td class="text-muted">Railway-Datenbank (Produktion)</td></tr>
+                    <tr><td class="fw-semibold">Cloudflare Tunnel</td><td class="text-muted">HTTPS ohne offene Router-Ports (Zero-Trust)</td></tr>
+                    <tr><td class="fw-semibold">Docker</td><td class="text-muted">Lokale Dienste (OnlyOffice, BentoPDF, PostgreSQL)</td></tr>
+                    <tr><td class="fw-semibold">GitHub</td><td class="text-muted">Versionskontrolle + CI-Trigger</td></tr>
+                  </tbody>
+                </table>
+
+                <h6 class="fw-bold mt-4 mb-3" style="color:#1a4d2e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Externe Dienste (self-hosted)</h6>
+                <table class="table table-sm" style="font-size:0.85rem;">
+                  <tbody>
+                    <tr><td class="fw-semibold" style="width:45%;">OnlyOffice Community</td><td class="text-muted">Docker &mdash; Office-Editor mit DMS-Integration + JWT</td></tr>
+                    <tr><td class="fw-semibold">BentoPDF</td><td class="text-muted">Docker &mdash; WebAssembly PDF-Toolbox (clientseitig)</td></tr>
+                    <tr><td class="fw-semibold">Jitsi Meet</td><td class="text-muted">Vorbereitet &mdash; Videokonferenz via Raumbuchung</td></tr>
+                    <tr><td class="fw-semibold">Matrix/Element</td><td class="text-muted">Vorbereitet &mdash; Facility-Pings, Chat</td></tr>
+                    <tr><td class="fw-semibold">Paperless-ngx</td><td class="text-muted">Vorbereitet &mdash; Scan-Eingang &rarr; DMS-Import</td></tr>
+                  </tbody>
+                </table>
+
+                <h6 class="fw-bold mt-4 mb-3" style="color:#1a4d2e; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px;">Apps im System</h6>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  {% for app in apps_liste %}
+                  <span class="badge" style="background:#e8f5e9; color:#1a4d2e; font-size:0.72rem; font-weight:600;">{{ app }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+
+          </div>

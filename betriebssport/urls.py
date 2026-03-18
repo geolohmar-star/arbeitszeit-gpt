@@ -35,4 +35,9 @@ urlpatterns = [
         views.gutschrift_download,
         name="gutschrift_download",
     ),
+    path(
+        "<int:pk>/gutschrift/<str:monat_str>/laufzettel/starten/",
+        views.gutschrift_laufzettel_starten,
+        name="gutschrift_laufzettel_starten",
+    ),
 ]

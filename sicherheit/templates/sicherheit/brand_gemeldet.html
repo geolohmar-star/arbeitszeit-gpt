@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Brandalarm gemeldet – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-7">
+
+      <!-- Header-Karte -->
+      <div class="card border-0 mb-4" style="background:#7c2d12; color:#fed7aa;">
+        <div class="card-body text-center py-4">
+          <div style="font-size:2.5rem; font-weight:900; color:#fff; margin-bottom:0.5rem;">
+            &#128293; BRAND GEMELDET
+          </div>
+          <p class="mb-3" style="color:#fed7aa; font-size:1.05rem;">
+            Ihre Meldung wurde aufgenommen. Branderkunder wurden alarmiert.
+          </p>
+
+          <!-- Ort + Status -->
+          <div class="mb-3 text-start p-3 rounded" style="background:rgba(0,0,0,0.25); max-width:400px; margin:0 auto;">
+            <div class="mb-2">
+              <span style="color:#fb923c; font-weight:600;">Gemeldeter Ort:</span>
+              <span style="color:#fff;"> {{ brandalarm.ort }}</span>
+            </div>
+            {% if brandalarm.ort_praezise %}
+            <div class="mb-2">
+              <span style="color:#fb923c; font-weight:600;">Ort (praezisiert):</span>
+              <span style="color:#fff;"> {{ brandalarm.ort_praezise }}</span>
+            </div>
+            {% endif %}
+            <div>
+              <span style="color:#fb923c; font-weight:600;">Status:</span>
+              {% if brandalarm.status == "gemeldet" %}
+                <span class="badge" style="background:#d97706;">Erkunder unterwegs</span>
+              {% elif brandalarm.status == "bestaetigung" %}
+                <span class="badge" style="background:#b45309;">Security-Review laeuft</span>
+              {% elif brandalarm.status == "evakuierung" %}
+                <span class="badge bg-danger">EVAKUIERUNG AKTIV</span>
+              {% else %}
+                <span class="badge bg-secondary">Abgeschlossen / Entwarnung</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Evakuierungs-Warnung -->
+          {% if brandalarm.status == "evakuierung" %}
+          <div class="alert mb-3" style="background:#cc0000; color:#fff; border:2px solid #fff;">
+            <strong>EVAKUIERUNG AKTIV</strong><br>
+            Alle Mitarbeiter wurden benachrichtigt. Gebaeude sofort verlassen!
+          </div>
+          {% endif %}
+
+          <!-- Entwarnung -->
+          {% if brandalarm.status == "geschlossen" %}
+          <div class="alert mb-3" style="background:#14532d; color:#bbf7d0; border:1px solid #22c55e;">
+            <strong>&#10003; Entwarnung</strong><br>
+            Der Alarm wurde geschlossen.
+          </div>
+          {% endif %}
+
+          <!-- Verhaltensregeln -->
+          {% if brandalarm.status != "geschlossen" %}
+          <div class="alert mb-3" style="background:rgba(0,0,0,0.3); border:1px solid #fb923c; color:#fed7aa; text-align:left;">
+            <strong>Bitte jetzt:</strong>
+            <ol class="mb-0 mt-1">
+              <li>Gebaeude verlassen – Aufzug NICHT benutzen</li>
+              <li>Zum Sammelplatz begeben</li>
+              <li>Auf Anweisung der Security warten</li>
+            </ol>
+          </div>
+          {% endif %}
+
+          <!-- Auto-Refresh Button -->
+          {% if brandalarm.status != "geschlossen" %}
+          <a id="btn-autorefresh" href="{{ request.path }}"
+             class="btn btn-outline-warning btn-sm text-decoration-none">
+            &#8635; Seite aktualisiert sich automatisch
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Erkunder-Rueckmeldungen -->
+      {% if brandalarm.erkunder_tokens.all %}
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center"
+             style="background:#3d1a00; color:#fed7aa; border-bottom:1px solid #7c2d12;">
+          <strong>Branderkunder-Rueckmeldungen</strong>
+          <span class="badge bg-secondary">{{ brandalarm.erkunder_tokens.count }}</span>
+        </div>
+        <div class="card-body p-0" style="background:#1a0a00;">
+          <table class="table table-sm mb-0" style="color:#fed7aa;">
+            <thead>
+              <tr style="border-color:#7c2d12;">
+                <th style="color:#fb923c;">Erkunder/in</th>
+                <th style="color:#fb923c;">Status</th>
+                <th style="color:#fb923c;">Meldung</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for tok in brandalarm.erkunder_tokens.all %}
+              <tr style="border-color:#3d1a00;">
+                <td style="color:#fff;">{{ tok.erkunder.vollname }}</td>
+                <td>
+                  {% if tok.status == "bestaetigt" %}
+                    <span class="badge bg-danger">Brand bestaetigt</span>
+                  {% elif tok.status == "unterwegs" %}
+                    <span class="badge bg-primary">Unterwegs</span>
+                  {% elif tok.status == "am_ort" %}
+                    <span class="badge" style="background:#d97706;">Am Brandort</span>
+                  {% elif tok.status == "fehlalarm" %}
+                    <span class="badge bg-success">Fehlalarm</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Ausstehend</span>
+                  {% endif %}
+                </td>
+                <td style="color:#fed7aa; font-size:0.88rem;">
+                  {{ tok.notiz|default:"–" }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if brandalarm.status != "geschlossen" %}
+<script src="{% static 'js/brand_detail.js' %}"></script>
+{% endif %}
+{% endblock %}

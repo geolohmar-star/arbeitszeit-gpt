@@ -304,4 +304,15 @@ urlpatterns = [
         views_team_queue.workflow_task_erledigen,
         name="wf_task_erledigen",
     ),
+    # Anleitungen
+    path(
+        "anleitung/aenderung/pdf/",
+        views.anleitung_aenderung_pdf,
+        name="anleitung_aenderung_pdf",
+    ),
+    path(
+        "anleitung/zeitgutschrift/pdf/",
+        views.anleitung_zeitgutschrift_pdf,
+        name="anleitung_zeitgutschrift_pdf",
+    ),
 ]

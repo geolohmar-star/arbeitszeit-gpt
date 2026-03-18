@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Sitzungs-Kalender{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <a href="{% url 'matrix_integration:raum_liste' %}" class="text-muted text-decoration-none">
+                &larr; Matrix-Räume
+            </a>
+            <h2 class="mt-1 mb-0">Sitzungs-Kalender</h2>
+        </div>
+        {% if user.is_staff %}
+        <a href="{% url 'matrix_integration:sitzung_anlegen' %}" class="btn btn-primary">
+            + Sitzung anlegen
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Raum</th>
+                        <th>Uhrzeit</th>
+                        <th>Rhythmus</th>
+                        <th>Nächste Ausführung</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sitzungen %}
+                    <tr>
+                        <td class="fw-semibold">{{ s.name }}</td>
+                        <td>{{ s.matrix_raum }}</td>
+                        <td>{{ s.von }} – {{ s.bis }}</td>
+                        <td>
+                            {% if s.ist_wiederkehrend %}
+                            wöchentlich {{ s.get_wochentag_display }}
+                            {% else %}
+                            einmalig {{ s.start_datum }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if s.naechste_ausfuehrung %}
+                            {{ s.naechste_ausfuehrung|date:"d.m.Y H:i" }}
+                            {% else %}
+                            –
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {% if s.ist_aktiv %}bg-success{% else %}bg-secondary{% endif %}">
+                                {% if s.ist_aktiv %}aktiv{% else %}inaktiv{% endif %}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            {% if user.is_staff %}
+                            <a href="{% url 'matrix_integration:sitzung_bearbeiten' s.pk %}"
+                               class="btn btn-sm btn-outline-warning">
+                                Bearbeiten
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            Noch keine Sitzungen konfiguriert.
+                            {% if user.is_staff %}
+                            <a href="{% url 'matrix_integration:sitzung_anlegen' %}">Erste anlegen</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

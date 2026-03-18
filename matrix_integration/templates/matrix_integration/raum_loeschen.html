@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Raum löschen{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 540px;">
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white fw-semibold">
+            Raum löschen
+        </div>
+        <div class="card-body">
+            <p>Soll der Raum <strong>{{ raum.name }}</strong> wirklich gelöscht werden?</p>
+            {% if raum.sitzungen.exists %}
+            <div class="alert alert-warning">
+                Achtung: Diesem Raum sind noch
+                <strong>{{ raum.sitzungen.count }} Sitzung(en)</strong> zugeordnet.
+                Diese können danach nicht mehr aufgerufen werden.
+            </div>
+            {% endif %}
+            <form method="post" class="d-flex gap-2 mt-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Ja, löschen</button>
+                <a href="{% url 'matrix_integration:raum_detail' raum.pk %}" class="btn btn-outline-secondary">Abbrechen</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

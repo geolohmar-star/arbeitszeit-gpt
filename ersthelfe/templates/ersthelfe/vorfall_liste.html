@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Erste-Hilfe – Vorfälle{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Erste-Hilfe – Vorfallprotokoll</h2>
+    <span class="badge bg-secondary">{{ vorfaelle|length }} Einträge</span>
+  </div>
+
+  {% if not vorfaelle %}
+    <div class="alert alert-info">Keine Vorfälle vorhanden.</div>
+  {% else %}
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>#</th>
+            <th>Datum / Uhrzeit</th>
+            <th>Ort</th>
+            <th>Gemeldet von</th>
+            <th>Rückmeldungen</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in vorfaelle %}
+          <tr>
+            <td>{{ v.pk }}</td>
+            <td>{{ v.erstellt_am|date:"d.m.Y H:i" }}</td>
+            <td>{{ v.ort }}</td>
+            <td>
+              {% if v.gemeldet_von.hr_mitarbeiter %}
+                {{ v.gemeldet_von.hr_mitarbeiter.vollname }}
+              {% else %}
+                {{ v.gemeldet_von.username }}
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-primary">{{ v.rueckmeldungen.count }}</span>
+            </td>
+            <td>
+              {% if v.status == "offen" %}
+                <span class="badge bg-danger">Offen</span>
+              {% else %}
+                <span class="badge bg-success">Abgeschlossen</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'ersthelfe:vorfall_detail' v.pk %}" class="btn btn-sm btn-outline-primary">
+                Details
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,255 @@
+{% if user.is_authenticated %}
+<!-- Unified SOS-Modal: Erste Hilfe / AMOK / Stiller Alarm -->
+<div class="modal fade" id="sosModal" tabindex="-1" aria-labelledby="sosModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:#1a1a2e; color:#eee;">
+
+      <!-- Screen 0: Auswahl -->
+      <div id="sos-screen-0">
+        <div class="modal-header border-secondary">
+          <h5 class="modal-title fw-bold" id="sosModalLabel">SOS – Alarm ausloesen</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body py-4">
+          <p class="text-center text-muted small mb-3">Nur im echten Notfall verwenden</p>
+          <div class="d-grid gap-3">
+            <button id="sos-btn-eh" class="btn btn-danger btn-lg fw-bold py-3"
+                    style="font-size:1.1rem;">
+              &#9888; Erste Hilfe
+              <div style="font-size:0.8rem; font-weight:400; opacity:0.85;">
+                Verletzung, Bewusstlosigkeit, Herzstillstand
+              </div>
+            </button>
+            <button id="sos-btn-amok" class="btn btn-lg fw-bold py-3"
+                    style="background:#3a0000; border:2px solid #cc0000; color:#fff; font-size:1.1rem;">
+              &#9888; AMOK-Alarm
+              <div style="font-size:0.8rem; font-weight:400; opacity:0.85;">
+                Amoklauf, aktive Bedrohung im Gebaeude
+              </div>
+            </button>
+            <button id="sos-btn-still" class="btn btn-lg fw-bold py-3"
+                    style="background:#2a2a2a; border:1px solid #666; color:#ccc; font-size:1rem;">
+              Stiller Alarm
+              <div style="font-size:0.75rem; font-weight:400; opacity:0.7;">
+                Diskrete Benachrichtigung der Security
+              </div>
+            </button>
+            <button id="sos-btn-brand" class="btn btn-lg fw-bold py-3"
+                    style="background:#3d1a00; border:2px solid #ea580c; color:#fed7aa; font-size:1rem;">
+              &#128293; Brandalarm
+              <div style="font-size:0.75rem; font-weight:400; opacity:0.7;">
+                Brand oder Rauch im Gebaeude
+              </div>
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary justify-content-center">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        </div>
+      </div>
+
+      <!-- Screen 1a: Erste Hilfe -->
+      <div id="sos-screen-1a" style="display:none;">
+        <div id="eh-schritt-1">
+          <div class="modal-header border-danger bg-danger text-white">
+            <h5 class="modal-title fw-bold">&#9888; ERSTE HILFE – Alarm ausloesen</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body text-center py-4">
+            <p class="fs-5 mb-2">Bitte nur im Notfall verwenden!</p>
+            <p class="text-warning">Alle aktiven Ersthelfer werden sofort per Matrix benachrichtigt.</p>
+            <p class="text-muted small">Im lebensbedrohlichen Notfall immer auch <strong>112</strong> anrufen!</p>
+          </div>
+          <div class="modal-footer border-secondary justify-content-center">
+            <button type="button" class="btn btn-outline-secondary" id="sos-back-1a">Zurueck</button>
+            <button type="button" class="btn btn-danger btn-lg fw-bold" id="eh-weiter-btn">
+              Ja – Alarm ausloesen
+            </button>
+          </div>
+        </div>
+
+        <div id="eh-schritt-2" style="display:none;">
+          <div class="modal-header border-danger bg-danger text-white">
+            <h5 class="modal-title fw-bold">&#9888; Wo ist der Notfall?</h5>
+          </div>
+          <form method="post" action="{% url 'ersthelfe:vorfall_ausloesen' %}">
+            {% csrf_token %}
+            <div class="modal-body py-4">
+              <div class="mb-3">
+                <label for="eh-ort" class="form-label fw-bold text-warning">Ort / Raum *</label>
+                <input type="text"
+                       id="eh-ort"
+                       name="ort"
+                       class="form-control form-control-lg bg-dark text-white border-warning"
+                       placeholder="z.B. Buero 2.OG, Kantine, Parkplatz Nord"
+                       required
+                       maxlength="200"
+                       autocomplete="off">
+              </div>
+              <div class="mb-2">
+                <label for="eh-beschreibung" class="form-label text-light">Kurze Beschreibung (optional)</label>
+                <input type="text"
+                       id="eh-beschreibung"
+                       name="beschreibung"
+                       class="form-control bg-dark text-white border-secondary"
+                       placeholder="z.B. Person bewusstlos, Sturz, Herzrhythmussstoerung"
+                       maxlength="200">
+              </div>
+              <p class="text-muted small mt-3 mb-0">
+                Nach dem Absenden werden alle Ersthelfer per Matrix benachrichtigt.
+              </p>
+            </div>
+            <div class="modal-footer border-secondary justify-content-center">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+              <button type="submit" class="btn btn-danger btn-lg fw-bold">
+                Alarm senden!
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Screen 1b: AMOK -->
+      <div id="sos-screen-1b" style="display:none;">
+        <div class="modal-header border-0" style="background:#3a0000;">
+          <h5 class="modal-title fw-bold text-white">&#9888; AMOK-ALARM ausloesen</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{% url 'sicherheit:alarm_ausloesen' %}">
+          {% csrf_token %}
+          <input type="hidden" name="typ" value="amok">
+          <div class="modal-body py-4" style="background:#1a0000;">
+            <div class="alert alert-danger mb-3">
+              <strong>Nur bei echter AMOK-Lage!</strong><br>
+              Security wird sofort und mit hoechster Prioritaet benachrichtigt.
+            </div>
+            <div class="mb-3">
+              <label for="amok-bestaetigung" class="form-label text-warning fw-bold">
+                Zur Bestaetigung das Wort AMOK eingeben: *
+              </label>
+              <input type="text"
+                     id="amok-bestaetigung"
+                     name="bestaetigung"
+                     class="form-control form-control-lg bg-dark text-white border-danger"
+                     placeholder="AMOK"
+                     autocomplete="off"
+                     required>
+              <div id="amok-bestaetigung-fehler" class="text-danger small mt-1" style="display:none;">
+                Bitte genau AMOK eingeben (Grossbuchstaben).
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="amok-ort" class="form-label text-light fw-bold">
+                Ort / Bereich (empfohlen)
+              </label>
+              <input type="text"
+                     id="amok-ort"
+                     name="ort"
+                     class="form-control bg-dark text-white border-secondary"
+                     placeholder="z.B. Erdgeschoss, Kantine, Foyer"
+                     maxlength="200"
+                     autocomplete="off">
+            </div>
+          </div>
+          <div class="modal-footer border-secondary justify-content-center" style="background:#1a0000;">
+            <button type="button" class="btn btn-outline-secondary" id="sos-back-1b">Zurueck</button>
+            <button type="submit" id="amok-submit-btn"
+                    class="btn btn-lg fw-bold"
+                    style="background:#cc0000; color:#fff; border:none;"
+                    disabled>
+              AMOK-ALARM ausloesen
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Screen 1d: Brandalarm -->
+      <div id="sos-screen-1d" style="display:none;">
+        <div class="modal-header border-0" style="background:#7c2d12;">
+          <h5 class="modal-title fw-bold" style="color:#fed7aa;">&#128293; BRANDALARM melden</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form method="post" action="{% url 'sicherheit:brand_melden' %}">
+          {% csrf_token %}
+          <div class="modal-body py-4" style="background:#1a0a00;">
+            <div class="alert mb-3" style="background:#3d1a00; border:1px solid #ea580c; color:#fed7aa;">
+              <strong>Nur bei echtem Brand oder Rauch!</strong><br>
+              Branderkunder werden informiert und Security benachrichtigt.
+            </div>
+            <div class="mb-3">
+              <label for="brand-bestaetigung" class="form-label fw-bold" style="color:#fb923c;">
+                Zur Bestaetigung das Wort FEUER eingeben: *
+              </label>
+              <input type="text"
+                     id="brand-bestaetigung"
+                     name="bestaetigung"
+                     class="form-control form-control-lg bg-dark text-white border-warning"
+                     placeholder="FEUER"
+                     autocomplete="off"
+                     required>
+              <div id="brand-bestaetigung-fehler" class="text-warning small mt-1" style="display:none;">
+                Bitte genau FEUER eingeben (Grossbuchstaben).
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="brand-ort" class="form-label fw-bold" style="color:#fed7aa;">
+                Wo brennt es? (optional)
+              </label>
+              <input type="text"
+                     id="brand-ort"
+                     name="ort"
+                     class="form-control bg-dark text-white border-secondary"
+                     placeholder="z.B. Keller, Serverraum, 2. OG links"
+                     maxlength="200"
+                     autocomplete="off">
+              <div class="form-text" style="color:#999;">
+                Wenn leer: Ihr Buero-Ort wird automatisch eingetragen.
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-secondary justify-content-center" style="background:#1a0a00;">
+            <button type="button" class="btn btn-outline-secondary" id="sos-back-1d">Zurueck</button>
+            <button type="submit" id="brand-submit-btn"
+                    class="btn btn-lg fw-bold"
+                    style="background:#ea580c; color:#fff; border:none;"
+                    disabled>
+              Brandalarm melden
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Screen 1c: Stiller Alarm -->
+      <div id="sos-screen-1c" style="display:none;">
+        <div class="modal-header border-secondary">
+          <h5 class="modal-title fw-bold" style="color:#aaa;">Stiller Alarm</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body py-4" id="still-screen-inhalt">
+          <p class="text-light mb-1">Stiller Alarm wird ausgeloest.</p>
+          <p class="text-muted small">Security wird diskret benachrichtigt. Diese Seite wird nicht neu geladen.</p>
+          <div class="mb-3">
+            <label for="still-ort" class="form-label text-light">Ort (optional)</label>
+            <input type="text"
+                   id="still-ort"
+                   class="form-control bg-dark text-white border-secondary"
+                   placeholder="z.B. Empfang, Raum 1.12"
+                   maxlength="200"
+                   autocomplete="off">
+          </div>
+        </div>
+        <div class="modal-footer border-secondary justify-content-center">
+          <button type="button" class="btn btn-secondary btn-sm" id="sos-back-1c">Zurueck</button>
+          <button type="button" id="still-bestaetigen-btn" class="btn btn-secondary fw-bold">
+            Bestaetigen
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% load static %}
+<script src="{% static 'js/sos_modal.js' %}"></script>
+{% endif %}

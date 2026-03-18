@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titel }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 620px;">
+    <div class="mb-3">
+        <a href="{% url 'matrix_integration:jitsi_liste' %}" class="text-muted text-decoration-none">
+            &larr; Jitsi-Räume
+        </a>
+        <h2 class="mt-1">{{ titel }}</h2>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Anzeigename *</label>
+                    <input type="text" name="name" class="form-control" required
+                           value="{{ raum.name|default:'' }}"
+                           placeholder="z.B. Teammeeting IT">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Raum-Slug *</label>
+                    <input type="text" name="raum_slug" class="form-control font-monospace" required
+                           value="{{ raum.raum_slug|default:'' }}"
+                           placeholder="z.B. teammeeting-it">
+                    <small class="text-muted">
+                        Nur Kleinbuchstaben, Zahlen und Bindestriche. Wird Teil der Meeting-URL:
+                        <code>meet.georg-klein.com/<strong>raum-slug</strong></code>
+                    </small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Beschreibung</label>
+                    <textarea name="beschreibung" class="form-control" rows="2">{{ raum.beschreibung|default:'' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Org-Einheit</label>
+                    <select name="org_einheit" class="form-select">
+                        <option value="">-- keine --</option>
+                        {% for oe in org_einheiten %}
+                        <option value="{{ oe.pk }}"
+                            {% if raum.org_einheit_id == oe.pk %}selected{% endif %}>
+                            {{ oe.kuerzel }} – {{ oe.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if raum %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="ist_aktiv" id="id_ist_aktiv"
+                           {% if raum.ist_aktiv %}checked{% endif %}>
+                    <label class="form-check-label" for="id_ist_aktiv">Aktiv</label>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success">Speichern</button>
+            <a href="{% url 'matrix_integration:jitsi_liste' %}" class="btn btn-outline-secondary">Abbrechen</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

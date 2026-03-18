@@ -5,6 +5,7 @@ Dieses Modul definiert das Workflow-System bestehend aus:
 - WorkflowStep: Einzelne Schritte innerhalb eines Templates
 - WorkflowInstance: Konkrete laufende Workflow-Instanzen
 - WorkflowTask: Tasks im Arbeitsstapel der Mitarbeiter
+- WorkflowTrigger: Per GUI konfigurierbare Trigger-Definitionen
 """
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -88,6 +89,13 @@ class WorkflowTemplate(models.Model):
         help_text="DEPRECATED: Wird durch WorkflowTransition ersetzt. Nur fuer Abwaertskompatibilitaet.",
     )
 
+    # Laufzettel: ad-hoc Routing-Slip (stellenbasiert, beim Start zusammengebaut)
+    ist_laufzettel = models.BooleanField(
+        default=False,
+        verbose_name="Laufzettel-Vorlage",
+        help_text="Dieses Template ist ein gespeicherter Laufzettel (ad-hoc Routing Slip)",
+    )
+
     # NEU: Flag fuer Graph-basierte Workflows
     ist_graph_workflow = models.BooleanField(
         default=False,
@@ -141,6 +149,8 @@ class WorkflowStep(models.Model):
     AKTION_WEBHOOK = "webhook"
     AKTION_PYTHON_CODE = "python_code"
     AKTION_VERTEILEN = "verteilen"
+    AKTION_ARCHIVIEREN = "archivieren"
+    AKTION_LOESCHUNG_FREIGEBEN = "loeschung_freigeben"
 
     AKTION_CHOICES = [
         (AKTION_GENEHMIGEN, "Genehmigen"),
@@ -153,6 +163,8 @@ class WorkflowStep(models.Model):
         (AKTION_WEBHOOK, "Webhook aufrufen"),
         (AKTION_PYTHON_CODE, "Python-Code ausfuehren"),
         (AKTION_VERTEILEN, "Verteilen (Postbote)"),
+        (AKTION_ARCHIVIEREN, "In DMS-Ablage archivieren"),
+        (AKTION_LOESCHUNG_FREIGEBEN, "DMS-Loeschung freigeben"),
     ]
 
     ROLLE_DIREKTER_VORGESETZTER = "direkter_vorgesetzter"
@@ -956,3 +968,92 @@ class ProzessAntrag(models.Model):
             or self.antragsteller.username
         )
         return f"Prozessantrag: {self.name} ({name})"
+
+
+class WorkflowTrigger(models.Model):
+    """Per GUI konfigurierbarer Trigger fuer automatischen Workflow-Start.
+
+    Ersetzt hardcodierte Signal-Handler in formulare/signals.py.
+    Definiert: welches Model-Event welchen Workflow-Template-Key ausloest.
+    """
+
+    TRIGGER_AUF_ERSTELLT = "erstellt"
+    TRIGGER_AUF_AKTUALISIERT = "aktualisiert"
+
+    TRIGGER_AUF_CHOICES = [
+        (TRIGGER_AUF_ERSTELLT, "Neu erstellt"),
+        (TRIGGER_AUF_AKTUALISIERT, "Aktualisiert"),
+    ]
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name="Name",
+        help_text="Lesbarer Name z.B. 'Dienstreiseantrag eingereicht'",
+    )
+    beschreibung = models.TextField(
+        blank=True,
+        verbose_name="Beschreibung",
+        help_text="Was loest dieser Trigger aus?",
+    )
+    trigger_event = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Trigger-Event-Key",
+        help_text="Eindeutiger Schluessel (muss mit WorkflowTemplate.trigger_event uebereinstimmen)",
+    )
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Django-Model",
+        help_text="Das Model dessen Speichern diesen Trigger ausloest",
+    )
+    trigger_auf = models.CharField(
+        max_length=20,
+        choices=TRIGGER_AUF_CHOICES,
+        default=TRIGGER_AUF_ERSTELLT,
+        verbose_name="Ausloesen bei",
+    )
+    antragsteller_pfad = models.CharField(
+        max_length=200,
+        default="antragsteller.user",
+        verbose_name="Antragsteller-Pfad",
+        help_text=(
+            "Punkt-getrennter Attributpfad zum User-Objekt "
+            "(z.B. 'antragsteller.user' oder 'erstellt_von')"
+        ),
+    )
+    workflow_instance_feld = models.CharField(
+        max_length=100,
+        default="workflow_instance",
+        verbose_name="Workflow-Instance-Feld",
+        help_text="Feldname am Model zum Speichern der Workflow-Instanz",
+    )
+    ist_aktiv = models.BooleanField(
+        default=True,
+        verbose_name="Aktiv",
+    )
+    erstellt_am = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Erstellt am",
+    )
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Workflow-Trigger"
+        verbose_name_plural = "Workflow-Trigger"
+
+    def __str__(self):
+        status = "aktiv" if self.ist_aktiv else "inaktiv"
+        model_name = self.content_type.model if self.content_type else "kein Model"
+        return f"{self.name} [{model_name} → {self.trigger_event}] ({status})"
+
+    def get_user_from_instance(self, instance):
+        """Folgt dem antragsteller_pfad und gibt den User zurueck."""
+        obj = instance
+        for teil in self.antragsteller_pfad.split("."):
+            obj = getattr(obj, teil, None)
+            if obj is None:
+                return None
+        return obj

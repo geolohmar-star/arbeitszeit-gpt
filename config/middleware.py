@@ -1,6 +1,8 @@
 import re
 
-_ONLYOFFICE_EDITOR_PFAD = re.compile(r"^/dms/\d+/onlyoffice/$")
+_ONLYOFFICE_EDITOR_PFAD = re.compile(
+    r"^/(dms|korrespondenz)/\d+/(versionen/\d+/)?onlyoffice/$"
+)
 
 
 class CSPMiddleware:

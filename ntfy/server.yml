@@ -1,0 +1,12 @@
+base-url: "https://ntfy.georg-klein.com"
+listen-http: ":80"
+
+# Cache fuer Nachrichten (12 Stunden)
+cache-file: /var/lib/ntfy/cache.db
+cache-duration: "12h"
+
+# Web Push (Browser-Benachrichtigungen ohne App)
+web-push-public-key: "BDULH450k7LX3DeqzRwoAbJz0t0yZa6ajY8AbGZVhPcUQAqV7gguLapAUh6qjwqrK0ela7O5rAVa40mTch-3lb8"
+web-push-private-key: "haxWFPd4-K3cnklN6I3Q4demoYyvbf9ubym-LCciDzw"
+web-push-file: "/var/lib/ntfy/webpush.db"
+web-push-email-address: "admin@georg-klein.com"

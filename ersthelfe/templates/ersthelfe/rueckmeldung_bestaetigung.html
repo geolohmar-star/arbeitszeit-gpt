@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rückmeldung gespeichert</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+  <style>
+    body { background: #1a1a2e; color: #eee; }
+  </style>
+</head>
+<body>
+<div class="container py-5 text-center">
+
+  <div class="mb-4">
+    {% if meldung.status == "am_ort" %}
+      <div class="display-1">&#10003;</div>
+      <h2 class="text-success">Rückmeldung gespeichert!</h2>
+    {% elif meldung.status == "unterwegs" %}
+      <div class="display-1">&#128663;</div>
+      <h2 class="text-warning">Rückmeldung gespeichert!</h2>
+    {% elif meldung.status == "brauche_unterstuetzung" %}
+      <div class="display-1">&#128680;</div>
+      <h2 class="text-danger">Rückmeldung gespeichert!</h2>
+    {% else %}
+      <div class="display-1">&#10007;</div>
+      <h2 class="text-secondary">Rückmeldung gespeichert!</h2>
+    {% endif %}
+  </div>
+
+  <p class="lead text-light">
+    <strong>{{ ersthelfer.vollname }}</strong>: {{ meldung.get_status_display }}
+  </p>
+  <p class="text-muted">
+    Vorfall #{{ vorfall.pk }} – {{ vorfall.ort }}<br>
+    {{ meldung.gemeldet_am|date:"d.m.Y H:i" }} Uhr
+  </p>
+
+  {% if meldung.notiz %}
+  <p class="text-info">Deine Notiz: {{ meldung.notiz }}</p>
+  {% endif %}
+
+  <hr class="border-secondary my-4">
+  <p class="text-warning fw-bold fs-5">Notfall: Immer auch 112 anrufen!</p>
+
+</div>
+</body>
+</html>

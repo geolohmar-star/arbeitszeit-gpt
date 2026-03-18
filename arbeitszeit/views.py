@@ -12,8 +12,8 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.db.models import Sum, Case, When, IntegerField, Prefetch
-from django.http import HttpResponse
+from django.db.models import Sum, Case, When, IntegerField, Prefetch, Count, Q, Exists, OuterRef
+from django.http import HttpResponse, HttpResponseForbidden
 import csv
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -37,7 +37,7 @@ from .models import (
 from .forms import RegisterForm
 
 #WorkCalendar
-from django.db.models import Sum, Avg, Count
+from django.db.models import Avg
 from decimal import Decimal
 import calendar
 from .forms import SollStundenBerechnungForm
@@ -81,61 +81,65 @@ def hhmm_to_minuten(hhmm_wert):
 #WorkCalendar
 @login_required
 def soll_stunden_jahresuebersicht(request):
-    """Jahresübersicht mit Export"""
+    """Jahresuebersicht Soll-Stunden des eingeloggten Mitarbeiters.
+
+    Bereits berechnete Monate werden aus der DB geladen.
+    Fehlende Monate (Vergangenheit und Zukunft) werden on-the-fly berechnet,
+    sofern eine gueltige Vereinbarung zum Monatsstichtag existiert.
+    """
     heute = timezone.now().date()
-    jahr = int(request.GET.get('jahr', heute.year))
-    export = request.GET.get('export')
-    
-    # Nur Mitarbeiter mit Schichtplan-Kennung MA1-MA15
-    # prefetch_related laedt alle Soll-Zeiten fuer das gewaehlte Jahr in einer Query
-    soll_zeiten_prefetch = Prefetch(
-        "monatliche_soll_zeiten",
-        queryset=MonatlicheArbeitszeitSoll.objects.filter(jahr=jahr).order_by("monat"),
-        to_attr="soll_zeiten_gefiltert",
-    )
-    mitarbeiter_liste = Mitarbeiter.objects.filter(
-        aktiv=True,
-        schichtplan_kennung__regex=r'^MA([1-9]|1[0-5])$'
-    ).exclude(
-        schichtplan_kennung=''
-    ).prefetch_related(soll_zeiten_prefetch).order_by(
-        Length('schichtplan_kennung'),  # MA1 vor MA10
-        'schichtplan_kennung'
-    )
+    jahr = int(request.GET.get("jahr", heute.year))
 
-    # Daten sammeln – keine DB-Hits in der Schleife (Prefetch genuegt)
-    daten = []
+    # arbeitszeit.Mitarbeiter des eingeloggten Users
+    try:
+        ma = request.user.mitarbeiter
+    except Exception:
+        ma = None
 
-    for ma in mitarbeiter_liste:
-        soll_monate = ma.soll_zeiten_gefiltert
+    monate_liste = []
+    jahressumme  = 0.0
 
-        # Dict mit Monat -> Soll-Stunden
-        monate_dict = {s.monat: float(s.soll_stunden) for s in soll_monate}
-        jahressumme = sum(monate_dict.values())
-        
-        daten.append({
-            'mitarbeiter': ma,
-            'monate': monate_dict,
-            'jahressumme': jahressumme,
-            'durchschnitt': jahressumme / len(monate_dict) if monate_dict else 0,
-        })
-    
-    # Export?
-    if export == 'excel':
-        return _export_excel(daten, jahr)
-    elif export == 'csv':
-        return _export_csv(daten, jahr)
-    
-    # Normal rendern
-    context = {
-        'jahr': jahr,
-        'daten': daten,
-        'monatsnamen': [calendar.month_abbr[i] for i in range(1, 13)],
-        'vorheriges_jahr': jahr - 1,
-        'naechstes_jahr': jahr + 1,
-    }
-    
-    return render(request, 'arbeitszeit/soll_stunden_jahresuebersicht.html', context)
+    if ma:
+        # Bereits gespeicherte Eintraege
+        gespeichert = {
+            s.monat: float(s.soll_stunden)
+            for s in MonatlicheArbeitszeitSoll.objects.filter(
+                mitarbeiter=ma, jahr=jahr
+            )
+        }
+
+        for m in range(1, 13):
+            wert = gespeichert.get(m)
+            hochrechnung = False
+
+            if wert is None:
+                # Fehlenden Monat berechnen (Vereinbarung gilt in die Zukunft)
+                try:
+                    obj = MonatlicheArbeitszeitSoll.berechne_und_speichere(ma, jahr, m)
+                    wert = float(obj.soll_stunden)
+                    hochrechnung = True  # Zukunftsmonat oder noch nicht gespeichert
+                except Exception:
+                    pass  # Keine Vereinbarung fuer diesen Monat
+
+            if wert is not None:
+                jahressumme += wert
+
+            monate_liste.append({
+                "monat":        m,
+                "name":         calendar.month_name[m],
+                "stunden_fmt":  f"{wert:.2f}" if wert is not None else None,
+                "hochrechnung": hochrechnung,
+                "zukunft":      (jahr > heute.year) or (jahr == heute.year and m > heute.month),
+            })
+
+    return render(request, "arbeitszeit/soll_stunden_jahresuebersicht.html", {
+        "jahr":            jahr,
+        "ma":              ma,
+        "monate_liste":    monate_liste,
+        "jahressumme":     f"{jahressumme:.2f}",
+        "vorheriges_jahr": jahr - 1,
+        "naechstes_jahr":  jahr + 1,
+    })
 
 
 def _export_excel(daten, jahr):
@@ -249,90 +253,87 @@ def auto_berechne_soll_stunden(sender, request, user, **kwargs):
                 heute.month
             )
         except Exception as e:
-            print(f"Auto-Berechnung fehlgeschlagen: {e}")
+            logger.warning("Auto-Berechnung fehlgeschlagen: %s", e)
             
 @login_required
 def soll_stunden_dashboard(request):
     """
-    Dashboard: Übersicht aller Soll-Stunden des aktuellen Monats
+    Eigene Soll-Stunden des eingeloggten Users aus letzter gueltiger
+    Arbeitszeitvereinbarung – kumuliert von gueltig_ab bis heute.
     """
+    from decimal import Decimal
+
     heute = timezone.now().date()
-    jahr = request.GET.get('jahr', heute.year)
-    monat = request.GET.get('monat', heute.month)
-    
+
+    # HR-Mitarbeiter des eingeloggten Users ermitteln
     try:
-        jahr = int(jahr)
-        monat = int(monat)
-    except ValueError:
-        jahr = heute.year
-        monat = heute.month
-    
-    # Hole alle Soll-Stunden für diesen Monat
-    soll_stunden_liste = MonatlicheArbeitszeitSoll.objects.filter(
-        jahr=jahr,
-        monat=monat,
-        mitarbeiter__aktiv=True
-    ).select_related('mitarbeiter').order_by('mitarbeiter__nachname')
-    
-    # Wenn keine Daten vorhanden, automatisch berechnen
-    if not soll_stunden_liste.exists():
-        messages.info(
-            request,
-            f"Keine Daten für {calendar.month_name[monat]} {jahr}. "
-            f"Berechne automatisch..."
+        hr = request.user.hr_mitarbeiter
+    except Exception:
+        hr = None
+
+    # arbeitszeit.Mitarbeiter-Verknuepfung pruefen
+    try:
+        ma = request.user.mitarbeiter
+    except Exception:
+        ma = None
+
+    vereinbarung = ma.get_aktuelle_vereinbarung(heute) if ma else None
+
+    eintraege = []
+    gesamt_soll = Decimal("0")
+
+    if vereinbarung and ma:
+        gueltig_ab = vereinbarung.gueltig_ab
+        wochenstunden = vereinbarung.wochenstunden or Decimal("0")
+
+        # Soll-Stunden aufsummieren: alle gespeicherten Monats-Eintraege
+        # von gueltig_ab bis heute
+        soll_gesamt = (
+            MonatlicheArbeitszeitSoll.objects
+            .filter(
+                mitarbeiter=ma,
+                jahr__gte=gueltig_ab.year,
+            )
+            .exclude(
+                # Monate vor gueltig_ab im Startjahr ausschliessen
+                jahr=gueltig_ab.year,
+                monat__lt=gueltig_ab.month,
+            )
+            .exclude(
+                # Monate nach dem aktuellen Monat ausschliessen
+                jahr=heute.year,
+                monat__gt=heute.month,
+            )
+            .exclude(jahr__gt=heute.year)
+            .aggregate(s=Sum("soll_stunden"))["s"] or Decimal("0")
         )
-        MonatlicheArbeitszeitSoll.berechne_fuer_alle_mitarbeiter(jahr, monat)
-        
-        # Neu laden
-        soll_stunden_liste = MonatlicheArbeitszeitSoll.objects.filter(
-            jahr=jahr,
-            monat=monat,
-            mitarbeiter__aktiv=True
-        ).select_related('mitarbeiter').order_by('mitarbeiter__nachname')
-    
-    # Statistiken berechnen
-    stats = soll_stunden_liste.aggregate(
-        gesamt_soll=Sum('soll_stunden'),
-        durchschnitt=Avg('soll_stunden'),
-        anzahl=Count('id')
-    )
-    
-    # Gesamtarbeitstage
-    if soll_stunden_liste.exists():
-        beispiel = soll_stunden_liste.first()
-        arbeitstage_info = {
-            'gesamt': beispiel.arbeitstage_gesamt,
-            'feiertage': beispiel.feiertage_anzahl,
-            'effektiv': beispiel.arbeitstage_effektiv,
-            'feiertage_liste': beispiel.feiertage_liste
-        }
-    else:
-        arbeitstage_info = None
-    
-    # Navigation: Vorheriger/Nächster Monat
-    if monat == 1:
-        vorheriger = {'jahr': jahr - 1, 'monat': 12}
-    else:
-        vorheriger = {'jahr': jahr, 'monat': monat - 1}
-    
-    if monat == 12:
-        naechster = {'jahr': jahr + 1, 'monat': 1}
-    else:
-        naechster = {'jahr': jahr, 'monat': monat + 1}
-    
-    context = {
-        'jahr': jahr,
-        'monat': monat,
-        'monat_name': calendar.month_name[monat],
-        'soll_stunden_liste': soll_stunden_liste,
-        'stats': stats,
-        'arbeitstage_info': arbeitstage_info,
-        'vorheriger': vorheriger,
-        'naechster': naechster,
-        'ist_aktueller_monat': (jahr == heute.year and monat == heute.month),
-    }
-    
-    return render(request, 'arbeitszeit/soll_stunden_dashboard.html', context)
+
+        gesamt_soll += soll_gesamt
+
+        def fmt(dezimal):
+            h = int(dezimal)
+            m = int((dezimal - h) * 60)
+            return f"{h}:{m:02d}"
+
+        eintraege.append({
+            "hr":            hr,
+            "vereinbarung":  vereinbarung,
+            "gueltig_ab":    gueltig_ab,
+            "wochenstunden": wochenstunden,
+            "soll_gesamt":   soll_gesamt,
+            "soll_fmt":      fmt(soll_gesamt),
+        })
+
+    h_ges = int(gesamt_soll)
+    m_ges = int((gesamt_soll - h_ges) * 60)
+
+    return render(request, "arbeitszeit/soll_stunden_dashboard.html", {
+        "eintrag":     eintraege[0] if eintraege else None,
+        "heute":       heute,
+        "gesamt_soll": f"{h_ges}:{m_ges:02d}",
+        "hr":          hr,
+        "vereinbarung": vereinbarung,
+    })
 
 
 @login_required
@@ -393,7 +394,7 @@ def soll_stunden_berechnen(request):
             if erfolge > 0:
                 messages.success(
                     request,
-                    f"✅ Soll-Stunden für {erfolge} Mitarbeiter erfolgreich berechnet "
+                    f"Soll-Stunden fuer {erfolge} Mitarbeiter erfolgreich berechnet "
                     f"({monat_name} {jahr})"
                 )
             
@@ -413,7 +414,7 @@ def soll_stunden_berechnen(request):
                     messages.warning(
                         request,
                         format_html(
-                            "⚠️ <strong>{} Mitarbeiter ohne Arbeitszeitvereinbarung übersprungen:</strong><br>{}"
+                            "Hinweis: <strong>{} Mitarbeiter ohne Arbeitszeitvereinbarung uebersprungen:</strong><br>{}"
                             "<br><small>Bitte erstelle Vereinbarungen mit Status 'Aktiv' oder 'Genehmigt' "
                             "im <a href='/admin/arbeitszeit/arbeitszeitvereinbarung/add/' target='_blank'>Admin</a>.</small>",
                             len(ohne_vereinbarung),
@@ -431,7 +432,7 @@ def soll_stunden_berechnen(request):
                     messages.error(
                         request,
                         format_html(
-                            "❌ <strong>{} Mitarbeiter mit Fehlern:</strong><br>{}",
+                            "Fehler: <strong>{} Mitarbeiter mit Fehlern:</strong><br>{}",
                             len(andere_fehler),
                             fehler_liste
                         )
@@ -441,7 +442,7 @@ def soll_stunden_berechnen(request):
             if erfolge == 0 and not fehler:
                 messages.info(
                     request,
-                    "ℹ️ Keine Mitarbeiter für die Berechnung ausgewählt."
+                    "Keine Mitarbeiter fuer die Berechnung ausgewaehlt."
                 )
             
             return redirect('arbeitszeit:soll_stunden_dashboard')
@@ -523,26 +524,34 @@ def mitarbeiter_soll_uebersicht(request, pk):
     
     return render(request, 'arbeitszeit/mitarbeiter_soll_uebersicht.html', context)
 
-#####Soll Stunden 
+#####Soll Stunden
 @login_required
-
 def mitarbeiter_ohne_vereinbarung(request):
     """
-    Zeigt alle Mitarbeiter ohne gültige Arbeitszeitvereinbarung.
+    Zeigt alle Mitarbeiter ohne gueltige Arbeitszeitvereinbarung.
+    Nur fuer Staff und Schichtplaner zugaenglich.
     """
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Keine Berechtigung.")
     heute = timezone.now().date()
-    
-    alle_mitarbeiter = Mitarbeiter.objects.filter(aktiv=True)
-    ohne_vereinbarung = []
-    
-    for ma in alle_mitarbeiter:
-        wochenstunden = ma.get_wochenstunden(heute)
-        if wochenstunden is None:
-            ohne_vereinbarung.append(ma)
-    
+
+    # EXISTS-Subquery: ein einziger Datenbank-Roundtrip statt N+1
+    hat_vereinbarung_sq = Arbeitszeitvereinbarung.objects.filter(
+        mitarbeiter=OuterRef("pk"),
+        status__in=["aktiv", "genehmigt"],
+        gueltig_ab__lte=heute,
+    )
+    ohne_vereinbarung = (
+        Mitarbeiter.objects.filter(aktiv=True)
+        .annotate(hat_vereinbarung=Exists(hat_vereinbarung_sq))
+        .filter(hat_vereinbarung=False)
+        .select_related("standort")
+        .order_by("nachname", "vorname")
+    )
+
     context = {
         'mitarbeiter_ohne_vereinbarung': ohne_vereinbarung,
-        'anzahl': len(ohne_vereinbarung),
+        'anzahl': ohne_vereinbarung.count(),
     }
     
     return render(request, 'arbeitszeit/mitarbeiter_ohne_vereinbarung.html', context)
@@ -594,24 +603,30 @@ def get_zeitoptionen():
 # --- VIEWS ---
 
 
+@login_required
 def vereinbarung_detail(request, pk):
     vereinbarung = get_object_or_404(Arbeitszeitvereinbarung, pk=pk)
+
+    # Zugriffskontrolle: eigene Vereinbarung oder Staff/AZV-Team
+    eigene = (
+        hasattr(request.user, "mitarbeiter")
+        and vereinbarung.mitarbeiter == request.user.mitarbeiter
+    )
+    if not (eigene or request.user.is_staff):
+        return HttpResponseForbidden("Keine Berechtigung.")
+
     arbeitszeiten = vereinbarung.tagesarbeitszeiten.annotate(
         sort_order=_get_wochentag_sortierung()
     ).order_by('woche', 'sort_order')
-    
+
     temp_grouped = defaultdict(list)
     for ta in arbeitszeiten:
-        # DEBUG: Zeige rohe Werte
-        print(f"DEBUG: {ta.wochentag} - zeitwert RAW={ta.zeitwert}, in Minuten={hhmm_to_minuten(ta.zeitwert)}")
         ta.display_zeit = zeitwert_to_str(hhmm_to_minuten(ta.zeitwert))
         temp_grouped[ta.woche].append(ta)
-    
+
     wochen_daten = {}
     for woche, tage in temp_grouped.items():
         gesamt_minuten = sum(hhmm_to_minuten(t.zeitwert) for t in tage if t.zeitwert)
-        # DEBUG: Zeige Berechnung
-        print(f"DEBUG Woche {woche}: gesamt_minuten={gesamt_minuten}, als String={zeitwert_to_str(gesamt_minuten)}")
         wochen_daten[woche] = {
             'tage': tage,
             'summe': zeitwert_to_str(gesamt_minuten)
@@ -1223,11 +1238,19 @@ def zeiterfassung_erstellen(request):
             arbeitsbeginn = None
             arbeitsende = None
             if beginn_str:
-                h, m = beginn_str.split(":")
-                arbeitsbeginn = dt_time(int(h), int(m))
+                try:
+                    h, m = beginn_str.split(":")
+                    arbeitsbeginn = dt_time(int(h), int(m))
+                except (ValueError, TypeError):
+                    messages.error(request, "Ungueltige Uhrzeit fuer Arbeitsbeginn (Format: HH:MM).")
+                    return redirect(request.path)
             if ende_str:
-                h, m = ende_str.split(":")
-                arbeitsende = dt_time(int(h), int(m))
+                try:
+                    h, m = ende_str.split(":")
+                    arbeitsende = dt_time(int(h), int(m))
+                except (ValueError, TypeError):
+                    messages.error(request, "Ungueltige Uhrzeit fuer Arbeitsende (Format: HH:MM).")
+                    return redirect(request.path)
 
             # Manuelle Pause (optional)
             manuelle_pause_str = request.POST.get(
@@ -2259,17 +2282,21 @@ def admin_dashboard(request):
     
     heute = timezone.now()
     monatsanfang = heute.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    
-    stats = {
-        'offene_antraege': Arbeitszeitvereinbarung.objects.filter(status='beantragt').count(),
-        'gesamt_mitarbeiter': Mitarbeiter.objects.filter(aktiv=True).count(),
-        'genehmigte_vereinbarungen': Arbeitszeitvereinbarung.objects.filter(
-            status='genehmigt', genehmigt_am__gte=monatsanfang
-        ).count(),
-        'aktive_vereinbarungen': Arbeitszeitvereinbarung.objects.filter(status='aktiv').count(),
-        'mitarbeiter_siegburg': Mitarbeiter.objects.filter(aktiv=True, standort__kuerzel='siegburg').count(),
-        'mitarbeiter_bonn': Mitarbeiter.objects.filter(aktiv=True, standort__kuerzel='bonn').count(),
-    }
+
+    # 6 einzelne COUNT-Queries → 2 aggregate()-Calls (2 DB-Roundtrips statt 6)
+    azv_stats = Arbeitszeitvereinbarung.objects.aggregate(
+        offene_antraege=Count("pk", filter=Q(status="beantragt")),
+        aktive_vereinbarungen=Count("pk", filter=Q(status="aktiv")),
+        genehmigte_vereinbarungen=Count(
+            "pk", filter=Q(status="genehmigt", genehmigt_am__gte=monatsanfang)
+        ),
+    )
+    ma_stats = Mitarbeiter.objects.filter(aktiv=True).aggregate(
+        gesamt_mitarbeiter=Count("pk"),
+        mitarbeiter_siegburg=Count("pk", filter=Q(standort__kuerzel="siegburg")),
+        mitarbeiter_bonn=Count("pk", filter=Q(standort__kuerzel="bonn")),
+    )
+    stats = {**azv_stats, **ma_stats}
     
     letzte_aktivitaeten = Arbeitszeitvereinbarung.objects.filter(
         created_at__gte=heute.date()
@@ -2368,29 +2395,13 @@ def admin_vereinbarung_genehmigen(request, pk):
    
     temp_grouped = defaultdict(list)
     for tag in tagesarbeitszeiten:
-        # DEBUG: Zeige rohe Werte in der Konsole
-        print(f"DEBUG: Wochentag={tag.wochentag}, zeitwert RAW={tag.zeitwert}")
-        
-        # Konvertierung
         minuten = hhmm_to_minuten(tag.zeitwert)
-        print(f"  -> Nach Konvertierung: {minuten} Minuten = {zeitwert_to_str(minuten)}")
-    
         tag.display_zeit = zeitwert_to_str(minuten)
         temp_grouped[tag.woche].append(tag)
 
-    
-    
-    
-    # Auch hier: Strukturierte Daten mit Summe
     wochen_daten = {}
     for woche, tage in temp_grouped.items():
-        # DEBUG: Zeige Einzelwerte
-        print(f"\nDEBUG Woche {woche}:")
-        for t in tage:
-            print(f"  - {t.wochentag}: zeitwert={t.zeitwert}")
-        
         gesamt_minuten = sum(hhmm_to_minuten(t.zeitwert) for t in tage if t.zeitwert)
-        print(f"  -> SUMME: {gesamt_minuten} Minuten = {zeitwert_to_str(gesamt_minuten)}\n")
         
         wochen_daten[woche] = {
             'tage': tage,
@@ -2576,6 +2587,7 @@ def _im_dms_ablegen(inhalt_bytes, dateiname, mime, titel, beschreibung, erstellt
         return None
 
 
+@login_required
 def admin_vereinbarung_docx_export(request, pk):
     """Generiert ein DOCX-Dokument mit Wochen-Gruppierung."""
     try:

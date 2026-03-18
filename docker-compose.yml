@@ -23,5 +23,49 @@ services:
       - "8025:8025"   # Web-UI
     restart: unless-stopped
 
+  # PRIMA Django-App (Gunicorn, erreichbar via Cloudflare Tunnel auf prima.georg-klein.com)
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.prima
+    depends_on:
+      - db
+      - mailpit
+    restart: unless-stopped
+    volumes:
+      - media_data:/app/media
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Scheduler: Sitzungs-Erinnerungen (jede Minute) + Matrix-Sync (taeglich 2:00 Uhr)
+  scheduler:
+    build: .
+    command: python manage.py matrix_scheduler
+    env_file:
+      - .env.prima
+    depends_on:
+      - db
+      - web
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ntfy – selbst gehosteter Push-Dienst fuer Android-Benachrichtigungen (AGPL-3.0)
+  # Android-App: ntfy aus dem Play Store oder F-Droid installieren
+  # Thema abonnieren: http://192.168.178.82:8014 → Topic: eh-alarm-prima
+  ntfy:
+    image: binwiederhier/ntfy
+    command: serve --config /etc/ntfy/server.yml
+    ports:
+      - "8015:80"
+    volumes:
+      - ntfy_data:/var/lib/ntfy
+      - ./ntfy/server.yml:/etc/ntfy/server.yml:ro
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  media_data:
+  ntfy_data:

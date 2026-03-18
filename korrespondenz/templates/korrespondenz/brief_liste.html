@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Korrespondenz – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  {# ---- Seitenkopf ---- #}
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">Korrespondenz</h2>
+      <p class="text-muted mb-0">Ihre Geschäftsbriefe nach DIN 5008</p>
+    </div>
+    <a href="{% url 'korrespondenz:brief_erstellen' %}" class="btn btn-success">
+      + Neuer Brief
+    </a>
+  </div>
+
+  {# ---- Briefe-Tabelle ---- #}
+  {% if briefe %}
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th>Datum</th>
+            <th>Betreff</th>
+            <th>Empfänger</th>
+            <th>Status</th>
+            <th>Version</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for brief in briefe %}
+          <tr>
+            <td class="text-nowrap">{{ brief.datum }}</td>
+            <td>{{ brief.betreff }}</td>
+            <td>{{ brief.empfaenger_name }}</td>
+            <td>
+              {% if brief.status == "entwurf" %}
+                <span class="badge bg-warning text-dark">Entwurf</span>
+              {% elif brief.status == "fertig" %}
+                <span class="badge bg-success">Fertig</span>
+              {% else %}
+                <span class="badge bg-secondary">Archiviert</span>
+              {% endif %}
+            </td>
+            <td>v{{ brief.version }}</td>
+            <td>
+              <a href="{% url 'korrespondenz:brief_detail' brief.pk %}"
+                 class="btn btn-sm btn-outline-secondary">Öffnen</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    Noch keine Briefe vorhanden.
+    <a href="{% url 'korrespondenz:brief_erstellen' %}">Jetzt einen Brief erstellen</a>.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

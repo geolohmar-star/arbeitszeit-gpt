@@ -192,8 +192,14 @@
                                     </div>
                                     <div class="kanal-felder-matrix" style="display:none;">
                                         <div class="mb-1">
-                                            <input type="text" class="form-control form-control-sm kanal-matrix-room"
-                                                   placeholder="Room-ID (leer = Standard-Facility-Raum)">
+                                            <select class="form-select form-select-sm kanal-matrix-room">
+                                                <option value="">-- Raum waehlen --</option>
+                                                {% for mr in matrix_raeume %}
+                                                <option value="{{ mr.room_id }}" data-id="{{ mr.id }}">
+                                                    {{ mr.name }}{% if mr.ping_typ %} (Ping: {{ mr.ping_typ }}){% endif %}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
                                         </div>
                                         <div>
                                             <textarea class="form-control form-control-sm kanal-matrix-nachricht" rows="2"

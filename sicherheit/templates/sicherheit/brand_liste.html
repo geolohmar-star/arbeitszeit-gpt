@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Brandalarme – PRIMA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">&#128293; Brandalarme</h4>
+    <div class="d-flex gap-2">
+      {% if hat_aktive %}
+      <a id="btn-autorefresh" href="{{ request.path }}" class="btn btn-outline-warning btn-sm text-decoration-none">
+        &#8635; Auto-Refresh
+      </a>
+      {% endif %}
+      <a href="{% url 'sicherheit:sicherheit_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+        &larr; Dashboard
+      </a>
+    </div>
+  </div>
+
+  {% if alarme %}
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th>
+          <th>Datum / Uhrzeit</th>
+          <th>Gemeldeter Ort</th>
+          <th>Gemeldet von</th>
+          <th>Melder</th>
+          <th>Erkunder</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alarm in alarme %}
+        <tr class="
+          {% if alarm.status == 'evakuierung' %}table-danger
+          {% elif alarm.status == 'bestaetigung' %}table-warning
+          {% elif alarm.status == 'geschlossen' %}table-secondary
+          {% endif %}">
+          <td>{{ alarm.pk }}</td>
+          <td>{{ alarm.erstellt_am|date:"d.m.Y H:i" }}</td>
+          <td>
+            {{ alarm.ort }}
+            {% if alarm.ort_praezise %}
+            <br><span class="text-danger small fw-semibold">{{ alarm.ort_praezise }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if alarm.gemeldet_von.hr_mitarbeiter %}
+              {{ alarm.gemeldet_von.hr_mitarbeiter.vollname }}
+            {% else %}
+              {{ alarm.gemeldet_von.get_full_name|default:alarm.gemeldet_von.username }}
+            {% endif %}
+          </td>
+          <td class="text-center">{{ alarm.melder_anzahl }}</td>
+          <td>
+            <span class="badge bg-primary">{{ alarm.erkunder_tokens.count }}</span>
+          </td>
+          <td>
+            {% if alarm.status == "gemeldet" %}
+              <span class="badge bg-warning text-dark">Erkunder unterwegs</span>
+            {% elif alarm.status == "bestaetigung" %}
+              <span class="badge bg-warning text-dark">Security-Review</span>
+            {% elif alarm.status == "evakuierung" %}
+              <span class="badge bg-danger">EVAKUIERUNG</span>
+            {% else %}
+              <span class="badge bg-secondary">Geschlossen</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'sicherheit:brand_detail' pk=alarm.pk %}"
+               class="btn btn-sm btn-outline-secondary">Details</a>
+            {% if alarm.status == "bestaetigung" %}
+            <a href="{% url 'sicherheit:brand_security' pk=alarm.pk %}"
+               class="btn btn-sm btn-warning ms-1">Review</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-success">
+    Keine Brandalarme vorhanden.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if hat_aktive %}
+<script src="{% static 'js/brand_detail.js' %}"></script>
+{% endif %}
+{% endblock %}

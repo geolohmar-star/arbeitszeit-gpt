@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}{{ raum.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <a href="{% url 'matrix_integration:raum_liste' %}" class="text-muted text-decoration-none">
+                &larr; Matrix-Räume
+            </a>
+            <h2 class="mt-1 mb-0">{{ raum.name }}</h2>
+        </div>
+        {% if user.is_staff %}
+        <div class="d-flex gap-2">
+            <a href="{% url 'matrix_integration:raum_bearbeiten' raum.pk %}" class="btn btn-outline-warning">
+                Bearbeiten
+            </a>
+            <a href="{% url 'matrix_integration:raum_loeschen' raum.pk %}" class="btn btn-outline-danger">
+                Löschen
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header fw-semibold">Raum-Details</div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <th class="text-muted" style="width:40%">Typ</th>
+                            <td>{{ raum.get_typ_display }}</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted">Status</th>
+                            <td>
+                                <span class="badge {% if raum.ist_aktiv %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {% if raum.ist_aktiv %}Aktiv{% else %}Inaktiv{% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                        {% if raum.org_einheit %}
+                        <tr>
+                            <th class="text-muted">Org-Einheit</th>
+                            <td>{{ raum.org_einheit }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if raum.teilnehmer_template %}
+                        <tr>
+                            <th class="text-muted">Teilnehmer-Template</th>
+                            <td>
+                                <a href="{% url 'matrix_integration:template_bearbeiten' raum.teilnehmer_template.pk %}">
+                                    {{ raum.teilnehmer_template }}
+                                </a>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if raum.ping_typ %}
+                        <tr>
+                            <th class="text-muted">Ping-Kanal-Typ</th>
+                            <td>{{ raum.get_ping_typ_display }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if raum.beschreibung %}
+                        <tr>
+                            <th class="text-muted">Beschreibung</th>
+                            <td>{{ raum.beschreibung }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header fw-semibold">Matrix-Verbindung</div>
+                <div class="card-body">
+                    {% if raum.room_id %}
+                    <div class="mb-2">
+                        <small class="text-muted d-block">Room-ID</small>
+                        <code>{{ raum.room_id }}</code>
+                    </div>
+                    {% endif %}
+                    {% if raum.room_alias %}
+                    <div class="mb-2">
+                        <small class="text-muted d-block">Room-Alias</small>
+                        <code>{{ raum.room_alias }}</code>
+                    </div>
+                    {% endif %}
+                    {% with url=raum.get_element_url %}
+                    {% if url %}
+                    <a href="{{ url }}" target="_blank" class="btn btn-primary mt-2">
+                        In Element öffnen
+                    </a>
+                    {% else %}
+                    <p class="text-muted small mb-0">Noch keine Room-ID konfiguriert.</p>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+
+            {% if raum.sitzungen.exists %}
+            <div class="card mt-3">
+                <div class="card-header fw-semibold">Sitzungen in diesem Raum</div>
+                <ul class="list-group list-group-flush">
+                    {% for sitzung in raum.sitzungen.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ sitzung.name }}</strong>
+                            <small class="text-muted d-block">
+                                {{ sitzung.von }} – {{ sitzung.bis }}
+                                {% if sitzung.ist_wiederkehrend %}
+                                &middot; {{ sitzung.get_wochentag_display }}
+                                {% endif %}
+                            </small>
+                        </div>
+                        <span class="badge {% if sitzung.ist_aktiv %}bg-success{% else %}bg-secondary{% endif %}">
+                            {% if sitzung.ist_aktiv %}aktiv{% else %}inaktiv{% endif %}
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

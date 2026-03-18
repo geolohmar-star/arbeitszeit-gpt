@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titel }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 700px;">
+    <div class="mb-4">
+        <h2>{{ titel }}</h2>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="{{ form.name.id_for_label }}" class="form-label fw-bold">
+                        Name <span class="text-danger">*</span>
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <div class="text-danger small">{{ form.name.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.beschreibung.id_for_label }}" class="form-label fw-bold">
+                        Beschreibung
+                    </label>
+                    {{ form.beschreibung }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.trigger_event.id_for_label }}" class="form-label fw-bold">
+                        Trigger-Event-Key <span class="text-danger">*</span>
+                    </label>
+                    {{ form.trigger_event }}
+                    <div class="form-text">
+                        Muss exakt mit dem <code>trigger_event</code>-Feld im
+                        Workflow-Template uebereinstimmen (z.B. <code>dienstreise_erstellt</code>).
+                    </div>
+                    {% if form.trigger_event.errors %}
+                    <div class="text-danger small">{{ form.trigger_event.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-7">
+                        <label for="{{ form.content_type.id_for_label }}" class="form-label fw-bold">
+                            Django-Model
+                        </label>
+                        {{ form.content_type }}
+                        <div class="form-text">{{ form.content_type.help_text }}</div>
+                    </div>
+                    <div class="col-md-5">
+                        <label for="{{ form.trigger_auf.id_for_label }}" class="form-label fw-bold">
+                            Ausloesen bei
+                        </label>
+                        {{ form.trigger_auf }}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.antragsteller_pfad.id_for_label }}" class="form-label fw-bold">
+                        Antragsteller-Pfad
+                    </label>
+                    {{ form.antragsteller_pfad }}
+                    <div class="form-text">
+                        Punkt-getrennter Pfad zum Django-User-Objekt auf dem gespeicherten Objekt.
+                        Beispiele: <code>antragsteller.user</code>, <code>erstellt_von</code>,
+                        <code>antragsteller</code>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.workflow_instance_feld.id_for_label }}" class="form-label fw-bold">
+                        Workflow-Instance-Feld
+                    </label>
+                    {{ form.workflow_instance_feld }}
+                    <div class="form-text">
+                        Feldname auf dem Model zum Speichern der Workflow-Instanz
+                        (muss ein FK auf <code>WorkflowInstance</code> sein).
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="form-check">
+                        {{ form.ist_aktiv }}
+                        <label class="form-check-label" for="{{ form.ist_aktiv.id_for_label }}">
+                            Trigger aktiv (wird sofort ausgeloest wenn ein passendes Objekt gespeichert wird)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                    <a href="{% url 'workflow:trigger_konfiguration' %}" class="btn btn-outline-secondary">
+                        Abbrechen
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

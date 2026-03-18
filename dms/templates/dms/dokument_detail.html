@@ -21,6 +21,14 @@
                   Workflow starten
               </button>
 
+              {% if ist_dms_admin and not dok.loeschen_am %}
+              <button type="button" id="loeschen-planen-btn"
+                      class="btn btn-sm btn-outline-danger"
+                      data-url="{% url 'dms:loeschen_planen' dok.pk %}">
+                  Loeschung planen
+              </button>
+              {% endif %}
+
               {% if dok.klasse == "sensibel" %}
                 {% if darf_zugreifen %}
                   {% if aktiver_schluessel %}
@@ -73,6 +81,37 @@
         </div>
         {% endfor %}
     </div>
+    {% endif %}
+
+    {% if dok.loeschen_am %}
+    {% if dok.loeschen_genehmigt %}
+    <div class="alert alert-danger d-flex align-items-start gap-3 mb-4 py-3"
+         style="border-left:4px solid #dc3545;">
+        <div>
+            <strong>Loeschung freigegeben</strong> – dieses Dokument wird am
+            <strong>{{ dok.loeschen_am|date:"d.m.Y" }}</strong> automatisch geloescht.
+            <div class="small text-muted mt-1">
+                Beantragt von: {% if dok.loeschen_beantragt_von %}{% with name=dok.loeschen_beantragt_von.get_full_name %}{% if name %}{{ name }}{% else %}{{ dok.loeschen_beantragt_von.username }}{% endif %}{% endwith %}{% else %}—{% endif %}
+                &nbsp;&middot;&nbsp;
+                Begruendung: {{ dok.loeschen_begruendung|default:"—" }}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning d-flex align-items-start gap-3 mb-4 py-3"
+         style="border-left:4px solid #f59e0b;">
+        <div>
+            <strong>Loeschantrag gestellt</strong> – Loeschdatum:
+            <strong>{{ dok.loeschen_am|date:"d.m.Y" }}</strong>.
+            Wartet auf Freigabe durch den DSB.
+            <div class="small text-muted mt-1">
+                Beantragt von: {% if dok.loeschen_beantragt_von %}{% with name=dok.loeschen_beantragt_von.get_full_name %}{% if name %}{{ name }}{% else %}{{ dok.loeschen_beantragt_von.username }}{% endif %}{% endwith %}{% else %}—{% endif %}
+                &nbsp;&middot;&nbsp;
+                Begruendung: {{ dok.loeschen_begruendung|default:"—" }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
     {% endif %}
 
     <!-- Workflow-Vorschlag Banner (aus Paperless-Import-Regel) -->
@@ -133,7 +172,7 @@
                 </div>
                 <div class="col-md-4">
                     <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase;">Erstellt von</div>
-                    <div>{{ dok.erstellt_von.get_full_name|default:dok.erstellt_von.username|default:"—" }}</div>
+                    <div>{% if dok.erstellt_von %}{% with name=dok.erstellt_von.get_full_name %}{% if name %}{{ name }}{% else %}{{ dok.erstellt_von.username }}{% endif %}{% endwith %}{% else %}—{% endif %}</div>
                 </div>
                 <div class="col-md-4">
                     <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase;">Gueltig bis</div>
@@ -203,7 +242,7 @@
                         </td>
                         <td style="font-size:0.82rem;">{{ v.erstellt_am|date:"d.m.Y H:i" }}</td>
                         <td style="font-size:0.82rem;">
-                            {% if v.erstellt_von %}{{ v.erstellt_von.get_full_name|default:v.erstellt_von.username }}{% else %}System{% endif %}
+                            {% if v.erstellt_von %}{% with name=v.erstellt_von.get_full_name %}{% if name %}{{ name }}{% else %}{{ v.erstellt_von.username }}{% endif %}{% endwith %}{% else %}System{% endif %}
                         </td>
                         <td style="font-size:0.82rem;">{{ v.groesse_lesbar }}</td>
                         <td style="font-size:0.78rem; color:#6b7280;">{{ v.kommentar|default:"—" }}</td>
@@ -250,55 +289,91 @@
     <!-- Laufende Workflows fuer dieses Dokument -->
     {% if workflow_instanzen %}
     <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white fw-semibold py-2 px-4">
-            Aktive Workflows
-            <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">{{ workflow_instanzen|length }}</span>
+        <div class="card-header bg-white fw-semibold py-2 px-4 d-flex justify-content-between align-items-center">
+            <span>
+                Workflows
+                <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">{{ workflow_instanzen|length }}</span>
+            </span>
         </div>
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead style="font-size:0.75rem; text-transform:uppercase; color:#6b7280;">
-                    <tr>
-                        <th class="px-4 py-2">Workflow</th>
-                        <th class="py-2">Gestartet am</th>
-                        <th class="py-2">Gestartet von</th>
-                        <th class="py-2">Status</th>
-                        <th class="py-2">Detail</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for inst in workflow_instanzen %}
-                    <tr>
-                        <td class="px-4 py-2">
-                            <span class="fw-semibold">{{ inst.template.name }}</span>
-                            <div class="text-muted" style="font-size:0.75rem;">{{ inst.template.get_kategorie_display }}</div>
-                        </td>
-                        <td style="font-size:0.82rem;">{{ inst.gestartet_am|date:"d.m.Y H:i" }}</td>
-                        <td style="font-size:0.82rem;">
+        <div class="card-body p-0">
+            {% for inst in workflow_instanzen %}
+            <div class="border-bottom px-4 py-3 {% if not forloop.last %}{% endif %}">
+
+                <!-- Kopfzeile: Name + Status + Link -->
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="fw-semibold">{{ inst.template.name }}</span>
+                        <span class="text-muted small ms-2">
+                            gestartet {{ inst.gestartet_am|date:"d.m.Y H:i" }}
                             {% if inst.gestartet_von %}
-                                {{ inst.gestartet_von.get_full_name|default:inst.gestartet_von.username }}
-                            {% else %}—{% endif %}
-                        </td>
-                        <td>
-                            <span class="badge
-                                {% if inst.status == 'laufend' %}bg-primary
-                                {% elif inst.status == 'abgeschlossen' %}bg-success
-                                {% elif inst.status == 'abgebrochen' %}bg-danger
-                                {% else %}bg-secondary{% endif %}">
-                                {{ inst.get_status_display }}
-                            </span>
-                        </td>
-                        <td>
-                            <a href="{% url 'workflow:workflow_status' inst.pk %}"
-                               class="btn btn-xs btn-outline-secondary"
-                               style="font-size:0.72rem; padding:2px 8px;"
-                               target="_blank">
-                                Verlauf
-                            </a>
-                        </td>
-                    </tr>
+                            von {{ inst.gestartet_von.get_full_name|default:inst.gestartet_von.username }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge
+                            {% if inst.status == 'laufend' %}bg-primary
+                            {% elif inst.status == 'abgeschlossen' %}bg-success
+                            {% elif inst.status == 'abgebrochen' %}bg-danger
+                            {% else %}bg-secondary{% endif %}">
+                            {{ inst.get_status_display }}
+                        </span>
+                        <a href="{% url 'workflow:workflow_status' inst.pk %}"
+                           class="btn btn-sm btn-outline-secondary py-0"
+                           style="font-size:0.75rem;" target="_blank">
+                            Verlauf
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Aktuelle Schritte (wer hat die Kugel?) -->
+                {% if inst.offene_tasks %}
+                <div class="d-flex flex-wrap gap-2">
+                    {% for task in inst.offene_tasks %}
+                    <div class="border rounded px-3 py-2 bg-light d-flex align-items-center gap-2"
+                         style="font-size:0.82rem; min-width:220px;">
+                        <!-- Status-Indikator -->
+                        <span class="rounded-circle flex-shrink-0"
+                              style="width:10px; height:10px; background:
+                              {% if task.status == 'in_bearbeitung' %}#f59e0b
+                              {% else %}#3b82f6{% endif %};">
+                        </span>
+                        <div>
+                            <div class="fw-semibold">{{ task.step.titel }}</div>
+                            <div class="text-muted" style="font-size:0.75rem;">
+                                {% if task.zugewiesen_an_user %}
+                                    {{ task.zugewiesen_an_user.get_full_name|default:task.zugewiesen_an_user.username }}
+                                {% elif task.zugewiesen_an_stelle %}
+                                    <span class="font-monospace">{{ task.zugewiesen_an_stelle.kuerzel }}</span>
+                                    – {{ task.zugewiesen_an_stelle.bezeichnung }}
+                                {% elif task.zugewiesen_an_team %}
+                                    Team: {{ task.zugewiesen_an_team.name }}
+                                {% else %}
+                                    nicht zugewiesen
+                                {% endif %}
+                                · Frist: {{ task.frist|date:"d.m.Y" }}
+                            </div>
+                        </div>
+                        {% if task.status == 'in_bearbeitung' %}
+                        <span class="badge bg-warning text-dark ms-auto" style="font-size:0.65rem;">
+                            in Bearbeitung
+                        </span>
+                        {% endif %}
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
+                {% elif inst.status == 'abgeschlossen' %}
+                <div class="text-success small">
+                    Abgeschlossen {{ inst.abgeschlossen_am|date:"d.m.Y H:i" }}
+                </div>
+                {% elif inst.status == 'abgebrochen' %}
+                <div class="text-danger small">Abgebrochen</div>
+                {% else %}
+                <div class="text-muted small">Keine offenen Aufgaben.</div>
+                {% endif %}
+
+            </div>
+            {% endfor %}
         </div>
     </div>
     {% endif %}
@@ -316,6 +391,7 @@
                     <tr>
                         <th class="px-4 py-2">Zeitpunkt</th>
                         <th class="py-2">User</th>
+                        <th class="py-2">Stelle</th>
                         <th class="py-2">Aktion</th>
                         <th class="py-2">Notiz</th>
                         <th class="py-2">IP</th>
@@ -326,7 +402,14 @@
                     <tr>
                         <td class="px-4 py-2" style="font-size:0.82rem;">{{ z.zeitpunkt|date:"d.m.Y H:i" }}</td>
                         <td style="font-size:0.82rem;">
-                            {{ z.user.get_full_name|default:z.user.username|default:"unbekannt" }}
+                            {% if z.user %}{% with name=z.user.get_full_name %}{% if name %}{{ name }}{% else %}{{ z.user.username }}{% endif %}{% endwith %}{% else %}unbekannt{% endif %}
+                        </td>
+                        <td style="font-size:0.82rem;">
+                            {% if z.user.hr_mitarbeiter.stelle %}
+                                <span class="badge bg-secondary" style="font-size:0.7rem;">
+                                    {{ z.user.hr_mitarbeiter.stelle.kuerzel }}
+                                </span>
+                            {% else %}—{% endif %}
                         </td>
                         <td>
                             <span class="badge
@@ -360,4 +443,95 @@
     {% include "dms/partials/_workflow_starten_modal.html" %}
 </div>
 
+{% if ist_dms_admin and not dok.loeschen_am %}
+<!-- Modal: Loeschung planen (dreifache Sicherheitsabfrage) -->
+{% csrf_token %}
+<div class="modal fade" id="loeschenModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold">Loeschung planen – {{ dok.titel }}</h5>
+                <button type="button" class="btn-close btn-close-white loeschen-abbrechen"></button>
+            </div>
+            <div class="modal-body">
+                <div id="loeschen-fehler" class="alert alert-danger py-2 small" style="display:none;"></div>
+
+                {# Schritt 1: Datum + Begruendung #}
+                <div id="loeschen-schritt-1">
+                    <p class="small text-muted mb-3">
+                        <strong>Schritt 1 von 3:</strong> Loeschdatum und Begruendung angeben.
+                        Nach DSB-Freigabe wird das Dokument am geplanten Datum automatisch geloescht.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Loeschdatum *</label>
+                        <input type="date" id="loeschen-datum" class="form-control"
+                               min="{% now 'Y-m-d' %}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Begruendung *</label>
+                        <textarea id="loeschen-begruendung" class="form-control" rows="3"
+                                  placeholder="z.B. Aufbewahrungsfrist abgelaufen, Einwilligung widerrufen..."></textarea>
+                    </div>
+                </div>
+
+                {# Schritt 2: Zusammenfassung pruefen #}
+                <div id="loeschen-schritt-2" style="display:none;">
+                    <p class="small text-muted mb-3">
+                        <strong>Schritt 2 von 3:</strong> Bitte die Angaben pruefen.
+                    </p>
+                    <div class="alert alert-warning py-2">
+                        <div><strong>Dokument:</strong> {{ dok.titel }}</div>
+                        <div><strong>Loeschdatum:</strong> <span id="loeschen-s2-datum"></span></div>
+                        <div><strong>Begruendung:</strong> <span id="loeschen-s2-begruendung"></span></div>
+                    </div>
+                    <p class="small text-danger mt-2 mb-0">
+                        Nach der Freigabe durch den DSB kann die Loeschung nicht mehr rueckgaengig gemacht werden.
+                    </p>
+                </div>
+
+                {# Schritt 3: Textbestaetigung #}
+                <div id="loeschen-schritt-3" style="display:none;">
+                    <p class="small text-muted mb-3">
+                        <strong>Schritt 3 von 3:</strong> Zur endgueltigen Bestaetigung
+                        bitte <strong>LOESCHEN</strong> eintippen.
+                    </p>
+                    <input type="text" id="loeschen-bestaetigung" class="form-control"
+                           placeholder="LOESCHEN" autocomplete="off">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary loeschen-abbrechen">Abbrechen</button>
+                <button type="button" id="loeschen-weiter-1"
+                        class="btn btn-warning" style="display:block;">
+                    Weiter
+                </button>
+                <button type="button" id="loeschen-weiter-2"
+                        class="btn btn-warning" style="display:none;">
+                    Ja, ich habe geprueft – Weiter
+                </button>
+                <button type="button" id="loeschen-zurueck-2"
+                        class="btn btn-outline-secondary" style="display:none;">
+                    Zurueck
+                </button>
+                <button type="button" id="loeschen-zurueck-3"
+                        class="btn btn-outline-secondary" style="display:none;">
+                    Zurueck
+                </button>
+                <button type="button" id="loeschen-absenden"
+                        class="btn btn-danger" style="display:none;">
+                    Endgueltig loeschen planen
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/laufzettel_builder.js' %}"></script>
+{% if ist_dms_admin and not dok.loeschen_am %}
+<script src="{% static 'js/dms_loeschen_planung.js' %}"></script>
+{% endif %}
+{% endblock %}
 {% endblock %}

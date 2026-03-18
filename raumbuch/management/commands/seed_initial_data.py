@@ -124,6 +124,24 @@ class Command(BaseCommand):
                 self.style.WARNING(f"  [WARN] Betriebssport-Workflow fehlgeschlagen: {exc}")
             )
 
+        self.stdout.write("  [LOAD] DMS-Ablagen fuer Zeitgutschriften ...")
+        try:
+            call_command("erstelle_zeitgutschrift_ablagen", verbosity=1)
+            self.stdout.write("  [OK]   DMS-Ablagen abgeschlossen.")
+        except Exception as exc:
+            self.stdout.write(
+                self.style.WARNING(f"  [WARN] DMS-Ablagen fehlgeschlagen: {exc}")
+            )
+
+        self.stdout.write("  [LOAD] DSB-Loeschworkflow ...")
+        try:
+            call_command("erstelle_dsb_loeschworkflow", verbosity=1)
+            self.stdout.write("  [OK]   DSB-Loeschworkflow abgeschlossen.")
+        except Exception as exc:
+            self.stdout.write(
+                self.style.WARNING(f"  [WARN] DSB-Loeschworkflow fehlgeschlagen: {exc}")
+            )
+
         # Einladungscodes fuer externen Bewerbungsprozess
         from bewerbung.models import EinladungsCode
         if not EinladungsCode.objects.exists():
