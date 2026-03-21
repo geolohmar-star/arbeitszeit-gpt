@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Datensicherung (BSI CON.3){% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  {# Seitenkopf #}
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h2 class="mb-0">Datensicherung</h2>
+      <small class="text-muted">BSI IT-Grundschutz &ndash; CON.3 Datensicherungskonzept</small>
+    </div>
+    <div class="d-flex gap-2">
+      <form method="post" action="{% url 'datensicherung:backup_ausloesen' %}" id="form-backup">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary" id="btn-backup">
+          Backup jetzt erstellen
+        </button>
+      </form>
+      <form method="post" action="{% url 'datensicherung:restore_test_ausloesen' %}" id="form-restore">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-secondary" id="btn-restore">
+          Restore-Test durchfuehren
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {# Info-Kacheln #}
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle text-muted mb-2">Letztes Backup</h6>
+          {% if letztes_backup %}
+            <p class="mb-1 fw-bold">{{ letztes_backup.erstellt_am|date:"d.m.Y H:i" }} Uhr</p>
+            <p class="mb-0 small text-muted">
+              {{ letztes_backup.dateiname }}<br>
+              {% if letztes_backup.dateigroesse_mb %}{{ letztes_backup.dateigroesse_mb }} MB &middot; {% endif %}
+              {{ letztes_backup.tabellen_anzahl|default:"?" }} Tabellen
+            </p>
+          {% else %}
+            <p class="text-danger mb-0">Noch kein Backup vorhanden</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle text-muted mb-2">Letzter Restore-Test</h6>
+          {% if letzter_restore %}
+            <p class="mb-1 fw-bold">{{ letzter_restore.abgeschlossen_am|date:"d.m.Y H:i" }} Uhr</p>
+            <p class="mb-0 small text-muted">
+              {{ letzter_restore.tabellen_anzahl|default:"?" }} Tabellen &middot;
+              ~{{ letzter_restore.zeilen_gesamt|default:"?" }} Zeilen
+            </p>
+          {% else %}
+            <p class="text-danger mb-0">Noch kein Restore-Test</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h6 class="card-subtitle text-muted mb-2">BSI CON.3 Anforderungen</h6>
+          <ul class="small mb-0 ps-3">
+            <li>Regelmaessige Datensicherungen</li>
+            <li>Restore-Test max. alle <strong>{{ kritisch_tage }} Tage</strong></li>
+            <li>Protokollierung aller Vorgaenge</li>
+            <li>Getrennte Aufbewahrung der Sicherungen</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Dynamischer Bereich (Ampel + Tabelle) #}
+  <div id="dynbereich"
+       hx-get="{% url 'datensicherung:status_partial' %}"
+       hx-trigger="load, every 5s"
+       hx-swap="innerHTML">
+    {% include "datensicherung/_status_partial.html" %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/datensicherung.js' %}"></script>
+{% endblock %}

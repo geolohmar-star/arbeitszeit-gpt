@@ -133,6 +133,75 @@ def _sammle_workflow_unterzeichner(antrag, antragsteller_user):
     return unterzeichner
 
 
+def _lade_signatur_pdf(antrag):
+    """Gibt gespeicherte signierte PDF-Bytes fuer einen Antrag zurueck (oder None)."""
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from formulare.models import AntragsSignaturPDF
+        ct = ContentType.objects.get_for_model(antrag)
+        eintrag = AntragsSignaturPDF.objects.filter(
+            content_type=ct, object_id=antrag.pk
+        ).first()
+        return bytes(eintrag.signiertes_pdf) if eintrag else None
+    except Exception as exc:
+        logger.warning("_lade_signatur_pdf fehlgeschlagen: %s", exc)
+        return None
+
+
+def _speichere_signatur_pdf(antrag, pdf_bytes, user, anzahl):
+    """Speichert das signierte PDF fuer einen Antrag (upsert)."""
+    try:
+        from django.contrib.contenttypes.models import ContentType
+        from formulare.models import AntragsSignaturPDF
+        ct = ContentType.objects.get_for_model(antrag)
+        AntragsSignaturPDF.objects.update_or_create(
+            content_type=ct,
+            object_id=antrag.pk,
+            defaults={
+                "signiertes_pdf": pdf_bytes,
+                "zuletzt_signiert_von": user,
+                "anzahl_signaturen": anzahl,
+            },
+        )
+    except Exception as exc:
+        logger.warning("_speichere_signatur_pdf fehlgeschlagen: %s", exc)
+
+
+def _signiere_und_speichere(antrag, user, pdf_bytes_neu, dateiname):
+    """Signiert inkrementell und speichert das Ergebnis.
+
+    Laedt bestehendes signiertes PDF wenn vorhanden und fuegt neue Signatur hinzu.
+    Faellt auf pdf_bytes_neu zurueck wenn noch kein gespeichertes PDF existiert.
+    Gibt signierte PDF-Bytes zurueck.
+    """
+    from signatur.services import signiere_pdf
+
+    # Bestehendes signiertes PDF laden (inkrementell aufbauen)
+    basis = _lade_signatur_pdf(antrag)
+    pdf = basis if basis is not None else pdf_bytes_neu
+
+    try:
+        pdf_signiert = signiere_pdf(pdf, user, dokument_name=dateiname)
+    except Exception as exc:
+        logger.warning(
+            "_signiere_und_speichere: Signatur fehlgeschlagen fuer %s pk=%s user=%s: %s",
+            antrag.__class__.__name__, antrag.pk, user.username, exc,
+        )
+        return pdf  # Unsigniertes Basis-PDF zurueckgeben
+
+    # Anzahl Signaturen ermitteln (aus pyhanko)
+    try:
+        import io
+        from pyhanko.pdf_utils.reader import PdfFileReader
+        reader = PdfFileReader(io.BytesIO(pdf_signiert))
+        anzahl = len(list(reader.embedded_signatures))
+    except Exception:
+        anzahl = 0
+
+    _speichere_signatur_pdf(antrag, pdf_signiert, user, anzahl)
+    return pdf_signiert
+
+
 def _signiere_pdf_alle_unterzeichner(pdf_bytes, unterzeichner, dateiname):
     """Signiert ein PDF inkrementell fuer jeden Unterzeichner in der Liste.
 
@@ -172,31 +241,26 @@ def _hole_antrag_signatur(content_type_str, object_id):
 def _auto_signiere_antrag(antrag, request, content_type_str, pdf_template, extra_context=None):
     """Generisches Auto-Signatur-Pattern fuer alle Antragstypen.
 
-    Rendert das PDF-Template, signiert es sofort und legt ein SignaturProtokoll an.
+    Rendert das PDF-Template, signiert mit dem Antragsteller und speichert
+    das Ergebnis in AntragsSignaturPDF (Option B: Signieren bei Einreichung).
     Schlaegt still fehl – unterbricht nie die Formular-Einreichung.
     """
     try:
         from weasyprint import HTML
         from django.template.loader import render_to_string
-        from signatur.services import signiere_pdf
 
         ctx = {"antrag": antrag, "betreff": antrag.get_betreff()}
         if extra_context:
             ctx.update(extra_context)
 
         html_string = render_to_string(pdf_template, ctx, request=request)
-        pdf = HTML(
+        pdf_neu = HTML(
             string=html_string,
             base_url=request.build_absolute_uri(),
         ).write_pdf()
         dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
-        signiere_pdf(
-            pdf,
-            antrag.antragsteller.user,
-            dokument_name=dateiname,
-            content_type=content_type_str,
-            object_id=antrag.pk,
-        )
+
+        _signiere_und_speichere(antrag, antrag.antragsteller.user, pdf_neu, dateiname)
         logger.info("Auto-Signatur OK: %s pk=%s", content_type_str, antrag.pk)
     except Exception as exc:
         logger.warning(
@@ -292,24 +356,23 @@ def _auto_signiere_genehmigung(antrag, antrag_typ, request):
     content_type_str, pdf_template = entry
 
     try:
-        from weasyprint import HTML
-        from django.template.loader import render_to_string
-        from signatur.services import signiere_pdf
-
-        ctx = {"antrag": antrag, "betreff": antrag.get_betreff()}
-        html_string = render_to_string(pdf_template, ctx, request=request)
-        pdf = HTML(
-            string=html_string,
-            base_url=request.build_absolute_uri(),
-        ).write_pdf()
+        # Option B: Bestehendes signiertes PDF laden und inkrementell signieren.
+        # Kein Neu-Rendern – Vorsignaturen bleiben gueltig.
         dateiname = f"Genehmigung_{antrag.get_betreff().replace(' ', '_')}.pdf"
-        signiere_pdf(
-            pdf,
-            request.user,
-            dokument_name=dateiname,
-            content_type=content_type_str,
-            object_id=antrag.pk,
-        )
+        gespeichertes = _lade_signatur_pdf(antrag)
+
+        if gespeichertes is None:
+            # Noch kein gespeichertes PDF → frisch generieren
+            from weasyprint import HTML
+            from django.template.loader import render_to_string
+            ctx = {"antrag": antrag, "betreff": antrag.get_betreff()}
+            html_string = render_to_string(pdf_template, ctx, request=request)
+            gespeichertes = HTML(
+                string=html_string,
+                base_url=request.build_absolute_uri(),
+            ).write_pdf()
+
+        _signiere_und_speichere(antrag, request.user, gespeichertes, dateiname)
         logger.info(
             "Genehmiger-Signatur OK: %s pk=%s user=%s",
             content_type_str, antrag.pk, request.user.username,

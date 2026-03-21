@@ -21,7 +21,7 @@ import urllib.error
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from dms.models import Dokument, DokumentKategorie, PaperlessImportLog, PaperlessWorkflowRegel
+from dms.models import Dokument, DokumentKategorie, DokumentTag, PaperlessImportLog, PaperlessWorkflowRegel
 from dms.services import speichere_dokument, suchvektor_befuellen
 
 logger = logging.getLogger(__name__)
@@ -185,6 +185,17 @@ class Command(BaseCommand):
             try:
                 speichere_dokument(dok, inhalt_bytes)
                 dok.save()
+
+                # Paperless-Tags als PRIMA-DMS-Tags uebernehmen (get_or_create)
+                for tid in (doc.get("tags") or []):
+                    tag_name = (tag_names_map.get(tid) or "").strip()
+                    if tag_name:
+                        prima_tag, _ = DokumentTag.objects.get_or_create(
+                            name=tag_name,
+                            defaults={"farbe": "#6b7280"},
+                        )
+                        dok.tags.add(prima_tag)
+
                 # Suchvektor nach dem Speichern befuellen (pk benoetigt)
                 suchvektor_befuellen(dok, ocr_text)
                 PaperlessImportLog.objects.create(

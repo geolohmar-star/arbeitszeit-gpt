@@ -19,6 +19,8 @@ urlpatterns = [
     path("zugriffsantraege/<int:schluessel_pk>/genehmigen/", views.zugriff_genehmigen, name="zugriff_genehmigen"),
     path("zugriffsantraege/<int:schluessel_pk>/ablehnen/", views.zugriff_ablehnen, name="zugriff_ablehnen"),
     path("zugriffsantraege/<int:schluessel_pk>/widerrufen/", views.zugriff_widerrufen, name="zugriff_widerrufen"),
+    # PDF-Export + Signatur
+    path("<int:pk>/pdf-exportieren/", views.dokument_pdf_exportieren, name="pdf_exportieren"),
     # OnlyOffice-Integration
     path("<int:pk>/onlyoffice/", views.onlyoffice_editor, name="onlyoffice_editor"),
     path("<int:pk>/onlyoffice/laden/", views.onlyoffice_dokument_laden, name="onlyoffice_laden"),

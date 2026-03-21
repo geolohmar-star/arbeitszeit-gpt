@@ -38,6 +38,7 @@ urlpatterns = [
     path('it-status/', include('it_status.urls', namespace='it_status')),
     path('ersthelfe/', include('ersthelfe.urls', namespace='ersthelfe')),
     path('sicherheit/', include('sicherheit.urls', namespace='sicherheit')),
+    path('datensicherung/', include('datensicherung.urls', namespace='datensicherung')),
 ]
 
 # Media-Files (nur in Development)

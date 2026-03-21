@@ -1,4 +1,6 @@
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.utils import timezone
 
@@ -738,3 +740,36 @@ class TeamQueue(models.Model):
             return []
 
         return sorted(chain(*querysets), key=lambda x: x.claimed_am)
+
+
+
+class AntragsSignaturPDF(models.Model):
+    """Speichert das akkumulierte signierte PDF eines Antrags.
+
+    Wird bei jeder Signierung (Einreichung + jede Genehmigung) aktualisiert.
+    Der naechste Unterzeichner signiert inkrementell auf diesem PDF auf.
+    Damit sind alle Signaturen gueltig und kumulieren sich korrekt.
+    """
+    content_type = models.ForeignKey(
+        ContentType, on_delete=models.CASCADE, related_name="signatur_pdfs"
+    )
+    object_id = models.PositiveIntegerField()
+    antrag = GenericForeignKey("content_type", "object_id")
+
+    signiertes_pdf = models.BinaryField()
+    zuletzt_signiert_von = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    aktualisiert_am = models.DateTimeField(auto_now=True)
+    anzahl_signaturen = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        unique_together = [("content_type", "object_id")]
+        verbose_name = "Antrags-Signatur-PDF"
+        verbose_name_plural = "Antrags-Signatur-PDFs"
+
+    def __str__(self):
+        return f"SignaturPDF {self.content_type} #{self.object_id} ({self.anzahl_signaturen} Sig.)"

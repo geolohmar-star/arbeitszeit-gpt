@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'it_status.apps.ItStatusConfig',
     'ersthelfe.apps.ErsthelfeConfig',
     'sicherheit.apps.SicherheitConfig',
+    'datensicherung.apps.DatensicherungConfig',
 ]
 
 # Verschluesselung fuer sensible Dokumente (Fernet AES-128)

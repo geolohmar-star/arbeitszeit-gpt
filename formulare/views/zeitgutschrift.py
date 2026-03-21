@@ -17,8 +17,6 @@ from ._utils import (
     _auto_signiere_zeitgutschrift,
     _hole_antrag_signatur,
     _offene_antraege_fuer_user,
-    _sammle_workflow_unterzeichner,
-    _signiere_pdf_alle_unterzeichner,
     _starte_workflow_fuer_antrag,
 )
 
@@ -728,15 +726,24 @@ def zeitgutschrift_pdf(request, pk):
             },
         )
 
-        html = HTML(string=html_string, base_url=request.build_absolute_uri())
-        pdf = html.write_pdf()
         dateiname_zg = f"zeitgutschrift_{antrag.id}.pdf"
-        unterzeichner_zg = _sammle_workflow_unterzeichner(antrag, antrag.antragsteller.user)
-        pdf = _signiere_pdf_alle_unterzeichner(pdf, unterzeichner_zg, dateiname_zg)
+
+        # Option B: Gespeichertes signiertes PDF zurueckgeben wenn vorhanden.
+        # (Signaturen akkumulieren sich bei jeder Aktion des jeweiligen Users.)
+        from formulare.views._utils import _lade_signatur_pdf
+        gespeichertes = _lade_signatur_pdf(antrag)
+        if gespeichertes:
+            pdf = gespeichertes
+        else:
+            # Fallback: Frisch generieren + mit aktuellem User signieren
+            from formulare.views._utils import _signiere_und_speichere
+            html = HTML(string=html_string, base_url=request.build_absolute_uri())
+            pdf_roh = html.write_pdf()
+            pdf = _signiere_und_speichere(antrag, request.user, pdf_roh, dateiname_zg)
 
         response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = (
-            f'inline; filename="zeitgutschrift_{antrag.id}.pdf"'
+            f'inline; filename="{dateiname_zg}"'
         )
         return response
     except ImportError:

@@ -523,6 +523,10 @@ class WorkflowEngine:
                     if felder_bearbeitung:
                         co.save(update_fields=felder_bearbeitung)
 
+                # DMS-Dokument: Genehmigungsschritt mit digitaler Signatur versehen
+                if co is not None and task.step.aktion_typ in ("genehmigen", "pruefen"):
+                    self._signiere_dms_dokument(co, user, task)
+
             # Workflow-Logik basierend auf Entscheidung
             if entscheidung == "abgelehnt":
                 # Bei Ablehnung: Workflow abbrechen und Antrag ablehnen
@@ -970,3 +974,84 @@ class WorkflowEngine:
 
         # Standardmaessig: Schritt aktivieren
         return True
+
+    def _signiere_dms_dokument(self, content_object, user, task):
+        """
+        Setzt eine digitale FES-Signatur auf ein DMS-Dokument wenn ein
+        Genehmigungsschritt abgeschlossen wird.
+
+        Wird nur ausgefuehrt wenn:
+        - content_object ein dms.Dokument ist
+        - Der User ein aktives Mitarbeiterzertifikat hat
+        - Das Dokument ein PDF ist (Klasse 1 oder 2)
+        """
+        try:
+            from dms.models import Dokument
+            from dms.services import lade_dokument_inhalt, speichere_dokument
+
+            if not isinstance(content_object, Dokument):
+                return
+
+            # Nur PDFs signieren
+            if "pdf" not in (content_object.dateityp or "").lower():
+                logger.info(
+                    "DMS-Signatur uebersprungen fuer Dokument %s – kein PDF (%s)",
+                    content_object.pk, content_object.dateityp,
+                )
+                return
+
+            # Zertifikat pruefen
+            from signatur.models import MitarbeiterZertifikat
+            if not MitarbeiterZertifikat.objects.filter(user=user, status="aktiv").exists():
+                logger.info(
+                    "DMS-Signatur uebersprungen fuer %s – kein aktives Zertifikat",
+                    user.username,
+                )
+                return
+
+            # PDF-Inhalt laden
+            pdf_bytes = lade_dokument_inhalt(content_object)
+            if not pdf_bytes:
+                return
+
+            # Signieren
+            from django.conf import settings as django_settings
+            backend_name = getattr(django_settings, "SIGNATUR_BACKEND", "intern")
+            if backend_name == "sign_me":
+                from signatur.backends.sign_me import SignMeBackend
+                backend = SignMeBackend()
+            else:
+                from signatur.backends.intern import InternBackend
+                backend = InternBackend()
+
+            if task.step.aktion_typ == "pruefen":
+                signatur_grund = f"Geprueft von {user.get_full_name()}"
+            else:
+                signatur_grund = f"Genehmigt von {user.get_full_name()}"
+
+            meta = {
+                "dokument_name": content_object.titel,
+                "content_type": "dms.dokument",
+                "object_id": str(content_object.pk),
+                "sichtbar": True,
+                "seite": -1,
+                "grund": signatur_grund,
+            }
+            signiertes_pdf = backend.signiere_direkt(pdf_bytes, user, meta)
+
+            # Signiertes PDF zurueck in DMS speichern
+            speichere_dokument(content_object, signiertes_pdf)
+            content_object.groesse_bytes = len(signiertes_pdf)
+            content_object.save(update_fields=["groesse_bytes"])
+
+            logger.info(
+                "DMS-Dokument %s von %s signiert (Workflow-Task %s)",
+                content_object.pk, user.username, task.pk,
+            )
+
+        except Exception as exc:
+            # Signatur-Fehler darf den Workflow nicht blockieren
+            logger.error(
+                "DMS-Signatur fehlgeschlagen fuer Dokument %s, User %s: %s",
+                getattr(content_object, "pk", "?"), user.username, exc,
+            )

@@ -1,0 +1,93 @@
+{% load static %}
+
+{# Ampel-Bereich #}
+<div id="ampel-bereich" class="mb-4">
+  {% if ampel_farbe == "gruen" %}
+    <div class="alert alert-success d-flex align-items-center gap-3 mb-0">
+      <span style="font-size:2rem;">&#9679;</span>
+      <div>
+        <strong>BSI CON.3 &ndash; Status: OK</strong><br>
+        {{ ampel_text }}
+      </div>
+    </div>
+  {% elif ampel_farbe == "gelb" %}
+    <div class="alert alert-warning d-flex align-items-center gap-3 mb-0">
+      <span style="font-size:2rem;">&#9679;</span>
+      <div>
+        <strong>BSI CON.3 &ndash; Warnung</strong><br>
+        {{ ampel_text }}
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-danger d-flex align-items-center gap-3 mb-0">
+      <span style="font-size:2rem;">&#9679;</span>
+      <div>
+        <strong>BSI CON.3 &ndash; Handlungsbedarf!</strong><br>
+        {{ ampel_text }}
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+{# Laufende Vorgaenge #}
+{% if laufende %}
+  <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
+    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    <span>
+      {% for l in laufende %}
+        {{ l.get_typ_display }} laeuft seit {{ l.erstellt_am|date:"H:i:s" }} Uhr&hellip;
+        {% if not forloop.last %} &nbsp;|&nbsp; {% endif %}
+      {% endfor %}
+    </span>
+  </div>
+{% endif %}
+
+{# Protokolltabelle #}
+<div id="protokoll-tabelle">
+  <table class="table table-sm table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Zeitpunkt</th>
+        <th>Typ</th>
+        <th>Status</th>
+        <th>Dateiname</th>
+        <th>Groesse</th>
+        <th>Tabellen</th>
+        <th>Zeilen</th>
+        <th>Ausgeloest von</th>
+        <th>Fehlermeldung</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in protokolle %}
+        <tr class="{% if p.status == 'fehler' %}table-danger{% elif p.status == 'laufend' %}table-warning{% endif %}">
+          <td style="white-space:nowrap;">{{ p.erstellt_am|date:"d.m.Y H:i" }}</td>
+          <td>{{ p.get_typ_display }}</td>
+          <td>
+            {% if p.status == "ok" %}
+              <span class="badge bg-success">OK</span>
+            {% elif p.status == "laufend" %}
+              <span class="badge bg-warning text-dark">Laufend</span>
+            {% else %}
+              <span class="badge bg-danger">Fehler</span>
+            {% endif %}
+          </td>
+          <td style="font-size:0.82rem;">{{ p.dateiname|default:"&mdash;" }}</td>
+          <td style="white-space:nowrap;">
+            {% if p.dateigroesse_mb %}{{ p.dateigroesse_mb }} MB{% else %}&mdash;{% endif %}
+          </td>
+          <td>{{ p.tabellen_anzahl|default:"&mdash;" }}</td>
+          <td>{{ p.zeilen_gesamt|default:"&mdash;" }}</td>
+          <td>{{ p.erstellt_von.get_full_name|default:p.erstellt_von|default:"&mdash;" }}</td>
+          <td style="font-size:0.8rem; color:#c00;">
+            {% if p.fehler_meldung %}{{ p.fehler_meldung|truncatechars:120 }}{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="9" class="text-center text-muted">Noch keine Vorgaenge protokolliert.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -82,6 +82,18 @@ def speichere_dokument(dokument, inhalt_bytes: bytes) -> None:
         dokument.verschluessel_nonce = ""
 
 
+def lade_dokument_inhalt(dokument) -> bytes:
+    """Laedt den Dokumentinhalt – entschluesselt bei Klasse 2, roh bei Klasse 1."""
+    if dokument.klasse == "sensibel":
+        if not dokument.inhalt_verschluesselt:
+            return b""
+        return entschluessel_inhalt(
+            bytes(dokument.inhalt_verschluesselt),
+            dokument.verschluessel_nonce,
+        )
+    return bytes(dokument.inhalt_roh) if dokument.inhalt_roh else b""
+
+
 def suchvektor_befuellen(dokument, ocr_text: str = "") -> None:
     """Baut den PostgreSQL-Suchvektor (tsvector) fuer ein Dokument neu auf.
 

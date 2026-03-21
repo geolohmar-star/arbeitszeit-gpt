@@ -954,6 +954,220 @@ def zugriff_widerrufen(request, schluessel_pk):
 
 
 # ---------------------------------------------------------------------------
+# PDF-Export + digitale Signatur aus OnlyOffice heraus
+# ---------------------------------------------------------------------------
+
+def _konvertiere_dms_dok_zu_pdf(dok) -> bytes | None:
+    """Schickt das DMS-Dokument als DOCX/XLSX an den OnlyOffice ConvertService.
+
+    OnlyOffice konvertiert server-seitig zu PDF und gibt eine Download-URL zurueck.
+    Gibt die PDF-Bytes zurueck oder None bei Fehler.
+    """
+    import hashlib
+    import time
+    import urllib.request as urlreq
+
+    onlyoffice_internal = (
+        getattr(django_settings, "ONLYOFFICE_INTERNAL_URL", "").rstrip("/")
+        or getattr(django_settings, "ONLYOFFICE_URL", "").rstrip("/")
+    )
+    prima_base = (
+        getattr(django_settings, "PRIMA_ONLYOFFICE_BASE_URL", "").rstrip("/")
+        or getattr(django_settings, "PRIMA_BASE_URL", "").rstrip("/")
+    )
+    if not onlyoffice_internal or not prima_base:
+        logger.error("OnlyOffice oder PRIMA-Base-URL nicht konfiguriert.")
+        return None
+
+    file_type = _MIME_ZU_EXT.get(dok.dateityp, "docx")
+    if file_type == "pdf":
+        # Bereits ein PDF – direkt Inhalt zurueckgeben
+        return lade_dokument(dok)
+
+    key = hashlib.md5(
+        f"pdf-convert-{dok.pk}-v{dok.version}-{time.time()}".encode()
+    ).hexdigest()[:20]
+
+    nutzlast = {
+        "async":      False,
+        "filetype":   file_type,
+        "key":        key,
+        "outputtype": "pdf",
+        "title":      dok.dateiname,
+        "url":        f"{prima_base}/dms/{dok.pk}/onlyoffice/laden/",
+    }
+    nutzlast_bytes = json.dumps(nutzlast).encode("utf-8")
+
+    headers = {"Content-Type": "application/json"}
+    secret = getattr(django_settings, "ONLYOFFICE_JWT_SECRET", "")
+    if secret:
+        import jwt as pyjwt
+        token = pyjwt.encode(nutzlast, secret, algorithm="HS256")
+        headers["Authorization"] = f"Bearer {token}"
+
+    convert_url = f"{onlyoffice_internal}/ConvertService.ashx"
+    try:
+        req = urlreq.Request(convert_url, data=nutzlast_bytes, headers=headers, method="POST")
+        with urlreq.urlopen(req, timeout=60) as resp:
+            antwort_bytes = resp.read()
+    except Exception as exc:
+        logger.error("OnlyOffice Konvertierung fehlgeschlagen fuer Dokument %s: %s", dok.pk, exc)
+        return None
+
+    import xml.etree.ElementTree as ET
+    try:
+        root = ET.fromstring(antwort_bytes)
+        end_convert = (root.findtext("EndConvert") or "").strip().lower() == "true"
+        pdf_url = (root.findtext("FileUrl") or "").strip()
+        fehler_code = root.findtext("Error")
+    except ET.ParseError as exc:
+        logger.error("OnlyOffice XML-Antwort nicht parsebar fuer Dok %s: %s", dok.pk, exc)
+        return None
+
+    if fehler_code:
+        logger.error("OnlyOffice Konvertierungsfehler fuer Dok %s: Fehlercode %s", dok.pk, fehler_code)
+        return None
+    if not end_convert or not pdf_url:
+        logger.error("OnlyOffice Konvertierung unvollstaendig fuer Dok %s", dok.pk)
+        return None
+
+    try:
+        with urlreq.urlopen(pdf_url, timeout=30) as resp:
+            return resp.read()
+    except Exception as exc:
+        logger.error("PDF-Download von OnlyOffice fehlgeschlagen fuer Dok %s: %s", dok.pk, exc)
+        return None
+
+
+def _erstelle_dms_signaturseite(dok, request) -> bytes:
+    """Erzeugt eine Signaturseite fuer das DMS-Dokument als PDF (WeasyPrint).
+
+    Koordinaten des Stempelbereichs (A4 = 595x842pt):
+      pyhanko box: (20, 539, 502, 667)
+    """
+    from weasyprint import HTML
+    from django.template.loader import render_to_string
+    from django.utils import timezone
+    from django.conf import settings as conf
+
+    unterzeichner_name = request.user.get_full_name() or request.user.username
+    unterzeichner_funktion = ""
+    try:
+        hr = request.user.hr_mitarbeiter
+        if hr.stelle:
+            unterzeichner_funktion = hr.stelle.bezeichnung
+    except Exception:
+        pass
+
+    backend_name = getattr(conf, "SIGNATUR_BACKEND", "intern")
+    signatur_backend = "PRIMA FES (intern)" if backend_name == "intern" else "Bundesdruckerei sign-me (QES)"
+
+    kontext = {
+        "dok":                    dok,
+        "unterzeichner_name":     unterzeichner_name,
+        "unterzeichner_funktion": unterzeichner_funktion,
+        "signiert_am":            timezone.localtime(timezone.now()).strftime("%d.%m.%Y %H:%M Uhr"),
+        "signatur_backend":       signatur_backend,
+    }
+    html_string = render_to_string(
+        "dms/signaturseite_pdf.html", kontext, request=request
+    )
+    return HTML(
+        string=html_string, base_url=request.build_absolute_uri("/")
+    ).write_pdf()
+
+
+def _pdfs_zusammenfuehren_dms(pdf_a: bytes, pdf_b: bytes) -> bytes:
+    """Haengt pdf_b seitenweise an pdf_a an."""
+    import io
+    from pypdf import PdfWriter, PdfReader
+
+    writer = PdfWriter()
+    for page in PdfReader(io.BytesIO(pdf_a)).pages:
+        writer.add_page(page)
+    for page in PdfReader(io.BytesIO(pdf_b)).pages:
+        writer.add_page(page)
+    buf = io.BytesIO()
+    writer.write(buf)
+    return buf.getvalue()
+
+
+@login_required
+def dokument_pdf_exportieren(request, pk):
+    """Konvertiert ein DMS-Dokument zu PDF, haengt eine Signaturseite an und signiert digital.
+
+    Ablauf:
+      1. Dokument → PDF via OnlyOffice ConvertService (oder direkt bei PDF-Typ)
+      2. Signaturseite als separates PDF erzeugen (WeasyPrint)
+      3. Dokument-PDF + Signaturseite zusammenfuehren (pypdf)
+      4. Gesamtes PDF digital signieren via signatur.services.signiere_pdf()
+      5. Signiertes PDF als Download zurueckgeben
+    """
+    dok = get_object_or_404(Dokument, pk=pk)
+
+    if dok.klasse == "sensibel" and not _darf_sensibel_zugreifen(request, dok):
+        messages.error(request, "Sie benoetigen einen gueltigen Zugriffsschluessel.")
+        return redirect("dms:detail", pk=pk)
+
+    file_type = _MIME_ZU_EXT.get(dok.dateityp, "docx")
+    if file_type not in ("docx", "xlsx", "pptx", "odt", "ods", "odp", "pdf"):
+        messages.error(request, "Dieser Dateityp unterstuetzt keinen PDF-Export.")
+        return redirect("dms:detail", pk=pk)
+
+    # Schritt 1: Dokument → PDF
+    dok_pdf = _konvertiere_dms_dok_zu_pdf(dok)
+    if not dok_pdf:
+        messages.error(request, "PDF-Konvertierung fehlgeschlagen. OnlyOffice erreichbar?")
+        return redirect("dms:detail", pk=pk)
+
+    # Schritt 2: Signaturseite erzeugen
+    try:
+        sig_seite = _erstelle_dms_signaturseite(dok, request)
+    except Exception as exc:
+        logger.warning("Signaturseite konnte nicht erzeugt werden fuer Dok %s: %s", pk, exc)
+        sig_seite = None
+
+    # Schritt 3: Zusammenfuehren
+    if sig_seite:
+        try:
+            pdf_bytes = _pdfs_zusammenfuehren_dms(dok_pdf, sig_seite)
+        except Exception as exc:
+            logger.warning("PDF-Merge fehlgeschlagen fuer Dok %s: %s", pk, exc)
+            pdf_bytes = dok_pdf
+    else:
+        pdf_bytes = dok_pdf
+
+    # Schritt 4: Signieren (letzte Seite = Signaturseite)
+    dateiname = f"{dok.titel}_v{dok.version}_signiert.pdf".replace(" ", "_")
+    try:
+        from signatur.services import signiere_pdf
+        pdf_bytes = signiere_pdf(
+            pdf_bytes,
+            request.user,
+            dokument_name=dateiname,
+            seite=-1,
+        )
+    except ValueError as exc:
+        # Session-Key fehlt oder Zertifikat ungueltig – klare Fehlermeldung statt unsigniertes PDF
+        logger.warning("PDF-Signierung fehlgeschlagen (ValueError) fuer Dok %s: %s", pk, exc)
+        messages.error(request, f"Signierung fehlgeschlagen: {exc}")
+        return redirect("dms:detail", pk=pk)
+    except Exception as exc:
+        logger.error("PDF-Signierung fehlgeschlagen fuer Dok %s: %s", pk, exc, exc_info=True)
+        messages.error(request, "Signierung fehlgeschlagen – bitte Administrator informieren.")
+        return redirect("dms:detail", pk=pk)
+
+    _protokolliere(request, dok, aktion="download", notiz=f"PDF-Export + Signatur (Version {dok.version})")
+
+    # Schritt 5: Download
+    return HttpResponse(
+        pdf_bytes,
+        content_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{dateiname}"'},
+    )
+
+
+# ---------------------------------------------------------------------------
 # OnlyOffice – Editor, Callback, Dokument-Serve, Version-Restore
 # ---------------------------------------------------------------------------
 
@@ -1041,9 +1255,9 @@ def onlyoffice_editor(request, pk):
     _protokolliere(request, dok, aktion="vorschau", notiz="OnlyOffice-Editor geoeffnet")
 
     return render(request, "dms/onlyoffice_editor.html", {
-        "dok": dok,
+        "dok":            dok,
         "onlyoffice_url": onlyoffice_url,
-        "config_json":    json.dumps(config),
+        "oo_config":      config,
         "token":          token,
     })
 
@@ -1442,10 +1656,11 @@ def version_onlyoffice(request, pk, version_nr):
                    f"Version {version_nr} in OnlyOffice (Archiv-Vorschau)")
 
     return render(request, "dms/onlyoffice_editor.html", {
-        "dok":           dok,
-        "onlyoffice_url": onlyoffice_url,
-        "config_json":   json.dumps(config),
-        "token":         token,
+        "dok":             dok,
+        "onlyoffice_url":  onlyoffice_url,
+        "oo_config":       config,
+        "token":           token,
+        "nur_lesezugriff": True,
     })
 
 

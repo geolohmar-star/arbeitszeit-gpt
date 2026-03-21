@@ -78,7 +78,7 @@ class InternBackend:
             seite = meta.get("seite", -1)
 
             signiertes_pdf = self._signiere_mit_pyhanko(
-                pdf_bytes, zert, user, sichtbar, seite
+                pdf_bytes, zert, user, sichtbar, seite, meta
             )
 
             doc_hash = hashlib.sha256(pdf_bytes).hexdigest()
@@ -171,7 +171,7 @@ class InternBackend:
     # Interne pyhanko-Signatur
     # ------------------------------------------------------------------
     def _signiere_mit_pyhanko(
-        self, pdf_bytes: bytes, zert, user, sichtbar: bool, seite: int
+        self, pdf_bytes: bytes, zert, user, sichtbar: bool, seite: int, meta: dict
     ) -> bytes:
         """Kern-Signatur via pyhanko."""
         import pyhanko.sign.fields as fields
@@ -248,11 +248,13 @@ class InternBackend:
 
         location = "Intranet – Interne Signatur"
         contact = user.email or ""
-        reason = f"Elektronisch signiert von {user.get_full_name()}"
-        if rolle:
+        # Signaturgrund: aus meta_dict uebernehmen falls angegeben, sonst Standard
+        meta_dict = meta
+        reason = meta_dict.get("grund") or f"Elektronisch signiert von {user.get_full_name()}"
+        if not meta_dict.get("grund") and rolle:
             reason += f" ({rolle})"
 
-        meta = PdfSignatureMetadata(
+        sig_meta = PdfSignatureMetadata(
             field_name=feld_name,
             reason=reason,
             location=location,
@@ -269,14 +271,24 @@ class InternBackend:
             total_pages = reader.root["/Pages"]["/Count"]
             zielseite = int(total_pages) - 1 if seite < 0 else min(seite, int(total_pages) - 1)
 
-            if feld_nr == 1:
-                # Erste Signatur: voller Stempelbereich der PRIMA-Signaturseite
-                box = (20, 539, 502, 667)
-            else:
-                # Weitere Signaturen: nebeneinander im unteren Bereich
-                x_start = 20 + (feld_nr - 1) * 162
-                x_end   = x_start + 155
-                box = (x_start, 539, x_end, 667)
+            # Grid-Layout: 3 Stempel pro Reihe, skaliert auf A4-Breite (595pt)
+            # Nutzbare Breite: 555pt (595 - 2*20 Rand)
+            # Stempel: 175pt breit, 10pt Abstand → 3x175 + 2x10 = 545pt
+            stempel_pro_reihe = 3
+            stempel_breite = 175
+            x_abstand = 10
+            stempel_hoehe = 120
+            y_abstand = 10
+
+            col = (feld_nr - 1) % stempel_pro_reihe
+            row = (feld_nr - 1) // stempel_pro_reihe
+
+            x_start = 20 + col * (stempel_breite + x_abstand)
+            x_end   = x_start + stempel_breite
+            y_top    = 660 - row * (stempel_hoehe + y_abstand)
+            y_bottom = y_top - stempel_hoehe
+
+            box = (x_start, y_bottom, x_end, y_top)
 
             sig_field_spec = fields.SigFieldSpec(
                 sig_field_name=feld_name,
@@ -289,7 +301,7 @@ class InternBackend:
         out = io.BytesIO()
         signers.sign_pdf(
             writer,
-            meta,
+            sig_meta,
             signer=signer,
             output=out,
         )

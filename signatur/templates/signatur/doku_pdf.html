@@ -212,6 +212,7 @@
   <li>Sicherheitskonzept</li>
   <li>Betrieb &amp; Administration</li>
   <li>Upgrade-Pfad: FES &rarr; QES</li>
+  <li>Anwendungsfall: Automatischer Rechnungseingang mit digitaler Pruefung</li>
 </ol>
 
 <div class="seitenumbruch"></div>
@@ -695,6 +696,120 @@ signiertes_pdf = signiere_pdf(
   vorbereitet fuer QES. Der Wechsel zur Bundesdruckerei sign-me erfordert
   <strong>keine Programmieraenderungen</strong> &ndash; nur Vertrag, Registrierung und
   eine Konfigurationszeile.
+</div>
+
+<h2>12. Anwendungsfall: Automatischer Rechnungseingang mit digitaler Pruefung</h2>
+
+<p>
+  PRIMA integriert Paperless-ngx als vorgelagerten Dokumentenscanner. Eingehende
+  Rechnungen werden per IMAP automatisch importiert, per OCR erkannt und in PRIMA DMS
+  ueberfuehrt. Dort startet ein konfigurierter Workflow automatisch.
+</p>
+
+<h3>12.1 Prozessablauf (vollautomatisch bis zur Fachpruefung)</h3>
+
+<table class="doku-tabelle">
+  <tr><th>Schritt</th><th>System</th><th>Aktion</th><th>Signatur</th></tr>
+  <tr>
+    <td>1</td>
+    <td>E-Mail-Postfach (Strato IMAP)</td>
+    <td>Rechnung trifft ein (z.B. von EGU, Korsing, Wuerth)</td>
+    <td>&ndash;</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Paperless-ngx</td>
+    <td>PDF-Anhang extrahieren, OCR, Tag automatisch vergeben</td>
+    <td>&ndash;</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>PRIMA DMS (paperless_import)</td>
+    <td>Dokument importieren, Workflow-Regel matchen, Workflow starten</td>
+    <td>&ndash;</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>PRIMA Workflow</td>
+    <td>Fachpruefung (Elektro / Heizung / Allgemein) – Schritt-Typ: <em>pruefen</em></td>
+    <td><strong>FES &ndash; &bdquo;Geprueft von &hellip;&ldquo;</strong></td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>PRIMA Workflow</td>
+    <td>Abteilungsleitung genehmigt &ndash; Schritt-Typ: <em>genehmigen</em></td>
+    <td><strong>FES &ndash; &bdquo;Genehmigt von &hellip;&ldquo;</strong></td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>PRIMA Workflow</td>
+    <td>Buchhaltung bucht &ndash; Schritt-Typ: <em>bearbeiten</em></td>
+    <td>&ndash;</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>PRIMA Workflow</td>
+    <td>Kasse gleicht aus &ndash; Schritt-Typ: <em>bearbeiten</em></td>
+    <td>&ndash;</td>
+  </tr>
+</table>
+
+<h3>12.2 Signaturstrategie</h3>
+
+<p>
+  Nur <strong>inhaltlich verantwortliche Schritte</strong> werden signiert
+  (Pruefen und Genehmigen). Buchhalterische Folgeschritte erhalten keine Signatur,
+  da sie administrative Aktionen ohne Rechtsbindung darstellen.
+  Das PDF im DMS traegt nach Abschluss der Genehmigungskette
+  <strong>zwei inkrementelle FES-Signaturen</strong> (PAdES-Baseline).
+</p>
+
+<h3>12.3 Workflow-Regelmatrix</h3>
+
+<table class="doku-tabelle">
+  <tr><th>Paperless-Tag</th><th>Lieferant (Beispiel)</th><th>Workflow</th><th>Fachpruefung durch</th></tr>
+  <tr>
+    <td>EGU</td>
+    <td>E.G.U. Elektro</td>
+    <td>Rechnungspruefung Elektro</td>
+    <td>Elektro-Fachkraft</td>
+  </tr>
+  <tr>
+    <td>Korsing</td>
+    <td>Korsing Heizung/Sanitaer</td>
+    <td>Rechnungspruefung Heizung</td>
+    <td>SHK-Fachkraft</td>
+  </tr>
+  <tr>
+    <td>Wuerth</td>
+    <td>Adolf Wuerth GmbH</td>
+    <td>Rechnungspruefung Allgemein</td>
+    <td>Einkauf / Lager</td>
+  </tr>
+  <tr>
+    <td>Eingangsrechnung</td>
+    <td>Generisch</td>
+    <td>Rechnungspruefung</td>
+    <td>Sachbearbeitung</td>
+  </tr>
+</table>
+
+<h3>12.4 Rechtliche Einordnung</h3>
+
+<p>
+  Die FES genuegt den Anforderungen des <strong>GoBD &sect; 14 UStG</strong> fuer
+  die elektronische Rechnungsverarbeitung im internen Genehmigungsverfahren.
+  Fuer externe Vertragsunterlagen mit Rechtsbindung steht das
+  <strong>QES-Backend (sign-me)</strong> bereit &ndash; Umschaltung per
+  Konfigurationszeile, ohne Code-Aenderung (siehe Kapitel 11).
+</p>
+
+<div class="info-box">
+  <strong>Kosten QES (Indikativ):</strong> Bundesdruckerei sign-me berechnet
+  ca. 0,50&ndash;2,00 &euro; pro qualifizierter Signatur (volumenabhaengig).
+  Bei 100 Signaturen/Monat (50 Rechnungen &times; 2 Unterzeichner) entstehen
+  Betriebskosten von ca. 50&ndash;200 &euro;/Monat zzgl. Grundgebuehr.
+  Fuer interne Rechnungsfreigabe ist FES (kostenlos) vollstaendig ausreichend.
 </div>
 
 <div class="fussnote">
