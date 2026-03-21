@@ -49,6 +49,7 @@ urlpatterns = [
     path("kasten-organigramm/stelle/form/", views.kasten_stelle_form, name="kasten_stelle_form"),
     path("kasten-organigramm/stelle/<int:pk>/edit/", views.kasten_stelle_edit, name="kasten_stelle_edit"),
     path("kasten-organigramm/stelle/<int:pk>/inhaber/", views.kasten_stelle_inhaber, name="kasten_stelle_inhaber"),
+    path("kasten-organigramm/<int:pk>/loeschen/", views.kasten_loeschen, name="kasten_loeschen"),
 
     # Struktur-Editor (Tabellen-Editor)
     path("struktur-editor/", views.struktur_editor, name="struktur_editor"),
@@ -81,4 +82,13 @@ urlpatterns = [
     path("company-builder/snapshot/restore/", views.snapshot_restore, name="snapshot_restore"),
     path("company-builder/orgeinheit/<int:pk>/delete/", views.company_builder_delete_orgeinheit, name="company_builder_delete_orgeinheit"),
     path("company-builder/stelle/<int:pk>/delete/", views.company_builder_delete_stelle, name="company_builder_delete_stelle"),
+
+    # Projektgruppen-Builder
+    path("projektgruppen/", views.projektgruppe_builder, name="projektgruppe_builder"),
+    path("projektgruppen/neu/", views.projektgruppe_create, name="projektgruppe_create"),
+    path("projektgruppen/<int:pk>/", views.projektgruppe_detail, name="projektgruppe_detail"),
+    path("projektgruppen/<int:pk>/bearbeiten/", views.projektgruppe_update, name="projektgruppe_update"),
+    path("projektgruppen/<int:pk>/loeschen/", views.projektgruppe_delete, name="projektgruppe_delete"),
+    path("projektgruppen/<int:pk>/mitglied-hinzufuegen/", views.projektgruppe_add_member, name="projektgruppe_add_member"),
+    path("projektgruppen/<int:pk>/mitglied-entfernen/", views.projektgruppe_remove_member, name="projektgruppe_remove_member"),
 ]

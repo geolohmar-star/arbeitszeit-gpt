@@ -1,0 +1,41 @@
+<!-- Modal: OrgEinheit loeschen bestaetigen -->
+<div class="modal fade show" id="loeschenModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">{{ bezeichnung }} loeschen?</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('modal-container').innerHTML=''"></button>
+            </div>
+            <div class="modal-body">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% else %}
+                <p>
+                    Soll <strong>{{ bezeichnung }}</strong> ({{ kuerzel }}) wirklich geloescht werden?
+                </p>
+                {% if hat_stellen or hat_untereinheiten %}
+                <div class="alert alert-warning">
+                    <strong>Achtung:</strong> Diese Einheit kann nicht geloescht werden, weil:
+                    {% if hat_stellen %}<br>– sie noch <strong>{{ anzahl_stellen }} Stelle(n)</strong> enthält{% endif %}
+                    {% if hat_untereinheiten %}<br>– sie noch <strong>{{ anzahl_untereinheiten }} Untereinheit(en)</strong> enthält{% endif %}
+                    <br><br>Bitte zuerst alle Stellen und Untereinheiten entfernen.
+                </div>
+                {% else %}
+                <p class="text-muted small">Diese Aktion kann nicht rueckgaengig gemacht werden.</p>
+                {% endif %}
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-container').innerHTML=''">
+                    Abbrechen
+                </button>
+                {% if not hat_stellen and not hat_untereinheiten and not error %}
+                <form method="post" action="{% url 'hr:kasten_loeschen' pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Endgueltig loeschen</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

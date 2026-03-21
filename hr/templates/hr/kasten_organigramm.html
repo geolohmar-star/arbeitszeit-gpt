@@ -11,6 +11,9 @@
                 <a href="{% url 'formulare:team_builder' %}" class="btn btn-success btn-sm me-2">
                     👥 Team-Builder
                 </a>
+                <a href="{% url 'hr:projektgruppe_builder' %}" class="btn btn-info btn-sm me-2">
+                    Projektgruppen
+                </a>
                 <a href="/admin/hr/projektgruppe/" class="btn btn-warning btn-sm me-2">
                     🚀 Projektgruppen
                 </a>
@@ -158,6 +161,14 @@
                                             hx-swap="innerHTML"
                                             title="Neues Team">
                                         ➕ Team
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm"
+                                            style="font-size: 10px; padding: 2px 4px;"
+                                            hx-get="{% url 'hr:kasten_loeschen' abteilung.pk %}"
+                                            hx-target="#modal-container"
+                                            hx-swap="innerHTML"
+                                            title="Abteilung loeschen">
+                                        🗑
                                     </button>
                                 </div>
                             </div>

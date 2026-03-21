@@ -1854,6 +1854,7 @@ def kasten_organigramm(request):
                     })
 
                 abteilungen_data.append({
+                    'pk': abt.pk,
                     'kuerzel': abt.kuerzel,
                     'bezeichnung': abt.bezeichnung,
                     'stellen': abt_stellen,
@@ -2101,6 +2102,44 @@ def kasten_stelle_edit(request, pk):
 
 @login_required
 @user_passes_test(_ist_staff)
+def kasten_loeschen(request, pk):
+    """HTMX: Bestaetigung + Loeschen einer OrgEinheit (Abteilung, Bereich, Team)."""
+    from django.http import HttpResponse
+    org = get_object_or_404(OrgEinheit, pk=pk)
+
+    hat_stellen = org.stellen.exists()
+    hat_untereinheiten = org.untereinheiten.exists()
+
+    if request.method == "POST":
+        if hat_stellen or hat_untereinheiten:
+            return render(request, "hr/partials/kasten_loeschen_confirm.html", {
+                "pk": pk,
+                "kuerzel": org.kuerzel,
+                "bezeichnung": org.bezeichnung,
+                "hat_stellen": hat_stellen,
+                "anzahl_stellen": org.stellen.count(),
+                "hat_untereinheiten": hat_untereinheiten,
+                "anzahl_untereinheiten": org.untereinheiten.count(),
+                "error": None,
+            })
+        logger.info("OrgEinheit geloescht: %s (%s)", org.kuerzel, org.bezeichnung)
+        org.delete()
+        return HttpResponse('<script>document.getElementById("modal-container").innerHTML=""; location.reload();</script>')
+
+    return render(request, "hr/partials/kasten_loeschen_confirm.html", {
+        "pk": pk,
+        "kuerzel": org.kuerzel,
+        "bezeichnung": org.bezeichnung,
+        "hat_stellen": hat_stellen,
+        "anzahl_stellen": org.stellen.count(),
+        "hat_untereinheiten": hat_untereinheiten,
+        "anzahl_untereinheiten": org.untereinheiten.count(),
+        "error": None,
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
 def kasten_detail(request, kuerzel):
     """Detail-Ansicht fuer eine OrgEinheit mit allen Stellen und Untereinheiten"""
     org = get_object_or_404(OrgEinheit, kuerzel=kuerzel)
@@ -2278,3 +2317,227 @@ def stammdaten_bearbeiten(request, pk):
         "form": form,
         "stammdaten": stammdaten,
     })
+
+
+# =============================================================================
+# Projektgruppen-Builder
+# =============================================================================
+
+def _mitarbeiter_als_dict(ma):
+    """Hilfsfunktion: HRMitarbeiter als JSON-faehiges Dict."""
+    stelle_info = ""
+    try:
+        if ma.stelle:
+            stelle_info = f"{ma.stelle.kuerzel} – {ma.stelle.bezeichnung}"
+    except Exception:
+        pass
+    return {
+        "id": ma.pk,
+        "vollname": ma.vollname,
+        "stelle": stelle_info,
+    }
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def projektgruppe_builder(request):
+    """Projektgruppen-Builder: visuelle Verwaltung aller Projektgruppen."""
+    from hr.models import HRMitarbeiter, Projektgruppe
+
+    projekte = (
+        Projektgruppe.objects.all()
+        .select_related("leiter", "stellvertreter")
+        .prefetch_related("mitglieder")
+        .order_by("prioritaet", "start_datum")
+    )
+
+    alle_ma = HRMitarbeiter.objects.select_related("stelle").order_by(
+        "nachname", "vorname"
+    )
+    mitarbeiter_liste = [_mitarbeiter_als_dict(ma) for ma in alle_ma]
+
+    return render(request, "hr/projektgruppe_builder.html", {
+        "projekte": projekte,
+        "mitarbeiter_json": mitarbeiter_liste,
+        "status_choices": Projektgruppe.STATUS_CHOICES,
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def projektgruppe_create(request):
+    """API: Neue Projektgruppe anlegen."""
+    import json as _json
+    from hr.models import HRMitarbeiter, Projektgruppe
+    from django.http import JsonResponse
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST erforderlich"}, status=405)
+
+    try:
+        data = _json.loads(request.body)
+        name = data.get("name", "").strip()
+        kuerzel = data.get("kuerzel", "").strip().upper()
+        beschreibung = data.get("beschreibung", "").strip()
+        start_datum = data.get("start_datum")
+        end_datum = data.get("end_datum") or None
+        leiter_id = data.get("leiter_id")
+        status = data.get("status", Projektgruppe.STATUS_AKTIV)
+        prioritaet = int(data.get("prioritaet", 5))
+
+        if not name or not kuerzel or not start_datum or not leiter_id:
+            return JsonResponse({"error": "Name, Kuerzel, Startdatum und Leiter sind Pflichtfelder"}, status=400)
+
+        if Projektgruppe.objects.filter(kuerzel=kuerzel).exists():
+            return JsonResponse({"error": f'Kuerzel "{kuerzel}" existiert bereits'}, status=400)
+
+        leiter = get_object_or_404(HRMitarbeiter, pk=leiter_id)
+
+        proj = Projektgruppe.objects.create(
+            name=name,
+            kuerzel=kuerzel,
+            beschreibung=beschreibung,
+            start_datum=start_datum,
+            end_datum=end_datum,
+            leiter=leiter,
+            status=status,
+            prioritaet=prioritaet,
+            erstellt_von=request.user,
+        )
+        return JsonResponse({"success": True, "id": proj.pk, "message": f"Projektgruppe '{proj.name}' angelegt"})
+
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=500)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def projektgruppe_detail(request, pk):
+    """API: Projektgruppe-Details fuer Bearbeiten-Formular."""
+    from hr.models import Projektgruppe
+    from django.http import JsonResponse
+
+    proj = get_object_or_404(Projektgruppe, pk=pk)
+    return JsonResponse({
+        "id": proj.pk,
+        "name": proj.name,
+        "kuerzel": proj.kuerzel,
+        "beschreibung": proj.beschreibung,
+        "start_datum": str(proj.start_datum),
+        "end_datum": str(proj.end_datum) if proj.end_datum else "",
+        "leiter_id": proj.leiter_id,
+        "stellvertreter_id": proj.stellvertreter_id or "",
+        "status": proj.status,
+        "prioritaet": proj.prioritaet,
+    })
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def projektgruppe_update(request, pk):
+    """API: Projektgruppe bearbeiten."""
+    import json as _json
+    from hr.models import HRMitarbeiter, Projektgruppe
+    from django.http import JsonResponse
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST erforderlich"}, status=405)
+
+    proj = get_object_or_404(Projektgruppe, pk=pk)
+
+    try:
+        data = _json.loads(request.body)
+        name = data.get("name", "").strip()
+        beschreibung = data.get("beschreibung", "").strip()
+        start_datum = data.get("start_datum")
+        end_datum = data.get("end_datum") or None
+        leiter_id = data.get("leiter_id")
+        stellvertreter_id = data.get("stellvertreter_id") or None
+        status = data.get("status", proj.status)
+        prioritaet = int(data.get("prioritaet", proj.prioritaet))
+
+        if not name or not start_datum or not leiter_id:
+            return JsonResponse({"error": "Name, Startdatum und Leiter sind Pflichtfelder"}, status=400)
+
+        proj.name = name
+        proj.beschreibung = beschreibung
+        proj.start_datum = start_datum
+        proj.end_datum = end_datum
+        proj.leiter = get_object_or_404(HRMitarbeiter, pk=leiter_id)
+        proj.stellvertreter = get_object_or_404(HRMitarbeiter, pk=stellvertreter_id) if stellvertreter_id else None
+        proj.status = status
+        proj.prioritaet = prioritaet
+        proj.save()
+
+        return JsonResponse({"success": True, "message": f"'{proj.name}' aktualisiert"})
+
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=500)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def projektgruppe_delete(request, pk):
+    """API: Projektgruppe loeschen."""
+    from hr.models import Projektgruppe
+    from django.http import JsonResponse
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST erforderlich"}, status=405)
+
+    proj = get_object_or_404(Projektgruppe, pk=pk)
+    name = proj.name
+    proj.delete()
+    return JsonResponse({"success": True, "message": f"'{name}' geloescht"})
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def projektgruppe_add_member(request, pk):
+    """API: Mitglied zur Projektgruppe hinzufuegen."""
+    import json as _json
+    from hr.models import HRMitarbeiter, Projektgruppe
+    from django.http import JsonResponse
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST erforderlich"}, status=405)
+
+    proj = get_object_or_404(Projektgruppe, pk=pk)
+
+    try:
+        data = _json.loads(request.body)
+        ma_id = data.get("ma_id")
+        ma = get_object_or_404(HRMitarbeiter, pk=ma_id)
+
+        if proj.mitglieder.filter(pk=ma.pk).exists():
+            return JsonResponse({"error": f"{ma.vollname} ist bereits Mitglied"}, status=400)
+
+        proj.mitglieder.add(ma)
+        return JsonResponse({"success": True, "message": f"{ma.vollname} hinzugefuegt"})
+
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=500)
+
+
+@login_required
+@user_passes_test(_ist_staff)
+def projektgruppe_remove_member(request, pk):
+    """API: Mitglied aus Projektgruppe entfernen."""
+    import json as _json
+    from hr.models import HRMitarbeiter, Projektgruppe
+    from django.http import JsonResponse
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST erforderlich"}, status=405)
+
+    proj = get_object_or_404(Projektgruppe, pk=pk)
+
+    try:
+        data = _json.loads(request.body)
+        ma_id = data.get("ma_id")
+        ma = get_object_or_404(HRMitarbeiter, pk=ma_id)
+        proj.mitglieder.remove(ma)
+        return JsonResponse({"success": True, "message": f"{ma.vollname} entfernt"})
+
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=500)
