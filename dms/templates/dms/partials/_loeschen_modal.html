@@ -1,0 +1,50 @@
+<!-- Modal: Dokument endgueltig loeschen -->
+<div class="modal fade show" id="loeschenModal" tabindex="-1" style="display:block; background:rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Dokument dauerhaft loeschen</h5>
+                <button type="button" class="btn-close btn-close-white"
+                        onclick="document.getElementById('modal-container').innerHTML=''"></button>
+            </div>
+            <form hx-post="{% url 'dms:loeschen' dok.pk %}"
+                  hx-target="#modal-container"
+                  hx-swap="innerHTML">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% if fehler %}
+                    <div class="alert alert-danger py-2">{{ fehler }}</div>
+                    {% endif %}
+
+                    <div class="alert alert-warning py-2 mb-3">
+                        <strong>Achtung:</strong> Diese Aktion kann nicht rueckgaengig gemacht werden.
+                        Das Dokument <strong>„{{ dok.titel }}"</strong> wird dauerhaft geloescht.
+                        Der Protokolleintrag bleibt erhalten (DSGVO Art. 5 Abs. 2).
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Begruendung * <small class="text-muted fw-normal">(Pflicht)</small></label>
+                        <textarea class="form-control" name="begruendung" rows="3"
+                                  placeholder="z.B. Aufbewahrungsfrist abgelaufen, Duplikat, Fehlupload ..." required></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Bestaetigung</label>
+                        <input type="text" class="form-control" name="bestaetigung"
+                               placeholder="Hier 'LOESCHEN' eingeben" autocomplete="off">
+                        <small class="text-muted">Bitte exakt <code>LOESCHEN</code> eingeben um fortzufahren.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary"
+                            onclick="document.getElementById('modal-container').innerHTML=''">
+                        Abbrechen
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        Dauerhaft loeschen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

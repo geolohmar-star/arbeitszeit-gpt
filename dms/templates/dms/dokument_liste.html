@@ -21,6 +21,9 @@
             <a href="{% url 'dms:workflow_regeln' %}" class="btn btn-sm btn-outline-secondary">
                 Workflow-Regeln
             </a>
+            <a href="{% url 'dms:loeschprotokoll' %}" class="btn btn-sm btn-outline-danger">
+                Loeschprotokoll
+            </a>
             {% endif %}
             {% if onlyoffice_url %}
             <a href="{% url 'dms:neu' %}" class="btn btn-sm btn-outline-success">

@@ -3,6 +3,9 @@
 {% block title %}DMS – {{ dok.titel }}{% endblock %}
 
 {% block content %}
+<!-- HTMX-Modal-Container -->
+<div id="modal-container"></div>
+
 <div class="container py-4" style="max-width:900px;">
 
     <div class="mb-4">
@@ -26,6 +29,13 @@
                       class="btn btn-sm btn-outline-danger"
                       data-url="{% url 'dms:loeschen_planen' dok.pk %}">
                   Loeschung planen
+              </button>
+              <button class="btn btn-sm btn-danger"
+                      hx-get="{% url 'dms:loeschen' dok.pk %}"
+                      hx-target="#modal-container"
+                      hx-swap="innerHTML"
+                      title="Dokument dauerhaft loeschen">
+                  Loeschen
               </button>
               {% endif %}
 

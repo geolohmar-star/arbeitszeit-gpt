@@ -2385,3 +2385,86 @@ def meine_ablage_loeschen(request, pk):
         return redirect("dms:meine_ablage")
 
     return redirect("dms:meine_ablage")
+
+
+# ---------------------------------------------------------------------------
+# Dokument loeschen (DMS-Admin / Staff) mit dauerhaftem Protokoll
+# ---------------------------------------------------------------------------
+
+@login_required
+def dokument_loeschen(request, pk):
+    """DMS-Admin loescht ein Dokument mit Pflichtbegruendung.
+
+    GET  -> HTMX-Modal mit Bestaetigunsformular
+    POST -> Protokolleintrag anlegen, dann Dokument loeschen, HX-Redirect zur Liste
+
+    Der ZugriffsProtokoll-Eintrag ueberlebt die Loeschung (SET_NULL-FK + dokument_titel).
+    """
+    from django.http import HttpResponse
+
+    if not (_ist_dms_admin(request.user) or request.user.is_staff):
+        return HttpResponse("Keine Berechtigung.", status=403)
+
+    dok = get_object_or_404(Dokument, pk=pk)
+
+    if request.method == "POST":
+        begruendung = request.POST.get("begruendung", "").strip()
+        bestaetigung = request.POST.get("bestaetigung", "").strip()
+
+        fehler = None
+        if not begruendung:
+            fehler = "Begruendung ist Pflichtfeld."
+        elif bestaetigung != "LOESCHEN":
+            fehler = "Bitte exakt 'LOESCHEN' als Bestaetigung eingeben."
+
+        if fehler:
+            return render(request, "dms/partials/_loeschen_modal.html", {
+                "dok": dok, "fehler": fehler,
+            })
+
+        titel = dok.titel
+        pk_gespeichert = dok.pk
+
+        # Protokolleintrag VOR der Loeschung – bleibt dauerhaft erhalten (SET_NULL-FK)
+        ZugriffsProtokoll.objects.create(
+            dokument=dok,
+            dokument_titel=titel,
+            user=request.user,
+            aktion="geloescht",
+            notiz=(
+                f"Dokument dauerhaft geloescht (pk={pk_gespeichert}). "
+                f"Begruendung: {begruendung}"
+            ),
+        )
+
+        dok.delete()
+        logger.info(
+            "Dokument '%s' (pk=%s) geloescht von %s. Begruendung: %s",
+            titel, pk_gespeichert, request.user.username, begruendung,
+        )
+
+        messages.success(request, '"%s" wurde dauerhaft geloescht. Protokoll bleibt erhalten.' % titel)
+        response = HttpResponse()
+        response["HX-Redirect"] = "/dms/"
+        return response
+
+    # GET: Modal rendern
+    return render(request, "dms/partials/_loeschen_modal.html", {
+        "dok": dok, "fehler": None,
+    })
+
+
+@login_required
+def loeschprotokoll(request):
+    """Listet alle Loeschaktionen im Audit-Trail (nur DMS-Admin / Staff)."""
+    if not (_ist_dms_admin(request.user) or request.user.is_staff):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Keine Berechtigung.")
+
+    eintraege = (
+        ZugriffsProtokoll.objects
+        .filter(aktion__in=["geloescht", "loeschen"])
+        .select_related("user", "dokument")
+        .order_by("-zeitpunkt")
+    )
+    return render(request, "dms/loeschprotokoll.html", {"eintraege": eintraege})

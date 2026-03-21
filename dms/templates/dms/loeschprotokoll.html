@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}DMS – Loeschprotokoll{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:900px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{% url 'dms:liste' %}" class="text-muted text-decoration-none small">&larr; Zurueck zur Liste</a>
+            <h1 class="h3 fw-bold mt-1" style="color:#1a4d2e;">Loeschprotokoll</h1>
+            <p class="text-muted small">Dauerhafter Audit-Trail aller Loeschvorgaenge (DSGVO Art. 5 Abs. 2)</p>
+        </div>
+    </div>
+
+    {% if eintraege %}
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Zeitpunkt</th>
+                        <th>Dokument</th>
+                        <th>Aktion</th>
+                        <th>Bearbeiter</th>
+                        <th>Notiz / Begruendung</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in eintraege %}
+                    <tr>
+                        <td class="text-nowrap small">{{ e.zeitpunkt|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            {% if e.dokument %}
+                            <a href="{% url 'dms:detail' e.dokument.pk %}">{{ e.dokument_titel|default:e.dokument.titel }}</a>
+                            {% else %}
+                            <span class="text-muted">{{ e.dokument_titel|default:"(geloescht)" }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if e.aktion == "geloescht" %}
+                            <span class="badge bg-danger">Geloescht</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">Loeschantrag</span>
+                            {% endif %}
+                        </td>
+                        <td class="small">{{ e.user.get_full_name|default:e.user.username|default:"–" }}</td>
+                        <td class="small text-muted">{{ e.notiz|truncatechars:120 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">Noch keine Loeschvorgaenge protokolliert.</div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -399,15 +399,25 @@ class ZugriffsProtokoll(models.Model):
             ("version_wiederhergestellt", "Version wiederhergestellt"),
             ("api_upload", "API-Upload (externes System)"),
             ("api_download", "API-Download (externes System)"),
+            ("loeschen", "Loeschantrag gestellt"),
+            ("geloescht", "Dokument geloescht"),
         ],
         default="download",
         verbose_name="Aktion",
     )
     dokument = models.ForeignKey(
         Dokument,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="zugriffe",
         verbose_name="Dokument",
+    )
+    # Sicherungskopie des Titels – bleibt erhalten wenn das Dokument geloescht wird
+    dokument_titel = models.CharField(
+        max_length=300,
+        blank=True,
+        verbose_name="Dokument-Titel (Sicherungskopie)",
     )
     ip_adresse = models.GenericIPAddressField(
         null=True, blank=True, verbose_name="IP-Adresse"
