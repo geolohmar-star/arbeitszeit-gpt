@@ -11,15 +11,24 @@ from django.db import migrations
 
 def repariere_kuerzel(apps, schema_editor):
     TeamQueue = apps.get_model("formulare", "TeamQueue")
-    for tq in TeamQueue.objects.filter(kuerzel=""):
-        # Falls bereits eine Queue mit dem Ziel-Kuerzel existiert,
-        # die verwaiste leere Queue loeschen statt umbenennen.
-        ziel = "PG"
-        if TeamQueue.objects.filter(kuerzel=ziel).exists():
+    leere = list(TeamQueue.objects.filter(kuerzel=""))
+    if not leere:
+        return
+
+    # Einmalige Pruefung VOR der Schleife – vermeidet Snapshot-Isolation-Problem
+    # in PostgreSQL (REPEATABLE READ: wiederholte exists()-Abfragen innerhalb
+    # derselben Transaktion sehen noch den alten Snapshot, nicht den frisch
+    # gespeicherten Wert).
+    pg_vorhanden = TeamQueue.objects.filter(kuerzel="PG").exists()
+
+    for tq in leere:
+        if pg_vorhanden:
+            # PG existiert bereits (vorher oder gerade erstellt) → loeschen
             tq.delete()
         else:
-            tq.kuerzel = ziel
+            tq.kuerzel = "PG"
             tq.save(update_fields=["kuerzel"])
+            pg_vorhanden = True  # ab jetzt gilt: PG ist vergeben
 
 
 def rueckgaengig(apps, schema_editor):

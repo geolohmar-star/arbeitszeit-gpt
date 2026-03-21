@@ -76,9 +76,13 @@ class InternBackend:
             zert = MitarbeiterZertifikat.objects.get(user=user, status="aktiv")
             sichtbar = meta.get("sichtbar", True)
             seite = meta.get("seite", -1)
+            stempel_y_oben = meta.get("stempel_y_oben", 60)
+            stempel_hoehe = meta.get("stempel_hoehe", 45)
 
             signiertes_pdf = self._signiere_mit_pyhanko(
-                pdf_bytes, zert, user, sichtbar, seite, meta
+                pdf_bytes, zert, user, sichtbar, seite, meta,
+                stempel_y_oben=stempel_y_oben,
+                stempel_hoehe=stempel_hoehe,
             )
 
             doc_hash = hashlib.sha256(pdf_bytes).hexdigest()
@@ -171,7 +175,8 @@ class InternBackend:
     # Interne pyhanko-Signatur
     # ------------------------------------------------------------------
     def _signiere_mit_pyhanko(
-        self, pdf_bytes: bytes, zert, user, sichtbar: bool, seite: int, meta: dict
+        self, pdf_bytes: bytes, zert, user, sichtbar: bool, seite: int, meta: dict,
+        stempel_y_oben: int = 60, stempel_hoehe: int = 45,
     ) -> bytes:
         """Kern-Signatur via pyhanko."""
         import pyhanko.sign.fields as fields
@@ -277,15 +282,14 @@ class InternBackend:
             stempel_pro_reihe = 3
             stempel_breite = 175
             x_abstand = 10
-            stempel_hoehe = 120
-            y_abstand = 10
+            y_abstand = 5
 
             col = (feld_nr - 1) % stempel_pro_reihe
             row = (feld_nr - 1) // stempel_pro_reihe
 
             x_start = 20 + col * (stempel_breite + x_abstand)
             x_end   = x_start + stempel_breite
-            y_top    = 660 - row * (stempel_hoehe + y_abstand)
+            y_top    = stempel_y_oben - row * (stempel_hoehe + y_abstand)
             y_bottom = y_top - stempel_hoehe
 
             box = (x_start, y_bottom, x_end, y_top)

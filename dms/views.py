@@ -1146,6 +1146,9 @@ def dokument_pdf_exportieren(request, pk):
             request.user,
             dokument_name=dateiname,
             seite=-1,
+            # Signaturseite hat dedizierten Stempelbereich (y 539..667)
+            stempel_y_oben=667,
+            stempel_hoehe=128,
         )
     except ValueError as exc:
         # Session-Key fehlt oder Zertifikat ungueltig – klare Fehlermeldung statt unsigniertes PDF

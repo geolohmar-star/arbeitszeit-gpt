@@ -161,18 +161,25 @@ class Command(BaseCommand):
         """
         from formulare.models import TeamQueue
 
-        leere = TeamQueue.objects.filter(kuerzel="")
-        count = leere.count()
-        if count == 0:
+        leere = list(TeamQueue.objects.filter(kuerzel=""))
+        if not leere:
             return
 
-        for idx, tq in enumerate(leere):
-            neues_kuerzel = f"PG{idx}" if idx > 0 else "PG"
-            tq.kuerzel = neues_kuerzel
-            tq.save(update_fields=["kuerzel"])
-            self.stdout.write(
-                f"  [FIX]  TeamQueue pk={tq.pk} kuerzel '' -> '{neues_kuerzel}' repariert."
-            )
+        pg_vorhanden = TeamQueue.objects.filter(kuerzel="PG").exists()
+
+        for tq in leere:
+            if pg_vorhanden:
+                tq.delete()
+                self.stdout.write(
+                    f"  [FIX]  TeamQueue pk={tq.pk} (kuerzel='') geloescht – PG bereits vorhanden."
+                )
+            else:
+                tq.kuerzel = "PG"
+                tq.save(update_fields=["kuerzel"])
+                pg_vorhanden = True
+                self.stdout.write(
+                    f"  [FIX]  TeamQueue pk={tq.pk} kuerzel '' -> 'PG' repariert."
+                )
 
     def _verteile_zertifikate(self):
         """Stellt Mitarbeiter-Zertifikate aus falls CA_ROOT_KEY_B64 gesetzt ist.
