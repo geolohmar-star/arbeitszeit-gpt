@@ -262,9 +262,16 @@ def workflow_editor(request):
         MatrixRaum.objects.filter(ist_aktiv=True).order_by("name").values("id", "name", "room_id", "ping_typ")
     )
 
+    # DMS-OrgEinheiten fuer Ablage-Dropdown (Abteilungen und Bereiche)
+    from hr.models import OrgEinheit
+    dms_abteilungen = list(
+        OrgEinheit.objects.exclude(kuerzel="GF").order_by("kuerzel").values("id", "kuerzel", "bezeichnung")
+    )
+
     return render(request, "workflow/workflow_editor.html", {
         "autoload_id": autoload_id,
         "matrix_raeume": matrix_raeume,
+        "dms_abteilungen": dms_abteilungen,
     })
 
 
@@ -316,6 +323,12 @@ def workflow_editor_load(request, template_id):
                 step.auto_config.get("kanaele", [])
                 if step.aktion_typ == "verteilen" and step.auto_config
                 else []
+            ),
+            # Ablage-Konfiguration fuer archivieren-Schritte
+            "dmsAbteilungId": (
+                step.auto_config.get("dms_abteilung_id")
+                if step.aktion_typ == "archivieren" and step.auto_config
+                else None
             ),
         })
 
@@ -461,11 +474,17 @@ def workflow_editor_save(request):
                         status=400
                     )
 
-            # Verteilen-Schritte laufen automatisch (kein User-Task noetig)
+            # Automatische Aktionen brauchen keinen User-Task
             aktion = schritt_data.get("aktion", "genehmigen")
             if aktion == "verteilen":
                 schritt_typ = "auto"
                 auto_config = {"kanaele": schritt_data.get("verteilerKanaele", [])}
+            elif aktion == "archivieren":
+                schritt_typ = "auto"
+                auto_config = {"dms_abteilung_id": schritt_data.get("dmsAbteilungId")}
+            elif aktion == "loeschung_freigeben":
+                schritt_typ = "auto"
+                auto_config = {}
             else:
                 schritt_typ = "manuell"
                 auto_config = {}

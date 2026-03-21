@@ -324,6 +324,7 @@ def dokument_liste(request):
         "wf_abgebrochen_ids": wf_abgebrochen_ids,
         "meine_ablage_docs": meine_ablage_docs,
         "meine_freigaben": meine_freigaben,
+        "ist_dms_admin": _ist_dms_admin(request.user) or request.user.is_staff,
     })
 
 

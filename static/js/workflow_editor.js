@@ -24,7 +24,10 @@ var aktionColors = {
     'informieren': '#ffe066',
     'bearbeiten': '#66cc99',
     'freigeben': '#b3b3b3',
-    'verteilen': '#fd7e14'
+    'entscheiden': '#a78bfa',
+    'verteilen': '#fd7e14',
+    'archivieren': '#20c997',
+    'loeschung_freigeben': '#dc3545'
 };
 
 // Netzwerk initialisieren
@@ -170,17 +173,27 @@ function saveSchritt() {
     var parallel = document.getElementById('schritt-parallel').checked;
     var eskalation = parseInt(document.getElementById('schritt-eskalation').value);
     var verteilerKanaele = aktion === 'verteilen' ? leseVerteilerKanaele() : [];
+    var dmsAbteilungId = aktion === 'archivieren'
+        ? document.getElementById('schritt-dms-abteilung').value
+        : null;
 
     if (!titel) { alert('Bitte einen Titel eingeben!'); return; }
 
-    if (aktion !== 'verteilen' && rolle === 'team_queue' && !teamId) {
+    if (aktion === 'archivieren' && !dmsAbteilungId) {
+        alert('Bitte eine DMS-Ziel-Abteilung auswaehlen!');
+        return;
+    }
+
+    if (aktion !== 'verteilen' && aktion !== 'archivieren' && aktion !== 'loeschung_freigeben'
+            && rolle === 'team_queue' && !teamId) {
         alert('Bitte ein Team auswaehlen!');
         return;
     }
 
     var color = aktionColors[aktion] || '#6c757d';
 
-    var displayRolle = aktion === 'verteilen' ? 'auto' : rolle;
+    var autoAktionen = ['verteilen', 'archivieren', 'loeschung_freigeben'];
+    var displayRolle = autoAktionen.indexOf(aktion) >= 0 ? 'auto' : rolle;
     if (rolle === 'team_queue' && teamId) {
         var teamSelect = document.getElementById('schritt-team');
         var teamOption = teamSelect.options[teamSelect.selectedIndex];
@@ -190,7 +203,8 @@ function saveSchritt() {
     var nodeData = {
         titel: titel, beschreibung: beschreibung, aktion: aktion,
         rolle: rolle, teamId: teamId, frist: frist, parallel: parallel,
-        eskalation: eskalation, verteilerKanaele: verteilerKanaele
+        eskalation: eskalation, verteilerKanaele: verteilerKanaele,
+        dmsAbteilungId: dmsAbteilungId
     };
 
     if (id) {
@@ -258,6 +272,12 @@ function editSchritt(nodeId) {
 
     // Verteiler-Kanaele wiederherstellen
     setzeVerteilerKanaele(data.verteilerKanaele || []);
+
+    // Ablage-Auswahl wiederherstellen
+    var dmsSelect = document.getElementById('schritt-dms-abteilung');
+    if (dmsSelect) {
+        dmsSelect.value = data.dmsAbteilungId || '';
+    }
 
     toggleAktionFelder();
 
@@ -747,12 +767,18 @@ function toggleAktionFelder() {
     var rolle = document.getElementById('schritt-rolle').value;
     var teamRow = document.getElementById('team-row');
     var verteilerRow = document.getElementById('verteiler-config-row');
+    var ablageRow = document.getElementById('ablage-config-row');
     var rolleRow = document.getElementById('schritt-rolle').closest('.col-md-6');
 
     var istVerteilen = aktion === 'verteilen';
+    var istArchivieren = aktion === 'archivieren';
+    var istAutoOhneRolle = istVerteilen || istArchivieren || aktion === 'loeschung_freigeben';
 
-    // Rolle + Team nur bei normalen Aktionen anzeigen
-    rolleRow.style.display = istVerteilen ? 'none' : '';
+    // Rolle + Team nur bei manuellen Aktionen anzeigen
+    rolleRow.style.display = istAutoOhneRolle ? 'none' : '';
+
+    // Ablage-Config
+    ablageRow.style.display = istArchivieren ? 'block' : 'none';
 
     if (istVerteilen) {
         teamRow.style.display = 'none';
@@ -760,7 +786,7 @@ function toggleAktionFelder() {
         verteilerRow.style.display = 'block';
     } else {
         verteilerRow.style.display = 'none';
-        if (rolle === 'team_queue') {
+        if (!istAutoOhneRolle && rolle === 'team_queue') {
             teamRow.style.display = 'block';
             document.getElementById('schritt-team').required = true;
         } else {

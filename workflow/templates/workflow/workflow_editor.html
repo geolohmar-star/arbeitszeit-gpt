@@ -119,7 +119,10 @@
                                 <option value="informieren">Informieren</option>
                                 <option value="bearbeiten">Bearbeiten</option>
                                 <option value="freigeben">Freigeben</option>
+                                <option value="entscheiden">Entscheiden</option>
                                 <option value="verteilen">Verteilen (Postbote)</option>
+                                <option value="archivieren">In DMS-Ablage archivieren</option>
+                                <option value="loeschung_freigeben">DMS-Loeschung freigeben</option>
                             </select>
                         </div>
 
@@ -146,6 +149,22 @@
                                 <!-- Wird via JavaScript gefuellt -->
                             </select>
                             <small class="text-muted">Nur vorhandene Team-Queues koennen ausgewaehlt werden</small>
+                        </div>
+                    </div>
+
+                    <!-- Ablage-Konfiguration (nur bei aktion=archivieren sichtbar) -->
+                    <div id="ablage-config-row" style="display: none;">
+                        <div class="alert alert-info py-2 mb-2">
+                            <strong>Automatische Ablage:</strong> Das Dokument wird beim Ausfuehren dieses Schritts automatisch in die gewaehlte DMS-Abteilung archiviert.
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label for="schritt-dms-abteilung" class="form-label">Ziel-Abteilung (DMS) *</label>
+                            <select class="form-select" id="schritt-dms-abteilung">
+                                <option value="">-- Abteilung waehlen --</option>
+                                {% for abt in dms_abteilungen %}
+                                <option value="{{ abt.id }}">{{ abt.kuerzel }} – {{ abt.bezeichnung }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
 
