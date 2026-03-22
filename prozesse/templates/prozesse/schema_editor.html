@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if schema %}{{ schema.name }} bearbeiten{% else %}Neues Formular{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3" style="max-width:1400px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <a href="{% url 'prozesse:dashboard' %}" class="text-muted text-decoration-none small">&larr; Zurück</a>
+            <h1 class="h4 fw-bold mt-1" style="color:#1a4d2e;">
+                {% if schema %}{{ schema.name }} bearbeiten{% else %}Neues Formular erstellen{% endif %}
+            </h1>
+        </div>
+        {% if schema %}
+        <form method="post" action="{% url 'prozesse:schema_loeschen' schema.pk %}"
+              onsubmit="return confirm('Schema wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger">Schema löschen</button>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show py-2">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="post" id="schema-form">
+        {% csrf_token %}
+        <input type="hidden" name="schema_json" id="schema-json-input" value="{{ schema_json_str }}">
+
+        <div class="row g-3">
+            <!-- Linke Spalte: Meta + Feld-Editor -->
+            <div class="col-lg-7">
+                <!-- Meta-Daten -->
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">Formular-Einstellungen</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control"
+                                   value="{{ schema.name|default:'' }}{{ name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Beschreibung</label>
+                            <textarea name="beschreibung" class="form-control" rows="2">{{ schema.beschreibung|default:'' }}{{ beschreibung }}</textarea>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="aktiv" id="aktiv-check"
+                                   {% if schema.aktiv|default:aktiv %}checked{% endif %}>
+                            <label class="form-check-label" for="aktiv-check">
+                                Aktiv (für alle sichtbar)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feld-Liste -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold">Felder</span>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btn-baustein-einfuegen">
+                                &#9724; Baustein einfügen
+                            </button>
+                            <button type="button" class="btn btn-sm btn-success" id="btn-feld-hinzufuegen">
+                                + Feld hinzufügen
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="felder-liste">
+                            <!-- wird per JS befuellt -->
+                        </div>
+                        <div id="felder-leer" class="text-muted small text-center py-4 px-3">
+                            Noch keine Felder. Klicke "+ Feld hinzufügen".
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rechte Spalte: Live-Vorschau -->
+            <div class="col-lg-5">
+                <div class="card position-sticky" style="top:80px;">
+                    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                        <span>Vorschau</span>
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            Speichern
+                        </button>
+                    </div>
+                    <div class="card-body" id="vorschau-container">
+                        <div class="text-muted small text-center py-4">
+                            Noch keine Felder definiert.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modal: Feld bearbeiten -->
+<div class="modal fade" id="feld-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feld-modal-titel">Feld bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Typ-Auswahl (immer sichtbar) -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Typ</label>
+                    <select class="form-select" id="feld-typ">
+                        <optgroup label="Eingabefelder">
+                            <option value="text">Text (einzeilig)</option>
+                            <option value="mehrzeil">Text (mehrzeilig)</option>
+                            <option value="zahl">Zahl</option>
+                            <option value="datum">Datum</option>
+                            <option value="uhrzeit">Uhrzeit (HH:MM)</option>
+                            <option value="email">E-Mail (validiert)</option>
+                            <option value="iban">IBAN (validiert)</option>
+                            <option value="bool">Ja/Nein (Checkbox)</option>
+                            <option value="auswahl">Auswahl (Dropdown)</option>
+                            <option value="radio">Multiple Choice (Radio)</option>
+                            <option value="checkboxen">Kontrollkästchen (Mehrfach)</option>
+                        </optgroup>
+                            <option value="berechnung">Berechnungsfeld (Formel)</option>
+                        </optgroup>
+                        <optgroup label="Struktur">
+                            <option value="textblock">Fließtext mit Feldern</option>
+                            <option value="abschnitt">Abschnitts-Überschrift</option>
+                            <option value="trennlinie">Trennlinie</option>
+                            <option value="link">Link / Querverweis</option>
+                            <option value="leerblock">Leerblock (Platzhalter)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <!-- Normale Felder: Label + ID -->
+                <div class="mb-3 feld-normal-row">
+                    <label class="form-label fw-semibold">Bezeichnung (Label) <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="feld-label" placeholder="z.B. Vorname">
+                    <small class="text-muted">Feld-ID: <code id="feld-id-preview"></code></small>
+                </div>
+
+                <!-- Normale Felder: Hilfetext -->
+                <div class="mb-3 feld-normal-row" id="hilfetext-row">
+                    <label class="form-label fw-semibold">Hilfetext</label>
+                    <input type="text" class="form-control" id="feld-hilfetext" placeholder="Optionaler Platzhaltertext">
+                </div>
+
+                <!-- Auswahl: Optionen -->
+                <div class="mb-3 feld-normal-row" id="auswahl-optionen-row" style="display:none;">
+                    <label class="form-label fw-semibold">Optionen</label>
+                    <textarea class="form-control" id="feld-optionen" rows="4"
+                              placeholder="Eine Option pro Zeile:&#10;Option A&#10;Option B&#10;Option C"></textarea>
+                    <small class="text-muted">Eine Option pro Zeile</small>
+                </div>
+
+                <!-- Textblock: Fließtext-Editor -->
+                <div class="mb-3" id="textblock-row" style="display:none;">
+                    <label class="form-label fw-semibold">Text mit eingebetteten Feldern</label>
+                    <div class="mb-2 p-2 bg-light border rounded">
+                        <small class="text-muted fw-semibold d-block mb-1">Verfügbare Felder zum Einfügen:</small>
+                        <div id="verfuegbare-felder-liste">
+                            <span class="text-muted small">Noch keine Eingabefelder definiert.</span>
+                        </div>
+                    </div>
+                    <textarea class="form-control font-monospace" id="feld-textblock-inhalt" rows="5"
+                              placeholder="Hiermit melde ich mit Wirkung vom {{datum_datum}} ..."></textarea>
+                    <small class="text-muted">Klicke auf ein Feld oben um es an der Cursor-Position einzufügen.</small>
+                </div>
+
+                <!-- Abschnitt: Überschrift -->
+                <div id="abschnitt-row" style="display:none;">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Text</label>
+                        <input type="text" class="form-control" id="feld-abschnitt-text" placeholder="z.B. Persönliche Daten">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <label class="form-label fw-semibold small">Größe</label>
+                            <select class="form-select form-select-sm" id="feld-abschnitt-groesse">
+                                <option value="klein">Klein (Hinweis)</option>
+                                <option value="mittel" selected>Mittel (Abschnitt)</option>
+                                <option value="gross">Groß (Titel)</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold small">Ausrichtung</label>
+                            <select class="form-select form-select-sm" id="feld-abschnitt-ausrichtung">
+                                <option value="links" selected>Links</option>
+                                <option value="mitte">Mitte</option>
+                                <option value="rechts">Rechts</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold small">Stil</label>
+                            <select class="form-select form-select-sm" id="feld-abschnitt-stil">
+                                <option value="normal" selected>Normal</option>
+                                <option value="fett">Fett</option>
+                                <option value="kursiv">Kursiv</option>
+                                <option value="fett-kursiv">Fett + Kursiv</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Link: Querverweis -->
+                <div id="link-row" style="display:none;">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Anzeigetext</label>
+                        <input type="text" class="form-control" id="feld-link-text" placeholder="z.B. Hundesteuersatzung §8">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">URL</label>
+                        <input type="text" class="form-control" id="feld-link-url" placeholder="https://... oder /interner/pfad/">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="feld-link-newtab" checked>
+                        <label class="form-check-label" for="feld-link-newtab">In neuem Tab öffnen</label>
+                    </div>
+                </div>
+
+                <!-- Berechnungsfeld -->
+                <div id="berechnung-row" style="display:none;">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Bezeichnung (Label) <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="feld-berechnung-label" placeholder="z.B. Gesamtbetrag">
+                        <small class="text-muted">Feld-ID: <code id="feld-berechnung-id-preview"></code></small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Formel <span class="text-danger">*</span></label>
+                        <div class="mb-2 p-2 bg-light border rounded">
+                            <small class="text-muted fw-semibold d-block mb-1">Felder einfügen:</small>
+                            <div id="berechnung-felder-liste">
+                                <span class="text-muted small">Noch keine Eingabefelder definiert.</span>
+                            </div>
+                        </div>
+                        <textarea class="form-control font-monospace" id="feld-formel" rows="3"
+                                  placeholder="z.B. {{stunden}} * {{stundensatz}}&#10;WENN({{typ}} == &quot;A&quot;; 150; 80)&#10;TAGE({{startdatum}}; {{enddatum}})"></textarea>
+                        <small class="text-muted">
+                            Operatoren: <code>+ - * / ( )</code> &nbsp;|&nbsp;
+                            Vergleich: <code>== != &gt; &lt; &gt;= &lt;=</code><br>
+                            Funktionen: <code>WENN(bed; ja; nein)</code> &nbsp;
+                            <code>RUNDEN(wert; stellen)</code> &nbsp;
+                            <code>ABS(x)</code> &nbsp;
+                            <code>MIN(a; b)</code> &nbsp;
+                            <code>MAX(a; b)</code><br>
+                            Datum/Zeit: <code>TAGE(datum1; datum2)</code> &nbsp;
+                            <code>STUNDEN(zeit1; zeit2)</code> &nbsp;
+                            <code>MINUTEN(z1; z2)</code> &nbsp;
+                            <code>HEUTE()</code>
+                        </small>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Einheit (optional)</label>
+                            <input type="text" class="form-control form-control-sm" id="feld-einheit" placeholder="z.B. € oder Stunden">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold small">Dezimalstellen</label>
+                            <select class="form-select form-select-sm" id="feld-dezimalstellen">
+                                <option value="0">0 (ganzzahlig)</option>
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Breite (immer sichtbar) -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Breite</label>
+                    <div class="d-flex gap-2">
+                        <div class="flex-fill">
+                            <input type="radio" class="btn-check" name="feld-breite" id="breite-25" value="25">
+                            <label class="btn btn-sm btn-outline-secondary w-100" for="breite-25">
+                                <span style="display:block;height:6px;background:currentColor;border-radius:2px;width:25%;"></span>¼
+                            </label>
+                        </div>
+                        <div class="flex-fill">
+                            <input type="radio" class="btn-check" name="feld-breite" id="breite-50" value="50">
+                            <label class="btn btn-sm btn-outline-secondary w-100" for="breite-50">
+                                <span style="display:block;height:6px;background:currentColor;border-radius:2px;width:50%;"></span>½
+                            </label>
+                        </div>
+                        <div class="flex-fill">
+                            <input type="radio" class="btn-check" name="feld-breite" id="breite-75" value="75">
+                            <label class="btn btn-sm btn-outline-secondary w-100" for="breite-75">
+                                <span style="display:block;height:6px;background:currentColor;border-radius:2px;width:75%;"></span>¾
+                            </label>
+                        </div>
+                        <div class="flex-fill">
+                            <input type="radio" class="btn-check" name="feld-breite" id="breite-100" value="100" checked>
+                            <label class="btn btn-sm btn-outline-secondary w-100" for="breite-100">
+                                <span style="display:block;height:6px;background:currentColor;border-radius:2px;width:100%;"></span>Voll
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aus Profil vorausfüllen -->
+                <div class="mb-3 feld-normal-row" id="vorausfuellen-row">
+                    <label class="form-label fw-semibold">Aus Nutzerprofil vorausfüllen</label>
+                    <select class="form-select form-select-sm" id="feld-vorausfuellen">
+                        <option value="">(nicht vorausfüllen)</option>
+                        <option value="vorname">Vorname</option>
+                        <option value="nachname">Nachname</option>
+                        <option value="abteilung">Abteilung</option>
+                        <option value="telefon">Telefon</option>
+                    </select>
+                    <small class="text-muted">Wenn gesetzt, wird das Feld beim Ausfüllen automatisch mit den Profildaten des Nutzers befüllt.</small>
+                </div>
+
+                <!-- Pflicht (nur normale Felder) -->
+                <div class="form-check feld-normal-row" id="pflicht-row">
+                    <input class="form-check-input" type="checkbox" id="feld-pflicht">
+                    <label class="form-check-label" for="feld-pflicht">Pflichtfeld</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="btn-feld-speichern">Übernehmen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Baustein einfügen -->
+<div class="modal fade" id="baustein-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Baustein einfügen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="baustein-modal-body">
+                <div class="text-center text-muted py-3">Lade Bausteine…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="{% static 'js/schema_editor.js' %}"></script>
+{% endblock %}
+{% endblock %}

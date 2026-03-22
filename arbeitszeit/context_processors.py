@@ -421,3 +421,21 @@ def hilfe_kontext(request):
         "bentopdf_url": getattr(settings, "BENTOPDF_URL", ""),
         "onlyoffice_url": getattr(settings, "ONLYOFFICE_URL", ""),
     }
+
+def stammdaten_meldungen_kontext(request):
+    """Zaehlt offene Stammdaten-Aenderungsmeldungen fuer HR/Staff-Badge in Navbar."""
+    if not request.user.is_authenticated:
+        return {"stammdaten_meldungen_anzahl": 0}
+    try:
+        ist_hr = (
+            request.user.is_staff
+            or request.user.is_superuser
+            or request.user.groups.filter(name__in=["HR", "Prozessverantwortliche"]).exists()
+        )
+        if not ist_hr:
+            return {"stammdaten_meldungen_anzahl": 0}
+        from hr.models import StammdatenAenderungsMeldung
+        anzahl = StammdatenAenderungsMeldung.objects.filter(bearbeitet=False).count()
+        return {"stammdaten_meldungen_anzahl": anzahl}
+    except Exception:
+        return {"stammdaten_meldungen_anzahl": 0}

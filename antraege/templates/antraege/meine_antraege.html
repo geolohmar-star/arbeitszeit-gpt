@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Meine Anträge{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:800px;">
+    <a href="{% url 'antraege:pfad_liste' %}" class="text-muted text-decoration-none small">&larr; Zurück</a>
+    <h1 class="h3 fw-bold mt-2 mb-4" style="color:#1a4d2e;">Meine Anträge</h1>
+
+    {% if sitzungen %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Antrag</th>
+                    <th>Status</th>
+                    <th>Gestartet</th>
+                    <th>Abgeschlossen</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for s in sitzungen %}
+            <tr>
+                <td class="fw-semibold">{{ s.pfad.name }}</td>
+                <td>
+                    {% if s.status == "laufend" %}
+                    <span class="badge bg-warning text-dark">Laufend</span>
+                    {% elif s.status == "abgeschlossen" %}
+                    <span class="badge bg-success">Abgeschlossen</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Abgebrochen</span>
+                    {% endif %}
+                </td>
+                <td class="text-muted small">{{ s.gestartet_am|date:"d.m.Y H:i" }}</td>
+                <td class="text-muted small">{{ s.abgeschlossen_am|date:"d.m.Y H:i"|default:"–" }}</td>
+                <td>
+                    {% if s.status == "laufend" %}
+                    <a href="{% url 'antraege:pfad_schritt' s.pk %}" class="btn btn-sm btn-outline-primary">Weiter</a>
+                    {% elif s.status == "abgeschlossen" %}
+                    <a href="{% url 'antraege:pfad_abgeschlossen' s.pk %}" class="btn btn-sm btn-outline-secondary">Ansehen</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">Noch keine Anträge gestellt.</div>
+    {% endif %}
+</div>
+{% endblock %}

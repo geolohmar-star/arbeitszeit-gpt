@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Prozesse – Formular-Builder{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:1100px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mt-1" style="color:#1a4d2e;">Formular-Builder</h1>
+            <p class="text-muted small mb-0">Alle verfügbaren Formulare</p>
+        </div>
+        {% if ist_prozessverantwortlicher %}
+        <a href="{% url 'prozesse:schema_erstellen' %}" class="btn btn-success">
+            + Neues Formular
+        </a>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show py-2" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if schemata %}
+    <div class="row g-3">
+        {% for schema in schemata %}
+        <div class="col-md-4">
+            <div class="card h-100 {% if not schema.aktiv %}opacity-50{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title fw-semibold mb-0">{{ schema.name }}</h5>
+                        {% if not schema.aktiv %}
+                        <span class="badge bg-secondary ms-2">Inaktiv</span>
+                        {% endif %}
+                    </div>
+                    {% if schema.beschreibung %}
+                    <p class="card-text text-muted small">{{ schema.beschreibung|truncatechars:100 }}</p>
+                    {% endif %}
+                    <p class="small text-muted mb-0">
+                        {{ schema.felder|length }} Feld{{ schema.felder|length|pluralize:"er" }}
+                        &middot; {{ schema.eintraege.count }} Eintrag/Einträge
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent d-flex gap-2">
+                    {% if schema.aktiv %}
+                    <a href="{% url 'prozesse:formular_ausfuellen' schema.pk %}"
+                       class="btn btn-sm btn-success">Ausfüllen</a>
+                    {% endif %}
+                    {% if ist_prozessverantwortlicher %}
+                    <a href="{% url 'prozesse:schema_bearbeiten' schema.pk %}"
+                       class="btn btn-sm btn-outline-secondary">Bearbeiten</a>
+                    <a href="{% url 'prozesse:eintrag_liste' schema.pk %}"
+                       class="btn btn-sm btn-outline-secondary">Einträge</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        {% if ist_prozessverantwortlicher %}
+        Noch keine Formular-Schemata vorhanden.
+        <a href="{% url 'prozesse:schema_erstellen' %}">Erstes Formular erstellen →</a>
+        {% else %}
+        Aktuell sind keine Formulare verfügbar.
+        {% endif %}
+    </div>
+    {% endif %}
+    <!-- Antrags-Pfade Teaser -->
+    <div class="mt-5 p-4" style="border:2px solid #7c3aed; border-radius:10px; background:#faf5ff;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <div>
+                <span class="fw-bold" style="color:#7c3aed; font-size:1.05rem;">Intelligente Antrags-Pfade</span>
+                <span style="font-size:0.65rem; background:#7c3aed; color:white; padding:1px 6px; border-radius:4px; margin-left:6px; vertical-align:middle;">BETA</span>
+                <p class="text-muted small mb-0 mt-1">Verzweigte Antragsformulare visuell per Drag &amp; Drop erstellen &mdash; kein Code nötig.</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'antraege:pfad_liste' %}" class="btn btn-outline-secondary btn-sm">Alle Pfade</a>
+                {% if ist_prozessverantwortlicher %}
+                <a href="{% url 'antraege:pfad_editor_neu' %}" class="btn btn-sm" style="background:#7c3aed; color:white;">+ Neuer Pfad</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

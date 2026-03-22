@@ -73,6 +73,8 @@ INSTALLED_APPS = [
     'ersthelfe.apps.ErsthelfeConfig',
     'sicherheit.apps.SicherheitConfig',
     'datensicherung.apps.DatensicherungConfig',
+    'prozesse.apps.ProzesseConfig',
+    'antraege.apps.AntraegeConfig',
 ]
 
 # Verschluesselung fuer sensible Dokumente (Fernet AES-128)
@@ -146,6 +148,7 @@ TEMPLATES = [
                 'arbeitszeit.context_processors.personalgewinnung_kontext',
                 'arbeitszeit.context_processors.dms_badge_kontext',
                 'arbeitszeit.context_processors.hilfe_kontext',
+                'arbeitszeit.context_processors.stammdaten_meldungen_kontext',
                 'arbeitszeit.context_processors.cmd_items',
                 'facility.context_processors.facility_context',
                 'stellenportal.context_processors.stellenportal_context',

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Meine Daten{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:700px;">
+    <a href="{% url 'arbeitszeit:dashboard' %}" class="text-muted text-decoration-none small">&larr; Zurück</a>
+    <h1 class="h3 fw-bold mt-2 mb-1" style="color:#1a4d2e;">Meine Daten pflegen</h1>
+    <p class="text-muted small mb-4">
+        Hier kannst du deine Kontaktdaten selbst aktualisieren. Abweichungen zu den
+        Stammdaten werden automatisch an HR gemeldet.
+    </p>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show py-2">
+        {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if abweichungen %}
+    <div class="alert alert-warning mb-4">
+        <strong>Aktuelle Abweichungen zu den Stammdaten:</strong>
+        <ul class="mb-0 mt-2">
+        {% for a in abweichungen %}
+            <li>
+                <strong>{{ a.feld }}:</strong>
+                Stammdaten: <em>{{ a.stammdaten_wert|default:"(leer)" }}</em> &rarr;
+                Deine Angabe: <em>{{ a.nutzer_wert|default:"(leer)" }}</em>
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header fw-semibold">Kontaktdaten</div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Vorname <span class="text-danger">*</span></label>
+                        <input type="text" name="vorname" class="form-control"
+                               value="{{ profil.vorname }}" required>
+                        {% if hr_mitarbeiter and hr_mitarbeiter.vorname %}
+                        <small class="text-muted">Stammdaten: {{ hr_mitarbeiter.vorname }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Nachname <span class="text-danger">*</span></label>
+                        <input type="text" name="nachname" class="form-control"
+                               value="{{ profil.nachname }}" required>
+                        {% if hr_mitarbeiter and hr_mitarbeiter.nachname %}
+                        <small class="text-muted">Stammdaten: {{ hr_mitarbeiter.nachname }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Abteilung</label>
+                        <input type="text" name="abteilung" class="form-control"
+                               value="{{ profil.abteilung }}" placeholder="z.B. Ordnungsamt">
+                        {% if hr_mitarbeiter %}
+                            {% if hr_mitarbeiter.abteilung %}
+                            <small class="text-muted">Stammdaten: {{ hr_mitarbeiter.abteilung.name }}</small>
+                            {% elif hr_mitarbeiter.stelle and hr_mitarbeiter.stelle.org_einheit %}
+                            <small class="text-muted">Stammdaten: {{ hr_mitarbeiter.stelle.org_einheit.bezeichnung }}</small>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Telefon / Durchwahl</label>
+                        <input type="text" name="telefon" class="form-control"
+                               value="{{ profil.telefon }}" placeholder="z.B. -123">
+                        {% if hr_mitarbeiter and hr_mitarbeiter.durchwahl %}
+                        <small class="text-muted">Stammdaten: {{ hr_mitarbeiter.durchwahl }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-top d-flex gap-2 align-items-center">
+                    <button type="submit" class="btn btn-success">Speichern</button>
+                    <small class="text-muted">
+                        Zuletzt geändert:
+                        {% if profil.geaendert_am %}{{ profil.geaendert_am|date:"d.m.Y H:i" }} Uhr{% else %}noch nie{% endif %}
+                    </small>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if hr_mitarbeiter %}
+    <div class="card mt-3">
+        <div class="card-header fw-semibold text-muted">Aktuelle Stammdaten (HR-System, schreibgeschützt)</div>
+        <div class="card-body">
+            <div class="row g-2 small">
+                <div class="col-6"><strong>Name:</strong> {{ hr_mitarbeiter.vorname }} {{ hr_mitarbeiter.nachname }}</div>
+                <div class="col-6"><strong>Personalnr.:</strong> {{ hr_mitarbeiter.personalnummer|default:"–" }}</div>
+                <div class="col-6"><strong>Stelle:</strong> {{ hr_mitarbeiter.stelle|default:"–" }}</div>
+                <div class="col-6"><strong>Durchwahl:</strong> {{ hr_mitarbeiter.durchwahl|default:"–" }}</div>
+                <div class="col-6"><strong>Abteilung:</strong>
+                    {% if hr_mitarbeiter.abteilung %}{{ hr_mitarbeiter.abteilung.name }}
+                    {% elif hr_mitarbeiter.stelle and hr_mitarbeiter.stelle.org_einheit %}{{ hr_mitarbeiter.stelle.org_einheit.bezeichnung }}
+                    {% else %}–{% endif %}
+                </div>
+                <div class="col-6"><strong>E-Mail:</strong> {{ hr_mitarbeiter.email|default:request.user.email|default:"–" }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

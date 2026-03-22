@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Eintrag – {{ eintrag.schema.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:700px;">
+    <a href="{% url 'prozesse:dashboard' %}" class="text-muted text-decoration-none small">&larr; Zurück</a>
+    <h1 class="h3 fw-bold mt-2 mb-1" style="color:#1a4d2e;">{{ eintrag.schema.name }}</h1>
+    <p class="text-muted small mb-4">
+        Eingereicht von {{ eintrag.eingereicht_von.get_full_name|default:eintrag.eingereicht_von.username }}
+        am {{ eintrag.eingereicht_am|date:"d.m.Y H:i" }} Uhr
+        &middot; <span class="badge bg-secondary">{{ eintrag.get_status_display }}</span>
+    </p>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <dl class="mb-0">
+            {% for f in felder_anzeige %}
+                {% if f.typ == "berechnung" %}
+                {# Berechnungsergebnis: farblich abgesetzt #}
+                <div class="px-3 py-2 {% if not forloop.last %}border-bottom{% endif %} bg-light">
+                    <dt class="text-muted small fw-semibold d-flex align-items-center gap-1">
+                        {{ f.label }}
+                        <span class="badge bg-warning text-dark" style="font-size:0.65rem;">Ergebnis</span>
+                    </dt>
+                    <dd class="mb-0 mt-1 fw-bold fs-5" style="color:#1a4d2e;">
+                        {% if f.wert != "" %}
+                            {{ f.wert }}{% if f.einheit %} {{ f.einheit }}{% endif %}
+                        {% else %}
+                            <span class="text-muted fw-normal small">—</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                {% else %}
+                <div class="px-3 py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                    <dt class="text-muted small fw-semibold">{{ f.label }}</dt>
+                    <dd class="mb-0 mt-1">
+                        {% if f.typ == "bool" %}
+                            {% if f.wert %}
+                            <span class="badge bg-success">Ja</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Nein</span>
+                            {% endif %}
+                        {% elif f.wert %}
+                            {{ f.wert }}
+                        {% else %}
+                            <span class="text-muted small">—</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                {% endif %}
+            {% empty %}
+            <div class="px-3 py-3 text-muted small">Keine Felder vorhanden.</div>
+            {% endfor %}
+            </dl>
+        </div>
+    </div>
+
+    {% if ist_prozessverantwortlicher %}
+    <div class="mt-3">
+        <a href="{% url 'prozesse:eintrag_liste' eintrag.schema.pk %}" class="btn btn-outline-secondary btn-sm">
+            Alle Einträge zu diesem Schema
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

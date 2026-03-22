@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Antrags-Pfade{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:900px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1" style="color:#1a4d2e;">Antrags-Pfade</h1>
+            <p class="text-muted small mb-0">Intelligente Formulare mit Verzweigungen und Bedingungen</p>
+        </div>
+        {% if ist_editor %}
+        <a href="{% url 'antraege:pfad_editor_neu' %}" class="btn btn-success">
+            + Neuer Pfad
+        </a>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show py-2">
+        {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if pfade %}
+    <div class="row g-3">
+        {% for pfad in pfade %}
+        <div class="col-md-6">
+            <div class="card h-100 {% if not pfad.aktiv %}border-secondary opacity-75{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title fw-semibold mb-0">{{ pfad.name }}</h5>
+                        {% if not pfad.aktiv %}
+                        <span class="badge bg-secondary ms-2">Inaktiv</span>
+                        {% endif %}
+                    </div>
+                    {% if pfad.beschreibung %}
+                    <p class="card-text text-muted small">{{ pfad.beschreibung }}</p>
+                    {% endif %}
+                    <div class="text-muted small mb-3">
+                        {{ pfad.schritte.count }} Schritt{{ pfad.schritte.count|pluralize:"e" }}
+                        &middot;
+                        {{ pfad.sitzungen.filter_laufend }} {{ pfad.sitzungen.count }} Einreichung{{ pfad.sitzungen.count|pluralize:"en" }}
+                    </div>
+                    <div class="d-flex gap-2">
+                        {% if pfad.aktiv %}
+                        <a href="{% url 'antraege:pfad_starten' pfad.pk %}" class="btn btn-success btn-sm">
+                            Antrag stellen
+                        </a>
+                        {% endif %}
+                        {% if ist_editor %}
+                        <a href="{% url 'antraege:pfad_editor' pfad.pk %}" class="btn btn-outline-secondary btn-sm">
+                            Bearbeiten
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        Noch keine Antrags-Pfade vorhanden.
+        {% if ist_editor %}
+        <a href="{% url 'antraege:pfad_editor_neu' %}">Jetzt ersten Pfad erstellen.</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

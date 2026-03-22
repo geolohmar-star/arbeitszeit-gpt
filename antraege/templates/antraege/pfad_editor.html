@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Pfad-Editor{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column" style="height:calc(100vh - 60px);">
+
+    <!-- Toolbar -->
+    <div class="bg-white border-bottom px-3 py-2 d-flex align-items-center gap-2 flex-shrink-0">
+        <a href="{% url 'antraege:pfad_liste' %}" class="btn btn-sm btn-outline-secondary">&#8592; Zurück</a>
+        <input type="text" id="pfad-name" class="form-control form-control-sm" style="max-width:260px;"
+               placeholder="Pfad-Name *" value="{% if pfad %}{{ pfad.name }}{% endif %}">
+        <input type="text" id="pfad-beschreibung" class="form-control form-control-sm" style="max-width:320px;"
+               placeholder="Beschreibung (optional)" value="{% if pfad %}{{ pfad.beschreibung }}{% endif %}">
+        <div class="form-check form-switch ms-1 mb-0">
+            <input class="form-check-input" type="checkbox" id="pfad-aktiv" {% if not pfad or pfad.aktiv %}checked{% endif %}>
+            <label class="form-check-label small" for="pfad-aktiv">Aktiv</label>
+        </div>
+        <div class="ms-auto d-flex gap-2">
+            <button id="btn-speichern" class="btn btn-sm btn-success">Speichern</button>
+            <span id="speicher-status" class="text-muted small align-self-center"></span>
+        </div>
+    </div>
+
+    <!-- Modus-Leiste -->
+    <div class="bg-light border-bottom px-3 py-1 d-flex align-items-center gap-3 flex-shrink-0">
+        <small class="text-muted fw-semibold">Modus:</small>
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary active" id="btn-modus-normal" data-modus="normal">
+                &#128161; Normal
+            </button>
+            <button class="btn btn-outline-primary" id="btn-modus-schritt" data-modus="schritt">
+                + Schritt
+            </button>
+            <button class="btn btn-outline-success" id="btn-modus-verbinden" data-modus="verbinden">
+                &#8594; Verbinden
+            </button>
+            <button class="btn btn-outline-danger" id="btn-modus-loeschen" data-modus="loeschen">
+                &#10005; Löschen
+            </button>
+        </div>
+        <small class="text-muted" id="modus-hinweis">Klicke auf einen Knoten zum Bearbeiten</small>
+        <small class="ms-auto text-muted">
+            <span class="badge bg-success">S</span> Start &nbsp;
+            <span class="badge bg-danger">E</span> Ende &nbsp;
+            <span class="badge bg-primary">&#9679;</span> Schritt &nbsp;
+            Kante = Bedingung
+        </small>
+    </div>
+
+    <!-- Canvas -->
+    <div class="flex-grow-1 position-relative">
+        <div id="antraege-canvas" style="width:100%;height:100%;background:#f8f9fa;"></div>
+        <div id="canvas-hinweis" class="position-absolute top-50 start-50 translate-middle text-center text-muted"
+             style="pointer-events:none;">
+            <div style="font-size:3rem;">&#9741;</div>
+            <div>Modus <strong>+ Schritt</strong> wählen, dann auf die Fläche klicken</div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Schritt bearbeiten -->
+<div class="modal fade" id="schritt-modal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="schritt-modal-titel">Schritt bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-8">
+                        <label class="form-label fw-semibold">Titel <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="schritt-titel" placeholder="z.B. Persönliche Daten">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label fw-semibold">Typ</label>
+                        <div class="d-flex flex-column gap-1 mt-1">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="schritt-ist-start">
+                                <label class="form-check-label" for="schritt-ist-start">Start-Knoten</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="schritt-ist-ende">
+                                <label class="form-check-label" for="schritt-ist-ende">End-Knoten</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>Felder dieses Schritts</strong>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-feld-hinzufuegen-schritt">
+                        + Feld hinzufügen
+                    </button>
+                </div>
+
+                <div id="schritt-felder-liste" class="mb-3">
+                    <p class="text-muted small" id="felder-leer-hinweis">Noch keine Felder. Klicke "+ Feld hinzufügen".</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="btn-schritt-speichern">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Feld hinzufügen/bearbeiten -->
+<div class="modal fade" id="feld-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feld-modal-titel">Feld bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Typ</label>
+                    <select class="form-select" id="feld-typ">
+                        <option value="text">Text (einzeilig)</option>
+                        <option value="mehrzeil">Text (mehrzeilig)</option>
+                        <option value="zahl">Zahl</option>
+                        <option value="datum">Datum</option>
+                        <option value="uhrzeit">Uhrzeit</option>
+                        <option value="email">E-Mail</option>
+                        <option value="bool">Ja/Nein (Checkbox)</option>
+                        <option value="auswahl">Auswahl (Dropdown)</option>
+                        <option value="radio">Multiple Choice</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Bezeichnung <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="feld-label" placeholder="z.B. Vorname">
+                    <small class="text-muted">Feld-ID: <code id="feld-id-vorschau"></code></small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Hilfetext</label>
+                    <input type="text" class="form-control" id="feld-hilfetext" placeholder="Optionaler Platzhaltertext">
+                </div>
+                <div class="mb-3" id="optionen-row" style="display:none;">
+                    <label class="form-label fw-semibold">Optionen</label>
+                    <textarea class="form-control" id="feld-optionen" rows="4"
+                              placeholder="Eine Option pro Zeile"></textarea>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="feld-pflicht">
+                    <label class="form-check-label" for="feld-pflicht">Pflichtfeld</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="btn-feld-ok">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Transition bearbeiten -->
+<div class="modal fade" id="transition-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Verbindung bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Bedingung</label>
+                    <textarea class="form-control font-monospace" id="transition-bedingung" rows="3"
+                              placeholder="Leer = immer wahr&#10;Beispiele:&#10;{{tierart}} == &quot;Kampfhund&quot;&#10;{{alter_zahl}} >= 18&#10;WENN({{stunden_zahl}} > 8; 1; 0)"></textarea>
+                    <small class="text-muted">
+                        Referenziert Feld-IDs aller bisherigen Schritte mit <code>{{feld_id}}</code>.
+                        Operatoren: <code>== != &gt; &lt; &gt;= &lt;=</code>
+                    </small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Beschriftung der Kante</label>
+                    <input type="text" class="form-control" id="transition-label"
+                           placeholder="z.B. Ja / Nein / Kampfhund">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Reihenfolge</label>
+                    <input type="number" class="form-control" id="transition-reihenfolge" value="0" min="0">
+                    <small class="text-muted">Niedrigere Zahl = wird zuerst geprüft (bei mehreren Ausgängen)</small>
+                </div>
+                <div id="verfuegbare-felder-box" class="p-2 bg-light border rounded">
+                    <small class="text-muted fw-semibold d-block mb-1">Verfügbare Felder (klicken zum Einfügen):</small>
+                    <div id="verfuegbare-felder-inhalt"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="btn-transition-speichern">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if pfad %}
+{{ pfad.pk|json_script:"pfad-pk" }}
+{% else %}
+<script type="application/json" id="pfad-pk">null</script>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/vis-network.min.js' %}"></script>
+<script src="{% static 'js/antraege_editor.js' %}"></script>
+{% endblock %}

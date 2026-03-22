@@ -1,0 +1,38 @@
+{% if felder %}
+<div class="border rounded p-3 bg-light">
+    <p class="text-muted small fw-semibold mb-3">Vorschau</p>
+    {% for feld in felder %}
+    <div class="mb-3">
+        <label class="form-label fw-semibold small">
+            {{ feld.label }}
+            {% if feld.pflicht %}<span class="text-danger">*</span>{% endif %}
+        </label>
+        {% if feld.typ == "mehrzeil" %}
+        <textarea class="form-control form-control-sm" rows="2" disabled placeholder="{{ feld.hilfetext }}"></textarea>
+        {% elif feld.typ == "auswahl" %}
+        <select class="form-select form-select-sm" disabled>
+            <option>— bitte wählen —</option>
+            {% for opt in feld.optionen %}
+            <option>{{ opt }}</option>
+            {% endfor %}
+        </select>
+        {% elif feld.typ == "bool" %}
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" disabled>
+            <label class="form-check-label small">{{ feld.label }}</label>
+        </div>
+        {% elif feld.typ == "datum" %}
+        <input type="date" class="form-control form-control-sm" disabled>
+        {% elif feld.typ == "zahl" %}
+        <input type="number" class="form-control form-control-sm" disabled placeholder="{{ feld.hilfetext }}">
+        {% else %}
+        <input type="text" class="form-control form-control-sm" disabled placeholder="{{ feld.hilfetext }}">
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-muted small text-center py-4">
+    Noch keine Felder definiert.<br>Felder hinzufügen um die Vorschau zu sehen.
+</div>
+{% endif %}

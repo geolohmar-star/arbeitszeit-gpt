@@ -4,6 +4,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import get_object_or_404, redirect, render
 
+from django.utils import timezone
+
 from .models import (
     Abteilung,
     Bereich,
@@ -12,6 +14,8 @@ from .models import (
     OrgEinheit,
     Personalstammdaten,
     Stelle,
+    StammdatenAenderungsMeldung,
+    UserProfil,
 )
 
 logger = logging.getLogger(__name__)
@@ -2541,3 +2545,148 @@ def projektgruppe_remove_member(request, pk):
 
     except Exception as exc:
         return JsonResponse({"error": str(exc)}, status=500)
+
+
+# ---------------------------------------------------------------------------
+# Benutzerprofil – Selbst-Pflege
+# ---------------------------------------------------------------------------
+
+def _stammdaten_vergleich(profil, hr_mitarbeiter):
+    """Vergleicht UserProfil-Felder mit HRMitarbeiter-Stammdaten.
+
+    Gibt eine Liste der Abweichungen zurueck:
+    [{"feld": "Vorname", "stammdaten_wert": "...", "nutzer_wert": "..."}]
+    """
+    if not hr_mitarbeiter:
+        return []
+
+    abweichungen = []
+
+    felder = [
+        ("Vorname", profil.vorname, hr_mitarbeiter.vorname or ""),
+        ("Nachname", profil.nachname, hr_mitarbeiter.nachname or ""),
+        ("Telefon", profil.telefon, hr_mitarbeiter.durchwahl or ""),
+    ]
+
+    # Abteilung aus HRMitarbeiter zusammensetzen
+    hr_abteilung = ""
+    if hr_mitarbeiter.abteilung:
+        hr_abteilung = hr_mitarbeiter.abteilung.name
+    elif hr_mitarbeiter.stelle and hr_mitarbeiter.stelle.org_einheit:
+        hr_abteilung = hr_mitarbeiter.stelle.org_einheit.bezeichnung
+    felder.append(("Abteilung", profil.abteilung, hr_abteilung))
+
+    for feldname, nutzer_wert, stammdaten_wert in felder:
+        if nutzer_wert.strip() != stammdaten_wert.strip():
+            abweichungen.append({
+                "feld": feldname,
+                "stammdaten_wert": stammdaten_wert,
+                "nutzer_wert": nutzer_wert,
+            })
+
+    return abweichungen
+
+
+@login_required
+def mein_profil(request):
+    """Benutzer pflegt eigene Kontaktdaten und loest bei Abweichung HR-Meldung aus."""
+    profil, _ = UserProfil.objects.get_or_create(
+        user=request.user,
+        defaults={
+            "vorname": request.user.first_name,
+            "nachname": request.user.last_name,
+        },
+    )
+
+    # Stammdaten aus HRMitarbeiter fuer Vorausfuellung und Vergleich
+    hr_mitarbeiter = None
+    try:
+        hr_mitarbeiter = request.user.hr_mitarbeiter
+    except HRMitarbeiter.DoesNotExist:
+        pass
+
+    # Beim ersten Aufruf aus HRMitarbeiter vorausfuellen wenn Profil noch leer
+    if _ and hr_mitarbeiter:
+        profil.vorname = hr_mitarbeiter.vorname or request.user.first_name
+        profil.nachname = hr_mitarbeiter.nachname or request.user.last_name
+        profil.telefon = hr_mitarbeiter.durchwahl or ""
+        if hr_mitarbeiter.abteilung:
+            profil.abteilung = hr_mitarbeiter.abteilung.name
+        elif hr_mitarbeiter.stelle and hr_mitarbeiter.stelle.org_einheit:
+            profil.abteilung = hr_mitarbeiter.stelle.org_einheit.bezeichnung
+        profil.save()
+
+    if request.method == "POST":
+        profil.vorname = request.POST.get("vorname", "").strip()
+        profil.nachname = request.POST.get("nachname", "").strip()
+        profil.abteilung = request.POST.get("abteilung", "").strip()
+        profil.telefon = request.POST.get("telefon", "").strip()
+        profil.save()
+
+        # Mit Stammdaten vergleichen und ggf. HR-Meldung erzeugen
+        abweichungen = _stammdaten_vergleich(profil, hr_mitarbeiter)
+        if abweichungen:
+            # Bestehende offene Meldung dieses Users ersetzen
+            StammdatenAenderungsMeldung.objects.filter(
+                user=request.user, bearbeitet=False
+            ).delete()
+            StammdatenAenderungsMeldung.objects.create(
+                user=request.user,
+                felder_geaendert=abweichungen,
+            )
+            messages.info(
+                request,
+                f"Profil gespeichert. {len(abweichungen)} Abweichung(en) zu den "
+                f"Stammdaten wurden an HR gemeldet.",
+            )
+        else:
+            # Keine Abweichungen – ggf. alte offene Meldung schliessen
+            StammdatenAenderungsMeldung.objects.filter(
+                user=request.user, bearbeitet=False
+            ).delete()
+            messages.success(request, "Profil gespeichert. Daten stimmen mit den Stammdaten ueberein.")
+
+        return redirect("hr:mein_profil")
+
+    # Aktuelle Abweichungen fuer Anzeige berechnen
+    aktuelle_abweichungen = _stammdaten_vergleich(profil, hr_mitarbeiter)
+
+    return render(request, "hr/mein_profil.html", {
+        "profil": profil,
+        "hr_mitarbeiter": hr_mitarbeiter,
+        "abweichungen": aktuelle_abweichungen,
+    })
+
+
+@login_required
+def stammdaten_meldungen(request):
+    """HR-Uebersicht: offene Stammdaten-Aenderungsmeldungen (nur Staff/HR)."""
+    if not (request.user.is_staff or request.user.is_superuser
+            or request.user.groups.filter(name__in=["HR", "Prozessverantwortliche"]).exists()):
+        messages.error(request, "Kein Zugriff.")
+        return redirect("arbeitszeit:dashboard")
+
+    if request.method == "POST":
+        meldung_pk = request.POST.get("meldung_pk")
+        notiz = request.POST.get("notiz", "").strip()
+        meldung = get_object_or_404(StammdatenAenderungsMeldung, pk=meldung_pk)
+        meldung.bearbeitet = True
+        meldung.bearbeitet_von = request.user
+        meldung.bearbeitet_am = timezone.now()
+        meldung.notiz = notiz
+        meldung.save()
+        messages.success(request, "Meldung als bearbeitet markiert.")
+        return redirect("hr:stammdaten_meldungen")
+
+    offene = StammdatenAenderungsMeldung.objects.filter(
+        bearbeitet=False
+    ).select_related("user", "user__hr_mitarbeiter")
+
+    erledigte = StammdatenAenderungsMeldung.objects.filter(
+        bearbeitet=True
+    ).select_related("user", "bearbeitet_von")[:20]
+
+    return render(request, "hr/stammdaten_meldungen.html", {
+        "offene": offene,
+        "erledigte": erledigte,
+    })

@@ -698,3 +698,73 @@ class Projektgruppe(models.Model):
                     result[org_name] = []
                 result[org_name].append(mitglied)
         return result
+
+
+# ---------------------------------------------------------------------------
+# Benutzerprofil (Selbst-Pflege)
+# ---------------------------------------------------------------------------
+
+class UserProfil(models.Model):
+    """Vom Benutzer selbst gepflegte Kontaktdaten.
+
+    Wird beim Speichern mit HRMitarbeiter-Stammdaten verglichen.
+    Abweichungen erzeugen eine StammdatenAenderungsMeldung fuer HR.
+    """
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="user_profil",
+    )
+    vorname = models.CharField(max_length=100, blank=True)
+    nachname = models.CharField(max_length=100, blank=True)
+    abteilung = models.CharField(max_length=200, blank=True)
+    telefon = models.CharField(max_length=50, blank=True)
+    geaendert_am = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Benutzerprofil"
+        verbose_name_plural = "Benutzerprofile"
+
+    def __str__(self):
+        return f"Profil von {self.user.get_full_name() or self.user.username}"
+
+
+class StammdatenAenderungsMeldung(models.Model):
+    """Benachrichtigung an HR wenn Nutzerprofil von Stammdaten abweicht.
+
+    Wird automatisch beim Speichern von UserProfil erzeugt wenn Differenzen
+    zwischen den Nutzereingaben und den HR-Stammdaten festgestellt werden.
+    """
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="stammdaten_meldungen",
+    )
+    felder_geaendert = models.JSONField(
+        default=list,
+        help_text="Liste der abweichenden Felder: [{feld, stammdaten_wert, nutzer_wert}]",
+    )
+    erstellt_am = models.DateTimeField(auto_now_add=True)
+    bearbeitet = models.BooleanField(default=False)
+    bearbeitet_von = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="bearbeitete_stammdaten_meldungen",
+    )
+    bearbeitet_am = models.DateTimeField(null=True, blank=True)
+    notiz = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-erstellt_am"]
+        verbose_name = "Stammdaten-Aenderungsmeldung"
+        verbose_name_plural = "Stammdaten-Aenderungsmeldungen"
+
+    def __str__(self):
+        return (
+            f"Meldung von {self.user.get_full_name() or self.user.username}"
+            f" ({self.erstellt_am:%d.%m.%Y})"
+        )

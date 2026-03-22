@@ -95,22 +95,35 @@
                         {% if user.is_staff %}
                         <li><a class="dropdown-item" href="{% url 'dms:workflow_regeln' %}">DMS-Workflow-Regeln</a></li>
                         {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Formular-Builder</h6></li>
+                        <li><a class="dropdown-item" href="{% url 'prozesse:dashboard' %}">Formular-Übersicht</a></li>
+                        <li><a class="dropdown-item" href="{% url 'prozesse:schema_erstellen' %}">Neues Formular erstellen</a></li>
+                        <li><a class="dropdown-item" href="{% url 'prozesse:baustein_liste' %}">Feld-Bausteine</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Antrags-Pfade <span style="font-size:0.6rem; background:#7c3aed; color:white; padding:1px 5px; border-radius:4px; vertical-align:middle;">BETA</span></h6></li>
+                        <li><a class="dropdown-item" href="{% url 'antraege:pfad_liste' %}">Pfad-Übersicht</a></li>
+                        <li><a class="dropdown-item" href="{% url 'antraege:pfad_editor_neu' %}">Neuen Pfad erstellen</a></li>
                     </ul>
                 </li>
                 {% endif %}
 
-                <!-- Anträge (NEU) -->
+                <!-- Anträge -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="antraegeDropdown"
                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         Anträge
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="antraegeDropdown">
+                        <li><h6 class="dropdown-header">Klassische Anträge</h6></li>
                         <li><a class="dropdown-item" href="{% url 'formulare:dashboard' %}">Übersicht / Neuer Antrag</a></li>
                         {% if hat_genehmiger_rolle %}
-                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'formulare:genehmigung_uebersicht' %}">Genehmigungen</a></li>
                         {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Antrags-Pfade <span style="font-size:0.6rem; background:#7c3aed; color:white; padding:1px 5px; border-radius:4px; vertical-align:middle;">BETA</span></h6></li>
+                        <li><a class="dropdown-item" href="{% url 'antraege:pfad_liste' %}">Antrags-Pfade</a></li>
+                        <li><a class="dropdown-item" href="{% url 'antraege:meine_antraege' %}">Meine Anträge</a></li>
                     </ul>
                 </li>
 
@@ -130,6 +143,17 @@
                         <li><a class="dropdown-item" href="{% url 'arbeitszeit:soll_stunden_berechnen' %}">Soll-Stunden berechnen</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'hr:organigramm' %}">Organigramm</a></li>
+                        {% if stammdaten_meldungen_anzahl %}
+                        <li>
+                            <a class="dropdown-item d-flex justify-content-between align-items-center"
+                               href="{% url 'hr:stammdaten_meldungen' %}">
+                                Stammdaten-Meldungen
+                                <span class="badge bg-warning text-dark rounded-pill">{{ stammdaten_meldungen_anzahl }}</span>
+                            </a>
+                        </li>
+                        {% elif user.is_staff or user.is_superuser %}
+                        <li><a class="dropdown-item" href="{% url 'hr:stammdaten_meldungen' %}">Stammdaten-Meldungen</a></li>
+                        {% endif %}
                         <li><hr class="dropdown-divider"></li>
                         <li><h6 class="dropdown-header">Karriere</h6></li>
                         <li><a class="dropdown-item" href="{% url 'stellenportal:liste' %}">Stellenangebote</a></li>
@@ -427,6 +451,12 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                         <li><h6 class="dropdown-header">{{ user.username }}</h6></li>
+                        <li>
+                            <a class="dropdown-item fw-semibold" href="{% url 'hr:mein_profil' %}">
+                                Meine Daten pflegen
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'datenschutz:auskunft_pdf' %}">Meine Daten (DSGVO)</a></li>
                         <li><a class="dropdown-item" href="{% url 'dokumente:liste' %}">Meine Dokumente</a></li>
                         <li><a class="dropdown-item" href="{% url 'dms:liste' %}">DMS – Dokumente</a></li>

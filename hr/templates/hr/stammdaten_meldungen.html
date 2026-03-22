@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Stammdaten-Meldungen{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:1000px;">
+    <a href="{% url 'arbeitszeit:dashboard' %}" class="text-muted text-decoration-none small">&larr; Zurück</a>
+    <h1 class="h3 fw-bold mt-2 mb-1" style="color:#1a4d2e;">Stammdaten-Änderungsmeldungen</h1>
+    <p class="text-muted small mb-4">
+        Mitarbeiter haben Daten eingegeben, die von den HR-Stammdaten abweichen.
+        Bitte prüfen und in den Stammdaten nachpflegen.
+    </p>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show py-2">
+        {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {% if offene %}
+    <h5 class="fw-semibold mb-3">Offen ({{ offene|length }})</h5>
+    {% for m in offene %}
+    <div class="card mb-3 border-warning">
+        <div class="card-header d-flex justify-content-between align-items-center bg-warning bg-opacity-10">
+            <span class="fw-semibold">{{ m.user.get_full_name|default:m.user.username }}</span>
+            <small class="text-muted">{{ m.erstellt_am|date:"d.m.Y H:i" }} Uhr</small>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm mb-3">
+                <thead>
+                    <tr>
+                        <th>Feld</th>
+                        <th>Stammdaten</th>
+                        <th>Nutzerangabe</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for a in m.felder_geaendert %}
+                <tr>
+                    <td class="fw-semibold">{{ a.feld }}</td>
+                    <td class="text-muted">{{ a.stammdaten_wert|default:"(leer)" }}</td>
+                    <td class="text-success fw-semibold">{{ a.nutzer_wert|default:"(leer)" }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <form method="post" class="d-flex gap-2 align-items-end">
+                {% csrf_token %}
+                <input type="hidden" name="meldung_pk" value="{{ m.pk }}">
+                <div class="flex-fill">
+                    <label class="form-label small mb-1">Notiz (optional)</label>
+                    <input type="text" name="notiz" class="form-control form-control-sm"
+                           placeholder="z.B. Stammdaten aktualisiert am ...">
+                </div>
+                <button type="submit" class="btn btn-sm btn-success">Als erledigt markieren</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="alert alert-success">Keine offenen Meldungen.</div>
+    {% endif %}
+
+    {% if erledigte %}
+    <hr class="my-4">
+    <h5 class="fw-semibold mb-3 text-muted">Zuletzt erledigt</h5>
+    <div class="table-responsive">
+        <table class="table table-sm table-striped">
+            <thead>
+                <tr>
+                    <th>Mitarbeiter</th>
+                    <th>Felder</th>
+                    <th>Gemeldet</th>
+                    <th>Erledigt von</th>
+                    <th>Notiz</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for m in erledigte %}
+            <tr>
+                <td>{{ m.user.get_full_name|default:m.user.username }}</td>
+                <td>
+                    {% for a in m.felder_geaendert %}
+                    <span class="badge bg-light text-dark border me-1">{{ a.feld }}</span>
+                    {% endfor %}
+                </td>
+                <td class="text-muted small">{{ m.erstellt_am|date:"d.m.Y" }}</td>
+                <td class="small">{{ m.bearbeitet_von.get_full_name|default:m.bearbeitet_von.username|default:"–" }}</td>
+                <td class="small text-muted">{{ m.notiz|default:"–" }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

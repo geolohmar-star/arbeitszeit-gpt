@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if baustein %}{{ baustein.name }} – Baustein{% else %}Neuer Baustein{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3" style="max-width:1400px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <a href="{% url 'prozesse:baustein_liste' %}" class="text-muted text-decoration-none small">&larr; Bausteine</a>
+            <h1 class="h4 fw-bold mt-1" style="color:#1a4d2e;">
+                {% if baustein %}{{ baustein.name }} bearbeiten{% else %}Neuer Baustein{% endif %}
+            </h1>
+        </div>
+        {% if baustein %}
+        <form method="post" action="{% url 'prozesse:baustein_loeschen' baustein.pk %}"
+              onsubmit="return confirm('Baustein wirklich löschen?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger">Baustein löschen</button>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if messages %}
+    {% for msg in messages %}
+    <div class="alert alert-{{ msg.tags }} alert-dismissible fade show py-2">
+        {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="post" id="schema-form">
+        {% csrf_token %}
+        <input type="hidden" name="schema_json" id="schema-json-input" value="{{ schema_json_str }}">
+
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <div class="card mb-3">
+                    <div class="card-header fw-semibold">Baustein-Einstellungen</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control"
+                                   value="{{ baustein.name|default:'' }}{{ name }}" required
+                                   placeholder="z.B. Adresse, Bankverbindung, Kontaktdaten">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label fw-semibold">Beschreibung</label>
+                            <input type="text" name="beschreibung" class="form-control"
+                                   value="{{ baustein.beschreibung|default:'' }}{{ beschreibung }}"
+                                   placeholder="Kurze Beschreibung des Bausteins">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold">Felder</span>
+                        <button type="button" class="btn btn-sm btn-success" id="btn-feld-hinzufuegen">
+                            + Feld hinzufügen
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="felder-liste"></div>
+                        <div id="felder-leer" class="text-muted small text-center py-4 px-3">
+                            Noch keine Felder. Klicke "+ Feld hinzufügen".
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card position-sticky" style="top:80px;">
+                    <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                        <span>Vorschau</span>
+                        <button type="submit" class="btn btn-sm btn-primary">Speichern</button>
+                    </div>
+                    <div class="card-body" id="vorschau-container">
+                        <div class="text-muted small text-center py-4">Noch keine Felder.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modal: Feld bearbeiten (identisch zum Schema-Editor) -->
+<div class="modal fade" id="feld-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="feld-modal-titel">Feld bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Typ</label>
+                    <select class="form-select" id="feld-typ">
+                        <optgroup label="Eingabefelder">
+                            <option value="text">Text (einzeilig)</option>
+                            <option value="mehrzeil">Text (mehrzeilig)</option>
+                            <option value="zahl">Zahl</option>
+                            <option value="datum">Datum</option>
+                            <option value="uhrzeit">Uhrzeit (HH:MM)</option>
+                            <option value="email">E-Mail (validiert)</option>
+                            <option value="iban">IBAN (validiert)</option>
+                            <option value="bool">Ja/Nein (Checkbox)</option>
+                            <option value="auswahl">Auswahl (Dropdown)</option>
+                            <option value="radio">Multiple Choice (Radio)</option>
+                            <option value="checkboxen">Kontrollkästchen (Mehrfach)</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="mb-3 feld-normal-row">
+                    <label class="form-label fw-semibold">Bezeichnung (Label) <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="feld-label" placeholder="z.B. Vorname">
+                    <small class="text-muted">Feld-ID: <code id="feld-id-preview"></code></small>
+                </div>
+                <div class="mb-3 feld-normal-row" id="hilfetext-row">
+                    <label class="form-label fw-semibold">Hilfetext</label>
+                    <input type="text" class="form-control" id="feld-hilfetext" placeholder="Optionaler Platzhaltertext">
+                </div>
+                <div class="mb-3 feld-normal-row" id="auswahl-optionen-row" style="display:none;">
+                    <label class="form-label fw-semibold">Optionen</label>
+                    <textarea class="form-control" id="feld-optionen" rows="4"
+                              placeholder="Eine Option pro Zeile"></textarea>
+                </div>
+                <!-- Nicht benötigte Felder für Baustein-Editor (versteckt) -->
+                <div style="display:none;">
+                    <div id="textblock-row"><div id="verfuegbare-felder-liste"></div><textarea id="feld-textblock-inhalt"></textarea></div>
+                    <div id="abschnitt-row">
+                        <input id="feld-abschnitt-text">
+                        <select id="feld-abschnitt-groesse"><option value="mittel">Mittel</option></select>
+                        <select id="feld-abschnitt-ausrichtung"><option value="links">Links</option></select>
+                        <select id="feld-abschnitt-stil"><option value="normal">Normal</option></select>
+                    </div>
+                    <div id="link-row">
+                        <input id="feld-link-text"><input id="feld-link-url">
+                        <input type="checkbox" id="feld-link-newtab" checked>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Breite</label>
+                    <div class="d-flex gap-2">
+                        <div class="flex-fill">
+                            <input type="radio" class="btn-check" name="feld-breite" id="breite-25" value="25">
+                            <label class="btn btn-sm btn-outline-secondary w-100" for="breite-25">
+                                <span style="display:block;height:6px;background:currentColor;border-radius:2px;width:25%;"></span>¼
+                            </label>
+                        </div>
+                        <div class="flex-fill">
+                            <input type="radio" class="btn-check" name="feld-breite" id="breite-50" value="50">
+                            <label class="btn btn-sm btn-outline-secondary w-100" for="breite-50">
+                                <span style="display:block;height:6px;background:currentColor;border-radius:2px;width:50%;"></span>½
+                            </label>
+                        </div>
+                        <div class="flex-fill">
+                            <input type="radio" class="btn-check" name="feld-breite" id="breite-75" value="75">
+                            <label class="btn btn-sm btn-outline-secondary w-100" for="breite-75">
+                                <span style="display:block;height:6px;background:currentColor;border-radius:2px;width:75%;"></span>¾
+                            </label>
+                        </div>
+                        <div class="flex-fill">
+                            <input type="radio" class="btn-check" name="feld-breite" id="breite-100" value="100" checked>
+                            <label class="btn btn-sm btn-outline-secondary w-100" for="breite-100">
+                                <span style="display:block;height:6px;background:currentColor;border-radius:2px;width:100%;"></span>Voll
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-check feld-normal-row" id="pflicht-row">
+                    <input class="form-check-input" type="checkbox" id="feld-pflicht">
+                    <label class="form-check-label" for="feld-pflicht">Pflichtfeld</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="btn-feld-speichern">Übernehmen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="{% static 'js/schema_editor.js' %}"></script>
+{% endblock %}
+{% endblock %}

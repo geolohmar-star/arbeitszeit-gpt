@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Einträge – {{ schema.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:1000px;">
+    <a href="{% url 'prozesse:dashboard' %}" class="text-muted text-decoration-none small">&larr; Zurück</a>
+    <h1 class="h3 fw-bold mt-2 mb-1" style="color:#1a4d2e;">Einträge: {{ schema.name }}</h1>
+    <p class="text-muted small mb-4">{{ eintraege.count }} Eintrag/Einträge gesamt</p>
+
+    {% if eintraege %}
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Datum</th>
+                        <th>Eingereicht von</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eintrag in eintraege %}
+                    <tr>
+                        <td class="small">{{ eintrag.eingereicht_am|date:"d.m.Y H:i" }}</td>
+                        <td>{{ eintrag.eingereicht_von.get_full_name|default:eintrag.eingereicht_von.username|default:"–" }}</td>
+                        <td><span class="badge bg-secondary">{{ eintrag.get_status_display }}</span></td>
+                        <td>
+                            <a href="{% url 'prozesse:eintrag_detail' eintrag.pk %}"
+                               class="btn btn-sm btn-outline-secondary">Anzeigen</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">Noch keine Einträge für dieses Formular.</div>
+    {% endif %}
+</div>
+{% endblock %}

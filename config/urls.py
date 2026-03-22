@@ -39,6 +39,8 @@ urlpatterns = [
     path('ersthelfe/', include('ersthelfe.urls', namespace='ersthelfe')),
     path('sicherheit/', include('sicherheit.urls', namespace='sicherheit')),
     path('datensicherung/', include('datensicherung.urls', namespace='datensicherung')),
+    path('prozesse/', include('prozesse.urls', namespace='prozesse')),
+    path('antraege/', include('antraege.urls', namespace='antraege')),
 ]
 
 # Media-Files (nur in Development)

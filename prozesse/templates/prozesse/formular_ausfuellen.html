@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}{{ schema.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:800px;">
+    <a href="{% url 'prozesse:dashboard' %}" class="text-muted text-decoration-none small">&larr; Zurück</a>
+    <h1 class="h3 fw-bold mt-2 mb-1" style="color:#1a4d2e;">{{ schema.name }}</h1>
+    {% if schema.beschreibung %}
+    <p class="text-muted mb-4">{{ schema.beschreibung }}</p>
+    {% endif %}
+
+    {% if fehler %}
+    <div class="alert alert-danger">
+        <strong>Bitte korrigiere folgende Fehler:</strong>
+        <ul class="mb-0 mt-1">{% for f in fehler %}<li>{{ f }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+
+                {% for item in render_items %}
+
+                    {% if item.render_typ == "leerblock" %}
+                    <div class="{% if item.breite == 25 %}col-md-3{% elif item.breite == 50 %}col-md-6{% elif item.breite == 75 %}col-md-9{% else %}col-12{% endif %} d-none d-md-block"></div>
+
+                    {% elif item.render_typ == "link" %}
+                    <div class="{% if item.breite == 25 %}col-md-3{% elif item.breite == 50 %}col-md-6{% elif item.breite == 75 %}col-md-9{% else %}col-12{% endif %}">
+                        <a href="{{ item.url }}" {% if item.newtab %}target="_blank"{% endif %} class="small">
+                            {{ item.link_text|default:item.url }} {% if item.newtab %}&#8599;{% endif %}
+                        </a>
+                    </div>
+
+                    {% elif item.render_typ == "trennlinie" %}
+                    <div class="col-12"><hr class="my-1"></div>
+
+                    {% elif item.render_typ == "abschnitt" %}
+                    <div class="{% if item.breite == 25 %}col-md-3{% elif item.breite == 50 %}col-md-6{% elif item.breite == 75 %}col-md-9{% else %}col-12{% endif %}">
+                        {% with g=item.groesse|default:"mittel" a=item.ausrichtung|default:"links" s=item.stil|default:"normal" %}
+                        {% if g == "gross" %}
+                        <h4 style="text-align:{% if a == 'mitte' %}center{% elif a == 'rechts' %}right{% else %}left{% endif %};font-weight:{% if s == 'fett' or s == 'fett-kursiv' %}bold{% else %}normal{% endif %};font-style:{% if s == 'kursiv' or s == 'fett-kursiv' %}italic{% else %}normal{% endif %};color:#1a4d2e;border-bottom:1px solid #dee2e6;padding-bottom:4px;">{{ item.text }}</h4>
+                        {% elif g == "klein" %}
+                        <p class="text-muted small mb-1" style="text-align:{% if a == 'mitte' %}center{% elif a == 'rechts' %}right{% else %}left{% endif %};font-weight:{% if s == 'fett' or s == 'fett-kursiv' %}bold{% else %}normal{% endif %};font-style:{% if s == 'kursiv' or s == 'fett-kursiv' %}italic{% else %}normal{% endif %};">{{ item.text }}</p>
+                        {% else %}
+                        <h6 style="text-align:{% if a == 'mitte' %}center{% elif a == 'rechts' %}right{% else %}left{% endif %};font-weight:{% if s == 'fett' or s == 'fett-kursiv' %}bold{% else %}normal{% endif %};font-style:{% if s == 'kursiv' or s == 'fett-kursiv' %}italic{% else %}normal{% endif %};color:#1a4d2e;border-bottom:1px solid #dee2e6;padding-bottom:4px;">{{ item.text }}</h6>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+
+                    {% elif item.render_typ == "textblock" %}
+                    <div class="{% if item.breite == 25 %}col-md-3{% elif item.breite == 50 %}col-md-6{% elif item.breite == 75 %}col-md-9{% else %}col-12{% endif %}">
+                        <p style="line-height:3; margin:0;">
+                        {% for seg in item.segmente %}
+                            {% if seg.typ == "text" %}{{ seg.inhalt }}{% else %}{% with f=seg.feld %}{% if f.typ == "email" %}<input type="email" name="{{ f.id }}" style="border:none;border-bottom:2px solid #333;background:transparent;border-radius:0;padding:0 4px;display:inline-block;vertical-align:bottom;width:200px;" value="{{ f.vorwert }}" placeholder="{{ f.hilfetext|default:'name@beispiel.de' }}" {% if f.pflicht %}required{% endif %}>{% elif f.typ == "datum" %}<input type="date" name="{{ f.id }}" style="border:none;border-bottom:2px solid #333;background:transparent;border-radius:0;padding:0 4px;display:inline-block;vertical-align:bottom;width:160px;" value="{{ f.vorwert }}" {% if f.pflicht %}required{% endif %}>{% elif f.typ == "uhrzeit" %}<input type="text" name="{{ f.id }}" style="border:none;border-bottom:2px solid #333;background:transparent;border-radius:0;padding:0 4px;display:inline-block;vertical-align:bottom;width:75px;" value="{{ f.vorwert }}" placeholder="HH:MM" maxlength="5" {% if f.pflicht %}required{% endif %}>{% elif f.typ == "zahl" %}<input type="number" step="any" name="{{ f.id }}" style="border:none;border-bottom:2px solid #333;background:transparent;border-radius:0;padding:0 4px;display:inline-block;vertical-align:bottom;width:80px;" placeholder="{{ f.hilfetext }}" {% if f.pflicht %}required{% endif %}>{% elif f.typ == "bool" %}<input type="checkbox" class="form-check-input" name="{{ f.id }}" value="1">{% elif f.typ == "auswahl" %}<select name="{{ f.id }}" style="border:none;border-bottom:2px solid #333;background:transparent;border-radius:0;display:inline-block;vertical-align:bottom;" {% if f.pflicht %}required{% endif %}><option value="">—</option>{% for opt in f.optionen %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}</select>{% elif f.typ == "mehrzeil" %}<textarea name="{{ f.id }}" rows="2" style="border:none;border-bottom:2px solid #333;background:transparent;border-radius:0;padding:0 4px;display:inline-block;vertical-align:bottom;width:300px;resize:none;" {% if f.pflicht %}required{% endif %}></textarea>{% else %}<input type="text" name="{{ f.id }}" style="border:none;border-bottom:2px solid #333;background:transparent;border-radius:0;padding:0 4px;display:inline-block;vertical-align:bottom;width:150px;" value="{{ f.vorwert }}" placeholder="{{ f.hilfetext }}" {% if f.pflicht %}required{% endif %}>{% endif %}{% endwith %}{% endif %}
+                        {% endfor %}
+                        </p>
+                    </div>
+
+                    {% elif item.render_typ == "standalone" %}
+                    {% with f=item.feld %}
+                    <div class="{% if item.breite == 25 %}col-md-3{% elif item.breite == 50 %}col-md-6{% elif item.breite == 75 %}col-md-9{% else %}col-12{% endif %}">
+                        {% if f.typ == "bool" %}
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="{{ f.id }}" id="feld-{{ f.id }}" value="1">
+                            <label class="form-check-label fw-semibold" for="feld-{{ f.id }}">{{ f.label }}</label>
+                        </div>
+                        {% elif f.typ == "radio" %}
+                        <label class="form-label fw-semibold mb-1">
+                            {{ f.label }}{% if f.pflicht %} <span class="text-danger">*</span>{% endif %}
+                        </label>
+                        <div class="d-flex flex-column gap-1">
+                            {% for opt in f.optionen %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="{{ f.id }}" id="feld-{{ f.id }}-{{ forloop.counter }}" value="{{ opt }}" {% if f.pflicht %}required{% endif %}>
+                                <label class="form-check-label" for="feld-{{ f.id }}-{{ forloop.counter }}">{{ opt }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% elif f.typ == "checkboxen" %}
+                        <label class="form-label fw-semibold mb-1">
+                            {{ f.label }}{% if f.pflicht %} <span class="text-danger">*</span>{% endif %}
+                        </label>
+                        <div class="d-flex flex-column gap-1">
+                            {% for opt in f.optionen %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="{{ f.id }}" id="feld-{{ f.id }}-{{ forloop.counter }}" value="{{ opt }}">
+                                <label class="form-check-label" for="feld-{{ f.id }}-{{ forloop.counter }}">{{ opt }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <label class="form-label fw-semibold mb-1">
+                            {{ f.label }}{% if f.pflicht %} <span class="text-danger">*</span>{% endif %}
+                        </label>
+                        {% if f.typ == "mehrzeil" %}
+                        <textarea class="form-control" name="{{ f.id }}" rows="3" placeholder="{{ f.hilfetext }}" {% if f.pflicht %}required{% endif %}>{{ f.vorwert }}</textarea>
+                        {% elif f.typ == "auswahl" %}
+                        <select class="form-select" name="{{ f.id }}" {% if f.pflicht %}required{% endif %}>
+                            <option value="">— bitte wählen —</option>
+                            {% for opt in f.optionen %}<option value="{{ opt }}" {% if opt == f.vorwert %}selected{% endif %}>{{ opt }}</option>{% endfor %}
+                        </select>
+                        {% elif f.typ == "email" %}
+                        <input type="email" class="form-control" name="{{ f.id }}" value="{{ f.vorwert }}" placeholder="{{ f.hilfetext|default:'name@beispiel.de' }}" {% if f.pflicht %}required{% endif %}>
+                        {% elif f.typ == "iban" %}
+                        <input type="text" class="form-control" name="{{ f.id }}" value="{{ f.vorwert }}" placeholder="DE00 0000 0000 0000 0000 00" maxlength="34" {% if f.pflicht %}required{% endif %}>
+                        {% elif f.typ == "datum" %}
+                        <input type="date" class="form-control" name="{{ f.id }}" value="{{ f.vorwert }}" {% if f.pflicht %}required{% endif %}>
+                        {% elif f.typ == "uhrzeit" %}
+                        <input type="text" class="form-control" name="{{ f.id }}" value="{{ f.vorwert }}" placeholder="14:30 oder 1430" maxlength="5" {% if f.pflicht %}required{% endif %}>
+                        {% elif f.typ == "zahl" %}
+                        <input type="number" step="any" class="form-control" name="{{ f.id }}" value="{{ f.vorwert }}" placeholder="{{ f.hilfetext }}" {% if f.pflicht %}required{% endif %}>
+                        {% else %}
+                        <input type="text" class="form-control" name="{{ f.id }}" value="{{ f.vorwert }}" placeholder="{{ f.hilfetext }}" {% if f.pflicht %}required{% endif %}>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                    {% endwith %}
+                    {% elif item.render_typ == "berechnung" %}
+                    <div class="{% if item.breite == 25 %}col-md-3{% elif item.breite == 50 %}col-md-6{% elif item.breite == 75 %}col-md-9{% else %}col-12{% endif %}">
+                        <label class="form-label fw-semibold mb-1 text-muted">{{ item.label }}</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-light fw-semibold"
+                                   id="berechnung-{{ item.id }}"
+                                   readonly
+                                   placeholder="wird berechnet…"
+                                   data-berechnung-id="{{ item.id }}"
+                                   data-formel="{{ item.formel }}"
+                                   data-dezimalstellen="{{ item.dezimalstellen }}">
+                            {% if item.einheit %}<span class="input-group-text">{{ item.einheit }}</span>{% endif %}
+                        </div>
+                        {# Verstecktes Feld damit der Wert beim Submit mitgeschickt wird #}
+                        <input type="hidden" name="{{ item.id }}" id="berechnung-hidden-{{ item.id }}">
+                    </div>
+                    {% endif %}
+
+                {% endfor %}
+
+                </div>
+
+                <div class="d-flex gap-2 mt-4 pt-3 border-top">
+                    <button type="submit" class="btn btn-success">Formular einreichen</button>
+                    <a href="{% url 'prozesse:dashboard' %}" class="btn btn-outline-secondary">Abbrechen</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/formular_ausfuellen.js' %}"></script>
+{% endblock %}

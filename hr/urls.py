@@ -91,4 +91,7 @@ urlpatterns = [
     path("projektgruppen/<int:pk>/loeschen/", views.projektgruppe_delete, name="projektgruppe_delete"),
     path("projektgruppen/<int:pk>/mitglied-hinzufuegen/", views.projektgruppe_add_member, name="projektgruppe_add_member"),
     path("projektgruppen/<int:pk>/mitglied-entfernen/", views.projektgruppe_remove_member, name="projektgruppe_remove_member"),
+    # Benutzerprofil – Selbst-Pflege
+    path("mein-profil/", views.mein_profil, name="mein_profil"),
+    path("stammdaten-meldungen/", views.stammdaten_meldungen, name="stammdaten_meldungen"),
 ]
