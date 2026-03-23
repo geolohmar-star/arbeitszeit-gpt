@@ -442,7 +442,7 @@ async function saveWorkflow() {
         },
         schritte: schritteMitReihenfolge,
         edges: allEdges,
-        ist_graph_workflow: edgeConfigs.length > 0
+        ist_graph_workflow: allEdges.length > 0
     };
 
     try {
