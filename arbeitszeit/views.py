@@ -2867,6 +2867,16 @@ def mitarbeiter_detail(request, pk):
     return render(request, 'arbeitszeit/mitarbeiter_detail.html', {'mitarbeiter': mitarbeiter})
 
 # ---------------------------------------------------------------------------
+# Hilfeseiten
+# ---------------------------------------------------------------------------
+
+@login_required
+def hilfe_workflow_editor(request):
+    """Hilfseite: Workflow-Editor – Baukasten erklaert fuer Fachfremde."""
+    return render(request, "arbeitszeit/hilfe_workflow_editor.html")
+
+
+# ---------------------------------------------------------------------------
 # BSI IT-Grundschutz: Eigene Fehlerseiten (APP.3.1)
 # ---------------------------------------------------------------------------
 

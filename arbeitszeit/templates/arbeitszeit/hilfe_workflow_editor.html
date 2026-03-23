@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% block title %}Anleitung: Workflow-Editor{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:860px;">
+
+    <a href="{% url 'arbeitszeit:dashboard' %}" class="text-muted text-decoration-none small">&larr; Zurück zum Dashboard</a>
+
+    <div class="mt-3 mb-5">
+        <h1 class="h3 fw-bold mb-1" style="color:#1a4d2e;">Anleitung: Workflow-Editor</h1>
+        <p class="text-muted small mb-0">
+            Wie Sie in PRIMA einen neuen Ablauf (Workflow) richtig anlegen &mdash; Schritt für Schritt,
+            ohne technische Vorkenntnisse.
+        </p>
+    </div>
+
+    <!-- Was ist ein Workflow -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body px-4 py-4">
+            <h2 class="h5 fw-bold mb-3" style="color:#1a4d2e;">Was ist ein Workflow?</h2>
+            <p class="mb-2">
+                Ein Workflow beschreibt einen <strong>geregelten Ablauf</strong> &mdash; zum Beispiel:
+                Eine Eingangsrechnung kommt an und muss von mehreren Personen geprüft, genehmigt
+                und abgelegt werden.
+            </p>
+            <p class="mb-0">
+                In PRIMA können Sie solche Abläufe selbst im Workflow-Editor zusammenstellen,
+                ohne dass jemand programmieren muss. Damit ein Workflow tatsächlich funktioniert,
+                braucht er <strong>drei Pflichtbausteine</strong>:
+            </p>
+        </div>
+    </div>
+
+    <!-- Die drei Pflichtbausteine -->
+    <h2 class="h5 fw-bold mb-3" style="color:#1a4d2e;">Die drei Pflichtbausteine</h2>
+
+    <div class="row g-3 mb-5">
+
+        <!-- Baustein 1 -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body px-4 py-4">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold text-white"
+                             style="width:40px;height:40px;background:#1a4d2e;font-size:1.1rem;">1</div>
+                        <div>
+                            <div class="fw-bold" style="font-size:1rem;">Schritte anlegen &mdash; mit konkreter Zuständigkeit</div>
+                            <div class="text-muted small">Wer macht was?</div>
+                        </div>
+                    </div>
+                    <p class="mb-3">
+                        Jeder Schritt steht für eine Aufgabe: <em>Prüfen, Genehmigen, Bearbeiten, Informieren, Archivieren …</em>
+                        Wichtig: Für jeden Schritt muss festgelegt werden, <strong>wer zuständig ist</strong>.
+                    </p>
+                    <div class="bg-light rounded p-3 mb-3" style="font-size:0.88rem;">
+                        <div class="fw-semibold mb-2">So legen Sie die Zuständigkeit fest:</div>
+                        <ol class="mb-0 ps-3">
+                            <li class="mb-1">Im Workflow-Editor auf den Schritt klicken &rarr; <strong>Bearbeiten</strong></li>
+                            <li class="mb-1">Im Feld <em>Zuständigkeit</em> die Option <strong>Spezifische Stelle</strong> wählen</li>
+                            <li class="mb-1">Im Feld <em>Stelle</em> das passende Kürzel aus dem Dropdown auswählen
+                                (z.&nbsp;B. <code>al_fm</code> für den Abteilungsleiter Facility Management)</li>
+                            <li>Speichern</li>
+                        </ol>
+                    </div>
+                    <div class="alert alert-danger d-flex gap-2 mb-0 py-2" style="font-size:0.85rem;">
+                        <span>&#9888;</span>
+                        <div>
+                            <strong>Häufiger Fehler:</strong> Den Schritt benennen mit dem Kürzel im <em>Titel</em>
+                            (z.&nbsp;B. <em>„al_fm – Prüfen"</em>), aber das Dropdown-Feld <em>Stelle</em> leer lassen.
+                            PRIMA liest den Titel nicht aus &mdash; die Zuständigkeit muss im Dropdown eingetragen sein.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Baustein 2 -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body px-4 py-4">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold text-white"
+                             style="width:40px;height:40px;background:#1a4d2e;font-size:1.1rem;">2</div>
+                        <div>
+                            <div class="fw-bold" style="font-size:1rem;">Schritte verbinden &mdash; mit Pfeilen (Übergänge)</div>
+                            <div class="text-muted small">In welcher Reihenfolge?</div>
+                        </div>
+                    </div>
+                    <p class="mb-3">
+                        Schritte, die nicht durch Pfeile verbunden sind, bilden keinen Ablauf.
+                        Ohne Verbindungen weiß PRIMA nach dem ersten Schritt nicht, was als nächstes passieren soll &mdash;
+                        der Vorgang bleibt stehen.
+                    </p>
+                    <div class="bg-light rounded p-3 mb-3" style="font-size:0.88rem;">
+                        <div class="fw-semibold mb-2">So verbinden Sie Schritte:</div>
+                        <ol class="mb-0 ps-3">
+                            <li class="mb-1">Im Workflow-Editor oben den Modus <strong>Verbinden</strong> aktivieren</li>
+                            <li class="mb-1">Den ersten Schritt anklicken (Startpunkt)</li>
+                            <li class="mb-1">Den zweiten Schritt anklicken (Zielpunkt) &rarr; ein Pfeil erscheint</li>
+                            <li class="mb-1">Im Dialog können Sie optional eine <strong>Bedingung</strong> eintragen
+                                (z.&nbsp;B. <em>„nur wenn genehmigt"</em>). Leer lassen = Pfeil gilt immer.</li>
+                            <li>Wiederholen bis alle Schritte verbunden sind: 1&rarr;2&rarr;3&rarr;…&rarr;Ende</li>
+                        </ol>
+                    </div>
+                    <div class="alert alert-danger d-flex gap-2 mb-0 py-2" style="font-size:0.85rem;">
+                        <span>&#9888;</span>
+                        <div>
+                            <strong>Häufiger Fehler:</strong> Schritte angelegt, aber keine Pfeile gezogen.
+                            Der Workflow hat dann <em>null Übergänge</em> und kann nicht weiterlaufen.
+                            <strong>Kontrollieren Sie:</strong> Jeder Schritt außer dem letzten muss mindestens
+                            einen ausgehenden Pfeil haben.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Baustein 3 -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body px-4 py-4">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold text-white"
+                             style="width:40px;height:40px;background:#1a4d2e;font-size:1.1rem;">3</div>
+                        <div>
+                            <div class="fw-bold" style="font-size:1rem;">Auslöser festlegen &mdash; wann startet der Workflow?</div>
+                            <div class="text-muted small">Was bringt den Ablauf in Gang?</div>
+                        </div>
+                    </div>
+                    <p class="mb-3">
+                        Ein Workflow startet nicht von selbst. Er muss mit einem <strong>Auslöser (Trigger)</strong>
+                        verknüpft sein &mdash; also einem Ereignis, das PRIMA mitteilt: <em>„Jetzt beginnt dieser Ablauf."</em>
+                    </p>
+                    <div class="bg-light rounded p-3 mb-3" style="font-size:0.88rem;">
+                        <div class="fw-semibold mb-2">Die zwei Wege, einen Workflow auszulösen:</div>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <div class="border rounded p-3 h-100" style="border-color:#1a4d2e !important;">
+                                    <div class="fw-semibold mb-1" style="color:#1a4d2e;">Weg A &mdash; Formular</div>
+                                    <p class="small mb-0">
+                                        Das Formular (z.&nbsp;B. ein Änderungsantrag) startet den Workflow
+                                        automatisch beim Einreichen. Dazu muss im
+                                        <strong>Formular-Editor</strong> unter <em>Einstellungen &rarr;
+                                        Workflow-Template</em> dieser Workflow ausgewählt sein.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="border rounded p-3 h-100" style="border-color:#0d6efd !important;">
+                                    <div class="fw-semibold mb-1" style="color:#0d6efd;">Weg B &mdash; DMS / Paperless</div>
+                                    <p class="small mb-0">
+                                        Ein eingehendes Dokument (Scan, E-Mail-Anhang) löst den Workflow aus.
+                                        Dazu muss unter
+                                        <strong>DMS &rarr; Einstellungen &rarr; Workflow-Regeln</strong>
+                                        eine Regel angelegt sein, die das Dokument erkennt und diesen Workflow startet.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-danger d-flex gap-2 mb-0 py-2" style="font-size:0.85rem;">
+                        <span>&#9888;</span>
+                        <div>
+                            <strong>Häufiger Fehler:</strong> Im Workflow-Editor einen Auslöser-Namen eingetragen
+                            (z.&nbsp;B. <em>„sonepar"</em>), aber weder Formular noch DMS-Regel zeigt auf diesen Workflow.
+                            Der Name allein bewirkt nichts &mdash; er muss mit Weg A oder Weg B verknüpft sein.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Checkliste -->
+    <div class="card border-0 shadow-sm mb-4" style="border-left:4px solid #1a4d2e !important;">
+        <div class="card-body px-4 py-4">
+            <h2 class="h5 fw-bold mb-3" style="color:#1a4d2e;">Checkliste vor dem ersten Test</h2>
+            <p class="text-muted small mb-3">
+                Gehen Sie diese Punkte durch, bevor Sie einen neuen Workflow in Betrieb nehmen:
+            </p>
+            <ul class="list-unstyled mb-0" style="font-size:0.92rem;">
+                <li class="d-flex gap-2 mb-2">
+                    <span style="color:#1a4d2e; font-weight:700; flex-shrink:0;">&#10003;</span>
+                    <span>Jeder Schritt hat im Feld <em>Stelle</em> einen konkreten Eintrag &mdash; nicht nur im Titel.</span>
+                </li>
+                <li class="d-flex gap-2 mb-2">
+                    <span style="color:#1a4d2e; font-weight:700; flex-shrink:0;">&#10003;</span>
+                    <span>Alle Schritte sind durch Pfeile verbunden. Kontrollieren Sie jeden Schritt:
+                        Gibt es einen ausgehenden Pfeil zum nächsten?</span>
+                </li>
+                <li class="d-flex gap-2 mb-2">
+                    <span style="color:#1a4d2e; font-weight:700; flex-shrink:0;">&#10003;</span>
+                    <span>Der Workflow ist über Formular oder DMS-Regel verknüpft &mdash; nicht nur als Name eingetragen.</span>
+                </li>
+                <li class="d-flex gap-2 mb-2">
+                    <span style="color:#1a4d2e; font-weight:700; flex-shrink:0;">&#10003;</span>
+                    <span>Alle eingetragenen Stellen sind im HR-System besetzt
+                        (eine leere Stelle bedeutet: niemand bekommt die Aufgabe).</span>
+                </li>
+                <li class="d-flex gap-2 mb-0">
+                    <span style="color:#1a4d2e; font-weight:700; flex-shrink:0;">&#10003;</span>
+                    <span>Der Workflow-Status steht auf <strong>Aktiv</strong>.</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Beispiel Eingangsrechnung -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body px-4 py-4">
+            <h2 class="h5 fw-bold mb-1" style="color:#1a4d2e;">Beispiel: Eingangsrechnung Sonepar</h2>
+            <p class="text-muted small mb-3">
+                Dieser Workflow wurde im Editor angelegt, ist aber noch nicht betriebsbereit.
+                Hier die offenen Punkte:
+            </p>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0" style="font-size:0.88rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:35%;">Punkt</th>
+                            <th style="width:25%;">Status</th>
+                            <th>Was ist zu tun?</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Pfeile zwischen den Schritten</td>
+                            <td><span class="badge bg-danger">Fehlt</span></td>
+                            <td>Im Editor Modus <em>Verbinden</em> aktivieren und alle 6 Schritte
+                                der Reihe nach verbinden: 1&rarr;2&rarr;3&rarr;4&rarr;5&rarr;6</td>
+                        </tr>
+                        <tr>
+                            <td>Stelle pro Schritt eintragen</td>
+                            <td><span class="badge bg-danger">Fehlt</span></td>
+                            <td>Jeden Schritt öffnen &rarr; im Dropdown <em>Stelle</em> das Kürzel wählen:
+                                <code>al_fm</code>, <code>bl_bv2</code>, <code>ma_ka1</code>,
+                                <code>al_co</code>, <code>tl_ka</code></td>
+                        </tr>
+                        <tr>
+                            <td>Auslöser verknüpfen</td>
+                            <td><span class="badge bg-warning text-dark">Offen</span></td>
+                            <td>
+                                Unter <strong>DMS &rarr; Einstellungen &rarr; Workflow-Regeln</strong>
+                                eine Regel anlegen: Treffer-Typ <em>Muster (Regex)</em> oder
+                                Dokumententyp <em>Sonepar-Rechnung</em> &rarr; Workflow
+                                <em>Eingangsrechnung Sonepar</em> auswählen.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Stellen-Besetzung</td>
+                            <td><span class="badge bg-success">Alle OK</span></td>
+                            <td>Alle 5 Stellen sind im HR-System besetzt. Kein Handlungsbedarf.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ablauf-Übersicht -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body px-4 py-4">
+            <h2 class="h5 fw-bold mb-3" style="color:#1a4d2e;">So sieht der fertige Ablauf aus</h2>
+            <p class="text-muted small mb-3">
+                Wenn alle drei Bausteine vorhanden sind, läuft eine Eingangsrechnung so durch das System:
+            </p>
+            <div style="font-size:0.88rem;">
+                <div class="d-flex align-items-stretch gap-0 flex-wrap">
+
+                    {% for schritt in schritte_beispiel %}
+                    <div class="d-flex align-items-stretch">
+                        <div class="text-center p-2" style="min-width:130px; max-width:150px;">
+                            <div class="rounded d-inline-flex align-items-center justify-content-center mb-1 fw-bold text-white"
+                                 style="width:30px;height:30px;background:#1a4d2e;font-size:0.85rem;">
+                                {{ forloop.counter }}
+                            </div>
+                            <div class="fw-semibold" style="font-size:0.8rem; color:#1a4d2e;">{{ schritt.titel }}</div>
+                            <div class="text-muted" style="font-size:0.72rem;">{{ schritt.aktion }}</div>
+                        </div>
+                        {% if not forloop.last %}
+                        <div class="d-flex align-items-center px-1 text-muted">&rarr;</div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="d-flex align-items-stretch flex-wrap gap-1">
+                        <div class="text-center p-2" style="min-width:120px;">
+                            <div class="rounded d-inline-flex align-items-center justify-content-center mb-1 fw-bold text-white"
+                                 style="width:30px;height:30px;background:#1a4d2e;font-size:0.85rem;">1</div>
+                            <div class="fw-semibold" style="font-size:0.8rem; color:#1a4d2e;">al_fm</div>
+                            <div class="text-muted" style="font-size:0.72rem;">Prüfen</div>
+                        </div>
+                        <div class="d-flex align-items-center px-1 text-muted">&rarr;</div>
+                        <div class="text-center p-2" style="min-width:120px;">
+                            <div class="rounded d-inline-flex align-items-center justify-content-center mb-1 fw-bold text-white"
+                                 style="width:30px;height:30px;background:#1a4d2e;font-size:0.85rem;">2</div>
+                            <div class="fw-semibold" style="font-size:0.8rem; color:#1a4d2e;">bl_bv2</div>
+                            <div class="text-muted" style="font-size:0.72rem;">Genehmigen</div>
+                        </div>
+                        <div class="d-flex align-items-center px-1 text-muted">&rarr;</div>
+                        <div class="text-center p-2" style="min-width:120px;">
+                            <div class="rounded d-inline-flex align-items-center justify-content-center mb-1 fw-bold text-white"
+                                 style="width:30px;height:30px;background:#1a4d2e;font-size:0.85rem;">3</div>
+                            <div class="fw-semibold" style="font-size:0.8rem; color:#1a4d2e;">ma_ka1</div>
+                            <div class="text-muted" style="font-size:0.72rem;">Bearbeiten</div>
+                        </div>
+                        <div class="d-flex align-items-center px-1 text-muted">&rarr;</div>
+                        <div class="text-center p-2" style="min-width:120px;">
+                            <div class="rounded d-inline-flex align-items-center justify-content-center mb-1 fw-bold text-white"
+                                 style="width:30px;height:30px;background:#1a4d2e;font-size:0.85rem;">4</div>
+                            <div class="fw-semibold" style="font-size:0.8rem; color:#1a4d2e;">al_co</div>
+                            <div class="text-muted" style="font-size:0.72rem;">Informieren</div>
+                        </div>
+                        <div class="d-flex align-items-center px-1 text-muted">&rarr;</div>
+                        <div class="text-center p-2" style="min-width:120px;">
+                            <div class="rounded d-inline-flex align-items-center justify-content-center mb-1 fw-bold text-white"
+                                 style="width:30px;height:30px;background:#1a4d2e;font-size:0.85rem;">5</div>
+                            <div class="fw-semibold" style="font-size:0.8rem; color:#1a4d2e;">tl_ka</div>
+                            <div class="text-muted" style="font-size:0.72rem;">Entscheiden</div>
+                        </div>
+                        <div class="d-flex align-items-center px-1 text-muted">&rarr;</div>
+                        <div class="text-center p-2" style="min-width:120px;">
+                            <div class="rounded d-inline-flex align-items-center justify-content-center mb-1 fw-bold text-white"
+                                 style="width:30px;height:30px;background:#6b7280;font-size:0.85rem;">6</div>
+                            <div class="fw-semibold" style="font-size:0.8rem; color:#6b7280;">Ablage</div>
+                            <div class="text-muted" style="font-size:0.72rem;">Automatisch</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fragen -->
+    <div class="alert alert-light border" style="font-size:0.88rem;">
+        <strong>Fragen oder Probleme?</strong>
+        Wenden Sie sich an den PRIMA-Administrator oder öffnen Sie den Workflow-Editor direkt unter
+        <a href="{% url 'workflow:workflow_liste' %}" class="text-decoration-none fw-semibold" style="color:#1a4d2e;">
+            Prozesse &rarr; Workflow-Editor
+        </a>.
+    </div>
+
+</div>
+{% endblock %}
