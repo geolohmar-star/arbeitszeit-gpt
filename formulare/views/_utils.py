@@ -167,7 +167,58 @@ def _speichere_signatur_pdf(antrag, pdf_bytes, user, anzahl):
         logger.warning("_speichere_signatur_pdf fehlgeschlagen: %s", exc)
 
 
-def _signiere_und_speichere(antrag, user, pdf_bytes_neu, dateiname):
+def signiere_gespeichertes_pdf_inkrementell(antrag, user):
+    """Haengt eine weitere Signatur an das gespeicherte AntragsSignaturPDF an.
+
+    Wird aufgerufen wenn ein Workflow-Task abgeschlossen wird, damit der
+    Genehmiger seinen eigenen privaten Schluessel (Session-Thread-Local) nutzen kann.
+    Schlaegt still fehl – unterbricht nie den Workflow.
+
+    Returns:
+        True wenn signiert + gespeichert, False sonst.
+    """
+    from signatur.services import signiere_pdf
+
+    gespeichertes_pdf = _lade_signatur_pdf(antrag)
+    if not gespeichertes_pdf:
+        logger.warning(
+            "signiere_gespeichertes_pdf_inkrementell: Kein gespeichertes PDF fuer %s pk=%s",
+            antrag.__class__.__name__, antrag.pk,
+        )
+        return False
+
+    dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
+    # content_type_str aus dem Modellnamen ableiten (Kleinschreibung ohne Leerzeichen)
+    ct_str = antrag.__class__.__name__.lower()
+    try:
+        pdf_signiert = signiere_pdf(
+            gespeichertes_pdf, user, dokument_name=dateiname,
+            content_type=ct_str, object_id=antrag.pk,
+        )
+    except Exception as exc:
+        logger.warning(
+            "signiere_gespeichertes_pdf_inkrementell: Signatur fehlgeschlagen fuer %s pk=%s user=%s: %s",
+            antrag.__class__.__name__, antrag.pk, user.username, exc,
+        )
+        return False
+
+    try:
+        import io
+        from pyhanko.pdf_utils.reader import PdfFileReader
+        reader = PdfFileReader(io.BytesIO(pdf_signiert))
+        anzahl = len(list(reader.embedded_signatures))
+    except Exception:
+        anzahl = 0
+
+    _speichere_signatur_pdf(antrag, pdf_signiert, user, anzahl)
+    logger.info(
+        "signiere_gespeichertes_pdf_inkrementell: Signatur %s OK fuer %s pk=%s",
+        anzahl, antrag.__class__.__name__, antrag.pk,
+    )
+    return True
+
+
+def _signiere_und_speichere(antrag, user, pdf_bytes_neu, dateiname, content_type_str="", object_id=None):
     """Signiert inkrementell und speichert das Ergebnis.
 
     Laedt bestehendes signiertes PDF wenn vorhanden und fuegt neue Signatur hinzu.
@@ -181,7 +232,10 @@ def _signiere_und_speichere(antrag, user, pdf_bytes_neu, dateiname):
     pdf = basis if basis is not None else pdf_bytes_neu
 
     try:
-        pdf_signiert = signiere_pdf(pdf, user, dokument_name=dateiname)
+        pdf_signiert = signiere_pdf(
+            pdf, user, dokument_name=dateiname,
+            content_type=content_type_str, object_id=object_id or antrag.pk,
+        )
     except Exception as exc:
         logger.warning(
             "_signiere_und_speichere: Signatur fehlgeschlagen fuer %s pk=%s user=%s: %s",
@@ -260,7 +314,10 @@ def _auto_signiere_antrag(antrag, request, content_type_str, pdf_template, extra
         ).write_pdf()
         dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
 
-        _signiere_und_speichere(antrag, antrag.antragsteller.user, pdf_neu, dateiname)
+        _signiere_und_speichere(
+            antrag, antrag.antragsteller.user, pdf_neu, dateiname,
+            content_type_str=content_type_str, object_id=antrag.pk,
+        )
         logger.info("Auto-Signatur OK: %s pk=%s", content_type_str, antrag.pk)
     except Exception as exc:
         logger.warning(

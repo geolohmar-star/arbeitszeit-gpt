@@ -17,8 +17,7 @@ from formulare.models import Dienstreiseantrag, ReisezeitTagebuchEintrag, Zeitgu
 from ._utils import (
     _auto_signiere_dienstreise,
     _hole_antrag_signatur,
-    _sammle_workflow_unterzeichner,
-    _signiere_pdf_alle_unterzeichner,
+    _lade_signatur_pdf,
     _starte_workflow_fuer_antrag,
 )
 from .zeitgutschrift import (
@@ -709,11 +708,17 @@ def dienstreise_pdf(request, pk):
                 "now": dt.datetime.now(),
             },
         )
-        html = HTML(string=html_string, base_url=request.build_absolute_uri())
-        pdf = html.write_pdf()
         dateiname_dr = f"dienstreise_{antrag.pk}_{antrag.ziel}.pdf"
-        unterzeichner_dr = _sammle_workflow_unterzeichner(antrag, antrag.antragsteller.user)
-        pdf = _signiere_pdf_alle_unterzeichner(pdf, unterzeichner_dr, dateiname_dr)
+
+        # Gespeichertes signiertes PDF bevorzugen.
+        # Fallback: neu generiertes unsigniertes PDF.
+        gespeichertes = _lade_signatur_pdf(antrag)
+        if gespeichertes:
+            pdf = gespeichertes
+        else:
+            html = HTML(string=html_string, base_url=request.build_absolute_uri())
+            pdf = html.write_pdf()
+
         response = HttpResponse(pdf, content_type="application/pdf")
         response["Content-Disposition"] = (
             f'inline; filename="{dateiname_dr}"'

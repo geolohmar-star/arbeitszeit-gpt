@@ -21,8 +21,7 @@ from ._utils import (
     _hole_antrag_signatur,
     _ist_team_mitglied_fuer_antrag,
     _offene_antraege_fuer_user,
-    _sammle_workflow_unterzeichner,
-    _signiere_pdf_alle_unterzeichner,
+    _lade_signatur_pdf,
     _starte_workflow_fuer_antrag,
     _vereinbarung_fuer_mitarbeiter,
 )
@@ -350,13 +349,18 @@ def zag_pdf(request, pk):
         },
         request=request,
     )
-    pdf = HTML(
-        string=html_string,
-        base_url=request.build_absolute_uri(),
-    ).write_pdf()
     dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
-    unterzeichner = _sammle_workflow_unterzeichner(antrag, antrag.antragsteller.user)
-    pdf = _signiere_pdf_alle_unterzeichner(pdf, unterzeichner, dateiname)
+
+    # Gespeichertes signiertes PDF bevorzugen.
+    # Fallback: neu generiertes unsigniertes PDF.
+    gespeichertes = _lade_signatur_pdf(antrag)
+    if gespeichertes:
+        pdf = gespeichertes
+    else:
+        pdf = HTML(
+            string=html_string,
+            base_url=request.build_absolute_uri(),
+        ).write_pdf()
 
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{dateiname}"'
@@ -608,13 +612,18 @@ def zag_storno_pdf(request, pk):
         },
         request=request,
     )
-    pdf = HTML(
-        string=html_string,
-        base_url=request.build_absolute_uri(),
-    ).write_pdf()
     dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
-    unterzeichner = _sammle_workflow_unterzeichner(antrag, antrag.antragsteller.user)
-    pdf = _signiere_pdf_alle_unterzeichner(pdf, unterzeichner, dateiname)
+
+    # Gespeichertes signiertes PDF bevorzugen.
+    # Fallback: neu generiertes unsigniertes PDF.
+    gespeichertes = _lade_signatur_pdf(antrag)
+    if gespeichertes:
+        pdf = gespeichertes
+    else:
+        pdf = HTML(
+            string=html_string,
+            base_url=request.build_absolute_uri(),
+        ).write_pdf()
 
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{dateiname}"'

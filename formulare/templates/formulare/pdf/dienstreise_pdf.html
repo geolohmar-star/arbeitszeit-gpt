@@ -239,22 +239,20 @@
             Dieses Dokument ist elektronisch signiert (FES nach eIDAS).
             Alle Unterzeichner sind im Signatur-Panel des PDF-Readers sichtbar.
         </p>
-        <table style="width:100%; border-collapse:collapse;">
-            <tr>
-                <td style="width:50%; padding-right:12px; vertical-align:top;">
-                    <strong>Antragsteller</strong><br>
-                    {{ antrag.antragsteller.vorname }} {{ antrag.antragsteller.nachname }}<br>
-                    <span style="color:#555;">Eingereicht: {{ antrag.erstellt_am|date:"d.m.Y" }}</span>
-                </td>
-                {% for task in workflow_tasks %}{% if task.erledigt_am %}
-                <td style="width:50%; padding-left:12px; vertical-align:top;">
-                    <strong>{{ task.step.titel }}</strong><br>
-                    {% if task.erledigt_von %}{{ task.erledigt_von.get_full_name|default:"–" }}{% else %}–{% endif %}<br>
-                    <span style="color:#555;">{{ task.erledigt_am|date:"d.m.Y" }}</span>
-                </td>
-                {% endif %}{% endfor %}
-            </tr>
-        </table>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:9.5pt;">
+            <div style="flex:0 0 calc(33% - 6px); border:1px solid #ccc; border-top:3px solid #1a4d2e; padding:7px 9px;">
+                <strong>Antragsteller</strong><br>
+                {{ antrag.antragsteller.vorname }} {{ antrag.antragsteller.nachname }}<br>
+                <span style="color:#555;">Eingereicht: {{ antrag.erstellt_am|date:"d.m.Y" }}</span>
+            </div>
+            {% for task in workflow_tasks %}{% if task.erledigt_am %}
+            <div style="flex:0 0 calc(33% - 6px); border:1px solid #ccc; border-top:3px solid #1a4d2e; padding:7px 9px;">
+                <strong>{{ task.step.titel }}</strong><br>
+                {% if task.erledigt_von %}{{ task.erledigt_von.get_full_name|default:"–" }}{% else %}–{% endif %}<br>
+                <span style="color:#555;">{{ task.erledigt_am|date:"d.m.Y" }}</span>
+            </div>
+            {% endif %}{% endfor %}
+        </div>
     </div>
 
     <div class="footer">

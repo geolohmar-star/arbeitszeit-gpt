@@ -15,18 +15,24 @@
                     <td class="text-muted ps-3" style="width:220px">Unterzeichner</td>
                     <td><strong>{{ antrag_signatur.unterzeichner.get_full_name|default:antrag_signatur.unterzeichner.username }}</strong></td>
                 </tr>
+                {% if antrag_signatur.signiert_am %}
                 <tr>
                     <td class="text-muted ps-3">Signiert am</td>
                     <td>{{ antrag_signatur.signiert_am|date:"d.m.Y H:i" }} Uhr</td>
                 </tr>
+                {% endif %}
+                {% if antrag_signatur.zertifikat %}
                 <tr>
                     <td class="text-muted ps-3">Zertifikat-SN</td>
                     <td><code style="font-size:0.8rem;">{{ antrag_signatur.zertifikat.seriennummer }}</code></td>
                 </tr>
+                {% endif %}
+                {% if antrag_signatur.hash_sha256 %}
                 <tr>
                     <td class="text-muted ps-3">Dokument-Hash (SHA-256)</td>
                     <td><code style="font-size:0.75rem; word-break:break-all;">{{ antrag_signatur.hash_sha256 }}</code></td>
                 </tr>
+                {% endif %}
             {% else %}
                 <tr>
                     <td colspan="2" class="text-muted ps-3 fst-italic py-2">

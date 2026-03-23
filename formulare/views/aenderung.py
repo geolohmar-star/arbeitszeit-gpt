@@ -21,8 +21,7 @@ from ._utils import (
     _get_team_bearbeiter_task,
     _ist_team_mitglied_fuer_antrag,
     _offene_antraege_fuer_user,
-    _sammle_workflow_unterzeichner,
-    _signiere_pdf_alle_unterzeichner,
+    _lade_signatur_pdf,
     _starte_workflow_fuer_antrag,
     _vereinbarung_fuer_mitarbeiter,
 )
@@ -166,8 +165,10 @@ def aenderung_erfolg(request, pk):
                 "soll": soll_text,
             })
 
-    # Signatur des Antragstellers laden (aus Auto-Sign beim Einreichen)
+    # Signatur des Antragstellers: erst nach ct+object_id suchen, dann AntragsSignaturPDF pruefen
     from signatur.models import SignaturJob
+    from formulare.models import AntragsSignaturPDF
+    from django.contrib.contenttypes.models import ContentType
     signatur_job = (
         SignaturJob.objects
         .filter(
@@ -180,6 +181,22 @@ def aenderung_erfolg(request, pk):
         .first()
     )
     antrag_signatur = getattr(signatur_job, "protokoll", None) if signatur_job else None
+
+    # Fallback: AntragsSignaturPDF vorhanden = signiert (auch wenn Job-Verknuepfung fehlt)
+    if antrag_signatur is None:
+        ct = ContentType.objects.get_for_model(antrag)
+        antrag_signatur_pdf = AntragsSignaturPDF.objects.filter(
+            content_type=ct, object_id=antrag.pk
+        ).first()
+        if antrag_signatur_pdf and antrag_signatur_pdf.anzahl_signaturen > 0:
+            # Synthetisches Objekt fuer Template (nur Basisinfo ohne Zertifikatdetails)
+            class _SimpleSig:
+                def __init__(self, pdf_obj):
+                    self.unterzeichner = pdf_obj.zuletzt_signiert_von
+                    self.signiert_am = pdf_obj.aktualisiert_am if hasattr(pdf_obj, "aktualisiert_am") else None
+                    self.zertifikat = None
+                    self.hash_sha256 = None
+            antrag_signatur = _SimpleSig(antrag_signatur_pdf)
 
     return render(
         request,
@@ -237,13 +254,18 @@ def aenderung_pdf(request, pk):
         },
         request=request,
     )
-    pdf = HTML(
-        string=html_string,
-        base_url=request.build_absolute_uri(),
-    ).write_pdf()
     dateiname = antrag.get_betreff().replace(" ", "_") + ".pdf"
-    unterzeichner = _sammle_workflow_unterzeichner(antrag, antrag.antragsteller.user)
-    pdf = _signiere_pdf_alle_unterzeichner(pdf, unterzeichner, dateiname)
+
+    # Gespeichertes signiertes PDF bevorzugen (enthält alle bisher angefallenen Signaturen).
+    # Fallback: neu generiertes unsigniertes PDF.
+    gespeichertes = _lade_signatur_pdf(antrag)
+    if gespeichertes:
+        pdf = gespeichertes
+    else:
+        pdf = HTML(
+            string=html_string,
+            base_url=request.build_absolute_uri(),
+        ).write_pdf()
 
     response = HttpResponse(pdf, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{dateiname}"'

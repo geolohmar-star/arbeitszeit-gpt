@@ -460,6 +460,19 @@ class WorkflowEngine:
             # Fortschritt aktualisieren
             task.instance.update_fortschritt()
 
+            # Inkrementelle Signatur: Genehmiger signiert das gespeicherte Antrag-PDF
+            # Laeuft ausserhalb der Transaction damit ein Fehler den Workflow nicht blockiert
+            try:
+                content_obj = task.instance.content_object
+                if content_obj and hasattr(content_obj, "get_betreff"):
+                    from formulare.views import signiere_gespeichertes_pdf_inkrementell
+                    signiere_gespeichertes_pdf_inkrementell(content_obj, user)
+            except Exception as exc:
+                logger.warning(
+                    "Workflow-Signatur nach Task-Abschluss fehlgeschlagen (task=%s): %s",
+                    task.pk, exc,
+                )
+
             neue_tasks = []
 
             # Sonderfaelle: Weiterleitung und Ruecksendung

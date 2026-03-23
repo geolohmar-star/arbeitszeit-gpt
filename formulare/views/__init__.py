@@ -88,6 +88,7 @@ from ._utils import (
     _sammle_workflow_unterzeichner,
     _signiere_pdf_alle_unterzeichner,
     _signiere_pdf_sicher,
+    signiere_gespeichertes_pdf_inkrementell,
 )
 # _erstelle_zag_eintraege wird von views_team_queue.py importiert
 from .zag import _erstelle_zag_eintraege

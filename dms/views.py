@@ -1147,8 +1147,8 @@ def dokument_pdf_exportieren(request, pk):
             request.user,
             dokument_name=dateiname,
             seite=-1,
-            # Signaturseite hat dedizierten Stempelbereich (y 539..667)
-            stempel_y_oben=667,
+            # Signaturseite hat dedizierten Stempelbereich (y_bottom=539, y_top=667)
+            stempel_y_oben=539,
             stempel_hoehe=128,
         )
     except ValueError as exc:
