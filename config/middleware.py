@@ -1,5 +1,39 @@
 import re
 
+
+class PrimaVollzugriffMiddleware:
+    """Gibt Mitgliedern der Gruppe 'Prima-Vollzugriff' is_staff-Rechte im Web,
+    sperrt ihnen aber den Django-Admin (/admin/) vollstaendig.
+
+    Funktionsweise: is_staff wird NUR im Speicher des Request-Objekts gesetzt –
+    nie in der Datenbank. Dadurch greifen alle View-Checks (is_staff) normal,
+    ohne dass der User sich in /admin/ einloggen kann.
+    """
+
+    GRUPPE = "Prima-Vollzugriff"
+    ADMIN_PREFIX = "/admin/"
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if (
+            request.user.is_authenticated
+            and not request.user.is_staff
+            and not request.path.startswith(self.ADMIN_PREFIX)
+        ):
+            # Gruppen-Cache nutzen falls vorhanden (reduziert DB-Abfragen)
+            if not hasattr(request, "_prima_vollzugriff_gecheckt"):
+                request._prima_vollzugriff_gecheckt = True
+                request._prima_vollzugriff = request.user.groups.filter(
+                    name=self.GRUPPE
+                ).exists()
+            if request._prima_vollzugriff:
+                request.user.is_staff = True   # nur im Speicher, nie in DB
+
+        return self.get_response(request)
+
+
 _ONLYOFFICE_EDITOR_PFAD = re.compile(
     r"^/(dms|korrespondenz)/\d+/(versionen/\d+/)?onlyoffice/$"
 )

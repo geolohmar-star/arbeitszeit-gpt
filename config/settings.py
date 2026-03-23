@@ -118,6 +118,8 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'axes.middleware.AxesMiddleware',
+    # Prima-Vollzugriff: Gruppe mit Web-Vollzugriff aber ohne Django-Admin
+    'config.middleware.PrimaVollzugriffMiddleware',
     # Stellt PBKDF2-Signatur-Schluessel aus Session im Thread-Local bereit
     'signatur.middleware.SignaturKeyMiddleware',
     'config.middleware.CSPMiddleware',
