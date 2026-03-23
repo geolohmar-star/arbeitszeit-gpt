@@ -1731,4 +1731,55 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                 </div>
               </div>
 
+              <!-- ===================== EXTERNE FORMULARE + VORGANGSNUMMER ===================== -->
+              <div style="border:1px solid #d1fae5; border-top:3px solid #059669; border-radius:8px; padding:1rem; margin-top:1rem; background:#f0fdf4; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#059669; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  NEU
+                </div>
+                <div class="fw-bold mb-2" style="color:#065f46; font-size:1rem;">Formular-Builder: Externe Formulare &amp; Vorgangsnummer-System</div>
+                <div class="text-muted mb-3" style="font-size:0.83rem; line-height:1.7;">
+                  <strong>Das Problem:</strong> B&uuml;rger f&uuml;llen Papierformulare aus &mdash; Sachbearbeiter tippen die Daten doppelt ein.
+                  Oder: Online-Formular vorhanden, aber die Unterschrift fehlt f&uuml;r die Rechtsverbindlichkeit.<br><br>
+                  <strong>Die L&ouml;sung:</strong> Im Formular-Builder wird ein Schema als <em>Extern (Kiosk)</em> markiert und ein K&uuml;rzel vergeben (z.&nbsp;B. <code>HUN</code>).
+                  Der B&uuml;rger f&uuml;llt das Formular online aus &mdash; alle Daten landen sofort in der Datenbank.
+                  Beim Absenden wird eine eindeutige <strong>Vorgangsnummer</strong> generiert (<code>HUN-00042-20260323-1423</code>) und ins PDF gedruckt.
+                  Der B&uuml;rger druckt, unterschreibt handschriftlich und schickt das PDF per E-Mail an <strong>Paperless-ngx</strong>.<br><br>
+                  <strong>Der Clou:</strong> <code>paperless_import</code> erkennt die Vorgangsnummer per OCR-Regex im Scan,
+                  verkn&uuml;pft den Datenbankdatensatz mit dem Scan-PDF und startet automatisch den konfigurierten <strong>Workflow</strong> &mdash;
+                  ohne dass irgendjemand Daten neu eintippen muss. Der Sachbearbeiter sieht in seiner Workflow-Aufgabe direkt alle Online-Felddaten sowie den Scan.
+                </div>
+                <div class="mb-3" style="font-size:0.8rem;">
+                  <div class="fw-semibold mb-2" style="color:#065f46;">Ablauf:</div>
+                  <div style="display:grid; grid-template-columns:24px 1fr; gap:4px 8px; align-items:start;">
+                    <div style="background:#059669;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;">1</div>
+                    <div><strong>Builder:</strong> Schema anlegen, K&uuml;rzel (<code>HUN</code>), Sichtbarkeit = Extern, Workflow-Template ausw&auml;hlen</div>
+                    <div style="background:#059669;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;">2</div>
+                    <div><strong>B&uuml;rger:</strong> &Ouml;ffentliche URL aufrufen, Felder ausf&uuml;llen, Unterschrift auf Touchpad zeichnen, Absenden</div>
+                    <div style="background:#059669;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;">3</div>
+                    <div><strong>PRIMA:</strong> Eintrag mit Vorgangsnummer in DB, PDF mit <code>HUN-00042-20260323-1423</code> erzeugt</div>
+                    <div style="background:#059669;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;">4</div>
+                    <div><strong>B&uuml;rger:</strong> PDF ausdrucken, nochmals handschriftlich unterschreiben, per E-Mail an Paperless</div>
+                    <div style="background:#059669;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;">5</div>
+                    <div><strong>Paperless OCR</strong> erkennt Vorgangsnummer &rarr; <code>paperless_import</code> verkn&uuml;pft Scan mit Datenbankeintrag</div>
+                    <div style="background:#059669;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.68rem;">6</div>
+                    <div><strong>Workflow startet automatisch</strong> &mdash; Sachbearbeiter sieht alle Online-Daten + Scan, kein Doppeleintrag</div>
+                  </div>
+                </div>
+                <div class="mb-3 p-2 rounded" style="background:#ecfdf5; border:1px solid #a7f3d0; font-size:0.8rem;">
+                  <strong>DMS &rarr; Workflow-Regeln:</strong> Unter <em>Einstellungen &rarr; Workflow-Trigger-Regeln</em> k&ouml;nnen zus&auml;tzlich eigene
+                  <strong>OCR-Text-Muster (Regex)</strong> f&uuml;r externe Aktenzeichen definiert werden (z.&nbsp;B. <code>[A-Z]{3}-\d{3}-\d{3}</code> erkennt <code>AES-234-023</code>).
+                  Eingebauter <strong>Regex-Ableiter</strong>: Beispiel-Strings eingeben &rarr; Muster wird automatisch generiert.
+                  <strong>Live-Tester</strong> pr&uuml;ft sofort gegen echten OCR-Text.
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                  <span style="background:#d1fae5; border:1px solid #6ee7b7; color:#065f46; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Doppeleintrag</span>
+                  <span style="background:#d1fae5; border:1px solid #6ee7b7; color:#065f46; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Kiosk / oeffentlich</span>
+                  <span style="background:#d1fae5; border:1px solid #6ee7b7; color:#065f46; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">handschriftliche Unterschrift</span>
+                  <span style="background:#d1fae5; border:1px solid #6ee7b7; color:#065f46; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Vorgangsnummer OCR-Matching</span>
+                  <span style="background:#d1fae5; border:1px solid #6ee7b7; color:#065f46; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Auto-Workflow-Start</span>
+                  <span style="background:#d1fae5; border:1px solid #6ee7b7; color:#065f46; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Regex-Ableiter aus Beispielen</span>
+                  <span style="background:#d1fae5; border:1px solid #6ee7b7; color:#065f46; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Paperless-ngx Integration</span>
+                </div>
+              </div>
+
             </div>
