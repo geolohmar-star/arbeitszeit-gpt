@@ -19,7 +19,10 @@ urlpatterns = [
     path("schema/<int:schema_pk>/eintraege/", views.eintrag_liste, name="eintrag_liste"),
     # HTMX-Vorschau
     path("schema/vorschau/", views.schema_vorschau, name="schema_vorschau"),
-    # Formular ausfuellen (alle User)
+    # Formular ausfuellen (interne User, Login erforderlich)
     path("formular/<int:pk>/", views.formular_ausfuellen, name="formular_ausfuellen"),
     path("eintrag/<int:pk>/", views.eintrag_detail, name="eintrag_detail"),
+    # Externe Formulare (kein Login, Kiosk)
+    path("extern/", views.externe_formulare_liste, name="externe_formulare_liste"),
+    path("extern/<int:pk>/", views.formular_extern, name="formular_extern"),
 ]

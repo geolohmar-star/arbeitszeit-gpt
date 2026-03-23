@@ -1,0 +1,174 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ schema.name }}</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <style>
+        body { background: #f8f9fa; }
+        .extern-header {
+            background: #1a4d2e;
+            color: white;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .unterschrift-box {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+            cursor: crosshair;
+            touch-action: none;
+            display: block;
+            width: 100%;
+            height: 160px;
+        }
+        .unterschrift-box.aktiv { border-color: #1a4d2e; }
+    </style>
+</head>
+<body>
+<div class="extern-header">
+    <div class="container" style="max-width:700px;">
+        <h1 class="h4 mb-0 fw-bold">{{ schema.name }}</h1>
+        {% if schema.beschreibung %}
+        <p class="mb-0 mt-1 opacity-75 small">{{ schema.beschreibung }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="container pb-5" style="max-width:700px;">
+
+    {% if fehler %}
+    <div class="alert alert-danger">
+        <strong>Bitte korrigieren:</strong>
+        <ul class="mb-0 mt-1">
+            {% for f in fehler %}<li>{{ f }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post" id="extern-form">
+        {% csrf_token %}
+        <input type="hidden" name="unterschrift_data" id="unterschrift-data">
+
+        {% for item in render_items %}
+
+        {% if item.render_typ == "abschnitt" %}
+        <h{% if item.groesse == "gross" %}4{% elif item.groesse == "klein" %}6{% else %}5{% endif %}
+           class="mt-4 mb-2
+           {% if item.ausrichtung == "mitte" %}text-center{% elif item.ausrichtung == "rechts" %}text-end{% endif %}
+           {% if item.stil == "fett" %}fw-bold{% elif item.stil == "kursiv" %}fst-italic{% endif %}"
+           style="color:#1a4d2e;">
+            {{ item.text }}
+        </h{% if item.groesse == "gross" %}4{% elif item.groesse == "klein" %}6{% else %}5{% endif %}>
+
+        {% elif item.render_typ == "trennlinie" %}
+        <hr class="my-3">
+
+        {% elif item.render_typ == "textblock" %}
+        <div class="mb-3 text-muted small">{{ item.text_html|safe }}</div>
+
+        {% elif item.render_typ == "standalone" %}
+        {% with f=item.feld %}
+        <div class="mb-3 {% if f.breite == 25 %}col-md-3{% elif f.breite == 50 %}col-md-6{% elif f.breite == 75 %}col-md-9{% endif %}">
+            {% if f.typ != "bool" %}
+            <label class="form-label fw-semibold">
+                {{ f.label }}{% if f.pflicht %} <span class="text-danger">*</span>{% endif %}
+            </label>
+            {% endif %}
+
+            {% if f.typ == "text" or f.typ == "email" or f.typ == "iban" %}
+            <input type="{% if f.typ == 'email' %}email{% else %}text{% endif %}"
+                   name="{{ f.id }}" class="form-control"
+                   value="{{ f.vorwert|default:'' }}"
+                   placeholder="{{ f.hilfetext|default:'' }}"
+                   {% if f.pflicht %}required{% endif %}>
+
+            {% elif f.typ == "mehrzeil" %}
+            <textarea name="{{ f.id }}" class="form-control" rows="3"
+                      placeholder="{{ f.hilfetext|default:'' }}"
+                      {% if f.pflicht %}required{% endif %}>{{ f.vorwert|default:'' }}</textarea>
+
+            {% elif f.typ == "zahl" %}
+            <input type="number" step="any" name="{{ f.id }}" class="form-control"
+                   value="{{ f.vorwert|default:'' }}"
+                   placeholder="{{ f.hilfetext|default:'' }}"
+                   {% if f.pflicht %}required{% endif %}>
+
+            {% elif f.typ == "datum" %}
+            <input type="date" name="{{ f.id }}" class="form-control"
+                   value="{{ f.vorwert|default:'' }}"
+                   {% if f.pflicht %}required{% endif %}>
+
+            {% elif f.typ == "uhrzeit" %}
+            <input type="text" name="{{ f.id }}" class="form-control"
+                   value="{{ f.vorwert|default:'' }}"
+                   placeholder="HH:MM"
+                   {% if f.pflicht %}required{% endif %}>
+
+            {% elif f.typ == "bool" %}
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="{{ f.id }}" id="{{ f.id }}">
+                <label class="form-check-label" for="{{ f.id }}">
+                    {{ f.label }}{% if f.pflicht %} <span class="text-danger">*</span>{% endif %}
+                </label>
+            </div>
+
+            {% elif f.typ == "auswahl" or f.typ == "radio" %}
+            {% if f.typ == "auswahl" %}
+            <select name="{{ f.id }}" class="form-select" {% if f.pflicht %}required{% endif %}>
+                <option value="">– bitte wählen –</option>
+                {% for opt in f.optionen %}<option value="{{ opt }}" {% if f.vorwert == opt %}selected{% endif %}>{{ opt }}</option>{% endfor %}
+            </select>
+            {% else %}
+            {% for opt in f.optionen %}
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="{{ f.id }}" id="{{ f.id }}_{{ forloop.counter }}" value="{{ opt }}" {% if f.vorwert == opt %}required{% endif %}>
+                <label class="form-check-label" for="{{ f.id }}_{{ forloop.counter }}">{{ opt }}</label>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% elif f.typ == "checkboxen" %}
+            {% for opt in f.optionen %}
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="{{ f.id }}" value="{{ opt }}" id="{{ f.id }}_{{ forloop.counter }}">
+                <label class="form-check-label" for="{{ f.id }}_{{ forloop.counter }}">{{ opt }}</label>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+        {% endwith %}
+        {% endif %}
+
+        {% endfor %}
+
+        <!-- Unterschriften-Canvas -->
+        <div class="card mt-4 mb-4">
+            <div class="card-header fw-semibold" style="background:#f0fdf4; color:#1a4d2e;">
+                Unterschrift <span class="text-danger">*</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-2">Bitte hier mit der Maus oder dem Finger unterschreiben:</p>
+                <canvas id="unterschrift-canvas" class="unterschrift-box" width="660" height="160"></canvas>
+                <div class="mt-2 d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-unterschrift-loeschen">
+                        Unterschrift löschen
+                    </button>
+                    <span id="unterschrift-status" class="text-muted small align-self-center"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-grid">
+            <button type="submit" class="btn btn-success btn-lg" id="btn-absenden">
+                Formular absenden
+            </button>
+        </div>
+    </form>
+</div>
+
+<script src="{% static 'js/unterschrift_canvas.js' %}"></script>
+</body>
+</html>

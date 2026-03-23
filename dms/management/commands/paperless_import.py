@@ -15,6 +15,7 @@ Konfiguration in settings.py / .env:
 """
 import json
 import logging
+import re
 import urllib.request
 import urllib.error
 
@@ -23,6 +24,9 @@ from django.core.management.base import BaseCommand
 
 from dms.models import Dokument, DokumentKategorie, DokumentTag, PaperlessImportLog, PaperlessWorkflowRegel
 from dms.services import speichere_dokument, suchvektor_befuellen
+
+# Muster fuer Vorgangsnummern: KUERZEL-LFDNR-DATUM-UHRZEIT, z.B. HUN-00042-20260323-1423
+VORGANGSNUMMER_RE = re.compile(r"\b([A-Z]{2,6})-(\d{5})-(\d{8})-(\d{4})\b")
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +159,7 @@ class Command(BaseCommand):
                 }
 
                 for regel in regeln:
-                    vergleich = regel.paperless_name.strip().lower()
+                    vergleich = (regel.paperless_name or "").strip().lower()
                     if regel.treffer_typ == PaperlessWorkflowRegel.TREFFER_DOKUMENTTYP:
                         if vergleich and dt_name == vergleich:
                             workflow_vorschlag = regel.workflow_template
@@ -164,6 +168,25 @@ class Command(BaseCommand):
                         if vergleich and vergleich in tag_names_lower:
                             workflow_vorschlag = regel.workflow_template
                             break
+                    elif regel.treffer_typ == PaperlessWorkflowRegel.TREFFER_MUSTER:
+                        muster = (regel.muster_regex or "").strip()
+                        if muster and ocr_text:
+                            try:
+                                treffer = re.search(muster, ocr_text)
+                            except re.error as exc:
+                                logger.warning(
+                                    "Ungueltige Regex in Regel '%s': %s", regel.bezeichnung, exc
+                                )
+                                continue
+                            if treffer:
+                                workflow_vorschlag = regel.workflow_template
+                                logger.info(
+                                    "Muster-Treffer '%s' fuer Regel '%s' in Paperless #%s",
+                                    treffer.group(0),
+                                    regel.bezeichnung,
+                                    pl_id,
+                                )
+                                break
 
             if workflow_vorschlag:
                 self.stdout.write(
@@ -198,6 +221,11 @@ class Command(BaseCommand):
 
                 # Suchvektor nach dem Speichern befuellen (pk benoetigt)
                 suchvektor_befuellen(dok, ocr_text)
+
+                # Vorgangsnummer im OCR-Text suchen und FormularEintrag verknuepfen
+                if ocr_text:
+                    self._verknuepfe_vorgangsnummer(ocr_text, dok, pl_id)
+
                 PaperlessImportLog.objects.create(
                     paperless_id=pl_id,
                     dokument=dok,
@@ -219,3 +247,71 @@ class Command(BaseCommand):
                 f"Fertig: {importiert} importiert, {uebersprungen} uebersprungen."
             )
         )
+
+    def _verknuepfe_vorgangsnummer(self, ocr_text, dok, pl_id):
+        """Sucht Vorgangsnummern im OCR-Text, verknuepft FormularEintrag und startet ggf. Workflow."""
+        from prozesse.models import FormularEintrag
+        from workflow.services import WorkflowEngine
+
+        treffer = VORGANGSNUMMER_RE.findall(ocr_text)
+        if not treffer:
+            return
+
+        engine = WorkflowEngine()
+
+        for kuerzel, lfdnr, datum, uhrzeit in treffer:
+            vorgangsnummer = f"{kuerzel}-{lfdnr}-{datum}-{uhrzeit}"
+            try:
+                eintrag = FormularEintrag.objects.select_related(
+                    "schema__workflow_template", "workflow_instance"
+                ).get(vorgangsnummer=vorgangsnummer)
+
+                if eintrag.paperless_dokument_id:
+                    if eintrag.paperless_dokument_id != pl_id:
+                        logger.warning(
+                            "Vorgangsnummer %s bereits mit Paperless #%s verknuepft,"
+                            " neuer Treffer: #%s",
+                            vorgangsnummer,
+                            eintrag.paperless_dokument_id,
+                            pl_id,
+                        )
+                    continue
+
+                # Paperless-Dokument verknuepfen
+                eintrag.paperless_dokument_id = pl_id
+                update_fields = ["paperless_dokument_id"]
+
+                # Automatischen Workflow starten wenn Schema ein Template hat
+                if eintrag.schema.workflow_template and not eintrag.workflow_instance:
+                    try:
+                        instance = engine.start_workflow(
+                            template=eintrag.schema.workflow_template,
+                            content_object=eintrag,
+                            user=None,  # systemausgeloest, kein menschlicher User
+                        )
+                        eintrag.workflow_instance = instance
+                        update_fields.append("workflow_instance")
+                        self.stdout.write(
+                            f"    Workflow '{eintrag.schema.workflow_template.name}'"
+                            f" gestartet fuer Eintrag #{eintrag.pk} (Instanz #{instance.pk})."
+                        )
+                    except Exception as exc:
+                        logger.error(
+                            "Workflow-Start fehlgeschlagen fuer Eintrag #%s: %s",
+                            eintrag.pk,
+                            exc,
+                        )
+
+                eintrag.save(update_fields=update_fields)
+                self.stdout.write(
+                    f"    Vorgangsnummer {vorgangsnummer} mit FormularEintrag #{eintrag.pk}"
+                    f" und Paperless #{pl_id} verknuepft."
+                )
+
+            except FormularEintrag.DoesNotExist:
+                logger.info(
+                    "Vorgangsnummer %s im OCR-Text von Paperless #%s gefunden,"
+                    " aber kein passender FormularEintrag vorhanden.",
+                    vorgangsnummer,
+                    pl_id,
+                )

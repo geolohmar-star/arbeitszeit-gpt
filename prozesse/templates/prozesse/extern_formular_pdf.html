@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: DejaVu Sans, sans-serif; font-size: 10pt; color: #222; margin: 2cm; }
+        h1 { font-size: 14pt; color: #1a4d2e; border-bottom: 2px solid #1a4d2e; padding-bottom: 4px; margin-bottom: 12px; }
+        .meta { font-size: 8pt; color: #666; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th { text-align: left; font-size: 8pt; color: #555; font-weight: normal; padding: 4px 6px; width: 35%; vertical-align: top; }
+        td { padding: 4px 6px; font-size: 10pt; border-bottom: 1px solid #eee; }
+        .unterschrift-section { margin-top: 24px; border-top: 2px solid #1a4d2e; padding-top: 12px; }
+        .unterschrift-section h2 { font-size: 11pt; color: #1a4d2e; margin-bottom: 8px; }
+        .unterschrift-img { max-width: 300px; max-height: 100px; border: 1px solid #ccc; border-radius: 4px; }
+        .footer { position: fixed; bottom: 1cm; left: 2cm; right: 2cm; font-size: 7pt; color: #aaa; border-top: 1px solid #eee; padding-top: 4px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>{{ schema.name }}</h1>
+
+    <!-- Vorgangsnummer – prominent fuer OCR-Erkennung in Paperless -->
+    <div style="border:2px solid #1a4d2e; border-radius:6px; padding:10px 14px; margin-bottom:14px; background:#f0fdf4;">
+        <div style="font-size:8pt; color:#555; margin-bottom:3px;">Vorgangsnummer (bitte nicht entfernen)</div>
+        <div style="font-size:16pt; font-weight:bold; color:#1a4d2e; letter-spacing:2px; font-family:monospace;">
+            {{ vorgangsnummer }}
+        </div>
+        <div style="font-size:7pt; color:#888; margin-top:3px;">
+            Eingereicht am: {{ eintrag.eingereicht_am|date:"d.m.Y H:i" }}
+        </div>
+    </div>
+
+    <table>
+        {% for f in felder_anzeige %}
+        {% if f.typ != "__unterschrift__" %}
+        <tr>
+            <th>{{ f.label }}</th>
+            <td>
+                {% if f.typ == "bool" %}
+                    {% if f.wert %}Ja{% else %}Nein{% endif %}
+                {% else %}
+                    {{ f.wert }}{% if f.einheit %} {{ f.einheit }}{% endif %}
+                {% endif %}
+            </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </table>
+
+    {% if unterschrift_b64 %}
+    <div class="unterschrift-section">
+        <h2>Unterschrift</h2>
+        <img src="{{ unterschrift_b64 }}" class="unterschrift-img" alt="Unterschrift">
+        <p style="font-size:8pt; color:#666; margin-top:4px;">
+            Gezeichnete Unterschrift, erfasst am {{ eintrag.eingereicht_am|date:"d.m.Y H:i" }}
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        {{ schema.name }} &mdash; Vorgangsnummer {{ eintrag.pk }} &mdash; {{ eintrag.eingereicht_am|date:"d.m.Y" }}
+    </div>
+</body>
+</html>

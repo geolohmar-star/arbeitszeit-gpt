@@ -35,7 +35,8 @@ services:
       - mailpit
     restart: unless-stopped
     volumes:
-      - media_data:/app/media
+      - .:/app                      # Quellcode live gemountet (kein Rebuild noetig)
+      - media_data:/app/media       # Media-Uploads persistent
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -49,6 +50,8 @@ services:
       - db
       - web
     restart: unless-stopped
+    volumes:
+      - .:/app                      # Quellcode live gemountet
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

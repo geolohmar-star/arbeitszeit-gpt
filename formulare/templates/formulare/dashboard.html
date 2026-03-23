@@ -1,149 +1,252 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Formulare - Dashboard{% endblock %}
+{% block title %}Formulare & Anträge{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Formulare</h2>
-    <p class="text-muted">Digitale Antragsformulare</p>
-
-    <div class="row g-3">
-
-        <div class="col-md-4">
-            <a href="{% url 'formulare:aenderung_zeiterfassung' %}"
-               class="text-decoration-none">
-                <div class="card h-100 card-hover">
-                    <div class="card-body">
-                        <h5 class="card-title">Aenderung Zeiterfassung</h5>
-                        <p class="card-text text-muted small">
-                            Manuelle Korrektur der Zeiterfassung beantragen
-                        </p>
-                    </div>
-                </div>
-            </a>
+<div class="container py-4" style="max-width:1100px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h3 fw-bold mb-0" style="color:#1a4d2e;">Formulare &amp; Anträge</h1>
+            <p class="text-muted small mb-0">Alle verfügbaren Formulare und Antragstypen</p>
         </div>
+    </div>
 
-        <div class="col-md-4">
-            <a href="{% url 'formulare:meine_antraege' %}"
-               class="text-decoration-none">
-                <div class="card h-100 card-hover">
-                    <div class="card-body">
-                        <h5 class="card-title">Meine Anträge</h5>
-                        <p class="card-text text-muted small">
-                            Eingereichte Anträge einsehen und Status prüfen
-                        </p>
-                    </div>
-                </div>
-            </a>
-        </div>
+    <!-- Suchfeld -->
+    <div class="position-relative mb-4" style="max-width:480px;">
+        <input type="text" id="formular-suche" class="form-control form-control-lg"
+               placeholder="Formular suchen…" autocomplete="off"
+               style="padding-left:2.5rem;">
+        <span style="position:absolute;left:0.8rem;top:50%;transform:translateY(-50%);color:#aaa;font-size:1.1rem;">&#128269;</span>
+        <div id="suche-dropdown" class="dropdown-menu w-100 shadow-sm" style="display:none; max-height:300px; overflow-y:auto;"></div>
+    </div>
 
-        <div class="col-md-4">
-            <a href="{% url 'formulare:zag_antrag' %}"
-               class="text-decoration-none">
-                <div class="card h-100 card-hover">
-                    <div class="card-body">
-                        <h5 class="card-title">Z-AG Antrag</h5>
-                        <p class="card-text text-muted small">
-                            Zeitausgleich (Z-AG) für Zeiträume beantragen
-                        </p>
-                    </div>
-                </div>
-            </a>
-        </div>
+    <!-- Rubriken -->
+    <div id="rubriken-container">
 
-        <div class="col-md-4">
-            <a href="{% url 'formulare:zag_storno' %}"
-               class="text-decoration-none">
-                <div class="card h-100 card-hover">
-                    <div class="card-body">
-                        <h5 class="card-title">Z-AG Stornierung</h5>
-                        <p class="card-text text-muted small">
-                            Bereits gebuchten Zeitausgleich stornieren
-                        </p>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-md-4">
-            <a href="{% url 'formulare:zeitgutschrift_antrag' %}"
-               class="text-decoration-none">
-                <div class="card h-100 card-hover">
-                    <div class="card-body">
-                        <h5 class="card-title">Zeitgutschrift</h5>
-                        <p class="card-text text-muted small">
-                            Haertefallregelung, Ehrenamter oder ganztaegige Fortbildung
-                        </p>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-md-4">
-            <a href="{% url 'formulare:dienstreise_erstellen' %}"
-               class="text-decoration-none">
-                <div class="card h-100 card-hover border-primary">
-                    <div class="card-body">
-                        <h5 class="card-title">Dienstreiseantrag</h5>
-                        <p class="card-text text-muted small">
-                            Dienstreise beantragen mit automatischem Workflow
-                        </p>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-md-4">
-            <a href="{% url 'formulare:meine_dienstreisen' %}"
-               class="text-decoration-none">
-                <div class="card h-100 card-hover border-success">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <i class="bi bi-list-check"></i> Meine Dienstreisen
-                        </h5>
-                        <p class="card-text text-muted small">
-                            Status Ihrer Dienstreiseantraege mit Workflow-Fortschritt
-                        </p>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Platzhalter fuer weitere Formulare -->
-
-        <div class="col-md-4">
-            <a href="{% url 'formulare:genehmigung_uebersicht' %}"
-               class="text-decoration-none">
-                <div class="card h-100 card-hover border-warning">
-                    <div class="card-body">
-                        <h5 class="card-title">Genehmigungen</h5>
-                        <p class="card-text text-muted small">
-                            Antraege von Mitarbeitern genehmigen oder ablehnen
-                        </p>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-md-4">
-            <a href="{% url 'formulare:team_queue' %}"
-               class="text-decoration-none">
-                <div class="card h-100 card-hover border-info">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h5 class="card-title mb-1">Team-Bearbeitungsstapel</h5>
-                            {% if team_stapel_anzahl %}
-                                <span class="badge bg-danger rounded-pill">{{ team_stapel_anzahl }}</span>
-                            {% endif %}
+        <!-- Rubrik: Meine Übersicht -->
+        <div class="rubrik mb-4" data-rubrik="uebersicht">
+            <h6 class="rubrik-titel fw-bold text-uppercase mb-2" style="color:#6c757d; font-size:0.72rem; letter-spacing:.08em;">Meine Übersicht</h6>
+            <div class="row g-3">
+                <div class="col-md-4 antrag-karte" data-name="meine anträge eigene eingereichte">
+                    <a href="{% url 'formulare:meine_antraege' %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-1">Meine Anträge</div>
+                                <p class="card-text text-muted small mb-0">Eingereichte Anträge einsehen und Status prüfen</p>
+                            </div>
                         </div>
-                        <p class="card-text text-muted small">
-                            Genehmigte Antraege bearbeiten und umsetzen
-                        </p>
-                    </div>
+                    </a>
                 </div>
-            </a>
+                <div class="col-md-4 antrag-karte" data-name="meine dienstreisen status">
+                    <a href="{% url 'formulare:meine_dienstreisen' %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-1">Meine Dienstreisen</div>
+                                <p class="card-text text-muted small mb-0">Status meiner Dienstreiseanträge</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-4 antrag-karte" data-name="meine antrags-pfade intelligente formulare">
+                    <a href="{% url 'antraege:meine_antraege' %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-1">Meine Antrags-Pfade
+                                    <span style="font-size:0.6rem;background:#7c3aed;color:white;padding:1px 5px;border-radius:3px;vertical-align:middle;">BETA</span>
+                                </div>
+                                <p class="card-text text-muted small mb-0">Laufende und abgeschlossene Pfad-Anträge</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
         </div>
 
+        <!-- Rubrik: Arbeitszeit -->
+        <div class="rubrik mb-4" data-rubrik="arbeitszeit">
+            <h6 class="rubrik-titel fw-bold text-uppercase mb-2" style="color:#6c757d; font-size:0.72rem; letter-spacing:.08em;">Arbeitszeit</h6>
+            <div class="row g-3">
+                <div class="col-md-4 antrag-karte" data-name="zag zeitausgleich z-ag antrag beantragen">
+                    <a href="{% url 'formulare:zag_antrag' %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover" style="border-top:3px solid #1a4d2e;">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-1">Z-AG Antrag</div>
+                                <p class="card-text text-muted small mb-0">Zeitausgleich für Zeiträume beantragen</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-4 antrag-karte" data-name="zag storno stornierung zeitausgleich">
+                    <a href="{% url 'formulare:zag_storno' %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover" style="border-top:3px solid #1a4d2e;">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-1">Z-AG Stornierung</div>
+                                <p class="card-text text-muted small mb-0">Bereits gebuchten Zeitausgleich stornieren</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-4 antrag-karte" data-name="zeitgutschrift gutschrift haertefall ehrenamt fortbildung">
+                    <a href="{% url 'formulare:zeitgutschrift_antrag' %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover" style="border-top:3px solid #1a4d2e;">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-1">Zeitgutschrift</div>
+                                <p class="card-text text-muted small mb-0">Härtefall, Ehrenamt oder ganztägige Fortbildung</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-4 antrag-karte" data-name="zeiterfassung änderung korrektur manuell">
+                    <a href="{% url 'formulare:aenderung_zeiterfassung' %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover" style="border-top:3px solid #1a4d2e;">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-1">Änderung Zeiterfassung</div>
+                                <p class="card-text text-muted small mb-0">Manuelle Korrektur der Zeiterfassung beantragen</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rubrik: Dienstreisen -->
+        <div class="rubrik mb-4" data-rubrik="dienstreisen">
+            <h6 class="rubrik-titel fw-bold text-uppercase mb-2" style="color:#6c757d; font-size:0.72rem; letter-spacing:.08em;">Dienstreisen</h6>
+            <div class="row g-3">
+                <div class="col-md-4 antrag-karte" data-name="dienstreise antrag reise">
+                    <a href="{% url 'formulare:dienstreise_erstellen' %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover" style="border-top:3px solid #0d6efd;">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-1">Dienstreiseantrag</div>
+                                <p class="card-text text-muted small mb-0">Dienstreise beantragen mit automatischem Workflow</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rubrik: Für Bearbeiter -->
+        <div class="rubrik mb-4" data-rubrik="bearbeiter">
+            <h6 class="rubrik-titel fw-bold text-uppercase mb-2" style="color:#6c757d; font-size:0.72rem; letter-spacing:.08em;">Für Bearbeiter</h6>
+            <div class="row g-3">
+                <div class="col-md-4 antrag-karte" data-name="genehmigungen genehmigen ablehnen">
+                    <a href="{% url 'formulare:genehmigung_uebersicht' %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover" style="border-top:3px solid #ffc107;">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-1">Genehmigungen</div>
+                                <p class="card-text text-muted small mb-0">Anträge von Mitarbeitern genehmigen oder ablehnen</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-4 antrag-karte" data-name="team stapel bearbeitungsstapel queue">
+                    <a href="{% url 'formulare:team_queue' %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover" style="border-top:3px solid #0dcaf0;">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div class="fw-semibold">Team-Bearbeitungsstapel</div>
+                                    {% if team_stapel_anzahl %}
+                                    <span class="badge bg-danger rounded-pill">{{ team_stapel_anzahl }}</span>
+                                    {% endif %}
+                                </div>
+                                <p class="card-text text-muted small mb-0">Genehmigte Anträge bearbeiten und umsetzen</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% if antrags_pfade %}
+        <!-- Rubrik: Antrags-Pfade -->
+        <div class="rubrik mb-4" data-rubrik="antragspfade">
+            <h6 class="rubrik-titel fw-bold text-uppercase mb-2" style="color:#7c3aed; font-size:0.72rem; letter-spacing:.08em;">
+                Antrags-Pfade
+                <span style="font-size:0.6rem;background:#7c3aed;color:white;padding:1px 5px;border-radius:3px;vertical-align:middle;">BETA</span>
+            </h6>
+            <div class="row g-3">
+                {% for pfad in antrags_pfade %}
+                <div class="col-md-4 antrag-karte" data-name="{{ pfad.name|lower }}">
+                    <a href="{% url 'antraege:pfad_starten' pfad.pk %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover" style="border-top:3px solid #7c3aed;">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-1">{{ pfad.name }}</div>
+                                {% if pfad.beschreibung %}
+                                <p class="card-text text-muted small mb-0">{{ pfad.beschreibung }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if zusaetzliche_formulare %}
+        <!-- Rubrik: Weitere Formulare (Formular-Builder) -->
+        <div class="rubrik mb-4" data-rubrik="weitere">
+            <h6 class="rubrik-titel fw-bold text-uppercase mb-2" style="color:#6c757d; font-size:0.72rem; letter-spacing:.08em;">Weitere Formulare</h6>
+            <div class="row g-3">
+                {% for f in zusaetzliche_formulare %}
+                <div class="col-md-4 antrag-karte" data-name="{{ f.name|lower }} {{ f.beschreibung|lower|default:'' }}">
+                    <a href="{% url 'prozesse:formular_ausfuellen' f.pk %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover" style="border-top:3px solid #6c757d;">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-1">{{ f.name }}</div>
+                                {% if f.beschreibung %}
+                                <p class="card-text text-muted small mb-0">{{ f.beschreibung }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if externe_formulare %}
+        <!-- Rubrik: Externe Formulare (auch fuer interne Mitarbeiter sichtbar) -->
+        <div class="rubrik mb-4" data-rubrik="extern">
+            <h6 class="rubrik-titel fw-bold text-uppercase mb-2" style="color:#6c757d; font-size:0.72rem; letter-spacing:.08em;">
+                Externe Formulare
+                <span style="font-size:0.65rem; background:#0d9488; color:white; padding:1px 6px; border-radius:3px; vertical-align:middle;">Kiosk</span>
+            </h6>
+            <div class="row g-3">
+                {% for f in externe_formulare %}
+                <div class="col-md-4 antrag-karte" data-name="{{ f.name|lower }} {{ f.beschreibung|lower|default:'' }} extern kiosk">
+                    <a href="{% url 'prozesse:formular_extern' f.pk %}" class="text-decoration-none">
+                        <div class="card h-100 card-hover" style="border-top:3px solid #0d9488;">
+                            <div class="card-body">
+                                <div class="fw-semibold mb-1">{{ f.name }}</div>
+                                {% if f.beschreibung %}
+                                <p class="card-text text-muted small mb-0">{{ f.beschreibung }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer bg-transparent py-1">
+                                <span class="badge" style="background:#0d9488; font-size:0.65rem;">Externes Formular</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div><!-- /rubriken-container -->
+
+    <div id="suche-keine-treffer" class="text-muted text-center py-5" style="display:none;">
+        Kein Formular gefunden.
     </div>
 </div>
+
+{{ suche_daten|json_script:"suche-daten" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/formulare_dashboard.js' %}"></script>
 {% endblock %}

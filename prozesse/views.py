@@ -10,6 +10,8 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from workflow.models import WorkflowTemplate
+
 from .models import FeldGruppe, FormularEintrag, FormularSchema
 
 
@@ -490,6 +492,14 @@ def schema_erstellen(request):
         name = request.POST.get("name", "").strip()
         beschreibung = request.POST.get("beschreibung", "").strip()
         aktiv = request.POST.get("aktiv") == "on"
+        sichtbarkeit = request.POST.get("sichtbarkeit", "intern")
+        if sichtbarkeit not in ("intern", "extern"):
+            sichtbarkeit = "intern"
+        kuerzel = request.POST.get("kuerzel", "").strip().upper()[:6]
+        wf_template_id = request.POST.get("workflow_template") or None
+        wf_template = None
+        if wf_template_id:
+            wf_template = WorkflowTemplate.objects.filter(pk=wf_template_id).first()
         schema_raw = request.POST.get("schema_json", "{}")
 
         try:
@@ -504,12 +514,16 @@ def schema_erstellen(request):
                 "name": name,
                 "beschreibung": beschreibung,
                 "aktiv": aktiv,
+                "workflow_templates": WorkflowTemplate.objects.filter(ist_aktiv=True).order_by("name"),
             })
 
         schema = FormularSchema.objects.create(
             name=name,
             beschreibung=beschreibung,
             aktiv=aktiv,
+            sichtbarkeit=sichtbarkeit,
+            kuerzel=kuerzel,
+            workflow_template=wf_template,
             schema_json=schema_json,
             erstellt_von=request.user,
         )
@@ -521,6 +535,7 @@ def schema_erstellen(request):
         "name": "",
         "beschreibung": "",
         "aktiv": True,
+        "workflow_templates": WorkflowTemplate.objects.filter(ist_aktiv=True).order_by("name"),
     })
 
 
@@ -537,6 +552,12 @@ def schema_bearbeiten(request, pk):
         name = request.POST.get("name", "").strip()
         beschreibung = request.POST.get("beschreibung", "").strip()
         aktiv = request.POST.get("aktiv") == "on"
+        sichtbarkeit = request.POST.get("sichtbarkeit", "intern")
+        if sichtbarkeit not in ("intern", "extern"):
+            sichtbarkeit = "intern"
+        kuerzel = request.POST.get("kuerzel", "").strip().upper()[:6]
+        wf_template_id = request.POST.get("workflow_template") or None
+        wf_template = WorkflowTemplate.objects.filter(pk=wf_template_id).first() if wf_template_id else None
         schema_raw = request.POST.get("schema_json", "{}")
 
         try:
@@ -546,6 +567,7 @@ def schema_bearbeiten(request, pk):
             return render(request, "prozesse/schema_editor.html", {
                 "schema": schema,
                 "schema_json_str": schema_raw,
+                "workflow_templates": WorkflowTemplate.objects.filter(ist_aktiv=True).order_by("name"),
             })
 
         if not name:
@@ -553,11 +575,15 @@ def schema_bearbeiten(request, pk):
             return render(request, "prozesse/schema_editor.html", {
                 "schema": schema,
                 "schema_json_str": schema_raw,
+                "workflow_templates": WorkflowTemplate.objects.filter(ist_aktiv=True).order_by("name"),
             })
 
         schema.name = name
         schema.beschreibung = beschreibung
         schema.aktiv = aktiv
+        schema.sichtbarkeit = sichtbarkeit
+        schema.kuerzel = kuerzel
+        schema.workflow_template = wf_template
         schema.schema_json = schema_json
         schema.save()
         messages.success(request, f'Schema "{schema.name}" gespeichert.')
@@ -566,6 +592,7 @@ def schema_bearbeiten(request, pk):
     return render(request, "prozesse/schema_editor.html", {
         "schema": schema,
         "schema_json_str": json.dumps(schema.schema_json, ensure_ascii=False),
+        "workflow_templates": WorkflowTemplate.objects.filter(ist_aktiv=True).order_by("name"),
     })
 
 
@@ -703,10 +730,12 @@ def formular_ausfuellen(request, pk):
                     except (TypeError, ValueError):
                         daten[feld["id"]] = ergebnis  # Text-Ergebnis (z.B. aus WENN)
 
+        vorgangsnummer = FormularEintrag.generiere_vorgangsnummer(schema)
         eintrag = FormularEintrag.objects.create(
             schema=schema,
             daten_json=daten,
             eingereicht_von=request.user,
+            vorgangsnummer=vorgangsnummer,
         )
         messages.success(request, "Formular erfolgreich eingereicht.")
         return redirect("prozesse:eintrag_detail", pk=eintrag.pk)
@@ -724,20 +753,29 @@ def formular_ausfuellen(request, pk):
 @login_required
 def eintrag_detail(request, pk):
     """Einzelnen Formular-Eintrag anzeigen."""
-    eintrag = get_object_or_404(FormularEintrag, pk=pk)
+    from django.conf import settings
+    from workflow.models import WorkflowTask
+
+    eintrag = get_object_or_404(
+        FormularEintrag.objects.select_related(
+            "schema", "eingereicht_von", "workflow_instance__template",
+            "workflow_instance__aktueller_schritt",
+        ),
+        pk=pk,
+    )
 
     # Nur eigene Eintraege oder Prozessverantwortliche
     if eintrag.eingereicht_von != request.user and not _ist_prozessverantwortlicher(request.user):
         messages.error(request, "Kein Zugriff.")
         return redirect("prozesse:dashboard")
 
-    # Felder mit gespeicherten Werten zusammenfuehren (Struktur-Typen ueberspringen)
+    # Felder mit gespeicherten Werten zusammenfuehren
     daten = eintrag.daten_json or {}
     felder_anzeige = []
     for feld in eintrag.schema.felder():
         typ = feld.get("typ", "text")
         if typ in _KEINE_EINGABEFELDER - {"berechnung"}:
-            continue  # Textblock, Abschnitt, Trennlinie etc. nicht anzeigen
+            continue
         feld_id = feld.get("id", "")
         wert = daten.get(feld_id, "")
         felder_anzeige.append({
@@ -748,9 +786,27 @@ def eintrag_detail(request, pk):
             "dezimalstellen": feld.get("dezimalstellen", 2),
         })
 
+    # Workflow-Tasks laden wenn Instanz vorhanden
+    workflow_tasks = []
+    if eintrag.workflow_instance:
+        workflow_tasks = list(
+            WorkflowTask.objects
+            .filter(instance=eintrag.workflow_instance)
+            .select_related("step", "erledigt_von", "zugewiesen_an_user")
+            .order_by("step__reihenfolge", "erstellt_am")
+        )
+
+    # Paperless-Link aufbauen
+    paperless_url = getattr(settings, "PAPERLESS_URL", "").rstrip("/")
+    paperless_dok_url = ""
+    if eintrag.paperless_dokument_id and paperless_url:
+        paperless_dok_url = f"{paperless_url}/documents/{eintrag.paperless_dokument_id}/details/"
+
     return render(request, "prozesse/eintrag_detail.html", {
         "eintrag": eintrag,
         "felder_anzeige": felder_anzeige,
+        "workflow_tasks": workflow_tasks,
+        "paperless_dok_url": paperless_dok_url,
         "ist_prozessverantwortlicher": _ist_prozessverantwortlicher(request.user),
     })
 
@@ -788,4 +844,176 @@ def schema_vorschau(request):
     felder = schema_json.get("felder", [])
     return render(request, "prozesse/partials/_vorschau.html", {
         "felder": felder,
+    })
+
+
+# ---------------------------------------------------------------------------
+# Externe Formulare (kein Login, Kiosk-Betrieb)
+# ---------------------------------------------------------------------------
+
+def _archiviere_extern_im_dms(schema, eintrag, pdf_bytes, unterschrift_name):
+    """Speichert das generierte PDF eines externen Formulars im DMS.
+
+    Legt ein Dokument in der Kategorie 'Externe Formulare' an (wird auto-erstellt).
+    """
+    try:
+        from dms.models import Dokument, DokumentKategorie
+        kategorie, _ = DokumentKategorie.objects.get_or_create(
+            name="Externe Formulare",
+            defaults={"beschreibung": "Automatisch archivierte externe Formulare"},
+        )
+        from django.utils import timezone
+        dateiname = f"{schema.name}_{eintrag.pk}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        Dokument.objects.create(
+            titel=f"{schema.name} (extern)",
+            kategorie=kategorie,
+            inhalt_roh=pdf_bytes,
+            dateiname=dateiname,
+            dateityp="application/pdf",
+            klasse="1",  # Klasse 1 = offen
+            hochgeladen_von=None,  # kein Login-User bei externen Formularen
+        )
+    except Exception:
+        pass  # DMS-Fehler darf Formular-Einreichung nicht blockieren
+
+
+def _generiere_extern_pdf(schema, eintrag, unterschrift_b64):
+    """Erstellt ein PDF aus den Formulardaten inkl. gezeichneter Unterschrift."""
+    from django.template.loader import render_to_string
+    from weasyprint import HTML
+
+    felder_anzeige = []
+    daten = eintrag.daten_json or {}
+    for feld in schema.felder():
+        typ = feld.get("typ", "text")
+        if typ in (_KEINE_EINGABEFELDER - {"berechnung"}):
+            continue
+        feld_id = feld.get("id", "")
+        felder_anzeige.append({
+            "label": feld.get("label", feld_id),
+            "typ": typ,
+            "wert": daten.get(feld_id, ""),
+            "einheit": feld.get("einheit", ""),
+        })
+
+    html_string = render_to_string("prozesse/extern_formular_pdf.html", {
+        "schema": schema,
+        "eintrag": eintrag,
+        "felder_anzeige": felder_anzeige,
+        "unterschrift_b64": unterschrift_b64,
+        "vorgangsnummer": eintrag.vorgangsnummer,
+    })
+    return HTML(string=html_string).write_pdf()
+
+
+def formular_extern(request, pk):
+    """Externes Formular ausfuellen – kein Login erforderlich (Kiosk-Betrieb).
+
+    Nach dem Absenden: Eintrag in DB + PDF-Archivierung im DMS.
+    """
+    schema = get_object_or_404(FormularSchema, pk=pk, aktiv=True, sichtbarkeit="extern")
+    render_items = _verarbeite_schema(schema)
+    eingabefelder = _alle_eingabefelder(schema)
+
+    if request.method == "POST":
+        daten = {}
+        fehler = []
+
+        for feld in eingabefelder:
+            feld_id = feld.get("id", "")
+            typ = feld.get("typ", "text")
+            pflicht = feld.get("pflicht", False)
+
+            if typ == "bool":
+                wert = feld_id in request.POST
+            elif typ == "checkboxen":
+                wert = ", ".join(request.POST.getlist(feld_id))
+            else:
+                wert = request.POST.get(feld_id, "").strip()
+
+            if pflicht and not wert and wert != 0:
+                fehler.append(f'"{feld.get("label", feld_id)}" ist ein Pflichtfeld.')
+
+            if typ == "iban" and wert:
+                if not _validiere_iban(wert):
+                    fehler.append(f'"{feld.get("label", feld_id)}" ist keine gueltige IBAN.')
+                else:
+                    wert = wert.replace(" ", "").upper()
+
+            if typ == "uhrzeit" and wert:
+                normiert = _normalisiere_uhrzeit(wert)
+                if normiert is None:
+                    fehler.append(
+                        f'"{feld.get("label", feld_id)}" ist keine gueltige Uhrzeit.'
+                    )
+                else:
+                    wert = normiert
+
+            if typ == "zahl" and wert:
+                try:
+                    wert = float(str(wert).replace(",", "."))
+                except ValueError:
+                    fehler.append(f'"{feld.get("label", feld_id)}" muss eine Zahl sein.')
+
+            daten[feld_id] = wert
+
+        # Unterschrift pruefen (Pflicht bei externen Formularen)
+        unterschrift_b64 = request.POST.get("unterschrift_data", "").strip()
+        if not unterschrift_b64 or unterschrift_b64 == "data:,":
+            fehler.append("Bitte unterschreiben Sie das Formular.")
+
+        if fehler:
+            return render(request, "prozesse/formular_extern.html", {
+                "schema": schema,
+                "render_items": render_items,
+                "fehler": fehler,
+            })
+
+        # Berechnungsfelder
+        for feld in schema.felder():
+            if feld.get("typ") == "berechnung":
+                ergebnis = _berechne_formel(feld.get("formel", ""), daten)
+                if ergebnis is not None:
+                    dez = int(feld.get("dezimalstellen", 2))
+                    try:
+                        daten[feld["id"]] = round(float(ergebnis), dez) if dez > 0 else int(round(float(ergebnis)))
+                    except (TypeError, ValueError):
+                        daten[feld["id"]] = ergebnis
+
+        # Unterschrift-Base64 in daten speichern
+        daten["__unterschrift__"] = unterschrift_b64
+
+        vorgangsnummer = FormularEintrag.generiere_vorgangsnummer(schema)
+        eintrag = FormularEintrag.objects.create(
+            schema=schema,
+            daten_json=daten,
+            eingereicht_von=None,  # kein Login
+            vorgangsnummer=vorgangsnummer,
+        )
+
+        # PDF generieren und im DMS archivieren
+        try:
+            pdf_bytes = _generiere_extern_pdf(schema, eintrag, unterschrift_b64)
+            _archiviere_extern_im_dms(schema, eintrag, pdf_bytes, unterschrift_b64)
+        except Exception:
+            pass  # PDF-Fehler nicht anzeigen
+
+        return render(request, "prozesse/formular_extern_danke.html", {
+            "schema": schema,
+            "eintrag_pk": eintrag.pk,
+            "vorgangsnummer": eintrag.vorgangsnummer,
+        })
+
+    return render(request, "prozesse/formular_extern.html", {
+        "schema": schema,
+        "render_items": render_items,
+        "fehler": [],
+    })
+
+
+def externe_formulare_liste(request):
+    """Oeffentliche Liste aller aktiven externen Formulare (kein Login)."""
+    formulare = FormularSchema.objects.filter(aktiv=True, sichtbarkeit="extern").order_by("name")
+    return render(request, "prozesse/externe_formulare_liste.html", {
+        "formulare": formulare,
     })

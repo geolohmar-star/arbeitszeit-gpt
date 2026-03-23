@@ -51,7 +51,64 @@ def dashboard(request):
             claimed_von__isnull=True,
         ).count()
 
-    context = {"team_stapel_anzahl": team_stapel_anzahl}
+    # Aktive Formular-Builder-Schemata (prozesse-App)
+    from prozesse.models import FormularSchema
+    zusaetzliche_formulare = list(
+        FormularSchema.objects.filter(aktiv=True, sichtbarkeit="intern").order_by("name").values("pk", "name", "beschreibung")
+    )
+    externe_formulare = list(
+        FormularSchema.objects.filter(aktiv=True, sichtbarkeit="extern").order_by("name").values("pk", "name", "beschreibung")
+    )
+
+    # Aktive Antrags-Pfade
+    from antraege.models import AntragsPfad
+    antrags_pfade = list(
+        AntragsPfad.objects.filter(aktiv=True).order_by("name").values("pk", "name", "beschreibung")
+    )
+
+    # Suchdaten fuer JS-Autocomplete (alle Formulare als flache Liste)
+    from django.urls import reverse as _reverse
+    suche_daten = [
+        {"name": "Meine Anträge", "url": _reverse("formulare:meine_antraege"), "rubrik": "Meine Übersicht"},
+        {"name": "Meine Dienstreisen", "url": _reverse("formulare:meine_dienstreisen"), "rubrik": "Meine Übersicht"},
+        {"name": "Meine Antrags-Pfade", "url": _reverse("antraege:meine_antraege"), "rubrik": "Meine Übersicht"},
+        {"name": "Z-AG Antrag", "url": _reverse("formulare:zag_antrag"), "rubrik": "Arbeitszeit"},
+        {"name": "Z-AG Stornierung", "url": _reverse("formulare:zag_storno"), "rubrik": "Arbeitszeit"},
+        {"name": "Zeitgutschrift", "url": _reverse("formulare:zeitgutschrift_antrag"), "rubrik": "Arbeitszeit"},
+        {"name": "Änderung Zeiterfassung", "url": _reverse("formulare:aenderung_zeiterfassung"), "rubrik": "Arbeitszeit"},
+        {"name": "Dienstreiseantrag", "url": _reverse("formulare:dienstreise_erstellen"), "rubrik": "Dienstreisen"},
+        {"name": "Genehmigungen", "url": _reverse("formulare:genehmigung_uebersicht"), "rubrik": "Für Bearbeiter"},
+        {"name": "Team-Bearbeitungsstapel", "url": _reverse("formulare:team_queue"), "rubrik": "Für Bearbeiter"},
+    ]
+    for pfad in antrags_pfade:
+        from django.urls import reverse as _rev2
+        suche_daten.append({
+            "name": pfad["name"],
+            "url": _rev2("antraege:pfad_starten", args=[pfad["pk"]]),
+            "rubrik": "Antrags-Pfade",
+        })
+    for f in zusaetzliche_formulare:
+        from django.urls import reverse as _rev3
+        suche_daten.append({
+            "name": f["name"],
+            "url": _rev3("prozesse:formular_ausfuellen", args=[f["pk"]]),
+            "rubrik": "Weitere Formulare",
+        })
+    for f in externe_formulare:
+        from django.urls import reverse as _rev4
+        suche_daten.append({
+            "name": f["name"],
+            "url": _rev4("prozesse:formular_extern", args=[f["pk"]]),
+            "rubrik": "Externe Formulare",
+        })
+
+    context = {
+        "team_stapel_anzahl": team_stapel_anzahl,
+        "zusaetzliche_formulare": zusaetzliche_formulare,
+        "externe_formulare": externe_formulare,
+        "antrags_pfade": antrags_pfade,
+        "suche_daten": suche_daten,
+    }
 
     # HTMX-Request: nur Partial zurueckgeben
     if request.headers.get("HX-Request"):

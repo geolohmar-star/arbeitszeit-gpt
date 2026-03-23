@@ -1,67 +1,300 @@
 {% extends "base.html" %}
 
-{% block title %}Eintrag – {{ eintrag.schema.name }}{% endblock %}
+{% block title %}{{ eintrag.schema.name }} – Vorgang {{ eintrag.vorgangsnummer|default:eintrag.pk }}{% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width:700px;">
-    <a href="{% url 'prozesse:dashboard' %}" class="text-muted text-decoration-none small">&larr; Zurück</a>
-    <h1 class="h3 fw-bold mt-2 mb-1" style="color:#1a4d2e;">{{ eintrag.schema.name }}</h1>
-    <p class="text-muted small mb-4">
-        Eingereicht von {{ eintrag.eingereicht_von.get_full_name|default:eintrag.eingereicht_von.username }}
-        am {{ eintrag.eingereicht_am|date:"d.m.Y H:i" }} Uhr
-        &middot; <span class="badge bg-secondary">{{ eintrag.get_status_display }}</span>
-    </p>
+<div class="container py-4" style="max-width:860px;">
 
-    <div class="card">
-        <div class="card-body p-0">
-            <dl class="mb-0">
-            {% for f in felder_anzeige %}
-                {% if f.typ == "berechnung" %}
-                {# Berechnungsergebnis: farblich abgesetzt #}
-                <div class="px-3 py-2 {% if not forloop.last %}border-bottom{% endif %} bg-light">
-                    <dt class="text-muted small fw-semibold d-flex align-items-center gap-1">
-                        {{ f.label }}
-                        <span class="badge bg-warning text-dark" style="font-size:0.65rem;">Ergebnis</span>
-                    </dt>
-                    <dd class="mb-0 mt-1 fw-bold fs-5" style="color:#1a4d2e;">
-                        {% if f.wert != "" %}
-                            {{ f.wert }}{% if f.einheit %} {{ f.einheit }}{% endif %}
-                        {% else %}
-                            <span class="text-muted fw-normal small">—</span>
-                        {% endif %}
-                    </dd>
+    <a href="{% url 'prozesse:dashboard' %}" class="text-muted text-decoration-none small">&larr; Zurück</a>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start mt-2 mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1" style="color:#1a4d2e;">{{ eintrag.schema.name }}</h1>
+            <div class="text-muted small">
+                Eingereicht von
+                <strong>{{ eintrag.eingereicht_von.get_full_name|default:eintrag.eingereicht_von.username }}</strong>
+                am {{ eintrag.eingereicht_am|date:"d.m.Y H:i" }} Uhr
+            </div>
+        </div>
+        <div class="text-end">
+            {% if eintrag.vorgangsnummer %}
+            <div class="fw-bold font-monospace" style="font-size:1.1rem; color:#1a4d2e; letter-spacing:1px;">
+                {{ eintrag.vorgangsnummer }}
+            </div>
+            {% endif %}
+            <span class="badge mt-1
+                {% if eintrag.status == 'erledigt' %}bg-success
+                {% elif eintrag.status == 'in_bearbeitung' %}bg-primary
+                {% elif eintrag.status == 'abgelehnt' %}bg-danger
+                {% else %}bg-secondary{% endif %}">
+                {{ eintrag.get_status_display }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Status-Timeline -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body py-3 px-4">
+            <div class="d-flex align-items-center gap-0" style="font-size:0.8rem;">
+
+                <!-- Schritt 1: Online eingereicht -->
+                <div class="text-center" style="min-width:110px;">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-1"
+                         style="width:32px;height:32px;background:#1a4d2e;color:white;font-weight:bold;">1</div>
+                    <div class="fw-semibold" style="color:#1a4d2e;">Online eingereicht</div>
+                    <div class="text-muted" style="font-size:0.72rem;">{{ eintrag.eingereicht_am|date:"d.m.Y" }}</div>
                 </div>
-                {% else %}
-                <div class="px-3 py-2 {% if not forloop.last %}border-bottom{% endif %}">
-                    <dt class="text-muted small fw-semibold">{{ f.label }}</dt>
-                    <dd class="mb-0 mt-1">
-                        {% if f.typ == "bool" %}
-                            {% if f.wert %}
-                            <span class="badge bg-success">Ja</span>
-                            {% else %}
-                            <span class="badge bg-secondary">Nein</span>
-                            {% endif %}
-                        {% elif f.wert %}
-                            {{ f.wert }}
+
+                <div class="flex-grow-1 border-top mx-1"
+                     style="border-color:{% if eintrag.paperless_dokument_id %}#1a4d2e{% else %}#dee2e6{% endif %} !important;"></div>
+
+                <!-- Schritt 2: Scan erkannt -->
+                <div class="text-center" style="min-width:110px;">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-1"
+                         style="width:32px;height:32px;
+                         background:{% if eintrag.paperless_dokument_id %}#1a4d2e{% else %}#dee2e6{% endif %};
+                         color:white;font-weight:bold;">2</div>
+                    <div class="fw-semibold"
+                         style="color:{% if eintrag.paperless_dokument_id %}#1a4d2e{% else %}#9ca3af{% endif %};">
+                        Scan erkannt
+                    </div>
+                    <div class="text-muted" style="font-size:0.72rem;">
+                        {% if eintrag.paperless_dokument_id %}
+                        Paperless #{{ eintrag.paperless_dokument_id }}
                         {% else %}
-                            <span class="text-muted small">—</span>
+                        Noch nicht eingegangen
                         {% endif %}
-                    </dd>
+                    </div>
                 </div>
-                {% endif %}
-            {% empty %}
-            <div class="px-3 py-3 text-muted small">Keine Felder vorhanden.</div>
-            {% endfor %}
-            </dl>
+
+                <div class="flex-grow-1 border-top mx-1"
+                     style="border-color:{% if eintrag.workflow_instance %}#1a4d2e{% else %}#dee2e6{% endif %} !important;"></div>
+
+                <!-- Schritt 3: Workflow -->
+                <div class="text-center" style="min-width:110px;">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-1"
+                         style="width:32px;height:32px;
+                         background:{% if eintrag.workflow_instance %}#1a4d2e{% else %}#dee2e6{% endif %};
+                         color:white;font-weight:bold;">3</div>
+                    <div class="fw-semibold"
+                         style="color:{% if eintrag.workflow_instance %}#1a4d2e{% else %}#9ca3af{% endif %};">
+                        In Bearbeitung
+                    </div>
+                    <div class="text-muted" style="font-size:0.72rem;">
+                        {% if eintrag.workflow_instance %}
+                        {{ eintrag.workflow_instance.get_status_display }}
+                        {% else %}
+                        Workflow noch nicht gestartet
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex-grow-1 border-top mx-1"
+                     style="border-color:{% if eintrag.status == 'erledigt' or eintrag.status == 'abgelehnt' %}#1a4d2e{% else %}#dee2e6{% endif %} !important;"></div>
+
+                <!-- Schritt 4: Abgeschlossen -->
+                <div class="text-center" style="min-width:110px;">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-1"
+                         style="width:32px;height:32px;
+                         background:{% if eintrag.status == 'erledigt' %}#1a4d2e{% elif eintrag.status == 'abgelehnt' %}#dc2626{% else %}#dee2e6{% endif %};
+                         color:white;font-weight:bold;">4</div>
+                    <div class="fw-semibold"
+                         style="color:{% if eintrag.status == 'erledigt' or eintrag.status == 'abgelehnt' %}#1a4d2e{% else %}#9ca3af{% endif %};">
+                        Abgeschlossen
+                    </div>
+                    <div class="text-muted" style="font-size:0.72rem;">&nbsp;</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+
+            <!-- Formulardaten -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header fw-semibold py-2" style="background:#f9fafb;">
+                    Formulardaten
+                </div>
+                <div class="card-body p-0">
+                    <dl class="mb-0">
+                    {% for f in felder_anzeige %}
+                        {% if f.typ == "berechnung" %}
+                        <div class="px-3 py-2 {% if not forloop.last %}border-bottom{% endif %} bg-light">
+                            <dt class="text-muted small fw-semibold d-flex align-items-center gap-1">
+                                {{ f.label }}
+                                <span class="badge bg-warning text-dark" style="font-size:0.62rem;">Ergebnis</span>
+                            </dt>
+                            <dd class="mb-0 mt-1 fw-bold fs-5" style="color:#1a4d2e;">
+                                {% if f.wert != "" %}{{ f.wert }}{% if f.einheit %} {{ f.einheit }}{% endif %}
+                                {% else %}<span class="text-muted fw-normal small">—</span>{% endif %}
+                            </dd>
+                        </div>
+                        {% else %}
+                        <div class="px-3 py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                            <dt class="text-muted small fw-semibold">{{ f.label }}</dt>
+                            <dd class="mb-0 mt-1">
+                                {% if f.typ == "bool" %}
+                                    {% if f.wert %}<span class="badge bg-success">Ja</span>
+                                    {% else %}<span class="badge bg-secondary">Nein</span>{% endif %}
+                                {% elif f.wert %}
+                                    {{ f.wert }}{% if f.einheit %} {{ f.einheit }}{% endif %}
+                                {% else %}
+                                    <span class="text-muted small">—</span>
+                                {% endif %}
+                            </dd>
+                        </div>
+                        {% endif %}
+                    {% empty %}
+                    <div class="px-3 py-3 text-muted small">Keine Felder vorhanden.</div>
+                    {% endfor %}
+                    </dl>
+                </div>
+            </div>
+
+        </div>
+        <div class="col-lg-5">
+
+            <!-- Paperless-Scan -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header fw-semibold py-2 d-flex justify-content-between align-items-center"
+                     style="background:#f9fafb;">
+                    <span>Unterschriebenes Dokument</span>
+                    {% if eintrag.paperless_dokument_id %}
+                    <span class="badge bg-success">Eingegangen</span>
+                    {% else %}
+                    <span class="badge bg-secondary">Ausstehend</span>
+                    {% endif %}
+                </div>
+                <div class="card-body py-3">
+                    {% if eintrag.paperless_dokument_id %}
+                    <p class="text-muted small mb-2">
+                        Physisch unterschriebenes Dokument wurde per OCR erkannt und verknüpft.
+                    </p>
+                    <div class="mb-2">
+                        <span class="text-muted small">Paperless-ID:</span>
+                        <strong>#{{ eintrag.paperless_dokument_id }}</strong>
+                    </div>
+                    {% if paperless_dok_url %}
+                    <a href="{{ paperless_dok_url }}" target="_blank" rel="noopener"
+                       class="btn btn-sm btn-outline-secondary w-100">
+                        In Paperless öffnen &rarr;
+                    </a>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-muted small mb-3">
+                        Noch kein unterschriebenes Dokument eingegangen.
+                    </p>
+                    {% if eintrag.vorgangsnummer %}
+                    <div class="bg-light rounded p-2" style="font-size:0.78rem;">
+                        <div class="text-muted mb-1">Bürger druckt PDF, unterschreibt und schickt es per E-Mail an Paperless. Der Import erkennt automatisch:</div>
+                        <code>{{ eintrag.vorgangsnummer }}</code>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Workflow-Status -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header fw-semibold py-2 d-flex justify-content-between align-items-center"
+                     style="background:#f9fafb;">
+                    <span>Workflow</span>
+                    {% if eintrag.workflow_instance %}
+                    <span class="badge
+                        {% if eintrag.workflow_instance.status == 'laufend' %}bg-primary
+                        {% elif eintrag.workflow_instance.status == 'abgeschlossen' %}bg-success
+                        {% elif eintrag.workflow_instance.status == 'abgebrochen' %}bg-danger
+                        {% else %}bg-secondary{% endif %}">
+                        {{ eintrag.workflow_instance.get_status_display }}
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary">Nicht gestartet</span>
+                    {% endif %}
+                </div>
+                <div class="card-body py-3">
+                    {% if eintrag.workflow_instance %}
+                    <div class="mb-2 small text-muted">
+                        <strong>Template:</strong> {{ eintrag.workflow_instance.template.name }}
+                    </div>
+                    {% if eintrag.workflow_instance.aktueller_schritt %}
+                    <div class="mb-3 small">
+                        <span class="text-muted">Aktueller Schritt:</span>
+                        <strong>{{ eintrag.workflow_instance.aktueller_schritt.bezeichnung }}</strong>
+                    </div>
+                    {% endif %}
+
+                    {% if workflow_tasks %}
+                    <div class="border-top pt-2 mt-2">
+                        <div class="text-muted small fw-semibold mb-2">Verlauf</div>
+                        {% for task in workflow_tasks %}
+                        <div class="d-flex align-items-start gap-2 mb-2" style="font-size:0.8rem;">
+                            <div class="mt-1">
+                                {% if task.status == 'erledigt' %}
+                                <span class="text-success">&#10003;</span>
+                                {% elif task.status == 'abgelehnt' %}
+                                <span class="text-danger">&#10007;</span>
+                                {% else %}
+                                <span class="text-primary">&#9679;</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <div class="fw-semibold">{{ task.step.bezeichnung }}</div>
+                                <div class="text-muted">
+                                    {% if task.erledigt_von %}
+                                    {{ task.erledigt_von.get_full_name|default:task.erledigt_von.username }}
+                                    &middot; {{ task.erledigt_am|date:"d.m.Y" }}
+                                    {% elif task.zugewiesen_an_user %}
+                                    Zugewiesen: {{ task.zugewiesen_an_user.get_full_name|default:task.zugewiesen_an_user.username }}
+                                    {% else %}
+                                    Warte auf Bearbeitung
+                                    {% endif %}
+                                </div>
+                                {% if task.kommentar %}
+                                <div class="text-muted fst-italic mt-1">"{{ task.kommentar|truncatechars:80 }}"</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <a href="{% url 'workflow:workflow_status' eintrag.workflow_instance.pk %}"
+                       class="btn btn-sm btn-outline-primary w-100 mt-2">
+                        Zum Workflow &rarr;
+                    </a>
+
+                    {% elif eintrag.schema.workflow_template %}
+                    <p class="text-muted small mb-2">
+                        Workflow startet automatisch sobald das unterschriebene Dokument per Paperless erkannt wird.
+                    </p>
+                    <div class="bg-light rounded p-2" style="font-size:0.78rem;">
+                        <span class="text-muted">Geplanter Workflow:</span>
+                        <strong>{{ eintrag.schema.workflow_template.name }}</strong>
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-0">
+                        Für dieses Formular ist kein automatischer Workflow konfiguriert.
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
         </div>
     </div>
 
     {% if ist_prozessverantwortlicher %}
-    <div class="mt-3">
+    <div class="mt-3 d-flex gap-2">
         <a href="{% url 'prozesse:eintrag_liste' eintrag.schema.pk %}" class="btn btn-outline-secondary btn-sm">
             Alle Einträge zu diesem Schema
         </a>
+        <a href="{% url 'prozesse:schema_bearbeiten' eintrag.schema.pk %}" class="btn btn-outline-secondary btn-sm">
+            Schema bearbeiten
+        </a>
     </div>
     {% endif %}
+
 </div>
 {% endblock %}

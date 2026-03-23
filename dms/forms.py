@@ -123,17 +123,25 @@ class PaperlessWorkflowRegelForm(forms.ModelForm):
 
     class Meta:
         model = PaperlessWorkflowRegel
-        fields = ["bezeichnung", "treffer_typ", "paperless_name", "workflow_template", "prioritaet", "aktiv"]
+        fields = [
+            "bezeichnung", "treffer_typ", "paperless_name",
+            "muster_regex", "workflow_template", "prioritaet", "aktiv",
+        ]
         widgets = {
             "bezeichnung": forms.TextInput(attrs={
                 "class": "form-control",
                 "placeholder": "z.B. Eingangsrechnungen Elektro",
                 "autofocus": True,
             }),
-            "treffer_typ": forms.Select(attrs={"class": "form-select"}),
+            "treffer_typ": forms.Select(attrs={"class": "form-select", "id": "id_treffer_typ"}),
             "paperless_name": forms.TextInput(attrs={
                 "class": "form-control",
                 "placeholder": "z.B. Rechnung  oder  elektro",
+            }),
+            "muster_regex": forms.TextInput(attrs={
+                "class": "form-control font-monospace",
+                "placeholder": r"z.B. [A-Z]{2,6}-\d{3,6}-\d{3,6}",
+                "spellcheck": "false",
             }),
             "workflow_template": forms.Select(attrs={"class": "form-select"}),
             "prioritaet": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 999}),
@@ -143,14 +151,40 @@ class PaperlessWorkflowRegelForm(forms.ModelForm):
             "bezeichnung": "Bezeichnung",
             "treffer_typ": "Treffer-Typ",
             "paperless_name": "Paperless-Name (Dokumenttyp oder Tag)",
+            "muster_regex": "Regulaerer Ausdruck",
             "workflow_template": "Workflow-Template",
             "prioritaet": "Prioritaet (1 = hoechste)",
             "aktiv": "Aktiv",
         }
         help_texts = {
             "paperless_name": "Gross-/Kleinschreibung wird ignoriert. Exakter Name wie in Paperless-ngx.",
+            "muster_regex": (
+                "Python-Regex der im OCR-Text gesucht wird. "
+                r"Beispiel: [A-Z]{3}-\d{3}-\d{3} erkennt AES-234-023."
+            ),
             "prioritaet": "Bei mehreren Treffern gewinnt die Regel mit der niedrigsten Prioritaetszahl.",
         }
+
+    def clean(self):
+        cleaned = super().clean()
+        typ = cleaned.get("treffer_typ")
+        name = (cleaned.get("paperless_name") or "").strip()
+        muster = (cleaned.get("muster_regex") or "").strip()
+
+        if typ in ("dokumenttyp", "tag") and not name:
+            self.add_error("paperless_name", "Pflichtfeld fuer Treffer-Typ Dokumenttyp / Tag.")
+
+        if typ == "muster":
+            if not muster:
+                self.add_error("muster_regex", "Bitte einen regulaeren Ausdruck eingeben.")
+            else:
+                import re
+                try:
+                    re.compile(muster)
+                except re.error as exc:
+                    self.add_error("muster_regex", f"Ungueltige Regex-Syntax: {exc}")
+
+        return cleaned
 
 
 class ZugriffsantragForm(forms.ModelForm):

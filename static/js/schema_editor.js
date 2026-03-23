@@ -10,6 +10,8 @@
     var editIndex = null;
     var modal = null;
     var bausteinModal = null;
+    var dragSrcIdx = null;     // Drag & Drop: Quell-Index
+    var ausgewaehlt = [];      // Mehrfach-Auswahl: selektierte Indizes
 
     var NORMALE_TYPEN = ["text", "mehrzeil", "zahl", "datum", "uhrzeit", "email", "iban", "bool", "auswahl", "radio", "checkboxen"];
     var STRUKTUR_TYPEN = ["textblock", "abschnitt", "trennlinie", "link", "leerblock", "berechnung"];
@@ -142,27 +144,149 @@
             syncFeldButtonZustand();
         });
 
-        // Event-Delegation: Felder in Formel einfügen
-        document.getElementById("berechnung-felder-liste").addEventListener("click", function (e) {
-            e.stopPropagation();
-            var btn = e.target.closest("[data-action='insert-berechnung-feld']");
-            if (!btn) return;
-            var feldId = btn.dataset.feldId;
-            var ta = document.getElementById("feld-formel");
-            var start = ta.selectionStart;
-            var end = ta.selectionEnd;
-            var insertion = "{{" + feldId + "}}";
-            ta.value = ta.value.slice(0, start) + insertion + ta.value.slice(end);
-            ta.selectionStart = ta.selectionEnd = start + insertion.length;
-            ta.focus();
-        });
+        // Event-Delegation: Felder in Formel einfügen (nur im Schema-Editor vorhanden)
+        var berechnungFelderListe = document.getElementById("berechnung-felder-liste");
+        if (berechnungFelderListe) {
+            berechnungFelderListe.addEventListener("click", function (e) {
+                e.stopPropagation();
+                var btn = e.target.closest("[data-action='insert-berechnung-feld']");
+                if (!btn) return;
+                var feldId = btn.dataset.feldId;
+                var ta = document.getElementById("feld-formel");
+                var start = ta.selectionStart;
+                var end = ta.selectionEnd;
+                var insertion = "{{" + feldId + "}}";
+                ta.value = ta.value.slice(0, start) + insertion + ta.value.slice(end);
+                ta.selectionStart = ta.selectionEnd = start + insertion.length;
+                ta.focus();
+            });
+        }
 
-        // Berechnungs-Label → ID-Vorschau
-        document.getElementById("feld-berechnung-label").addEventListener("input", function () {
-            document.getElementById("feld-berechnung-id-preview").textContent = labelZuId(this.value, "berechnung");
-        });
+        // Berechnungs-Label → ID-Vorschau (nur im Schema-Editor vorhanden)
+        var elBerechnungLabel = document.getElementById("feld-berechnung-label");
+        if (elBerechnungLabel) {
+            elBerechnungLabel.addEventListener("input", function () {
+                document.getElementById("feld-berechnung-id-preview").textContent = labelZuId(this.value, "berechnung");
+            });
+        }
 
         document.getElementById("schema-form").addEventListener("submit", syncHiddenInput);
+
+        // -----------------------------------------------------------------------
+        // Drag & Drop Reihenfolge (HTML5 API, einmalig auf Container)
+        // -----------------------------------------------------------------------
+        var felderListe = document.getElementById("felder-liste");
+
+        felderListe.addEventListener("dragstart", function (e) {
+            var li = e.target.closest("[data-drag-index]");
+            if (!li) { e.preventDefault(); return; }
+            dragSrcIdx = parseInt(li.dataset.dragIndex, 10);
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", String(dragSrcIdx));
+            setTimeout(function () { li.classList.add("drag-ghost"); }, 0);
+        });
+
+        felderListe.addEventListener("dragover", function (e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            var li = e.target.closest("[data-drag-index]");
+            felderListe.querySelectorAll(".drag-over").forEach(function (el) { el.classList.remove("drag-over"); });
+            if (li) li.classList.add("drag-over");
+        });
+
+        felderListe.addEventListener("dragleave", function (e) {
+            if (!felderListe.contains(e.relatedTarget)) {
+                felderListe.querySelectorAll(".drag-over").forEach(function (el) { el.classList.remove("drag-over"); });
+            }
+        });
+
+        felderListe.addEventListener("drop", function (e) {
+            e.preventDefault();
+            felderListe.querySelectorAll(".drag-over").forEach(function (el) { el.classList.remove("drag-over"); });
+            var li = e.target.closest("[data-drag-index]");
+            if (!li || dragSrcIdx === null) return;
+            var dropIdx = parseInt(li.dataset.dragIndex, 10);
+            if (dragSrcIdx === dropIdx) return;
+
+            // Mehrfach-Auswahl: falls Quell-Index in Auswahl → ganzen Block verschieben
+            if (ausgewaehlt.length > 1 && ausgewaehlt.indexOf(dragSrcIdx) !== -1) {
+                var block = ausgewaehlt.slice().sort(function (a, b) { return a - b; });
+                var bewegt = block.map(function (i) { return felder[i]; });
+                // Elemente aus Array entfernen (von hinten nach vorne)
+                block.slice().reverse().forEach(function (i) { felder.splice(i, 1); });
+                // Einfügeposition anpassen
+                var offset = block.filter(function (i) { return i < dropIdx; }).length;
+                var ziel = dropIdx - offset;
+                bewegt.forEach(function (f, j) { felder.splice(ziel + j, 0, f); });
+                ausgewaehlt = [];
+            } else {
+                // Einzelnes Element verschieben
+                var moved = felder.splice(dragSrcIdx, 1)[0];
+                felder.splice(dropIdx, 0, moved);
+                ausgewaehlt = [];
+            }
+            dragSrcIdx = null;
+            renderFelderListe();
+            updateVorschau();
+        });
+
+        felderListe.addEventListener("dragend", function () {
+            dragSrcIdx = null;
+            felderListe.querySelectorAll(".drag-ghost, .drag-over").forEach(function (el) {
+                el.classList.remove("drag-ghost", "drag-over");
+            });
+        });
+
+        // Checkbox-Auswahl: Alle / Keine
+        var btnAlleWaehlen = document.getElementById("btn-alle-waehlen");
+        if (btnAlleWaehlen) {
+            btnAlleWaehlen.addEventListener("click", function () {
+                if (ausgewaehlt.length === felder.length) {
+                    ausgewaehlt = [];
+                } else {
+                    ausgewaehlt = felder.map(function (_, i) { return i; });
+                }
+                renderFelderListe();
+            });
+        }
+
+        // Auswahl verschieben (Block hoch / runter)
+        felderListe.addEventListener("click", function (e) {
+            var cb = e.target.closest("[data-action='feld-select']");
+            if (!cb) return;
+            var idx = parseInt(cb.dataset.index, 10);
+            var pos = ausgewaehlt.indexOf(idx);
+            if (pos === -1) { ausgewaehlt.push(idx); } else { ausgewaehlt.splice(pos, 1); }
+            renderFelderListe();
+        });
+
+        var btnBlockHoch = document.getElementById("btn-block-hoch");
+        if (btnBlockHoch) {
+            btnBlockHoch.addEventListener("click", function () {
+                if (ausgewaehlt.length === 0) return;
+                var sorted = ausgewaehlt.slice().sort(function (a, b) { return a - b; });
+                if (sorted[0] === 0) return;
+                sorted.forEach(function (i) {
+                    var tmp = felder[i - 1]; felder[i - 1] = felder[i]; felder[i] = tmp;
+                });
+                ausgewaehlt = ausgewaehlt.map(function (i) { return i - 1; });
+                renderFelderListe(); updateVorschau();
+            });
+        }
+
+        var btnBlockRunter = document.getElementById("btn-block-runter");
+        if (btnBlockRunter) {
+            btnBlockRunter.addEventListener("click", function () {
+                if (ausgewaehlt.length === 0) return;
+                var sorted = ausgewaehlt.slice().sort(function (a, b) { return b - a; });
+                if (sorted[0] === felder.length - 1) return;
+                sorted.forEach(function (i) {
+                    var tmp = felder[i + 1]; felder[i + 1] = felder[i]; felder[i] = tmp;
+                });
+                ausgewaehlt = ausgewaehlt.map(function (i) { return i + 1; });
+                renderFelderListe(); updateVorschau();
+            });
+        }
     });
 
     // -----------------------------------------------------------------------
@@ -238,8 +362,9 @@
         // Link
         document.getElementById("link-row").style.display = istLink ? "" : "none";
 
-        // Berechnungsfeld
-        document.getElementById("berechnung-row").style.display = istBerechnung ? "" : "none";
+        // Berechnungsfeld (nur im Schema-Editor vorhanden, nicht im Baustein-Editor)
+        var berechnungRow = document.getElementById("berechnung-row");
+        if (berechnungRow) berechnungRow.style.display = istBerechnung ? "" : "none";
 
         // Verfügbare Felder Liste aktualisieren
         if (istTextblock) updateVerfuegbareFelderListe();
@@ -332,12 +457,17 @@
         document.getElementById("feld-id-preview").textContent =
             feld ? (feld.id || "") : labelZuId("", typ);
 
-        // Berechnungsfeld
-        document.getElementById("feld-berechnung-label").value = (feld && typ === "berechnung" && feld.label) ? feld.label : "";
-        document.getElementById("feld-berechnung-id-preview").textContent = (feld && feld.id) ? feld.id : "";
-        document.getElementById("feld-formel").value = (feld && feld.formel) ? feld.formel : "";
-        document.getElementById("feld-einheit").value = (feld && feld.einheit) ? feld.einheit : "";
-        document.getElementById("feld-dezimalstellen").value = (feld && feld.dezimalstellen !== undefined) ? String(feld.dezimalstellen) : "2";
+        // Berechnungsfeld (nur im Schema-Editor vorhanden)
+        var elBerLabel = document.getElementById("feld-berechnung-label");
+        if (elBerLabel) elBerLabel.value = (feld && typ === "berechnung" && feld.label) ? feld.label : "";
+        var elBerIdPrev = document.getElementById("feld-berechnung-id-preview");
+        if (elBerIdPrev) elBerIdPrev.textContent = (feld && feld.id) ? feld.id : "";
+        var elFormel = document.getElementById("feld-formel");
+        if (elFormel) elFormel.value = (feld && feld.formel) ? feld.formel : "";
+        var elEinheit = document.getElementById("feld-einheit");
+        if (elEinheit) elEinheit.value = (feld && feld.einheit) ? feld.einheit : "";
+        var elDez = document.getElementById("feld-dezimalstellen");
+        if (elDez) elDez.value = (feld && feld.dezimalstellen !== undefined) ? String(feld.dezimalstellen) : "2";
 
         toggleModalFelder(typ);
         modal.show();
@@ -461,10 +591,25 @@
             var breite = feld.breite || 100;
             var istStruktur = STRUKTUR_TYPEN.indexOf(feld.typ) !== -1;
             var istEingebettet = istNormalerTyp(feld.typ) && inlineIds[feld.id];
+            var istGewaehlt = ausgewaehlt.indexOf(idx) !== -1;
 
-            html += '<li class="list-group-item px-3 py-2' + (istStruktur ? ' bg-light' : '') + '">';
-            html += '<div class="d-flex justify-content-between align-items-center">';
-            html += '<div style="max-width:70%">';
+            html += '<li draggable="true" data-drag-index="' + idx + '" '
+                  + 'class="list-group-item px-2 py-2'
+                  + (istStruktur ? ' bg-light' : '')
+                  + (istGewaehlt ? ' table-active border-start border-3 border-primary' : '')
+                  + '">';
+            html += '<div class="d-flex justify-content-between align-items-center gap-1">';
+
+            // Drag-Handle + Checkbox
+            html += '<div class="d-flex align-items-center gap-1 flex-shrink-0">';
+            html += '<span style="cursor:grab;color:#aaa;font-size:1rem;line-height:1;user-select:none;" title="Ziehen zum Verschieben">&#8942;&#8942;</span>';
+            html += '<button type="button" class="btn btn-sm p-0 border-0 bg-transparent" '
+                  + 'data-action="feld-select" data-index="' + idx + '" '
+                  + 'title="Auswählen" style="font-size:1rem;line-height:1;">'
+                  + (istGewaehlt ? '&#9745;' : '&#9744;') + '</button>';
+            html += '</div>';
+
+            html += '<div style="flex:1;min-width:0;">';
 
             if (feld.typ === "leerblock") {
                 html += '<span class="text-muted small">&#9617; Leerblock (' + (BREITE_LABEL[breite] || breite + "%") + ')</span>';
@@ -496,10 +641,8 @@
                 html += '<br><code class="text-muted" style="font-size:0.7rem;">' + esc(feld.id || "") + '</code>';
             }
 
-            html += '</div>';
+            html += '</div>';  // flex:1 content
             html += '<div class="d-flex gap-1 flex-shrink-0">';
-            html += '<button type="button" class="btn btn-sm btn-outline-secondary px-1 py-0" data-action="feld-hoch" data-index="' + idx + '" ' + (idx === 0 ? 'disabled' : '') + '>&#9650;</button>';
-            html += '<button type="button" class="btn btn-sm btn-outline-secondary px-1 py-0" data-action="feld-runter" data-index="' + idx + '" ' + (idx === felder.length - 1 ? 'disabled' : '') + '>&#9660;</button>';
             html += '<button type="button" class="btn btn-sm btn-outline-primary px-2 py-0" data-action="feld-bearbeiten" data-index="' + idx + '">Bearb.</button>';
             html += '<button type="button" class="btn btn-sm btn-outline-danger px-2 py-0" data-action="feld-loeschen" data-index="' + idx + '">&#10005;</button>';
             html += '</div></div>';

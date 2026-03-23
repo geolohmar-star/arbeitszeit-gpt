@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}DMS – Workflow-Regel {% if neu %}anlegen{% else %}bearbeiten{% endif %}{% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width:640px;">
+<div class="container py-4" style="max-width:680px;">
 
     <a href="{% url 'dms:workflow_regeln' %}" class="text-muted text-decoration-none small">&larr; Zurueck zu den Regeln</a>
 
@@ -24,9 +25,10 @@
 
     <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
-            <form method="post">
+            <form method="post" id="regel-form">
                 {% csrf_token %}
 
+                <!-- Bezeichnung -->
                 <div class="mb-3">
                     <label class="form-label fw-semibold">{{ form.bezeichnung.label }}</label>
                     {{ form.bezeichnung }}
@@ -38,48 +40,91 @@
                     {% endfor %}
                 </div>
 
-                <div class="row g-3 mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">{{ form.treffer_typ.label }}</label>
-                        {{ form.treffer_typ }}
-                        <div class="form-text">
-                            <strong>Dokumenttyp:</strong> Kategorienname in Paperless<br>
-                            <strong>Tag:</strong> Tag-Name in Paperless
-                        </div>
-                        {% for err in form.treffer_typ.errors %}
-                        <div class="text-danger small mt-1">{{ err }}</div>
-                        {% endfor %}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold">{{ form.paperless_name.label }}</label>
-                        {{ form.paperless_name }}
-                        {% if form.paperless_name.help_text %}
-                        <div class="form-text">{{ form.paperless_name.help_text }}</div>
-                        {% endif %}
-                        {% for err in form.paperless_name.errors %}
-                        <div class="text-danger small mt-1">{{ err }}</div>
-                        {% endfor %}
-                    </div>
+                <!-- Treffer-Typ -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ form.treffer_typ.label }}</label>
+                    {{ form.treffer_typ }}
+                    {% for err in form.treffer_typ.errors %}
+                    <div class="text-danger small mt-1">{{ err }}</div>
+                    {% endfor %}
                 </div>
 
+                <!-- Paperless-Name (nur bei dokumenttyp / tag) -->
+                <div id="zeile-paperless-name" class="mb-3">
+                    <label class="form-label fw-semibold">{{ form.paperless_name.label }}</label>
+                    {{ form.paperless_name }}
+                    <div class="form-text">
+                        Gross-/Kleinschreibung wird ignoriert. Exakter Name wie in Paperless-ngx.
+                    </div>
+                    {% for err in form.paperless_name.errors %}
+                    <div class="text-danger small mt-1">{{ err }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- Muster-Bereich (nur bei muster) -->
+                <div id="zeile-muster" class="mb-3" style="display:none;">
+
+                    <label class="form-label fw-semibold">{{ form.muster_regex.label }}</label>
+                    <div class="input-group">
+                        {{ form.muster_regex }}
+                        <button type="button" class="btn btn-outline-secondary" id="btn-muster-testen"
+                                title="Regex im Testtext pruefen">
+                            Testen
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        Python-Regex der im OCR-Text gesucht wird.
+                        Beispiel: <code>[A-Z]{3}-\d{3}-\d{3}</code> erkennt <code>AES-234-023</code>.
+                    </div>
+                    {% for err in form.muster_regex.errors %}
+                    <div class="text-danger small mt-1">{{ err }}</div>
+                    {% endfor %}
+
+                    <!-- Regex aus Beispielen ableiten -->
+                    <div class="card bg-light border-0 mt-3 p-3">
+                        <div class="fw-semibold small mb-2" style="color:#1a4d2e;">
+                            Muster aus Beispielen ableiten
+                        </div>
+                        <div class="mb-2">
+                            <textarea id="muster-beispiele" class="form-control form-control-sm font-monospace"
+                                      rows="3"
+                                      placeholder="Beispiel-Strings eingeben, einen pro Zeile:&#10;AES-234-023&#10;BER-101-045&#10;MUC-999-001"></textarea>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-muster-ableiten">
+                            Muster ableiten
+                        </button>
+                        <div id="muster-ableiten-ergebnis" class="mt-2 small font-monospace" style="display:none;"></div>
+                    </div>
+
+                    <!-- Live-Tester -->
+                    <div class="card bg-light border-0 mt-3 p-3" id="muster-tester-box" style="display:none;">
+                        <div class="fw-semibold small mb-2" style="color:#1a4d2e;">
+                            Live-Test: OCR-Text einfuegen
+                        </div>
+                        <textarea id="muster-testtext" class="form-control form-control-sm font-monospace"
+                                  rows="5"
+                                  placeholder="Hier OCR-Text oder Beispieltext einfuegen..."></textarea>
+                        <div id="muster-test-ergebnis" class="mt-2 small" style="min-height:1.5rem;"></div>
+                    </div>
+
+                </div>
+
+                <!-- Workflow-Template -->
                 <div class="mb-3">
                     <label class="form-label fw-semibold">{{ form.workflow_template.label }}</label>
                     {{ form.workflow_template }}
-                    <div class="form-text">
-                        Welcher Workflow wird vorgeschlagen wenn die Regel greift?
-                    </div>
+                    <div class="form-text">Welcher Workflow wird vorgeschlagen wenn die Regel greift?</div>
                     {% for err in form.workflow_template.errors %}
                     <div class="text-danger small mt-1">{{ err }}</div>
                     {% endfor %}
                 </div>
 
+                <!-- Prioritaet + Aktiv -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">{{ form.prioritaet.label }}</label>
                         {{ form.prioritaet }}
-                        {% if form.prioritaet.help_text %}
-                        <div class="form-text">{{ form.prioritaet.help_text }}</div>
-                        {% endif %}
+                        <div class="form-text">Bei Gleichstand gewinnt die niedrigste Zahl.</div>
                         {% for err in form.prioritaet.errors %}
                         <div class="text-danger small mt-1">{{ err }}</div>
                         {% endfor %}
@@ -96,8 +141,7 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn"
-                            style="background:#1a4d2e; color:white;">
+                    <button type="submit" class="btn" style="background:#1a4d2e; color:white;">
                         {% if neu %}Regel anlegen{% else %}Aenderungen speichern{% endif %}
                     </button>
                     <a href="{% url 'dms:workflow_regeln' %}" class="btn btn-outline-secondary">
@@ -109,8 +153,8 @@
         </div>
     </div>
 
-    <!-- Hinweis: Paperless-Namen ermitteln -->
-    <div class="card border-0 shadow-sm mt-4">
+    <!-- Hinweis: Paperless-Namen ermitteln (nur bei dokumenttyp/tag sichtbar) -->
+    <div class="card border-0 shadow-sm mt-4" id="hinweis-paperless">
         <div class="card-header bg-white fw-semibold py-2 px-4" style="font-size:0.85rem;">
             Wo finde ich die Namen in Paperless-ngx?
         </div>
@@ -132,5 +176,34 @@
         </div>
     </div>
 
+    <!-- Hinweis: Regex-Tipps (nur bei muster sichtbar) -->
+    <div class="card border-0 shadow-sm mt-4" id="hinweis-muster" style="display:none;">
+        <div class="card-header bg-white fw-semibold py-2 px-4" style="font-size:0.85rem;">
+            Regex-Tipps
+        </div>
+        <div class="card-body py-3 px-4" style="font-size:0.84rem;">
+            <table class="table table-sm mb-0" style="font-size:0.82rem;">
+                <thead><tr><th>Ausdruck</th><th>Bedeutung</th><th>Beispiel</th></tr></thead>
+                <tbody>
+                    <tr><td><code>[A-Z]</code></td><td>Ein Grossbuchstabe</td><td><code>A</code>, <code>B</code></td></tr>
+                    <tr><td><code>\d</code></td><td>Eine Ziffer (0–9)</td><td><code>5</code></td></tr>
+                    <tr><td><code>{3}</code></td><td>Genau 3-mal</td><td><code>AES</code></td></tr>
+                    <tr><td><code>{2,6}</code></td><td>2 bis 6-mal</td><td><code>AE</code> bis <code>ABCDEF</code></td></tr>
+                    <tr><td><code>-</code></td><td>Bindestrich (literal)</td><td><code>-</code></td></tr>
+                    <tr><td><code>\.</code></td><td>Punkt (literal)</td><td><code>.</code></td></tr>
+                    <tr><td><code>(abc|xyz)</code></td><td>abc oder xyz</td><td><code>abc</code></td></tr>
+                </tbody>
+            </table>
+            <div class="mt-2 text-muted">
+                Der gesamte OCR-Text wird durchsucht (re.search). Gross-/Kleinschreibung beachten –
+                bei Bedarf <code>(?i)</code> voranstellen fuer case-insensitive.
+            </div>
+        </div>
+    </div>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/workflow_regel_form.js' %}"></script>
 {% endblock %}

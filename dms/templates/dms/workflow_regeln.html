@@ -40,8 +40,9 @@
         <hr class="my-2">
         <strong>Treffer-Typen:</strong>
         <span class="badge bg-primary ms-1">Dokumenttyp</span> = Name des Dokumenttyps in Paperless (z.B. <code>Rechnung</code>) &nbsp;
-        <span class="badge bg-secondary ms-1">Tag</span> = Name eines Tags in Paperless (z.B. <code>elektro</code>)
-        <br>Gross-/Kleinschreibung wird bei beiden Typen ignoriert.
+        <span class="badge bg-secondary ms-1">Tag</span> = Name eines Tags in Paperless (z.B. <code>elektro</code>) &nbsp;
+        <span class="badge bg-success ms-1">Muster</span> = Regulaerer Ausdruck im OCR-Text (z.B. <code>[A-Z]{3}-\d{3}-\d{3}</code>)
+        <br>Gross-/Kleinschreibung wird bei Dokumenttyp und Tag ignoriert.
         Bei mehreren Treffern gewinnt die Regel mit der niedrigsten Prioritaetszahl.
     </div>
 
@@ -70,12 +71,18 @@
                         <td class="py-2">
                             {% if regel.treffer_typ == 'dokumenttyp' %}
                             <span class="badge bg-primary">Dokumenttyp</span>
-                            {% else %}
+                            {% elif regel.treffer_typ == 'tag' %}
                             <span class="badge bg-secondary">Tag</span>
+                            {% else %}
+                            <span class="badge bg-success">Muster</span>
                             {% endif %}
                         </td>
                         <td class="py-2">
+                            {% if regel.treffer_typ == 'muster' %}
+                            <code>{{ regel.muster_regex }}</code>
+                            {% else %}
                             <code>{{ regel.paperless_name }}</code>
+                            {% endif %}
                         </td>
                         <td class="py-2">
                             <span class="text-muted small">{{ regel.workflow_template.get_kategorie_display }} &middot;</span>

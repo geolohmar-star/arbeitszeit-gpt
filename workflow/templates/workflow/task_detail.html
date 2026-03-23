@@ -99,6 +99,8 @@
                     Betriebssport-Gutschrift
                     {% elif task.instance.content_type.model == 'dokument' %}
                     DMS-Dokument
+                    {% elif task.instance.content_type.model == 'formulareintrag' %}
+                    Formular-Eintrag
                     {% else %}
                     {{ task.instance.content_type }}
                     {% endif %}
@@ -485,6 +487,51 @@
                             Download
                         </a>
                     </div>
+                    {% endwith %}
+
+                {% elif task.instance.content_type.model == 'formulareintrag' %}
+                    {% with eintrag=task.instance.content_object %}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="text-muted small mb-1"><strong>Formular:</strong></p>
+                            <p class="mb-0">{{ eintrag.schema.name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted small mb-1"><strong>Eingereicht am:</strong></p>
+                            <p class="mb-0">{{ eintrag.eingereicht_am|date:"d.m.Y H:i" }} Uhr</p>
+                        </div>
+                    </div>
+                    {% if eintrag.vorgangsnummer %}
+                    <div class="mb-3">
+                        <p class="text-muted small mb-1"><strong>Vorgangsnummer:</strong></p>
+                        <p class="mb-0 fw-bold font-monospace" style="color:#1a4d2e;letter-spacing:1px;">
+                            {{ eintrag.vorgangsnummer }}
+                        </p>
+                    </div>
+                    {% endif %}
+                    <!-- Formulardaten kompakt -->
+                    <div class="border rounded p-3 bg-light mb-3" style="max-height:280px;overflow-y:auto;">
+                        <div class="fw-semibold small mb-2 text-muted">Ausgefüllte Felder</div>
+                        <dl class="mb-0 row row-cols-1 row-cols-md-2 g-2" style="font-size:0.83rem;">
+                        {% for k, v in eintrag.daten_json.items %}
+                            {% if v %}
+                            <div class="col">
+                                <dt class="text-muted fw-normal" style="font-size:0.75rem;">{{ k }}</dt>
+                                <dd class="mb-0 fw-semibold">{{ v }}</dd>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                        </dl>
+                    </div>
+                    <a href="{% url 'prozesse:eintrag_detail' eintrag.pk %}"
+                       class="btn btn-sm btn-outline-secondary" target="_blank">
+                        Vollständige Ansicht &rarr;
+                    </a>
+                    {% if eintrag.paperless_dokument_id %}
+                    <span class="badge bg-success ms-2">Scan vorhanden (#{{ eintrag.paperless_dokument_id }})</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark ms-2">Scan noch ausstehend</span>
+                    {% endif %}
                     {% endwith %}
 
                 {% else %}

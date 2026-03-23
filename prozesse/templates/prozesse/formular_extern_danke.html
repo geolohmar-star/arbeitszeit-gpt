@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Formular eingereicht</title>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <style>
+        body { background: #f8f9fa; }
+        .extern-header { background: #1a4d2e; color: white; padding: 1rem 1.5rem; margin-bottom: 2rem; }
+    </style>
+</head>
+<body>
+<div class="extern-header">
+    <div class="container" style="max-width:700px;">
+        <h1 class="h4 mb-0 fw-bold">{{ schema.name }}</h1>
+    </div>
+</div>
+<div class="container py-5 text-center" style="max-width:500px;">
+    <div style="font-size:4rem; color:#1a4d2e;">&#10003;</div>
+    <h2 class="h3 fw-bold mt-3 mb-2" style="color:#1a4d2e;">Vielen Dank!</h2>
+    <p class="text-muted mb-3">
+        Ihr Formular wurde erfolgreich eingereicht und wird bearbeitet.
+    </p>
+
+    {% if vorgangsnummer %}
+    <div class="card mx-auto mb-3" style="max-width:380px; border:2px solid #1a4d2e;">
+        <div class="card-body text-center">
+            <div class="text-muted small mb-1">Ihre Vorgangsnummer</div>
+            <div id="vorgangsnummer-text"
+                 style="font-size:1.4rem; font-weight:bold; font-family:monospace; color:#1a4d2e; letter-spacing:2px;">
+                {{ vorgangsnummer }}
+            </div>
+            <button class="btn btn-sm btn-outline-secondary mt-2" id="btn-kopieren">
+                Nummer kopieren
+            </button>
+            <div id="kopiert-meldung" class="text-success small mt-1" style="display:none;">Kopiert!</div>
+        </div>
+    </div>
+    <p class="text-muted small">
+        Bitte notieren Sie diese Nummer. Sie wird auf dem PDF ausgedruckt.<br>
+        Wenn Sie das Formular ausdrucken, unterschreiben und per E-Mail einsenden,<br>
+        wird Ihr Vorgang automatisch zugeordnet.
+    </p>
+    {% endif %}
+
+    <a href="{% url 'prozesse:formular_extern' schema.pk %}" class="btn btn-outline-secondary mt-2">
+        Neues Formular ausfüllen
+    </a>
+    <script src="{% static 'js/extern_danke.js' %}"></script>
+</div>
+</body>
+</html>
