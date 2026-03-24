@@ -183,6 +183,13 @@
                     <input type="text" class="form-control" id="feld-einheit" placeholder="z.B. Euro, kg, Stunden">
                 </div>
 
+                <div class="mb-3" id="akzeptieren-row" style="display:none;">
+                    <label class="form-label fw-semibold">Erlaubte Dateitypen (optional)</label>
+                    <input type="text" class="form-control" id="feld-akzeptieren"
+                           placeholder=".pdf,.docx oder image/* oder leer = alle">
+                    <small class="text-muted">HTML-<code>accept</code>-Attribut – z.B. <code>.pdf</code>, <code>image/*</code>, <code>.pdf,.jpg</code></small>
+                </div>
+
                 <div class="mb-3" id="textblock-row" style="display:none;">
                     <label class="form-label fw-semibold">Text / Hinweis *</label>
                     <textarea class="form-control" id="feld-textblock-inhalt" rows="4"

@@ -363,7 +363,7 @@
         hinweis.style.display = "none";
 
         var TYP_LABEL = {
-            text: "Text", mehrzeil: "Mehrzeilig", zahl: "Zahl", datum: "Datum",
+            text: "Text", mehrzeil: "Mehrzeilig", zahl: "Zahl", datum: "Datum", datei: "Datei-Upload",
             uhrzeit: "Uhrzeit", email: "E-Mail", bool: "Ja/Nein", iban: "IBAN",
             auswahl: "Auswahl", radio: "Multiple Choice", checkboxen: "Checkboxen",
             berechnung: "Berechnung", textblock: "Fliesstext", abschnitt: "Abschnitt",
@@ -406,6 +406,7 @@
         document.getElementById("feld-id-vorschau").textContent = feld ? (feld.id || "") : "";
         document.getElementById("feld-formel").value = feld ? (feld.formel || "") : "";
         document.getElementById("feld-einheit").value = feld ? (feld.einheit || "") : "";
+        document.getElementById("feld-akzeptieren").value = feld ? (feld.akzeptieren || "") : "";
         document.getElementById("feld-textblock-inhalt").value = feld ? (feld.text || "") : "";
         document.getElementById("feld-abschnitt-groesse").value = feld ? (feld.groesse || "mittel") : "mittel";
         document.getElementById("feld-abschnitt-ausrichtung").value = feld ? (feld.ausrichtung || "links") : "links";
@@ -419,6 +420,7 @@
     function toggleOptionenRow(typ) {
         var mitOptionen = ["auswahl", "radio", "checkboxen"];
         var mitFormel = ["berechnung"];
+        var mitDatei = ["datei"];
         var mitTextblock = ["textblock"];
         var mitAbschnitt = ["abschnitt"];
         var ohneLabel = ["trennlinie", "leerblock", "zusammenfassung"];
@@ -428,6 +430,7 @@
         document.getElementById("optionen-row").style.display = mitOptionen.indexOf(typ) >= 0 ? "" : "none";
         document.getElementById("formel-row").style.display = mitFormel.indexOf(typ) >= 0 ? "" : "none";
         document.getElementById("einheit-row").style.display = mitFormel.indexOf(typ) >= 0 ? "" : "none";
+        document.getElementById("akzeptieren-row").style.display = mitDatei.indexOf(typ) >= 0 ? "" : "none";
         document.getElementById("textblock-row").style.display = mitTextblock.indexOf(typ) >= 0 ? "" : "none";
         document.getElementById("abschnitt-row").style.display = mitAbschnitt.indexOf(typ) >= 0 ? "" : "none";
         document.getElementById("pflicht-row").style.display = ohnePflicht.indexOf(typ) >= 0 ? "none" : "";
@@ -463,6 +466,10 @@
             feld.formel = document.getElementById("feld-formel").value.trim();
             var einheit = document.getElementById("feld-einheit").value.trim();
             if (einheit) feld.einheit = einheit;
+        }
+        if (typ === "datei") {
+            var akz = document.getElementById("feld-akzeptieren").value.trim();
+            if (akz) feld.akzeptieren = akz;
         }
         if (typ === "textblock") {
             feld.text = document.getElementById("feld-textblock-inhalt").value;

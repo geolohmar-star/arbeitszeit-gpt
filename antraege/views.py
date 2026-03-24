@@ -25,6 +25,10 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+import mimetypes
+
+from dms.models import Dokument
+from dms.services import speichere_dokument, suchvektor_befuellen
 from workflow.models import WorkflowTemplate
 from workflow.services import WorkflowEngine
 
@@ -213,22 +217,33 @@ def _baue_zusammenfassung(sitzung):
             feld_id = feld.get("id", "")
             wert = sitzung.gesammelte_daten.get(feld_id, "")
             if wert != "" and wert is not None:
+                typ = feld.get("typ", "text")
                 # Berechnungsfeld: Einheit anhaengen wenn vorhanden
-                if feld.get("typ") == "berechnung" and feld.get("einheit"):
+                if typ == "berechnung" and feld.get("einheit"):
                     wert = f"{wert} {feld['einheit']}"
-                zusammenfassung.append({
+                # Dateifeld: DMS-Referenz in (dok_pk, dateiname) aufloesen
+                dms_pk = None
+                if typ == "datei":
+                    dms_pk, dateiname = dms_referenz_parsen(wert)
+                    wert = dateiname or wert
+                eintrag = {
                     "label": feld.get("label", feld_id),
                     "wert": wert,
-                    "typ": feld.get("typ", "text"),
-                })
+                    "typ": typ,
+                }
+                if dms_pk:
+                    eintrag["dms_pk"] = dms_pk
+                zusammenfassung.append(eintrag)
     return zusammenfassung
 
 
-def _validiere_schritt(schritt, post_data, vorige_daten=None):
+def _validiere_schritt(schritt, post_data, vorige_daten=None, files_data=None, user=None, pfad_name=""):
     """Prueft Pflichtfelder und gibt (daten_dict, fehler_liste) zurueck.
 
-    vorige_daten: bereits gesammelte Daten der Sitzung (fuer Berechnungsfelder
-    die auf vorherige Schritte referenzieren).
+    vorige_daten: bereits gesammelte Daten der Sitzung (fuer Berechnungsfelder).
+    files_data:   request.FILES (fuer datei-Felder).
+    user:         eingeloggter User (fuer DMS-Upload).
+    pfad_name:    Name des Pfads (fuer DMS-Dokument-Titel).
     """
     daten = {}
     fehler = []
@@ -240,6 +255,26 @@ def _validiere_schritt(schritt, post_data, vorige_daten=None):
             wert = feld_id in post_data
         elif typ == "checkboxen":
             wert = ", ".join(post_data.getlist(feld_id))
+        elif typ == "datei":
+            # Datei-Upload: bereits vorhandene DMS-Referenz aus vorigen_daten behalten
+            datei_obj = (files_data or {}).get(feld_id)
+            vorhandene_ref = (vorige_daten or {}).get(feld_id, "")
+            if datei_obj:
+                ref = _speichere_datei_ins_dms(
+                    datei_obj, feld.get("label", feld_id), pfad_name, user
+                )
+                if ref:
+                    wert = ref
+                else:
+                    fehler.append(f'"{feld.get("label", feld_id)}" konnte nicht gespeichert werden.')
+                    wert = ""
+            else:
+                # Keine neue Datei – vorhandene Referenz aus vorigen Schritten behalten
+                wert = vorhandene_ref
+            if pflicht and not wert:
+                fehler.append(f'"{feld.get("label", feld_id)}" ist ein Pflichtfeld.')
+            daten[feld_id] = wert
+            continue
         else:
             wert = post_data.get(feld_id, "").strip()
         if pflicht and not wert and wert != 0:
@@ -289,6 +324,72 @@ def _normalisiere_uhrzeit(wert):
     if h > 23 or m > 59:
         return None
     return f"{h:02d}:{m:02d}"
+
+
+# ---------------------------------------------------------------------------
+# DMS-Datei-Upload aus Formularschritt
+# ---------------------------------------------------------------------------
+
+# Praefx fuer DMS-Referenzen in gesammelte_daten
+_DMS_PRAEFX = "__dms__"
+
+
+def _speichere_datei_ins_dms(datei_obj, feld_label, pfad_name, user):
+    """Laedt eine hochgeladene Datei ins DMS (Klasse 1, offen).
+
+    Gibt eine String-Referenz '__dms__:{pk}:{dateiname}' zurueck
+    oder None bei Fehler.
+    """
+    try:
+        inhalt_bytes = datei_obj.read()
+        mime = (
+            datei_obj.content_type
+            or mimetypes.guess_type(datei_obj.name)[0]
+            or "application/octet-stream"
+        )
+        # OrgEinheit des Users ermitteln
+        eigentuemereinheit = None
+        try:
+            ma = user.hr_mitarbeiter
+            if ma.stelle and ma.stelle.org_einheit_id:
+                eigentuemereinheit_id = ma.stelle.org_einheit_id
+                from hr.models import OrgEinheit
+                eigentuemereinheit = OrgEinheit.objects.get(pk=eigentuemereinheit_id)
+        except Exception:
+            pass
+
+        dok = Dokument(
+            dateiname=datei_obj.name,
+            dateityp=mime,
+            groesse_bytes=len(inhalt_bytes),
+            titel=f"{pfad_name} – {feld_label}",
+            klasse="offen",
+            erstellt_von=user,
+            eigentuemereinheit=eigentuemereinheit,
+        )
+        speichere_dokument(dok, inhalt_bytes)
+        dok.save()
+        suchvektor_befuellen(dok)
+        return f"{_DMS_PRAEFX}:{dok.pk}:{datei_obj.name}"
+    except Exception:
+        logger.exception("Datei-Upload ins DMS fehlgeschlagen")
+        return None
+
+
+def dms_referenz_parsen(wert):
+    """Parst eine DMS-Referenz '__dms__:{pk}:{dateiname}'.
+
+    Gibt (pk, dateiname) oder (None, None) zurueck.
+    """
+    if not isinstance(wert, str) or not wert.startswith(f"{_DMS_PRAEFX}:"):
+        return None, None
+    teile = wert.split(":", 2)
+    if len(teile) < 3:
+        return None, None
+    try:
+        return int(teile[1]), teile[2]
+    except (ValueError, IndexError):
+        return None, None
 
 
 # ---------------------------------------------------------------------------
@@ -505,7 +606,14 @@ def pfad_schritt(request, sitzung_pk):
     besucht = len(sitzung.besuchte_schritte)
 
     if request.method == "POST":
-        schritt_daten, fehler = _validiere_schritt(schritt, request.POST, sitzung.gesammelte_daten)
+        schritt_daten, fehler = _validiere_schritt(
+            schritt,
+            request.POST,
+            vorige_daten=sitzung.gesammelte_daten,
+            files_data=request.FILES,
+            user=request.user,
+            pfad_name=sitzung.pfad.name,
+        )
 
         if fehler:
             return render(request, "antraege/pfad_schritt.html", {

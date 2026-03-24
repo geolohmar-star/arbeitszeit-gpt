@@ -25,7 +25,7 @@
 
     <div class="card mt-3">
         <div class="card-body">
-            <form method="post">
+            <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="row g-3">
 
@@ -166,6 +166,26 @@
                     <input type="hidden" name="{{ id }}" id="berechnung-hidden-{{ id }}">
                 </div>
 
+                {% elif typ == "datei" %}
+                <div class="{% if feld.breite == 50 %}col-md-6{% elif feld.breite == 25 %}col-md-3{% else %}col-12{% endif %}">
+                    <label class="form-label fw-semibold" for="f-{{ id }}">
+                        {{ label }}{% if pflicht %} <span class="text-danger">*</span>{% endif %}
+                    </label>
+                    {% with vorhandene_ref=vorwerte|default_if_none:'' %}
+                    {% if vorhandene_ref %}
+                    <div class="alert alert-success py-2 small mb-2">
+                        Bereits hochgeladen – neue Datei waehlen um zu ersetzen.
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                    <input type="file" class="form-control" name="{{ id }}" id="f-{{ id }}"
+                           {% if feld.akzeptieren %}accept="{{ feld.akzeptieren }}"{% endif %}
+                           {% if pflicht and not vorwerte %}required{% endif %}>
+                    {% if feld.hilfetext %}
+                    <div class="form-text">{{ feld.hilfetext }}</div>
+                    {% endif %}
+                </div>
+
                 {% elif typ == "textblock" %}
                 <div class="col-12">
                     <div class="alert alert-light border" id="textblock-{{ id }}">{{ feld.text }}</div>
@@ -190,6 +210,10 @@
                                     {% if eintrag.typ == "bool" %}
                                         {% if eintrag.wert %}<span class="badge bg-success">Ja</span>
                                         {% else %}<span class="badge bg-secondary">Nein</span>{% endif %}
+                                    {% elif eintrag.typ == "datei" and eintrag.dms_pk %}
+                                        <a href="{% url 'dms:detail' eintrag.dms_pk %}" target="_blank" class="text-decoration-none small">
+                                            &#128206; {{ eintrag.wert }}
+                                        </a>
                                     {% else %}{{ eintrag.wert }}{% endif %}
                                 </dd>
                             </div>
