@@ -509,48 +509,279 @@
     }
 
     // -----------------------------------------------------------------------
-    // Transition Modal
+    // Transition Modal – Visueller Bedingungsbuilder
     // -----------------------------------------------------------------------
+
+    var OPERATOREN_TYPEN = {
+        text:        [["==","gleich"], ["!=","ungleich"]],
+        mehrzeil:    [["==","gleich"], ["!=","ungleich"]],
+        email:       [["==","gleich"], ["!=","ungleich"]],
+        iban:        [["==","gleich"], ["!=","ungleich"]],
+        zahl:        [["==","gleich"], ["!=","ungleich"], [">","größer als"], ["<","kleiner als"], [">=","größer gleich"], ["<=","kleiner gleich"]],
+        berechnung:  [["==","gleich"], ["!=","ungleich"], [">","größer als"], ["<","kleiner als"], [">=","größer gleich"], ["<=","kleiner gleich"]],
+        datum:       [["==","gleich"], ["<","vor dem Datum"], [">","nach dem Datum"]],
+        bool:        [["==\"True\"","ist aktiv (Ja)"], ["==\"False\"","ist nicht aktiv (Nein)"]],
+        auswahl:     [["==","gleich"], ["!=","ungleich"]],
+        radio:       [["==","gleich"], ["!=","ungleich"]],
+        checkboxen:  [["==","enthält"], ["!=","enthält nicht"]],
+        uhrzeit:     [["==","gleich"], [">","nach"], ["<","vor"]],
+    };
+
+    function _alleInputFelder() {
+        var felder = [];
+        var KEINE = ["textblock", "abschnitt", "trennlinie", "leerblock"];
+        Object.values(schritte).forEach(function (s) {
+            (s.felder_json || []).forEach(function (f) {
+                if (f.id && KEINE.indexOf(f.typ) === -1) felder.push(f);
+            });
+        });
+        return felder;
+    }
+
+    function _feldById(feld_id) {
+        return _alleInputFelder().find(function (f) { return f.id === feld_id; }) || null;
+    }
+
+    function _renderRegelZeile(feld_id, op_raw, wert) {
+        var felder = _alleInputFelder();
+        var feldOpts = '<option value="">— Feld wählen —</option>';
+        felder.forEach(function (f) {
+            feldOpts += '<option value="' + esc(f.id) + '"' + (f.id === feld_id ? ' selected' : '') + '>' + esc(f.label || f.id) + '</option>';
+        });
+
+        var feld = _feldById(feld_id);
+        var opListe = (feld && OPERATOREN_TYPEN[feld.typ]) ? OPERATOREN_TYPEN[feld.typ] : OPERATOREN_TYPEN.text;
+        var opOpts = opListe.map(function (o) {
+            return '<option value="' + esc(o[0]) + '"' + (o[0] === op_raw ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+        }).join("");
+
+        // Wert-Input: bei auswahl/radio Dropdown, bei bool versteckt
+        var istBool = feld && feld.typ === "bool";
+        var hatOptionen = feld && (feld.typ === "auswahl" || feld.typ === "radio" || feld.typ === "checkboxen") && feld.optionen && feld.optionen.length;
+        var wertHtml = "";
+        if (istBool) {
+            wertHtml = '<input type="hidden" class="regel-wert" value="">';
+        } else if (hatOptionen) {
+            var selOpts = '<option value="">— wählen —</option>';
+            feld.optionen.forEach(function (o) {
+                selOpts += '<option value="' + esc(o) + '"' + (o === wert ? ' selected' : '') + '>' + esc(o) + '</option>';
+            });
+            wertHtml = '<select class="form-select form-select-sm regel-wert" style="min-width:140px;">' + selOpts + '</select>';
+        } else {
+            var inputTyp = (feld && (feld.typ === "zahl" || feld.typ === "berechnung")) ? "number" : (feld && feld.typ === "datum" ? "date" : "text");
+            wertHtml = '<input type="' + inputTyp + '" class="form-control form-control-sm regel-wert" style="min-width:120px;" placeholder="Wert" value="' + esc(wert) + '">';
+        }
+
+        return '<div class="d-flex align-items-center gap-2 mb-2 regel-zeile">'
+            + '<select class="form-select form-select-sm regel-feld" style="max-width:200px;">' + feldOpts + '</select>'
+            + '<select class="form-select form-select-sm regel-op" style="max-width:160px;">' + opOpts + '</select>'
+            + wertHtml
+            + '<button type="button" class="btn btn-sm btn-outline-danger regel-loeschen" title="Entfernen">&times;</button>'
+            + '</div>';
+    }
+
+    function _builderNeuzeichnen(regeln) {
+        var container = document.getElementById("builder-regeln");
+        container.innerHTML = "";
+        if (!regeln || regeln.length === 0) {
+            container.innerHTML = '<div class="text-muted small mb-2">Noch keine Bedingung. Klicke "+ Bedingung hinzufügen".</div>';
+            document.getElementById("verbinder-auswahl").style.display = "none";
+            return;
+        }
+        regeln.forEach(function (r) {
+            container.insertAdjacentHTML("beforeend", _renderRegelZeile(r.feld_id || "", r.op || "==", r.wert || ""));
+        });
+        document.getElementById("verbinder-auswahl").style.display = regeln.length > 1 ? "" : "none";
+
+        // Events
+        container.querySelectorAll(".regel-feld").forEach(function (sel) {
+            sel.addEventListener("change", function () {
+                var zeile = sel.closest(".regel-zeile");
+                var neu = _renderRegelZeile(sel.value, "==", "");
+                zeile.outerHTML = neu;
+                // re-attach events
+                _reattachRegelEvents(container);
+                document.getElementById("verbinder-auswahl").style.display =
+                    container.querySelectorAll(".regel-zeile").length > 1 ? "" : "none";
+            });
+        });
+        _reattachRegelEvents(container);
+    }
+
+    function _reattachRegelEvents(container) {
+        container.querySelectorAll(".regel-loeschen").forEach(function (btn) {
+            btn.onclick = function () {
+                btn.closest(".regel-zeile").remove();
+                document.getElementById("verbinder-auswahl").style.display =
+                    container.querySelectorAll(".regel-zeile").length > 1 ? "" : "none";
+                if (container.querySelectorAll(".regel-zeile").length === 0) {
+                    container.innerHTML = '<div class="text-muted small mb-2">Noch keine Bedingung. Klicke "+ Bedingung hinzufügen".</div>';
+                }
+            };
+        });
+        container.querySelectorAll(".regel-feld").forEach(function (sel) {
+            if (!sel._hasEvent) {
+                sel._hasEvent = true;
+                sel.addEventListener("change", function () {
+                    var zeile = sel.closest(".regel-zeile");
+                    zeile.outerHTML = _renderRegelZeile(sel.value, "==", "");
+                    _reattachRegelEvents(container);
+                    document.getElementById("verbinder-auswahl").style.display =
+                        container.querySelectorAll(".regel-zeile").length > 1 ? "" : "none";
+                });
+            }
+        });
+    }
+
+    function _leseRegeln() {
+        var regeln = [];
+        document.querySelectorAll("#builder-regeln .regel-zeile").forEach(function (zeile) {
+            var feld_id = zeile.querySelector(".regel-feld").value;
+            var op = zeile.querySelector(".regel-op").value;
+            var wertEl = zeile.querySelector(".regel-wert");
+            var wert = wertEl ? wertEl.value : "";
+            if (feld_id) regeln.push({ feld_id: feld_id, op: op, wert: wert });
+        });
+        return regeln;
+    }
+
+    function _generiereFormel(regeln, verbinder) {
+        if (!regeln || regeln.length === 0) return "";
+        var teile = regeln.map(function (r) {
+            var feld = _feldById(r.feld_id);
+            var istBool = feld && feld.typ === "bool";
+            var istZahl = feld && (feld.typ === "zahl" || feld.typ === "berechnung");
+            if (istBool) {
+                // Op ist z.B. =="True" oder =="False"
+                return "{{" + r.feld_id + "}}" + r.op;
+            }
+            if (r.op.startsWith("==") || r.op.startsWith("!=")) {
+                // == oder !=
+                var op2 = r.op.length === 2 ? r.op : "==";
+                if (istZahl) return "{{" + r.feld_id + "}} " + op2 + " " + (parseFloat(r.wert) || 0);
+                return "{{" + r.feld_id + "}} " + op2 + " \"" + r.wert.replace(/"/g, '\\"') + "\"";
+            }
+            // >, <, >=, <=
+            return "{{" + r.feld_id + "}} " + r.op + " " + (parseFloat(r.wert) || 0);
+        });
+        return teile.join(" " + (verbinder || "and") + " ");
+    }
+
+    function _parseFormelZuRegeln(formel) {
+        if (!formel || !formel.trim()) return { modus: "immer", regeln: [], verbinder: "and" };
+        var verbinder = "and";
+        var teile;
+        if (/\bor\b/.test(formel) && !/\band\b/.test(formel)) {
+            verbinder = "or";
+            teile = formel.split(/\bor\b/);
+        } else {
+            teile = formel.split(/\band\b/);
+        }
+        var regeln = [];
+        for (var i = 0; i < teile.length; i++) {
+            var teil = teile[i].trim();
+            // Bool: {{feld}}=="True" oder {{feld}}=="False"
+            var boolMatch = teil.match(/^\{\{(\w+)\}\}(==\"True\"|==\"False\")$/);
+            if (boolMatch) {
+                regeln.push({ feld_id: boolMatch[1], op: boolMatch[2], wert: "" });
+                continue;
+            }
+            // Zahl oder Text: {{feld}} op wert
+            var m = teil.match(/^\{\{(\w+)\}\}\s*(==|!=|>=|<=|>|<)\s*(.+)$/);
+            if (!m) return null; // nicht parsierbar
+            var wert = m[3].trim();
+            if (wert.startsWith('"') && wert.endsWith('"')) wert = wert.slice(1, -1);
+            regeln.push({ feld_id: m[1], op: m[2], wert: wert });
+        }
+        return { modus: "visuell", regeln: regeln, verbinder: verbinder };
+    }
+
+    function _setzeModus(modus) {
+        document.getElementById("builder-visuell").style.display = modus === "visuell" ? "" : "none";
+        document.getElementById("builder-experte").style.display = modus === "experte" ? "" : "none";
+        var radio = document.querySelector('input[name="bedingung-modus"][value="' + modus + '"]');
+        if (radio) radio.checked = true;
+    }
 
     function oeffneTransitionModal(edgeId) {
         editEdgeId = edgeId;
         var t = transitionen.find(function (x) { return x.id === edgeId; });
         if (!t) return;
 
-        document.getElementById("transition-bedingung").value = t.bedingung || "";
         document.getElementById("transition-label").value = t.label || "";
         document.getElementById("transition-reihenfolge").value = t.reihenfolge || 0;
 
-        // Verfuegbare Felder ermitteln: alle Felder aller Schritte die VOR dem Ziel-Schritt liegen
-        var alleFelder = [];
-        Object.values(schritte).forEach(function (s) {
-            (s.felder_json || []).forEach(function (f) {
-                if (f.id) alleFelder.push(f);
-            });
-        });
-        var html = "";
-        if (alleFelder.length === 0) {
-            html = '<span class="text-muted small">Noch keine Felder definiert.</span>';
+        // Formel parsen und Modus bestimmen
+        var geparst = _parseFormelZuRegeln(t.bedingung || "");
+        if (!geparst) {
+            // Nicht parsierbar → Experte
+            _setzeModus("experte");
+            document.getElementById("transition-bedingung").value = t.bedingung || "";
+        } else if (geparst.modus === "immer") {
+            _setzeModus("immer");
+            _builderNeuzeichnen([]);
         } else {
-            alleFelder.forEach(function (f) {
-                html += '<button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-feld-id="' + esc(f.id) + '">';
-                html += esc(f.label) + ' <code class="small">{{' + esc(f.id) + '}}</code></button>';
-            });
+            _setzeModus("visuell");
+            document.getElementById("regel-verbinder").value = geparst.verbinder;
+            _builderNeuzeichnen(geparst.regeln);
         }
+
+        // Verfuegbare Felder fuer Experten-Modus
+        var felder = _alleInputFelder();
+        var html = felder.length === 0
+            ? '<span class="text-muted small">Noch keine Felder definiert.</span>'
+            : felder.map(function (f) {
+                return '<button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-feld-id="' + esc(f.id) + '">'
+                    + esc(f.label || f.id) + ' <code class="small">{{' + esc(f.id) + '}}</code></button>';
+            }).join("");
         document.getElementById("verfuegbare-felder-inhalt").innerHTML = html;
 
         transitionModal.show();
     }
 
+    // Modus-Radio Listener
+    document.querySelectorAll('input[name="bedingung-modus"]').forEach(function (radio) {
+        radio.addEventListener("change", function () { _setzeModus(this.value); });
+    });
+
+    // + Bedingung hinzufügen
+    document.getElementById("btn-regel-hinzu").addEventListener("click", function () {
+        var container = document.getElementById("builder-regeln");
+        var leer = container.querySelector(".text-muted");
+        if (leer) leer.remove();
+        container.insertAdjacentHTML("beforeend", _renderRegelZeile("", "==", ""));
+        _reattachRegelEvents(container);
+        document.getElementById("verbinder-auswahl").style.display =
+            container.querySelectorAll(".regel-zeile").length > 1 ? "" : "none";
+    });
+
     function transitionSpeichern() {
         var t = transitionen.find(function (x) { return x.id === editEdgeId; });
         if (!t) { transitionModal.hide(); return; }
 
-        t.bedingung = document.getElementById("transition-bedingung").value.trim();
+        var modus = document.querySelector('input[name="bedingung-modus"]:checked');
+        modus = modus ? modus.value : "immer";
+
+        if (modus === "immer") {
+            t.bedingung = "";
+        } else if (modus === "visuell") {
+            var regeln = _leseRegeln();
+            var verbinder = document.getElementById("regel-verbinder").value;
+            t.bedingung = _generiereFormel(regeln, verbinder);
+        } else {
+            t.bedingung = document.getElementById("transition-bedingung").value.trim();
+        }
+
         t.label = document.getElementById("transition-label").value.trim();
         t.reihenfolge = parseInt(document.getElementById("transition-reihenfolge").value, 10) || 0;
 
-        edges.update({ id: editEdgeId, label: t.label || (t.bedingung ? "?" : "") });
+        // Automatisches Label wenn leer
+        if (!t.label && t.bedingung) {
+            var m = t.bedingung.match(/"\s*(.*?)\s*"/);
+            t.label = m ? m[1] : (t.bedingung.length <= 20 ? t.bedingung : "?");
+        }
+
+        edges.update({ id: editEdgeId, label: t.label || (t.bedingung ? "…" : "") });
         transitionModal.hide();
     }
 

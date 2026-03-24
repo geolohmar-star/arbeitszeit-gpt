@@ -82,6 +82,13 @@ def _ast_eval(node, werte):
         l = _ast_eval(node.left, werte)
         r = _ast_eval(node.comparators[0], werte)
         return op(l, r)
+    if isinstance(node, ast.BoolOp):
+        werte_liste = [_ast_eval(v, werte) for v in node.values]
+        if isinstance(node.op, ast.And):
+            return all(werte_liste)
+        if isinstance(node.op, ast.Or):
+            return any(werte_liste)
+        raise ValueError("Nicht erlaubter Bool-Operator")
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
         return -float(_ast_eval(node.operand, werte))
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):

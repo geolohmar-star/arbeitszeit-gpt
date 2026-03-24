@@ -223,36 +223,92 @@
 
 <!-- Modal: Transition bearbeiten -->
 <div class="modal fade" id="transition-modal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Verbindung bearbeiten</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+
+                <!-- Modus-Auswahl -->
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Bedingung</label>
-                    <textarea class="form-control font-monospace" id="transition-bedingung" rows="3"
-                              placeholder="Leer = immer wahr&#10;Beispiele:&#10;{{tierart}} == &quot;Kampfhund&quot;&#10;{{alter_zahl}} >= 18&#10;WENN({{stunden_zahl}} > 8; 1; 0)"></textarea>
-                    <small class="text-muted">
-                        Referenziert Feld-IDs aller bisherigen Schritte mit <code>{{feld_id}}</code>.
-                        Operatoren: <code>== != &gt; &lt; &gt;= &lt;=</code>
-                    </small>
+                    <label class="form-label fw-semibold">Wann soll dieser Pfeil genommen werden?</label>
+                    <div class="d-flex gap-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="bedingung-modus"
+                                   id="modus-immer" value="immer">
+                            <label class="form-check-label" for="modus-immer">
+                                <strong>Immer</strong> <small class="text-muted">(kein Filter)</small>
+                            </label>
+                        </div>
+                        <div class="form-check ms-3">
+                            <input class="form-check-input" type="radio" name="bedingung-modus"
+                                   id="modus-visuell" value="visuell" checked>
+                            <label class="form-check-label" for="modus-visuell">
+                                <strong>Bedingung aufbauen</strong>
+                            </label>
+                        </div>
+                        <div class="form-check ms-3">
+                            <input class="form-check-input" type="radio" name="bedingung-modus"
+                                   id="modus-experte" value="experte">
+                            <label class="form-check-label" for="modus-experte">
+                                <strong>Formel</strong> <small class="text-muted">(Experte)</small>
+                            </label>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Beschriftung der Kante</label>
-                    <input type="text" class="form-control" id="transition-label"
-                           placeholder="z.B. Ja / Nein / Kampfhund">
+
+                <!-- Visueller Builder -->
+                <div id="builder-visuell" style="display:none;">
+                    <div id="builder-regeln"></div>
+                    <div class="d-flex align-items-center gap-3 mt-2">
+                        <button type="button" id="btn-regel-hinzu" class="btn btn-outline-primary btn-sm">
+                            + Bedingung hinzufügen
+                        </button>
+                        <div id="verbinder-auswahl" style="display:none;">
+                            <label class="form-label mb-0 me-1 small fw-semibold">Verknüpfung:</label>
+                            <select class="form-select form-select-sm d-inline-block" id="regel-verbinder" style="width:100px;">
+                                <option value="and">UND (alle)</option>
+                                <option value="or">ODER (mind. 1)</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Reihenfolge</label>
-                    <input type="number" class="form-control" id="transition-reihenfolge" value="0" min="0">
-                    <small class="text-muted">Niedrigere Zahl = wird zuerst geprüft (bei mehreren Ausgängen)</small>
+
+                <!-- Experten-Modus -->
+                <div id="builder-experte" style="display:none;">
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Formel</label>
+                        <textarea class="form-control font-monospace" id="transition-bedingung" rows="3"
+                                  placeholder="Leer = immer wahr&#10;Beispiele:&#10;{{tierart}} == &quot;Kampfhund&quot;&#10;{{alter}} >= 18&#10;{{tierart}} == &quot;Hund&quot; and {{anzahl}} > 2"></textarea>
+                        <small class="text-muted">
+                            Operatoren: <code>== != &gt; &lt; &gt;= &lt;=</code> &nbsp;|&nbsp;
+                            Verknüpfung: <code>and</code> <code>or</code>
+                        </small>
+                    </div>
+                    <div id="verfuegbare-felder-box" class="p-2 bg-light border rounded">
+                        <small class="text-muted fw-semibold d-block mb-1">Felder (klicken zum Einfügen):</small>
+                        <div id="verfuegbare-felder-inhalt"></div>
+                    </div>
                 </div>
-                <div id="verfuegbare-felder-box" class="p-2 bg-light border rounded">
-                    <small class="text-muted fw-semibold d-block mb-1">Verfügbare Felder (klicken zum Einfügen):</small>
-                    <div id="verfuegbare-felder-inhalt"></div>
+
+                <hr class="my-3">
+
+                <!-- Beschriftung + Reihenfolge -->
+                <div class="row">
+                    <div class="col-md-8 mb-2">
+                        <label class="form-label fw-semibold">Beschriftung des Pfeils <small class="text-muted">(optional)</small></label>
+                        <input type="text" class="form-control" id="transition-label"
+                               placeholder="z.B. Ja / Nein / Kampfhund">
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label fw-semibold">Priorität</label>
+                        <input type="number" class="form-control" id="transition-reihenfolge" value="0" min="0">
+                        <small class="text-muted">0 = zuerst geprüft</small>
+                    </div>
                 </div>
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
