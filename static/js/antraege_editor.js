@@ -364,8 +364,10 @@
 
         var TYP_LABEL = {
             text: "Text", mehrzeil: "Mehrzeilig", zahl: "Zahl", datum: "Datum",
-            uhrzeit: "Uhrzeit", email: "E-Mail", bool: "Ja/Nein",
-            auswahl: "Auswahl", radio: "Multiple Choice",
+            uhrzeit: "Uhrzeit", email: "E-Mail", bool: "Ja/Nein", iban: "IBAN",
+            auswahl: "Auswahl", radio: "Multiple Choice", checkboxen: "Checkboxen",
+            berechnung: "Berechnung", textblock: "Fliesstext", abschnitt: "Abschnitt",
+            trennlinie: "—", leerblock: "Leerblock", zusammenfassung: "Zusammenfassung",
         };
 
         var html = '<ul class="list-group list-group-flush">';
@@ -412,15 +414,15 @@
         feldModal.show();
     }
 
-    var STRUKTUR_TYPEN = ["textblock", "abschnitt", "trennlinie", "leerblock"];
+    var STRUKTUR_TYPEN = ["textblock", "abschnitt", "trennlinie", "leerblock", "zusammenfassung"];
 
     function toggleOptionenRow(typ) {
         var mitOptionen = ["auswahl", "radio", "checkboxen"];
         var mitFormel = ["berechnung"];
         var mitTextblock = ["textblock"];
         var mitAbschnitt = ["abschnitt"];
-        var ohneLabel = ["trennlinie", "leerblock"];
-        var ohneHilfe = ["trennlinie", "leerblock", "bool", "abschnitt", "textblock", "berechnung"];
+        var ohneLabel = ["trennlinie", "leerblock", "zusammenfassung"];
+        var ohneHilfe = ["trennlinie", "leerblock", "bool", "abschnitt", "textblock", "berechnung", "zusammenfassung"];
         var ohnePflicht = STRUKTUR_TYPEN.concat(["berechnung"]);
 
         document.getElementById("optionen-row").style.display = mitOptionen.indexOf(typ) >= 0 ? "" : "none";
@@ -437,14 +439,15 @@
     }
 
     function feldSpeichern() {
+        var typ = document.getElementById("feld-typ").value;
         var label = document.getElementById("feld-label").value.trim();
-        if (!label) {
+        var ohneLabel = ["trennlinie", "leerblock", "zusammenfassung"];
+        if (!label && ohneLabel.indexOf(typ) === -1) {
             document.getElementById("feld-label").classList.add("is-invalid");
             return;
         }
         document.getElementById("feld-label").classList.remove("is-invalid");
 
-        var typ = document.getElementById("feld-typ").value;
         var feld = {
             typ: typ,
             label: label,
@@ -470,7 +473,7 @@
             feld.ausrichtung = document.getElementById("feld-abschnitt-ausrichtung").value;
             feld.stil = document.getElementById("feld-abschnitt-stil").value;
         }
-        if (typ === "trennlinie" || typ === "leerblock") {
+        if (typ === "trennlinie" || typ === "leerblock" || typ === "zusammenfassung") {
             feld.label = "";
         }
 
@@ -529,7 +532,7 @@
 
     function _alleInputFelder() {
         var felder = [];
-        var KEINE = ["textblock", "abschnitt", "trennlinie", "leerblock"];
+        var KEINE = ["textblock", "abschnitt", "trennlinie", "leerblock", "zusammenfassung"];
         Object.values(schritte).forEach(function (s) {
             (s.felder_json || []).forEach(function (f) {
                 if (f.id && KEINE.indexOf(f.typ) === -1) felder.push(f);

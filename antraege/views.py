@@ -143,12 +143,32 @@ def _naechster_schritt(schritt, gesammelte_daten):
 # Hilfsfunktionen Player
 # ---------------------------------------------------------------------------
 
-_KEINE_EINGABE = {"textblock", "abschnitt", "trennlinie", "leerblock", "link", "berechnung"}
+_KEINE_EINGABE = {"textblock", "abschnitt", "trennlinie", "leerblock", "link", "berechnung", "zusammenfassung"}
 
 
 def _eingabefelder(schritt):
     """Gibt alle Eingabefelder eines Schritts zurueck (ohne Struktur-Typen)."""
     return [f for f in schritt.felder() if f.get("typ") not in _KEINE_EINGABE]
+
+
+def _baue_zusammenfassung(sitzung):
+    """Baut Label+Wert-Liste aus allen bisher gesammelten Daten."""
+    zusammenfassung = []
+    for schritt_node_id in sitzung.besuchte_schritte:
+        try:
+            schritt = sitzung.pfad.schritte.get(node_id=schritt_node_id)
+        except AntragsPfadSchritt.DoesNotExist:
+            continue
+        for feld in _eingabefelder(schritt):
+            feld_id = feld.get("id", "")
+            wert = sitzung.gesammelte_daten.get(feld_id, "")
+            if wert != "":
+                zusammenfassung.append({
+                    "label": feld.get("label", feld_id),
+                    "wert": wert,
+                    "typ": feld.get("typ", "text"),
+                })
+    return zusammenfassung
 
 
 def _validiere_schritt(schritt, post_data):
@@ -408,14 +428,15 @@ def pfad_schritt(request, sitzung_pk):
         sitzung.besuchte_schritte = besucht_liste
         sitzung.save(update_fields=["aktueller_schritt", "besuchte_schritte", "gesammelte_daten"])
 
-        # Endknoten direkt erkennen (ohne Felder)
-        if naechster.ist_ende and not _eingabefelder(naechster):
+        # Endknoten direkt ueberspringen nur wenn er keinerlei Felder hat
+        if naechster.ist_ende and not naechster.felder():
             sitzung.abschliessen()
             return redirect("antraege:pfad_abgeschlossen", sitzung_pk=sitzung.pk)
 
         return redirect("antraege:pfad_schritt", sitzung_pk=sitzung.pk)
 
     import json as _json
+    zusammenfassung = _baue_zusammenfassung(sitzung) if schritt.ist_ende else []
     return render(request, "antraege/pfad_schritt.html", {
         "sitzung": sitzung,
         "schritt": schritt,
@@ -423,6 +444,7 @@ def pfad_schritt(request, sitzung_pk):
         "vorwerte": {},
         "fortschritt": round(besucht / gesamt * 100) if gesamt else 0,
         "gesammelte_daten_json": _json.dumps(sitzung.gesammelte_daten, ensure_ascii=False),
+        "zusammenfassung": zusammenfassung,
     })
 
 
@@ -430,25 +452,9 @@ def pfad_schritt(request, sitzung_pk):
 def pfad_abgeschlossen(request, sitzung_pk):
     """Abschluss-Seite nach erfolgreichem Durchlauf."""
     sitzung = get_object_or_404(AntragsPfadSitzung, pk=sitzung_pk, user=request.user)
-    # Felder mit Labels anreichern fuer die Zusammenfassung
-    zusammenfassung = []
-    for schritt_node_id in sitzung.besuchte_schritte:
-        try:
-            schritt = sitzung.pfad.schritte.get(node_id=schritt_node_id)
-        except AntragsPfadSchritt.DoesNotExist:
-            continue
-        for feld in _eingabefelder(schritt):
-            feld_id = feld.get("id", "")
-            wert = sitzung.gesammelte_daten.get(feld_id, "")
-            if wert != "":
-                zusammenfassung.append({
-                    "label": feld.get("label", feld_id),
-                    "wert": wert,
-                    "typ": feld.get("typ", "text"),
-                })
     return render(request, "antraege/pfad_abgeschlossen.html", {
         "sitzung": sitzung,
-        "zusammenfassung": zusammenfassung,
+        "zusammenfassung": _baue_zusammenfassung(sitzung),
     })
 
 
