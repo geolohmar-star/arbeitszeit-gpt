@@ -121,15 +121,28 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Typ</label>
                     <select class="form-select" id="feld-typ">
-                        <option value="text">Text (einzeilig)</option>
-                        <option value="mehrzeil">Text (mehrzeilig)</option>
-                        <option value="zahl">Zahl</option>
-                        <option value="datum">Datum</option>
-                        <option value="uhrzeit">Uhrzeit</option>
-                        <option value="email">E-Mail</option>
-                        <option value="bool">Ja/Nein (Checkbox)</option>
-                        <option value="auswahl">Auswahl (Dropdown)</option>
-                        <option value="radio">Multiple Choice</option>
+                        <optgroup label="Eingabefelder">
+                            <option value="text">Text (einzeilig)</option>
+                            <option value="mehrzeil">Text (mehrzeilig)</option>
+                            <option value="zahl">Zahl</option>
+                            <option value="datum">Datum</option>
+                            <option value="uhrzeit">Uhrzeit</option>
+                            <option value="email">E-Mail (validiert)</option>
+                            <option value="iban">IBAN (validiert)</option>
+                            <option value="bool">Ja/Nein (Checkbox)</option>
+                            <option value="auswahl">Auswahl (Dropdown)</option>
+                            <option value="radio">Multiple Choice</option>
+                            <option value="checkboxen">Kontrollkästchen (Mehrfach)</option>
+                        </optgroup>
+                        <optgroup label="Berechnung &amp; Anzeige">
+                            <option value="berechnung">Berechnungsfeld (Formel)</option>
+                        </optgroup>
+                        <optgroup label="Struktur">
+                            <option value="textblock">Fließtext / Hinweis</option>
+                            <option value="abschnitt">Abschnitts-Überschrift</option>
+                            <option value="trennlinie">Trennlinie</option>
+                            <option value="leerblock">Leerblock (Abstand)</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div class="mb-3">
@@ -146,7 +159,56 @@
                     <textarea class="form-control" id="feld-optionen" rows="4"
                               placeholder="Eine Option pro Zeile"></textarea>
                 </div>
-                <div class="form-check">
+
+                <div class="mb-3" id="formel-row" style="display:none;">
+                    <label class="form-label fw-semibold">Formel *</label>
+                    <input type="text" class="form-control font-monospace" id="feld-formel"
+                           placeholder="z.B. {{anzahl_hunde}} * 120">
+                    <small class="text-muted">Referenziert Feld-IDs mit <code>{{feld_id}}</code>. Operatoren: + - * /</small>
+                </div>
+
+                <div class="mb-3" id="einheit-row" style="display:none;">
+                    <label class="form-label fw-semibold">Einheit (optional)</label>
+                    <input type="text" class="form-control" id="feld-einheit" placeholder="z.B. Euro, kg, Stunden">
+                </div>
+
+                <div class="mb-3" id="textblock-row" style="display:none;">
+                    <label class="form-label fw-semibold">Text / Hinweis *</label>
+                    <textarea class="form-control" id="feld-textblock-inhalt" rows="4"
+                              placeholder="Text mit optionalen Variablen: {{feld_id}}&#10;z.B. Sie schulden {{gebuehr}} Euro."></textarea>
+                    <small class="text-muted">Variablen aus bisherigen Schritten mit <code>{{feld_id}}</code> einbetten.</small>
+                </div>
+
+                <div id="abschnitt-row" style="display:none;">
+                    <div class="row mb-2">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Grösse</label>
+                            <select class="form-select form-select-sm" id="feld-abschnitt-groesse">
+                                <option value="klein">Klein (Hinweis)</option>
+                                <option value="mittel" selected>Mittel (Abschnitt)</option>
+                                <option value="gross">Groß (Titel)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Ausrichtung</label>
+                            <select class="form-select form-select-sm" id="feld-abschnitt-ausrichtung">
+                                <option value="links" selected>Links</option>
+                                <option value="mitte">Mitte</option>
+                                <option value="rechts">Rechts</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Stil</label>
+                            <select class="form-select form-select-sm" id="feld-abschnitt-stil">
+                                <option value="normal" selected>Normal</option>
+                                <option value="fett">Fett</option>
+                                <option value="kursiv">Kursiv</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-check" id="pflicht-row">
                     <input class="form-check-input" type="checkbox" id="feld-pflicht">
                     <label class="form-check-label" for="feld-pflicht">Pflichtfeld</label>
                 </div>

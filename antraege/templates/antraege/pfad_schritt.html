@@ -122,8 +122,57 @@
                     </label>
                     <input type="email" class="form-control" name="{{ id }}" id="f-{{ id }}"
                            placeholder="{{ feld.hilfetext|default:'name@beispiel.de' }}"
+                           value="{% if vorwerte %}{{ vorwerte|default_if_none:'' }}{% endif %}"
                            {% if pflicht %}required{% endif %}>
                 </div>
+
+                {% elif typ == "iban" %}
+                <div class="{% if feld.breite == 50 %}col-md-6{% elif feld.breite == 25 %}col-md-3{% else %}col-12{% endif %}">
+                    <label class="form-label fw-semibold" for="f-{{ id }}">
+                        {{ label }}{% if pflicht %} <span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <input type="text" class="form-control" name="{{ id }}" id="f-{{ id }}"
+                           placeholder="DE00 0000 0000 0000 0000 00" maxlength="34"
+                           value="{% if vorwerte %}{{ vorwerte|default_if_none:'' }}{% endif %}"
+                           {% if pflicht %}required{% endif %}>
+                </div>
+
+                {% elif typ == "checkboxen" %}
+                <div class="col-12">
+                    <label class="form-label fw-semibold">
+                        {{ label }}{% if pflicht %} <span class="text-danger">*</span>{% endif %}
+                    </label>
+                    <div class="d-flex flex-column gap-1">
+                        {% for opt in feld.optionen %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   name="{{ id }}" id="f-{{ id }}-{{ forloop.counter }}" value="{{ opt }}">
+                            <label class="form-check-label" for="f-{{ id }}-{{ forloop.counter }}">{{ opt }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% elif typ == "berechnung" %}
+                <div class="{% if feld.breite == 50 %}col-md-6{% elif feld.breite == 25 %}col-md-3{% else %}col-12{% endif %}">
+                    <label class="form-label fw-semibold text-muted">{{ label }}</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-light fw-semibold"
+                               id="berechnung-{{ id }}" readonly placeholder="wird berechnet …"
+                               data-berechnung-id="{{ id }}"
+                               data-formel="{{ feld.formel }}">
+                        {% if feld.einheit %}<span class="input-group-text">{{ feld.einheit }}</span>{% endif %}
+                    </div>
+                    <input type="hidden" name="{{ id }}" id="berechnung-hidden-{{ id }}">
+                </div>
+
+                {% elif typ == "textblock" %}
+                <div class="col-12">
+                    <div class="alert alert-light border" id="textblock-{{ id }}">{{ feld.text }}</div>
+                </div>
+
+                {% elif typ == "leerblock" %}
+                <div class="col-12" style="height:1rem;"></div>
 
                 {% else %}
                 <div class="{% if feld.breite == 50 %}col-md-6{% elif feld.breite == 25 %}col-md-3{% else %}col-12{% endif %}">
@@ -166,4 +215,10 @@
     </div>
     {% endif %}
 </div>
+
+{% block extra_js %}
+{% load static %}
+{{ gesammelte_daten_json|json_script:"gesammelte-daten" }}
+<script src="{% static 'js/pfad_schritt.js' %}"></script>
+{% endblock %}
 {% endblock %}

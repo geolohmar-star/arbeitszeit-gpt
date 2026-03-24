@@ -395,19 +395,45 @@
         editFeldIndex = idx;
         var feld = (idx !== null) ? schritteFelder[idx] : null;
         document.getElementById("feld-modal-titel").textContent = feld ? "Feld bearbeiten" : "Neues Feld";
-        document.getElementById("feld-typ").value = feld ? feld.typ : "text";
-        document.getElementById("feld-label").value = feld ? feld.label : "";
+        var typ = feld ? feld.typ : "text";
+        document.getElementById("feld-typ").value = typ;
+        document.getElementById("feld-label").value = feld ? (feld.label || feld.text || "") : "";
         document.getElementById("feld-hilfetext").value = feld ? (feld.hilfetext || "") : "";
         document.getElementById("feld-pflicht").checked = feld ? !!feld.pflicht : false;
         document.getElementById("feld-optionen").value = (feld && feld.optionen) ? feld.optionen.join("\n") : "";
         document.getElementById("feld-id-vorschau").textContent = feld ? (feld.id || "") : "";
-        toggleOptionenRow(document.getElementById("feld-typ").value);
+        document.getElementById("feld-formel").value = feld ? (feld.formel || "") : "";
+        document.getElementById("feld-einheit").value = feld ? (feld.einheit || "") : "";
+        document.getElementById("feld-textblock-inhalt").value = feld ? (feld.text || "") : "";
+        document.getElementById("feld-abschnitt-groesse").value = feld ? (feld.groesse || "mittel") : "mittel";
+        document.getElementById("feld-abschnitt-ausrichtung").value = feld ? (feld.ausrichtung || "links") : "links";
+        document.getElementById("feld-abschnitt-stil").value = feld ? (feld.stil || "normal") : "normal";
+        toggleOptionenRow(typ);
         feldModal.show();
     }
 
+    var STRUKTUR_TYPEN = ["textblock", "abschnitt", "trennlinie", "leerblock"];
+
     function toggleOptionenRow(typ) {
-        document.getElementById("optionen-row").style.display =
-            (typ === "auswahl" || typ === "radio") ? "" : "none";
+        var mitOptionen = ["auswahl", "radio", "checkboxen"];
+        var mitFormel = ["berechnung"];
+        var mitTextblock = ["textblock"];
+        var mitAbschnitt = ["abschnitt"];
+        var ohneLabel = ["trennlinie", "leerblock"];
+        var ohneHilfe = ["trennlinie", "leerblock", "bool", "abschnitt", "textblock", "berechnung"];
+        var ohnePflicht = STRUKTUR_TYPEN.concat(["berechnung"]);
+
+        document.getElementById("optionen-row").style.display = mitOptionen.indexOf(typ) >= 0 ? "" : "none";
+        document.getElementById("formel-row").style.display = mitFormel.indexOf(typ) >= 0 ? "" : "none";
+        document.getElementById("einheit-row").style.display = mitFormel.indexOf(typ) >= 0 ? "" : "none";
+        document.getElementById("textblock-row").style.display = mitTextblock.indexOf(typ) >= 0 ? "" : "none";
+        document.getElementById("abschnitt-row").style.display = mitAbschnitt.indexOf(typ) >= 0 ? "" : "none";
+        document.getElementById("pflicht-row").style.display = ohnePflicht.indexOf(typ) >= 0 ? "none" : "";
+
+        var labelRow = document.getElementById("feld-label").closest(".mb-3");
+        if (labelRow) labelRow.style.display = ohneLabel.indexOf(typ) >= 0 ? "none" : "";
+        var hilfeRow = document.getElementById("feld-hilfetext").closest(".mb-3");
+        if (hilfeRow) hilfeRow.style.display = ohneHilfe.indexOf(typ) >= 0 ? "none" : "";
     }
 
     function feldSpeichern() {
@@ -426,9 +452,26 @@
         };
         var hilfetext = document.getElementById("feld-hilfetext").value.trim();
         if (hilfetext) feld.hilfetext = hilfetext;
-        if (typ === "auswahl" || typ === "radio") {
+        if (typ === "auswahl" || typ === "radio" || typ === "checkboxen") {
             feld.optionen = document.getElementById("feld-optionen").value
                 .split("\n").map(function (o) { return o.trim(); }).filter(Boolean);
+        }
+        if (typ === "berechnung") {
+            feld.formel = document.getElementById("feld-formel").value.trim();
+            var einheit = document.getElementById("feld-einheit").value.trim();
+            if (einheit) feld.einheit = einheit;
+        }
+        if (typ === "textblock") {
+            feld.text = document.getElementById("feld-textblock-inhalt").value;
+        }
+        if (typ === "abschnitt") {
+            feld.text = document.getElementById("feld-label").value.trim();
+            feld.groesse = document.getElementById("feld-abschnitt-groesse").value;
+            feld.ausrichtung = document.getElementById("feld-abschnitt-ausrichtung").value;
+            feld.stil = document.getElementById("feld-abschnitt-stil").value;
+        }
+        if (typ === "trennlinie" || typ === "leerblock") {
+            feld.label = "";
         }
 
         if (editFeldIndex !== null) {

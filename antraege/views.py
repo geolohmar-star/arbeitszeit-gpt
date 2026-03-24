@@ -167,6 +167,13 @@ def _validiere_schritt(schritt, post_data):
                 fehler.append(f'"{feld.get("label", feld_id)}" ist keine gueltige Uhrzeit.')
             else:
                 wert = normiert
+        # IBAN: nur Buchstaben und Ziffern, 15-34 Zeichen
+        if typ == "iban" and wert:
+            iban_bereinigt = wert.replace(" ", "").upper()
+            if not re.match(r"^[A-Z]{2}[0-9A-Z]{13,32}$", iban_bereinigt):
+                fehler.append(f'"{feld.get("label", feld_id)}" ist keine gueltige IBAN.')
+            else:
+                wert = iban_bereinigt
         daten[feld_id] = wert
     return daten, fehler
 
@@ -401,12 +408,14 @@ def pfad_schritt(request, sitzung_pk):
 
         return redirect("antraege:pfad_schritt", sitzung_pk=sitzung.pk)
 
+    import json as _json
     return render(request, "antraege/pfad_schritt.html", {
         "sitzung": sitzung,
         "schritt": schritt,
         "fehler": [],
         "vorwerte": {},
         "fortschritt": round(besucht / gesamt * 100) if gesamt else 0,
+        "gesammelte_daten_json": _json.dumps(sitzung.gesammelte_daten, ensure_ascii=False),
     })
 
 
