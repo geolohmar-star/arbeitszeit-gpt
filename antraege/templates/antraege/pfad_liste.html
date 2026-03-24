@@ -55,7 +55,9 @@
                             Bearbeiten
                         </a>
                         <form method="post" action="{% url 'antraege:pfad_loeschen' pfad.pk %}"
-                              onsubmit="return confirm('Pfad \"{{ pfad.name }}\" wirklich löschen? Alle {{ pfad.sitzungen.count }} Einreichungen werden ebenfalls gelöscht.');">
+                              data-loeschen-form
+                              data-name="{{ pfad.name }}"
+                              data-anzahl="{{ pfad.sitzungen.count }}">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-outline-danger btn-sm">Löschen</button>
                         </form>
@@ -75,4 +77,9 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/pfad_liste.js' %}"></script>
 {% endblock %}
