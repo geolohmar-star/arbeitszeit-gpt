@@ -152,6 +152,19 @@
                         </div>
                     </div>
 
+                    <div class="row" id="stelle-row" style="display: none;">
+                        <div class="col-md-12 mb-3">
+                            <label for="schritt-stelle" class="form-label">Feste Stelle *</label>
+                            <select class="form-select" id="schritt-stelle">
+                                <option value="">-- Stelle auswaehlen --</option>
+                                {% for stelle in stellen %}
+                                <option value="{{ stelle.id }}">{{ stelle.kuerzel }} – {{ stelle.bezeichnung }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Die Person die diese Stelle besetzt bekommt den Task zugewiesen</small>
+                        </div>
+                    </div>
+
                     <!-- Ablage-Konfiguration (nur bei aktion=archivieren sichtbar) -->
                     <div id="ablage-config-row" style="display: none;">
                         <div class="alert alert-info py-2 mb-2">

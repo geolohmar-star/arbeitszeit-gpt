@@ -124,6 +124,7 @@ function createNewSchritt(position) {
     document.getElementById('schritt-aktion').value = 'genehmigen';
     document.getElementById('schritt-rolle').value = 'direkte_fuehrungskraft';
     document.getElementById('schritt-team').value = '';
+    document.getElementById('schritt-stelle').value = '';
     document.getElementById('schritt-frist').value = '3';
     document.getElementById('schritt-parallel').checked = false;
     document.getElementById('schritt-eskalation').value = '0';
@@ -169,6 +170,7 @@ function saveSchritt() {
     var aktion = document.getElementById('schritt-aktion').value;
     var rolle = document.getElementById('schritt-rolle').value;
     var teamId = document.getElementById('schritt-team').value;
+    var stelleId = document.getElementById('schritt-stelle').value;
     var frist = parseInt(document.getElementById('schritt-frist').value);
     var parallel = document.getElementById('schritt-parallel').checked;
     var eskalation = parseInt(document.getElementById('schritt-eskalation').value);
@@ -190,6 +192,12 @@ function saveSchritt() {
         return;
     }
 
+    if (aktion !== 'verteilen' && aktion !== 'archivieren' && aktion !== 'loeschung_freigeben'
+            && rolle === 'feste_stelle' && !stelleId) {
+        alert('Bitte eine Stelle auswaehlen!');
+        return;
+    }
+
     var color = aktionColors[aktion] || '#6c757d';
 
     var autoAktionen = ['verteilen', 'archivieren', 'loeschung_freigeben'];
@@ -199,10 +207,15 @@ function saveSchritt() {
         var teamOption = teamSelect.options[teamSelect.selectedIndex];
         displayRolle = 'Team: ' + teamOption.text;
     }
+    if (rolle === 'feste_stelle' && stelleId) {
+        var stelleSelect = document.getElementById('schritt-stelle');
+        var stelleOption = stelleSelect.options[stelleSelect.selectedIndex];
+        displayRolle = stelleOption.text;
+    }
 
     var nodeData = {
         titel: titel, beschreibung: beschreibung, aktion: aktion,
-        rolle: rolle, teamId: teamId, frist: frist, parallel: parallel,
+        rolle: rolle, teamId: teamId, stelleId: stelleId, frist: frist, parallel: parallel,
         eskalation: eskalation, verteilerKanaele: verteilerKanaele,
         dmsAbteilungId: dmsAbteilungId
     };
@@ -266,6 +279,7 @@ function editSchritt(nodeId) {
     document.getElementById('schritt-aktion').value = data.aktion || 'genehmigen';
     document.getElementById('schritt-rolle').value = data.rolle || 'direkte_fuehrungskraft';
     document.getElementById('schritt-team').value = data.teamId || '';
+    document.getElementById('schritt-stelle').value = data.stelleId || '';
     document.getElementById('schritt-frist').value = data.frist || 3;
     document.getElementById('schritt-parallel').checked = data.parallel || false;
     document.getElementById('schritt-eskalation').value = data.eskalation || 0;
@@ -766,6 +780,7 @@ function toggleAktionFelder() {
     var aktion = document.getElementById('schritt-aktion').value;
     var rolle = document.getElementById('schritt-rolle').value;
     var teamRow = document.getElementById('team-row');
+    var stelleRow = document.getElementById('stelle-row');
     var verteilerRow = document.getElementById('verteiler-config-row');
     var ablageRow = document.getElementById('ablage-config-row');
     var rolleRow = document.getElementById('schritt-rolle').closest('.col-md-6');
@@ -782,17 +797,31 @@ function toggleAktionFelder() {
 
     if (istVerteilen) {
         teamRow.style.display = 'none';
+        stelleRow.style.display = 'none';
         document.getElementById('schritt-team').required = false;
+        document.getElementById('schritt-stelle').required = false;
         verteilerRow.style.display = 'block';
     } else {
         verteilerRow.style.display = 'none';
         if (!istAutoOhneRolle && rolle === 'team_queue') {
             teamRow.style.display = 'block';
+            stelleRow.style.display = 'none';
             document.getElementById('schritt-team').required = true;
-        } else {
+            document.getElementById('schritt-stelle').required = false;
+            document.getElementById('schritt-stelle').value = '';
+        } else if (!istAutoOhneRolle && rolle === 'feste_stelle') {
+            stelleRow.style.display = 'block';
             teamRow.style.display = 'none';
+            document.getElementById('schritt-stelle').required = true;
             document.getElementById('schritt-team').required = false;
             document.getElementById('schritt-team').value = '';
+        } else {
+            teamRow.style.display = 'none';
+            stelleRow.style.display = 'none';
+            document.getElementById('schritt-team').required = false;
+            document.getElementById('schritt-team').value = '';
+            document.getElementById('schritt-stelle').required = false;
+            document.getElementById('schritt-stelle').value = '';
         }
     }
 }

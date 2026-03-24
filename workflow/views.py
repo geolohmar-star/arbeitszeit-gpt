@@ -263,15 +263,21 @@ def workflow_editor(request):
     )
 
     # DMS-OrgEinheiten fuer Ablage-Dropdown (Abteilungen und Bereiche)
-    from hr.models import OrgEinheit
+    from hr.models import OrgEinheit, Stelle
     dms_abteilungen = list(
         OrgEinheit.objects.exclude(kuerzel="GF").order_by("kuerzel").values("id", "kuerzel", "bezeichnung")
+    )
+
+    # Stellen fuer Feste-Stelle-Dropdown
+    stellen = list(
+        Stelle.objects.order_by("kuerzel").values("id", "kuerzel", "bezeichnung")
     )
 
     return render(request, "workflow/workflow_editor.html", {
         "autoload_id": autoload_id,
         "matrix_raeume": matrix_raeume,
         "dms_abteilungen": dms_abteilungen,
+        "stellen": stellen,
     })
 
 
@@ -314,6 +320,7 @@ def workflow_editor_load(request, template_id):
             "aktion": step.aktion_typ,
             "rolle": step.zustaendig_rolle,
             "teamId": step.zustaendig_team.id if step.zustaendig_team else None,
+            "stelleId": step.zustaendig_stelle.id if step.zustaendig_stelle else None,
             "frist": step.frist_tage,
             "parallel": step.ist_parallel,
             "eskalation": step.eskalation_nach_tagen,
@@ -474,6 +481,19 @@ def workflow_editor_save(request):
                         status=400
                     )
 
+            # Feste-Stelle-Referenz aufloesen
+            stelle_id = schritt_data.get("stelleId")
+            zustaendig_stelle = None
+            if stelle_id:
+                from hr.models import Stelle
+                try:
+                    zustaendig_stelle = Stelle.objects.get(id=stelle_id)
+                except Stelle.DoesNotExist:
+                    return JsonResponse(
+                        {"error": f"Stelle mit ID {stelle_id} nicht gefunden"},
+                        status=400
+                    )
+
             # Automatische Aktionen brauchen keinen User-Task
             aktion = schritt_data.get("aktion", "genehmigen")
             if aktion == "verteilen":
@@ -499,6 +519,7 @@ def workflow_editor_save(request):
                 auto_config=auto_config,
                 zustaendig_rolle=schritt_data.get("rolle", "direkte_fuehrungskraft"),
                 zustaendig_team=zustaendig_team,
+                zustaendig_stelle=zustaendig_stelle,
                 frist_tage=schritt_data.get("frist", 3),
                 ist_parallel=schritt_data.get("parallel", False),
                 eskalation_nach_tagen=schritt_data.get("eskalation", 0),
