@@ -54,6 +54,11 @@
                         <a href="{% url 'antraege:pfad_editor' pfad.pk %}" class="btn btn-outline-secondary btn-sm">
                             Bearbeiten
                         </a>
+                        <form method="post" action="{% url 'antraege:pfad_loeschen' pfad.pk %}"
+                              onsubmit="return confirm('Pfad \"{{ pfad.name }}\" wirklich löschen? Alle {{ pfad.sitzungen.count }} Einreichungen werden ebenfalls gelöscht.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Löschen</button>
+                        </form>
                         {% endif %}
                     </div>
                 </div>

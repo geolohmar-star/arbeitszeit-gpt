@@ -447,6 +447,24 @@ def _starte_workflow_wenn_konfiguriert(sitzung, user):
 
 
 # ---------------------------------------------------------------------------
+# Pfad loeschen
+# ---------------------------------------------------------------------------
+
+@require_POST
+@login_required
+def pfad_loeschen(request, pk):
+    """Loescht einen Pfad inklusive aller Schritte, Transitionen und Sitzungen."""
+    if not _ist_editor(request.user):
+        messages.error(request, "Kein Zugriff.")
+        return redirect("antraege:pfad_liste")
+    pfad = get_object_or_404(AntragsPfad, pk=pk)
+    name = pfad.name
+    pfad.delete()
+    messages.success(request, f'Pfad "{name}" wurde gelöscht.')
+    return redirect("antraege:pfad_liste")
+
+
+# ---------------------------------------------------------------------------
 # Schema-Felder-Import
 # ---------------------------------------------------------------------------
 
