@@ -103,6 +103,42 @@ def _ast_eval(node, werte):
     raise ValueError(f"Nicht erlaubter Ausdruck: {ast.dump(node)}")
 
 
+def _berechne_formel(formel, werte):
+    """Wertet eine Berechnungsformel aus (gleiche Engine wie _pruefe_bedingung).
+
+    Gibt einen int oder float zurueck, oder None bei Fehler.
+    Ganze Zahlen werden als int zurueckgegeben (kein Dezimalpunkt).
+    Fehlende Variablen werden als 0 behandelt.
+    """
+    if not formel or not formel.strip():
+        return None
+
+    def _var_zu_zahl(match):
+        """Ersetzt {{feld_id}} durch den numerischen Wert aus werte (0 wenn fehlt)."""
+        v = werte.get(match.group(1))
+        if v in ("", None):
+            return "0"
+        try:
+            return str(float(str(v).replace(",", ".")))
+        except (ValueError, TypeError):
+            return "0"
+
+    ausdruck = re.sub(r"\{\{(\w+)\}\}", _var_zu_zahl, formel.replace(";", ","))
+    try:
+        tree = ast.parse(ausdruck, mode="eval")
+        # Keine Variablen mehr im Ausdruck – leeres Werte-Dict genuegt
+        ergebnis = _ast_eval(tree.body, {})
+        if ergebnis is None:
+            return None
+        ergebnis = float(ergebnis)
+        # Ganze Zahlen ohne Nachkommastelle speichern
+        if ergebnis == int(ergebnis):
+            return int(ergebnis)
+        return round(ergebnis, 2)
+    except Exception:
+        return None
+
+
 def _pruefe_bedingung(bedingung, gesammelte_daten):
     """Wertet eine Bedingungsformel gegen die gesammelten Daten aus.
 
@@ -145,10 +181,18 @@ def _naechster_schritt(schritt, gesammelte_daten):
 
 _KEINE_EINGABE = {"textblock", "abschnitt", "trennlinie", "leerblock", "link", "berechnung", "zusammenfassung"}
 
+# Typen die auch in der Zusammenfassung nicht angezeigt werden (rein strukturell)
+_KEINE_ANZEIGE = {"textblock", "abschnitt", "trennlinie", "leerblock", "link", "zusammenfassung"}
+
 
 def _eingabefelder(schritt):
     """Gibt alle Eingabefelder eines Schritts zurueck (ohne Struktur-Typen)."""
     return [f for f in schritt.felder() if f.get("typ") not in _KEINE_EINGABE]
+
+
+def _anzeigefelder(schritt):
+    """Gibt alle Felder fuer die Zusammenfassung zurueck (incl. Berechnungsfelder)."""
+    return [f for f in schritt.felder() if f.get("typ") not in _KEINE_ANZEIGE]
 
 
 def _baue_zusammenfassung(sitzung):
@@ -159,10 +203,13 @@ def _baue_zusammenfassung(sitzung):
             schritt = sitzung.pfad.schritte.get(node_id=schritt_node_id)
         except AntragsPfadSchritt.DoesNotExist:
             continue
-        for feld in _eingabefelder(schritt):
+        for feld in _anzeigefelder(schritt):
             feld_id = feld.get("id", "")
             wert = sitzung.gesammelte_daten.get(feld_id, "")
-            if wert != "":
+            if wert != "" and wert is not None:
+                # Berechnungsfeld: Einheit anhaengen wenn vorhanden
+                if feld.get("typ") == "berechnung" and feld.get("einheit"):
+                    wert = f"{wert} {feld['einheit']}"
                 zusammenfassung.append({
                     "label": feld.get("label", feld_id),
                     "wert": wert,
@@ -171,8 +218,12 @@ def _baue_zusammenfassung(sitzung):
     return zusammenfassung
 
 
-def _validiere_schritt(schritt, post_data):
-    """Prueft Pflichtfelder und gibt (daten_dict, fehler_liste) zurueck."""
+def _validiere_schritt(schritt, post_data, vorige_daten=None):
+    """Prueft Pflichtfelder und gibt (daten_dict, fehler_liste) zurueck.
+
+    vorige_daten: bereits gesammelte Daten der Sitzung (fuer Berechnungsfelder
+    die auf vorherige Schritte referenzieren).
+    """
     daten = {}
     fehler = []
     for feld in _eingabefelder(schritt):
@@ -202,6 +253,22 @@ def _validiere_schritt(schritt, post_data):
             else:
                 wert = iban_bereinigt
         daten[feld_id] = wert
+
+    # Berechnungsfelder serverseitig auswerten – Client-Wert wird ignoriert
+    alle_werte = dict(vorige_daten or {})
+    alle_werte.update(daten)
+    for feld in schritt.felder():
+        if feld.get("typ") != "berechnung":
+            continue
+        feld_id = feld.get("id", "")
+        formel = feld.get("formel", "")
+        if not feld_id or not formel:
+            continue
+        ergebnis = _berechne_formel(formel, alle_werte)
+        if ergebnis is not None:
+            daten[feld_id] = ergebnis
+            alle_werte[feld_id] = ergebnis  # Folgeketten unterstuetzen
+
     return daten, fehler
 
 
@@ -391,7 +458,7 @@ def pfad_schritt(request, sitzung_pk):
     besucht = len(sitzung.besuchte_schritte)
 
     if request.method == "POST":
-        schritt_daten, fehler = _validiere_schritt(schritt, request.POST)
+        schritt_daten, fehler = _validiere_schritt(schritt, request.POST, sitzung.gesammelte_daten)
 
         if fehler:
             return render(request, "antraege/pfad_schritt.html", {
@@ -400,6 +467,7 @@ def pfad_schritt(request, sitzung_pk):
                 "fehler": fehler,
                 "vorwerte": request.POST,
                 "fortschritt": round(besucht / gesamt * 100) if gesamt else 0,
+                "gesammelte_daten_json": json.dumps(sitzung.gesammelte_daten, ensure_ascii=False),
             })
 
         # Daten zur Sitzung hinzufuegen
@@ -420,6 +488,7 @@ def pfad_schritt(request, sitzung_pk):
                 "fehler": fehler,
                 "vorwerte": request.POST,
                 "fortschritt": round(besucht / gesamt * 100) if gesamt else 0,
+                "gesammelte_daten_json": json.dumps(sitzung.gesammelte_daten, ensure_ascii=False),
             })
 
         naechster = transition.zu_schritt
@@ -435,7 +504,6 @@ def pfad_schritt(request, sitzung_pk):
 
         return redirect("antraege:pfad_schritt", sitzung_pk=sitzung.pk)
 
-    import json as _json
     zusammenfassung = _baue_zusammenfassung(sitzung) if schritt.ist_ende else []
     return render(request, "antraege/pfad_schritt.html", {
         "sitzung": sitzung,
@@ -443,7 +511,7 @@ def pfad_schritt(request, sitzung_pk):
         "fehler": [],
         "vorwerte": {},
         "fortschritt": round(besucht / gesamt * 100) if gesamt else 0,
-        "gesammelte_daten_json": _json.dumps(sitzung.gesammelte_daten, ensure_ascii=False),
+        "gesammelte_daten_json": json.dumps(sitzung.gesammelte_daten, ensure_ascii=False),
         "zusammenfassung": zusammenfassung,
     })
 
