@@ -459,6 +459,8 @@ def pfad_loeschen(request, pk):
         return redirect("antraege:pfad_liste")
     pfad = get_object_or_404(AntragsPfad, pk=pk)
     name = pfad.name
+    # Sitzungen zuerst loeschen (FK ist PROTECT)
+    pfad.sitzungen.all().delete()
     pfad.delete()
     messages.success(request, f'Pfad "{name}" wurde gelöscht.')
     return redirect("antraege:pfad_liste")
