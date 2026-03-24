@@ -116,6 +116,96 @@
         // Speichern
         document.getElementById("btn-speichern").addEventListener("click", speichern);
 
+        // Schema-Import
+        var importModalEl = document.getElementById("schema-import-modal");
+        if (importModalEl) {
+            var importModal = new bootstrap.Modal(importModalEl);
+            var importierteFelderJson = null;
+            var importierterName = "";
+
+            document.getElementById("btn-schema-import").addEventListener("click", function () {
+                document.getElementById("import-schema-select").value = "";
+                document.getElementById("import-vorschau").classList.add("d-none");
+                document.getElementById("btn-import-bestaetigen").disabled = true;
+                importierteFelderJson = null;
+                importModal.show();
+            });
+
+            document.getElementById("import-schema-select").addEventListener("change", function () {
+                var opt = this.options[this.selectedIndex];
+                var url = opt.dataset.url;
+                if (!url) {
+                    document.getElementById("import-vorschau").classList.add("d-none");
+                    document.getElementById("btn-import-bestaetigen").disabled = true;
+                    return;
+                }
+                fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (daten) {
+                        if (!daten.ok) return;
+                        importierteFelderJson = daten.felder;
+                        importierterName = daten.name;
+                        // Vorschau aufbauen
+                        var TYP_LABEL_IMPORT = {
+                            text: "Text", mehrzeil: "Mehrzeilig", zahl: "Zahl", datum: "Datum",
+                            bool: "Ja/Nein", auswahl: "Auswahl", radio: "Radio", checkboxen: "Checkboxen",
+                            email: "E-Mail", iban: "IBAN", uhrzeit: "Uhrzeit",
+                            datei: "Datei-Upload", signatur: "Signatur", berechnung: "Berechnung",
+                            textblock: "Fliesstext", abschnitt: "Abschnitt",
+                            trennlinie: "Trennlinie", leerblock: "Leerblock", zusammenfassung: "Zusammenfassung",
+                        };
+                        var html = "";
+                        (daten.felder || []).forEach(function (f) {
+                            var typLabel = TYP_LABEL_IMPORT[f.typ] || f.typ;
+                            var label = f.label || f.text || "(kein Label)";
+                            html += '<div class="d-flex align-items-center gap-2 py-1 border-bottom">'
+                                + '<span class="badge bg-secondary" style="min-width:90px;">' + typLabel + '</span>'
+                                + '<span class="small">' + label + '</span>'
+                                + (f.pflicht ? '<span class="text-danger ms-auto small">Pflicht</span>' : '')
+                                + '</div>';
+                        });
+                        if (!html) html = '<p class="text-muted small mb-0">Keine Felder gefunden.</p>';
+                        document.getElementById("import-felder-liste").innerHTML = html;
+                        document.getElementById("import-vorschau").classList.remove("d-none");
+                        document.getElementById("btn-import-bestaetigen").disabled = (daten.felder || []).length === 0;
+                    });
+            });
+
+            document.getElementById("btn-import-bestaetigen").addEventListener("click", function () {
+                if (!importierteFelderJson) return;
+                // Neuen Schritt mit importierten Feldern anlegen
+                var nodeId = "s" + Date.now();
+                var posX = 400, posY = 300;
+                // Etwas versetzt wenn schon Knoten vorhanden
+                var vorhandene = Object.keys(schritte);
+                if (vorhandene.length > 0) {
+                    posX = 300 + vorhandene.length * 60;
+                    posY = 200 + (vorhandene.length % 3) * 100;
+                }
+                var neuerSchritt = {
+                    node_id: nodeId,
+                    titel: importierterName,
+                    felder_json: JSON.parse(JSON.stringify(importierteFelderJson)),
+                    ist_start: false,
+                    ist_ende: false,
+                    pos_x: posX,
+                    pos_y: posY,
+                };
+                schritte[nodeId] = neuerSchritt;
+                nodes.add({
+                    id: nodeId,
+                    label: knotenLabel(neuerSchritt),
+                    x: posX,
+                    y: posY,
+                    color: knotenFarbe(neuerSchritt),
+                    font: { color: "#ffffff" },
+                });
+                document.getElementById("canvas-hinweis").style.display = "none";
+                importModal.hide();
+                document.getElementById("speicher-status").textContent = "Schritt '" + importierterName + "' importiert – bitte speichern.";
+            });
+        }
+
         // vis.js Events
         network.on("click", function (params) {
             if (params.nodes.length > 0) {

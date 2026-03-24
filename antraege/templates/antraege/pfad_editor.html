@@ -28,6 +28,11 @@
             {% endfor %}
         </select>
         <div class="ms-auto d-flex gap-2">
+            {% if formular_schemas %}
+            <button id="btn-schema-import" class="btn btn-sm btn-outline-primary" title="Felder aus bestehendem Formular als Schritt importieren">
+                &#8659; Formular importieren
+            </button>
+            {% endif %}
             <button id="btn-speichern" class="btn btn-sm btn-success">Speichern</button>
             <span id="speicher-status" class="text-muted small align-self-center"></span>
         </div>
@@ -341,6 +346,44 @@
 {% else %}
 <script type="application/json" id="pfad-pk">null</script>
 {% endif %}
+
+<!-- Schema-Import-Modal -->
+<div class="modal fade" id="schema-import-modal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Formular als Schritt importieren</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Formular auswählen</label>
+                    <select id="import-schema-select" class="form-select">
+                        <option value="">— bitte wählen —</option>
+                        {% for schema in formular_schemas %}
+                        <option value="{{ schema.pk }}" data-url="{% url 'antraege:schema_felder_laden' schema.pk %}">
+                            {{ schema.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="import-vorschau" class="d-none">
+                    <hr>
+                    <p class="fw-semibold mb-2">Felder die importiert werden:</p>
+                    <div id="import-felder-liste" class="border rounded p-2 bg-light" style="max-height:300px; overflow-y:auto;"></div>
+                    <p class="text-muted small mt-2 mb-0">
+                        Die Felder werden als neuer Schritt in den Pfad eingefügt.
+                        Danach können einzelne Felder im Schritt-Editor angepasst werden.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" id="btn-import-bestaetigen" disabled>Als Schritt importieren</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}

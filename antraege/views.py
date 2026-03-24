@@ -29,6 +29,7 @@ import mimetypes
 
 from dms.models import Dokument
 from dms.services import speichere_dokument, suchvektor_befuellen
+from prozesse.models import FormularSchema
 from workflow.models import WorkflowTemplate
 from workflow.services import WorkflowEngine
 
@@ -446,6 +447,24 @@ def _starte_workflow_wenn_konfiguriert(sitzung, user):
 
 
 # ---------------------------------------------------------------------------
+# Schema-Felder-Import
+# ---------------------------------------------------------------------------
+
+@login_required
+def schema_felder_laden(request, schema_pk):
+    """GET: Gibt alle Felder eines FormularSchemas als JSON zurueck.
+
+    Wird vom Pfad-Editor genutzt um Felder aus bestehenden Formularen
+    als neuen Schritt zu importieren.
+    """
+    if not _ist_editor(request.user):
+        return JsonResponse({"ok": False, "fehler": "Kein Zugriff"}, status=403)
+    schema = get_object_or_404(FormularSchema, pk=schema_pk)
+    felder = schema.schema_json.get("felder", []) if isinstance(schema.schema_json, dict) else []
+    return JsonResponse({"ok": True, "name": schema.name, "felder": felder})
+
+
+# ---------------------------------------------------------------------------
 # Pfad-Liste
 # ---------------------------------------------------------------------------
 
@@ -474,9 +493,11 @@ def pfad_editor(request, pk=None):
         return redirect("antraege:pfad_liste")
     pfad = get_object_or_404(AntragsPfad, pk=pk) if pk else None
     workflow_templates = WorkflowTemplate.objects.filter(ist_aktiv=True).order_by("name")
+    formular_schemas = FormularSchema.objects.order_by("name")
     return render(request, "antraege/pfad_editor.html", {
         "pfad": pfad,
         "workflow_templates": workflow_templates,
+        "formular_schemas": formular_schemas,
     })
 
 
