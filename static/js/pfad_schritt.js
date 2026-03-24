@@ -87,4 +87,80 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         el.textContent = text;
     });
+
+    // ---------------------------------------------------------------------------
+    // Signatur-Pad (Handschrift-Canvas)
+    // ---------------------------------------------------------------------------
+
+    document.querySelectorAll("[data-sig-id]").forEach(function (canvas) {
+        var id = canvas.dataset.sigId;
+        var hidden = document.getElementById("sig-input-" + id);
+        var ctx = canvas.getContext("2d");
+        var zeichnet = false;
+        var letzterX = 0, letzterY = 0;
+
+        ctx.strokeStyle = "#1a1a1a";
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        function pos(e) {
+            var r = canvas.getBoundingClientRect();
+            var scaleX = canvas.width / r.width;
+            var scaleY = canvas.height / r.height;
+            var src = e.touches ? e.touches[0] : e;
+            return {
+                x: (src.clientX - r.left) * scaleX,
+                y: (src.clientY - r.top) * scaleY
+            };
+        }
+
+        function startZeichnen(e) {
+            e.preventDefault();
+            zeichnet = true;
+            var p = pos(e);
+            letzterX = p.x;
+            letzterY = p.y;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 1, 0, Math.PI * 2);
+            ctx.fillStyle = "#1a1a1a";
+            ctx.fill();
+        }
+
+        function weiterZeichnen(e) {
+            if (!zeichnet) return;
+            e.preventDefault();
+            var p = pos(e);
+            ctx.beginPath();
+            ctx.moveTo(letzterX, letzterY);
+            ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+            letzterX = p.x;
+            letzterY = p.y;
+        }
+
+        function stopZeichnen(e) {
+            if (!zeichnet) return;
+            zeichnet = false;
+            // PNG als base64 in Hidden-Input schreiben
+            if (hidden) hidden.value = canvas.toDataURL("image/png");
+        }
+
+        canvas.addEventListener("mousedown", startZeichnen);
+        canvas.addEventListener("mousemove", weiterZeichnen);
+        canvas.addEventListener("mouseup", stopZeichnen);
+        canvas.addEventListener("mouseleave", stopZeichnen);
+        canvas.addEventListener("touchstart", startZeichnen, { passive: false });
+        canvas.addEventListener("touchmove", weiterZeichnen, { passive: false });
+        canvas.addEventListener("touchend", stopZeichnen);
+
+        // Loeschen-Button
+        var clearBtn = document.querySelector("[data-sig-clear='" + id + "']");
+        if (clearBtn) {
+            clearBtn.addEventListener("click", function () {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (hidden) hidden.value = "";
+            });
+        }
+    });
 });

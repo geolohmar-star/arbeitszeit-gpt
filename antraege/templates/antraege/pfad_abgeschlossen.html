@@ -22,6 +22,10 @@
                     {% if eintrag.typ == "bool" %}
                         {% if eintrag.wert %}<span class="badge bg-success">Ja</span>
                         {% else %}<span class="badge bg-secondary">Nein</span>{% endif %}
+                    {% elif eintrag.typ == "signatur" and eintrag.dms_pk %}
+                        <a href="{% url 'dms:detail' eintrag.dms_pk %}" target="_blank" class="text-decoration-none text-success">
+                            &#10003; Unterschrift geleistet
+                        </a>
                     {% elif eintrag.typ == "datei" and eintrag.dms_pk %}
                         <a href="{% url 'dms:detail' eintrag.dms_pk %}" target="_blank" class="text-decoration-none">
                             &#128206; {{ eintrag.wert }}

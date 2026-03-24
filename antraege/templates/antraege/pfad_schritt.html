@@ -166,6 +166,31 @@
                     <input type="hidden" name="{{ id }}" id="berechnung-hidden-{{ id }}">
                 </div>
 
+                {% elif typ == "signatur" %}
+                <div class="col-12">
+                    <label class="form-label fw-semibold">
+                        {{ label }}{% if pflicht %} <span class="text-danger">*</span>{% endif %}
+                    </label>
+                    {% with vorhandene_ref=vorwerte|default_if_none:'' %}
+                    {% if vorhandene_ref %}
+                    <div class="alert alert-success py-2 small mb-2">
+                        Unterschrift bereits geleistet – neu zeichnen um zu ersetzen.
+                    </div>
+                    {% endif %}
+                    {% endwith %}
+                    <div class="border rounded bg-white" style="touch-action:none; cursor:crosshair; display:inline-block;">
+                        <canvas id="sig-canvas-{{ id }}" width="500" height="150"
+                                data-sig-id="{{ id }}"
+                                style="display:block; max-width:100%;"></canvas>
+                    </div>
+                    <div class="mt-1">
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                data-sig-clear="{{ id }}">Löschen</button>
+                        <small class="text-muted ms-2">Mit Maus oder Finger unterschreiben</small>
+                    </div>
+                    <input type="hidden" name="{{ id }}" id="sig-input-{{ id }}">
+                </div>
+
                 {% elif typ == "datei" %}
                 <div class="{% if feld.breite == 50 %}col-md-6{% elif feld.breite == 25 %}col-md-3{% else %}col-12{% endif %}">
                     <label class="form-label fw-semibold" for="f-{{ id }}">
@@ -210,6 +235,10 @@
                                     {% if eintrag.typ == "bool" %}
                                         {% if eintrag.wert %}<span class="badge bg-success">Ja</span>
                                         {% else %}<span class="badge bg-secondary">Nein</span>{% endif %}
+                                    {% elif eintrag.typ == "signatur" and eintrag.dms_pk %}
+                                        <a href="{% url 'dms:detail' eintrag.dms_pk %}" target="_blank" class="text-decoration-none text-success small">
+                                            &#10003; Unterschrift geleistet
+                                        </a>
                                     {% elif eintrag.typ == "datei" and eintrag.dms_pk %}
                                         <a href="{% url 'dms:detail' eintrag.dms_pk %}" target="_blank" class="text-decoration-none small">
                                             &#128206; {{ eintrag.wert }}

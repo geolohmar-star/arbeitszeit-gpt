@@ -363,7 +363,7 @@
         hinweis.style.display = "none";
 
         var TYP_LABEL = {
-            text: "Text", mehrzeil: "Mehrzeilig", zahl: "Zahl", datum: "Datum", datei: "Datei-Upload",
+            text: "Text", mehrzeil: "Mehrzeilig", zahl: "Zahl", datum: "Datum", datei: "Datei-Upload", signatur: "Signatur",
             uhrzeit: "Uhrzeit", email: "E-Mail", bool: "Ja/Nein", iban: "IBAN",
             auswahl: "Auswahl", radio: "Multiple Choice", checkboxen: "Checkboxen",
             berechnung: "Berechnung", textblock: "Fliesstext", abschnitt: "Abschnitt",
@@ -424,7 +424,7 @@
         var mitTextblock = ["textblock"];
         var mitAbschnitt = ["abschnitt"];
         var ohneLabel = ["trennlinie", "leerblock", "zusammenfassung"];
-        var ohneHilfe = ["trennlinie", "leerblock", "bool", "abschnitt", "textblock", "berechnung", "zusammenfassung"];
+        var ohneHilfe = ["trennlinie", "leerblock", "bool", "abschnitt", "textblock", "berechnung", "zusammenfassung", "signatur"];
         var ohnePflicht = STRUKTUR_TYPEN.concat(["berechnung"]);
 
         document.getElementById("optionen-row").style.display = mitOptionen.indexOf(typ) >= 0 ? "" : "none";

@@ -255,6 +255,34 @@ def _validiere_schritt(schritt, post_data, vorige_daten=None, files_data=None, u
             wert = feld_id in post_data
         elif typ == "checkboxen":
             wert = ", ".join(post_data.getlist(feld_id))
+        elif typ == "signatur":
+            # Handschrift-Signatur: base64-PNG vom Canvas dekodieren und ins DMS speichern
+            b64 = post_data.get(feld_id, "").strip()
+            vorhandene_ref = (vorige_daten or {}).get(feld_id, "")
+            if b64 and b64.startswith("data:image/png;base64,"):
+                import base64 as _b64
+                try:
+                    png_bytes = _b64.b64decode(b64.split(",", 1)[1])
+                    from io import BytesIO
+                    from django.core.files.uploadedfile import InMemoryUploadedFile
+                    png_file = InMemoryUploadedFile(
+                        BytesIO(png_bytes), None,
+                        f"unterschrift_{feld_id}.png",
+                        "image/png", len(png_bytes), None,
+                    )
+                    ref = _speichere_datei_ins_dms(
+                        png_file, feld.get("label", feld_id), pfad_name, user
+                    )
+                    wert = ref if ref else vorhandene_ref
+                except Exception:
+                    logger.exception("Signatur-Upload fehlgeschlagen")
+                    wert = vorhandene_ref
+            else:
+                wert = vorhandene_ref
+            if pflicht and not wert:
+                fehler.append(f'"{feld.get("label", feld_id)}" ist ein Pflichtfeld.')
+            daten[feld_id] = wert
+            continue
         elif typ == "datei":
             # Datei-Upload: bereits vorhandene DMS-Referenz aus vorigen_daten behalten
             datei_obj = (files_data or {}).get(feld_id)
