@@ -13,14 +13,20 @@ Player-Flow:
 """
 import ast
 import json
+import logging
 import operator
 import re
+
+logger = logging.getLogger(__name__)
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
+
+from workflow.models import WorkflowTemplate
+from workflow.services import WorkflowEngine
 
 from .models import (
     AntragsPfad,
@@ -286,6 +292,31 @@ def _normalisiere_uhrzeit(wert):
 
 
 # ---------------------------------------------------------------------------
+# Workflow-Start nach Pfad-Abschluss
+# ---------------------------------------------------------------------------
+
+def _starte_workflow_wenn_konfiguriert(sitzung, user):
+    """Startet einen Workflow wenn der Pfad ein Template konfiguriert hat.
+
+    Die AntragsPfadSitzung wird als content_object der WorkflowInstance genutzt,
+    damit der Workflow direkt mit den gesammelten Formulardaten verknuepft ist.
+    """
+    if not sitzung.pfad.workflow_template_id:
+        return
+    try:
+        engine = WorkflowEngine()
+        instanz = engine.start_workflow(
+            sitzung.pfad.workflow_template, sitzung, user
+        )
+        sitzung.workflow_instance = instanz
+        sitzung.save(update_fields=["workflow_instance"])
+    except Exception:
+        logger.exception(
+            "Workflow-Start fuer Sitzung %s fehlgeschlagen", sitzung.pk
+        )
+
+
+# ---------------------------------------------------------------------------
 # Pfad-Liste
 # ---------------------------------------------------------------------------
 
@@ -313,7 +344,11 @@ def pfad_editor(request, pk=None):
         messages.error(request, "Kein Zugriff.")
         return redirect("antraege:pfad_liste")
     pfad = get_object_or_404(AntragsPfad, pk=pk) if pk else None
-    return render(request, "antraege/pfad_editor.html", {"pfad": pfad})
+    workflow_templates = WorkflowTemplate.objects.filter(ist_aktiv=True).order_by("name")
+    return render(request, "antraege/pfad_editor.html", {
+        "pfad": pfad,
+        "workflow_templates": workflow_templates,
+    })
 
 
 @login_required
@@ -347,6 +382,7 @@ def pfad_editor_laden(request, pk):
         "name": pfad.name,
         "beschreibung": pfad.beschreibung,
         "aktiv": pfad.aktiv,
+        "workflow_template_id": pfad.workflow_template_id or "",
         "schritte": schritte,
         "transitionen": transitionen,
     })
@@ -368,11 +404,21 @@ def pfad_editor_speichern(request):
     if not name:
         return JsonResponse({"ok": False, "fehler": "Name ist Pflichtfeld"}, status=400)
 
+    # Workflow-Template aufloesen (None wenn leer oder nicht vorhanden)
+    wt_id = daten.get("workflow_template_id") or None
+    wt_obj = None
+    if wt_id:
+        try:
+            wt_obj = WorkflowTemplate.objects.get(pk=int(wt_id))
+        except (WorkflowTemplate.DoesNotExist, ValueError, TypeError):
+            wt_obj = None
+
     if pk:
         pfad = get_object_or_404(AntragsPfad, pk=pk)
         pfad.name = name
         pfad.beschreibung = daten.get("beschreibung", "")
         pfad.aktiv = daten.get("aktiv", True)
+        pfad.workflow_template = wt_obj
         pfad.save()
         # Alte Schritte + Transitionen loeschen und neu anlegen
         pfad.transitionen.all().delete()
@@ -382,6 +428,7 @@ def pfad_editor_speichern(request):
             name=name,
             beschreibung=daten.get("beschreibung", ""),
             aktiv=daten.get("aktiv", True),
+            workflow_template=wt_obj,
             erstellt_von=request.user,
         )
 
@@ -476,6 +523,7 @@ def pfad_schritt(request, sitzung_pk):
         # Endknoten erreicht?
         if schritt.ist_ende:
             sitzung.abschliessen()
+            _starte_workflow_wenn_konfiguriert(sitzung, request.user)
             return redirect("antraege:pfad_abgeschlossen", sitzung_pk=sitzung.pk)
 
         # Naechsten Schritt ermitteln
@@ -500,6 +548,7 @@ def pfad_schritt(request, sitzung_pk):
         # Endknoten direkt ueberspringen nur wenn er keinerlei Felder hat
         if naechster.ist_ende and not naechster.felder():
             sitzung.abschliessen()
+            _starte_workflow_wenn_konfiguriert(sitzung, request.user)
             return redirect("antraege:pfad_abgeschlossen", sitzung_pk=sitzung.pk)
 
         return redirect("antraege:pfad_schritt", sitzung_pk=sitzung.pk)
@@ -519,10 +568,15 @@ def pfad_schritt(request, sitzung_pk):
 @login_required
 def pfad_abgeschlossen(request, sitzung_pk):
     """Abschluss-Seite nach erfolgreichem Durchlauf."""
-    sitzung = get_object_or_404(AntragsPfadSitzung, pk=sitzung_pk, user=request.user)
+    sitzung = get_object_or_404(
+        AntragsPfadSitzung.objects.select_related("workflow_instance__template"),
+        pk=sitzung_pk,
+        user=request.user,
+    )
     return render(request, "antraege/pfad_abgeschlossen.html", {
         "sitzung": sitzung,
         "zusammenfassung": _baue_zusammenfassung(sitzung),
+        "workflow_instance": sitzung.workflow_instance,
     })
 
 

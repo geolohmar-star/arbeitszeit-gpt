@@ -17,6 +17,16 @@ class AntragsPfad(models.Model):
     name = models.CharField(max_length=200, verbose_name="Name")
     beschreibung = models.TextField(blank=True, verbose_name="Beschreibung")
     aktiv = models.BooleanField(default=True, verbose_name="Aktiv")
+    # Optional: bei Abschluss diesen Workflow starten
+    workflow_template = models.ForeignKey(
+        "workflow.WorkflowTemplate",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="antrags_pfade",
+        verbose_name="Workflow starten",
+        help_text="Wird nach Pfad-Abschluss automatisch gestartet (optional)",
+    )
     erstellt_von = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -159,6 +169,15 @@ class AntragsPfadSitzung(models.Model):
     )
     gestartet_am = models.DateTimeField(auto_now_add=True)
     abgeschlossen_am = models.DateTimeField(null=True, blank=True)
+    # Gestartete Workflow-Instanz (gesetzt wenn Pfad einen Workflow ausloest)
+    workflow_instance = models.ForeignKey(
+        "workflow.WorkflowInstance",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="antrags_sitzungen",
+        verbose_name="Workflow-Instanz",
+    )
 
     class Meta:
         ordering = ["-gestartet_am"]

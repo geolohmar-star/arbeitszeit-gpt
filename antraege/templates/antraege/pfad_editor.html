@@ -17,6 +17,16 @@
             <input class="form-check-input" type="checkbox" id="pfad-aktiv" {% if not pfad or pfad.aktiv %}checked{% endif %}>
             <label class="form-check-label small" for="pfad-aktiv">Aktiv</label>
         </div>
+        <select id="pfad-workflow-template" class="form-select form-select-sm" style="max-width:240px;"
+                title="Workflow der nach Abschluss automatisch gestartet wird">
+            <option value="">— kein Workflow —</option>
+            {% for wt in workflow_templates %}
+            <option value="{{ wt.pk }}"
+                {% if pfad and pfad.workflow_template_id == wt.pk %}selected{% endif %}>
+                {{ wt.name }}
+            </option>
+            {% endfor %}
+        </select>
         <div class="ms-auto d-flex gap-2">
             <button id="btn-speichern" class="btn btn-sm btn-success">Speichern</button>
             <span id="speicher-status" class="text-muted small align-self-center"></span>

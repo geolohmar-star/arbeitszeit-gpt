@@ -33,6 +33,26 @@
     </div>
     {% endif %}
 
+    {% if workflow_instance %}
+    <div class="card mb-4 border-success">
+        <div class="card-header fw-semibold" style="background:#f0f7f0;color:#1a4d2e;">
+            Ihr Antrag ist jetzt in Bearbeitung
+        </div>
+        <div class="card-body">
+            <p class="mb-1">
+                <strong>Prozess:</strong> {{ workflow_instance.template.name }}
+            </p>
+            <p class="mb-1 text-muted small">
+                Vorgangsnummer: <code>#{{ workflow_instance.pk }}</code>
+                &middot; Gestartet: {{ workflow_instance.gestartet_am|date:"d.m.Y H:i" }} Uhr
+            </p>
+            <p class="mb-0 text-muted small">
+                Sie werden benachrichtigt sobald eine Entscheidung getroffen wurde.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="d-flex gap-2">
         <a href="{% url 'antraege:pfad_liste' %}" class="btn btn-outline-secondary">Zurück zur Übersicht</a>
         <a href="{% url 'antraege:meine_antraege' %}" class="btn btn-outline-primary">Meine Anträge</a>

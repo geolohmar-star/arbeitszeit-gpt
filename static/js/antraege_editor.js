@@ -824,6 +824,7 @@
             document.getElementById("pfad-name").value = daten.name || "";
             document.getElementById("pfad-beschreibung").value = daten.beschreibung || "";
             document.getElementById("pfad-aktiv").checked = !!daten.aktiv;
+            document.getElementById("pfad-workflow-template").value = daten.workflow_template_id || "";
 
             // Schritte aufbauen
             (daten.schritte || []).forEach(function (s) {
@@ -891,6 +892,7 @@
             name: name,
             beschreibung: document.getElementById("pfad-beschreibung").value.trim(),
             aktiv: document.getElementById("pfad-aktiv").checked,
+            workflow_template_id: document.getElementById("pfad-workflow-template").value || null,
             schritte: Object.values(schritte),
             transitionen: transitionen,
         };
