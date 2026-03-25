@@ -61,9 +61,12 @@
     </div>
     {% endif %}
 
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
         <a href="{% url 'antraege:pfad_liste' %}" class="btn btn-outline-secondary">Zurück zur Übersicht</a>
         <a href="{% url 'antraege:meine_antraege' %}" class="btn btn-outline-primary">Meine Anträge</a>
+        <a href="{% url 'antraege:sitzung_pdf' sitzung.pk %}" class="btn btn-success">
+            &#128196; PDF herunterladen
+        </a>
     </div>
 </div>
 {% endblock %}

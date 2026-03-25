@@ -154,7 +154,7 @@
                                 <td>{{ k.bemerkung|truncatewords:8 }}</td>
                                 <td>
                                     <form method="post" action="{% url 'arbeitszeit:saldo_korrektur_loeschen' k.pk %}"
-                                          style="margin:0;" onsubmit="return confirm('Korrektur loeschen?');">
+                                          style="margin:0;" data-confirm="Korrektur loeschen?">
                                         {% csrf_token %}
                                         <button type="submit" class="btn-delete" title="Loeschen">&times;</button>
                                     </form>

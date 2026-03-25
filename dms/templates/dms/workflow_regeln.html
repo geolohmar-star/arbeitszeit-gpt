@@ -103,7 +103,7 @@
                             </a>
                             <form method="post" action="{% url 'dms:workflow_regel_loeschen' regel.pk %}"
                                   style="display:inline;"
-                                  onsubmit="return confirm('Regel &quot;{{ regel.bezeichnung }}&quot; wirklich loeschen?')">
+                                  data-confirm="Regel &quot;{{ regel.bezeichnung }}&quot; wirklich loeschen?">
                                 {% csrf_token %}
                                 <button type="submit"
                                         class="btn btn-xs btn-outline-danger"

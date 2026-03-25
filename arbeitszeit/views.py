@@ -2876,6 +2876,23 @@ def hilfe_workflow_editor(request):
     return render(request, "arbeitszeit/hilfe_workflow_editor.html")
 
 
+@login_required
+def anleitung_antragspfade_pdf(request):
+    """PDF-Download: Bedienungsanleitung Antrags-Pfade."""
+    from weasyprint import HTML
+    from django.template.loader import render_to_string
+    from django.http import HttpResponse
+    from django.utils import timezone
+
+    html_string = render_to_string("arbeitszeit/anleitung_antragspfade_pdf.html", {
+        "datum": timezone.now().strftime("%d.%m.%Y"),
+    })
+    pdf = HTML(string=html_string).write_pdf()
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="PRIMA_Anleitung_Antragspfade.pdf"'
+    return response
+
+
 # ---------------------------------------------------------------------------
 # BSI IT-Grundschutz: Eigene Fehlerseiten (APP.3.1)
 # ---------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /**
- * antraege_editor.js – Visueller Editor fuer verzweigte Antrags-Pfade.
+ * antraege_editor.js – Visueller Editor fuer verzweigte Antrags-Pfade. v2
  *
  * Basiert auf vis.js Network (lokal in vis-network.min.js).
  * CSP-konform: kein eval, kein inline-JS, Event-Delegation via data-action.
@@ -32,6 +32,7 @@
     var editFeldIndex = null;   // Index in schritt.felder_json beim Feld-Bearbeiten
 
     var schritteFelder = [];    // temporaere Feld-Liste waehrend Schritt-Bearbeitung
+    var gruppeUnterfelder = []; // temporaere Unterfeld-Liste fuer Gruppe-Feld im Feld-Modal
 
     // Bootstrap Modals
     var schrittModal = null;
@@ -62,7 +63,7 @@
         transitionModal = new bootstrap.Modal(document.getElementById("transition-modal"));
 
         // Backdrop-Cleanup
-        ["schritt-modal", "feld-modal", "transition-modal"].forEach(function (id) {
+        ["schritt-modal", "feld-modal", "transition-modal", "schema-import-modal"].forEach(function (id) {
             document.getElementById(id).addEventListener("hidden.bs.modal", function () {
                 document.querySelectorAll(".modal-backdrop").forEach(function (el) { el.remove(); });
                 document.body.classList.remove("modal-open");
@@ -81,6 +82,7 @@
 
     function visOptionen() {
         return {
+            autoResize: false,
             physics: { enabled: false },
             interaction: { dragNodes: true, hover: true, selectConnectedEdges: false },
             nodes: {
@@ -124,85 +126,112 @@
             var importierterName = "";
 
             document.getElementById("btn-schema-import").addEventListener("click", function () {
-                document.getElementById("import-schema-select").value = "";
+                // Auswahl zuruecksetzen
+                document.querySelectorAll(".import-schema-btn").forEach(function (b) {
+                    b.classList.remove("btn-secondary", "active");
+                    b.classList.add("btn-outline-secondary");
+                });
                 document.getElementById("import-vorschau").classList.add("d-none");
                 document.getElementById("btn-import-bestaetigen").disabled = true;
                 importierteFelderJson = null;
                 importModal.show();
             });
 
-            document.getElementById("import-schema-select").addEventListener("change", function () {
-                var opt = this.options[this.selectedIndex];
-                var url = opt.dataset.url;
-                if (!url) {
-                    document.getElementById("import-vorschau").classList.add("d-none");
-                    document.getElementById("btn-import-bestaetigen").disabled = true;
-                    return;
+            // Klick auf Formular-Karte
+            document.getElementById("import-schema-liste").addEventListener("click", function (e) {
+                var btn = e.target.closest(".import-schema-btn");
+                if (!btn) return;
+
+                // Aktive Karte markieren
+                document.querySelectorAll(".import-schema-btn").forEach(function (b) {
+                    b.classList.remove("btn-secondary", "active");
+                    b.classList.add("btn-outline-secondary");
+                });
+                btn.classList.remove("btn-outline-secondary");
+                btn.classList.add("btn-secondary", "active");
+
+                var felderRaw = btn.dataset.felder;
+                var name = btn.dataset.name || "";
+                var felder;
+                try {
+                    felder = JSON.parse(felderRaw);
+                } catch (e) {
+                    felder = [];
                 }
-                fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } })
-                    .then(function (r) { return r.json(); })
-                    .then(function (daten) {
-                        if (!daten.ok) return;
-                        importierteFelderJson = daten.felder;
-                        importierterName = daten.name;
-                        // Vorschau aufbauen
-                        var TYP_LABEL_IMPORT = {
-                            text: "Text", mehrzeil: "Mehrzeilig", zahl: "Zahl", datum: "Datum",
-                            bool: "Ja/Nein", auswahl: "Auswahl", radio: "Radio", checkboxen: "Checkboxen",
-                            email: "E-Mail", iban: "IBAN", uhrzeit: "Uhrzeit",
-                            datei: "Datei-Upload", signatur: "Signatur", berechnung: "Berechnung",
-                            textblock: "Fliesstext", abschnitt: "Abschnitt",
-                            trennlinie: "Trennlinie", leerblock: "Leerblock", zusammenfassung: "Zusammenfassung",
-                        };
-                        var html = "";
-                        (daten.felder || []).forEach(function (f) {
-                            var typLabel = TYP_LABEL_IMPORT[f.typ] || f.typ;
-                            var label = f.label || f.text || "(kein Label)";
-                            html += '<div class="d-flex align-items-center gap-2 py-1 border-bottom">'
-                                + '<span class="badge bg-secondary" style="min-width:90px;">' + typLabel + '</span>'
-                                + '<span class="small">' + label + '</span>'
-                                + (f.pflicht ? '<span class="text-danger ms-auto small">Pflicht</span>' : '')
-                                + '</div>';
-                        });
-                        if (!html) html = '<p class="text-muted small mb-0">Keine Felder gefunden.</p>';
-                        document.getElementById("import-felder-liste").innerHTML = html;
-                        document.getElementById("import-vorschau").classList.remove("d-none");
-                        document.getElementById("btn-import-bestaetigen").disabled = (daten.felder || []).length === 0;
-                    });
+                importierteFelderJson = felder;
+                importierterName = name;
+
+                var TYP_LABEL_IMPORT = {
+                    text: "Text", mehrzeil: "Mehrzeilig", zahl: "Zahl", datum: "Datum",
+                    bool: "Ja/Nein", auswahl: "Auswahl", radio: "Radio", checkboxen: "Checkboxen",
+                    email: "E-Mail", iban: "IBAN", uhrzeit: "Uhrzeit",
+                    datei: "Datei-Upload", signatur: "Signatur", berechnung: "Berechnung",
+                    textblock: "Fliesstext", abschnitt: "Abschnitt",
+                    trennlinie: "Trennlinie", leerblock: "Leerblock", zusammenfassung: "Zusammenfassung",
+                };
+                var html = "";
+                (felder || []).forEach(function (f) {
+                    var typLabel = TYP_LABEL_IMPORT[f.typ] || f.typ;
+                    var label = f.label || f.text || "(kein Label)";
+                    html += '<div class="d-flex align-items-center gap-2 py-1 border-bottom">'
+                        + '<span class="badge bg-secondary" style="min-width:90px;">' + typLabel + '</span>'
+                        + '<span class="small">' + label + '</span>'
+                        + (f.pflicht ? '<span class="text-danger ms-auto small">Pflicht</span>' : '')
+                        + '</div>';
+                });
+                if (!html) html = '<p class="text-muted small mb-0">Keine Felder gefunden.</p>';
+                document.getElementById("import-felder-liste").innerHTML = html;
+                document.getElementById("import-vorschau").classList.remove("d-none");
+                document.getElementById("btn-import-bestaetigen").disabled = false;
             });
 
             document.getElementById("btn-import-bestaetigen").addEventListener("click", function () {
-                if (!importierteFelderJson) return;
-                // Neuen Schritt mit importierten Feldern anlegen
-                var nodeId = "s" + Date.now();
-                var posX = 400, posY = 300;
-                // Etwas versetzt wenn schon Knoten vorhanden
-                var vorhandene = Object.keys(schritte);
-                if (vorhandene.length > 0) {
-                    posX = 300 + vorhandene.length * 60;
-                    posY = 200 + (vorhandene.length % 3) * 100;
+                if (!importierteFelderJson || importierteFelderJson.length === 0) {
+                    alert("Bitte zuerst ein Formular auswaehlen.");
+                    return;
                 }
-                var neuerSchritt = {
-                    node_id: nodeId,
-                    titel: importierterName,
-                    felder_json: JSON.parse(JSON.stringify(importierteFelderJson)),
-                    ist_start: false,
-                    ist_ende: false,
-                    pos_x: posX,
-                    pos_y: posY,
-                };
-                schritte[nodeId] = neuerSchritt;
-                nodes.add({
-                    id: nodeId,
-                    label: knotenLabel(neuerSchritt),
-                    x: posX,
-                    y: posY,
-                    color: knotenFarbe(neuerSchritt),
-                    font: { color: "#ffffff" },
+                // Jedes Feld wird ein eigener Schritt – vertikal gestapelt, automatisch verbunden
+                var startX = 400;
+                var startY = 100;
+                var abstandY = 120;
+                var vorherigenId = null;
+                var ts = Date.now();
+
+                importierteFelderJson.forEach(function (feld, idx) {
+                    var nodeId = "s" + (ts + idx);
+                    var titel = feld.label || feld.text || feld.typ || "Schritt " + (idx + 1);
+                    var posY = startY + idx * abstandY;
+                    var neuerSchritt = {
+                        node_id: nodeId,
+                        titel: titel,
+                        felder_json: [JSON.parse(JSON.stringify(feld))],
+                        ist_start: false,
+                        ist_ende: false,
+                        pos_x: startX,
+                        pos_y: posY,
+                    };
+                    schritte[nodeId] = neuerSchritt;
+                    nodes.add({
+                        id: nodeId,
+                        label: knotenLabel(neuerSchritt),
+                        x: startX,
+                        y: posY,
+                        color: knotenFarbe(neuerSchritt),
+                        font: { color: "#ffffff" },
+                    });
+                    // Kante zum vorherigen Schritt
+                    if (vorherigenId) {
+                        var edgeId = "e" + vorherigenId + "_" + nodeId;
+                        transitionen.push({ id: edgeId, von: vorherigenId, zu: nodeId, bedingung: "", label: "", reihenfolge: idx });
+                        edges.add({ id: edgeId, from: vorherigenId, to: nodeId, label: "" });
+                    }
+                    vorherigenId = nodeId;
                 });
+
                 document.getElementById("canvas-hinweis").style.display = "none";
                 importModal.hide();
-                document.getElementById("speicher-status").textContent = "Schritt '" + importierterName + "' importiert – bitte speichern.";
+                network.fit();
+                document.getElementById("speicher-status").textContent = "Schritt \"" + importierterName + "\" importiert \u2013 bitte speichern.";
             });
         }
 
@@ -247,17 +276,70 @@
             } else if (action === "loeschen") {
                 schritteFelder.splice(idx, 1);
                 renderFelderListe();
-            } else if (action === "hoch" && idx > 0) {
-                var tmp = schritteFelder[idx - 1];
-                schritteFelder[idx - 1] = schritteFelder[idx];
-                schritteFelder[idx] = tmp;
-                renderFelderListe();
-            } else if (action === "runter" && idx < schritteFelder.length - 1) {
-                var tmp2 = schritteFelder[idx + 1];
-                schritteFelder[idx + 1] = schritteFelder[idx];
-                schritteFelder[idx] = tmp2;
-                renderFelderListe();
             }
+        });
+
+        // Schritt-Modal: Bausteine einfügen
+        document.getElementById("schritt-modal").addEventListener("click", function (e) {
+            var btn = e.target.closest("[data-baustein]");
+            if (!btn) return;
+            var name = btn.dataset.baustein;
+            var felder = FELD_BAUSTEINE[name];
+            if (!felder) return;
+            var alleIds = [];
+            Object.values(schritte).forEach(function (s) {
+                (s.felder_json || []).forEach(function (f) { if (f.id) alleIds.push(f.id); });
+            });
+            schritteFelder.forEach(function (f) { if (f.id) alleIds.push(f.id); });
+            felder.forEach(function (vorlage) {
+                var neuesFeld = JSON.parse(JSON.stringify(vorlage));
+                var id = labelZuId(neuesFeld.label, neuesFeld.typ);
+                var basis = id; var z = 2;
+                while (alleIds.indexOf(id) !== -1) { id = basis + "_" + z++; }
+                neuesFeld.id = id;
+                alleIds.push(id);
+                schritteFelder.push(neuesFeld);
+            });
+            renderFelderListe();
+        });
+
+        // Schritt-Modal: Duplizieren
+        document.getElementById("btn-schritt-duplizieren").addEventListener("click", function () {
+            if (!editNodeId || !schritte[editNodeId]) return;
+            var original = schritte[editNodeId];
+            var nodeId = "s" + Date.now();
+            var kopie = JSON.parse(JSON.stringify(original));
+            kopie.node_id = nodeId;
+            kopie.titel = original.titel + " (Kopie)";
+            kopie.ist_start = false;
+            kopie.pos_x = (original.pos_x || 300) + 50;
+            kopie.pos_y = (original.pos_y || 300) + 120;
+            schritte[nodeId] = kopie;
+            nodes.add({
+                id: nodeId,
+                label: knotenLabel(kopie),
+                x: kopie.pos_x,
+                y: kopie.pos_y,
+                color: knotenFarbe(kopie),
+                font: { color: "#ffffff" },
+            });
+            document.getElementById("canvas-hinweis").style.display = "none";
+            document.getElementById("speicher-status").textContent = "\"" + kopie.titel + "\" erstellt – bitte speichern.";
+            schrittModal.hide();
+        });
+
+        // Feld-Modal: Option hinzufügen
+        document.getElementById("btn-option-hinzu").addEventListener("click", function () {
+            var container = document.getElementById("optionen-liste");
+            var leer = document.getElementById("optionen-leer-hinweis");
+            if (leer) leer.remove();
+            var div = document.createElement("div");
+            div.className = "d-flex gap-1 mb-1 optionen-item";
+            div.innerHTML = '<span class="drag-handle text-muted px-1" style="cursor:grab; line-height:2;">&#8942;&#8942;</span>'
+                + '<input type="text" class="form-control form-control-sm optionen-wert" placeholder="Option">'
+                + '<button type="button" class="btn btn-sm btn-outline-danger px-2 optionen-loeschen" title="Entfernen">&times;</button>';
+            container.appendChild(div);
+            div.querySelector("input").focus();
         });
 
         // Feld-Modal: Typ-Wechsel
@@ -382,6 +464,9 @@
             delete document.getElementById("schritt-modal").dataset.posX;
         }
 
+        // Duplizieren-Button nur bei bestehendem Schritt anzeigen
+        document.getElementById("btn-schritt-duplizieren").style.display = nodeId ? "" : "none";
+
         schrittModal.show();
     }
 
@@ -443,40 +528,60 @@
 
     function renderFelderListe() {
         var container = document.getElementById("schritt-felder-liste");
-        var hinweis = document.getElementById("felder-leer-hinweis");
 
         if (schritteFelder.length === 0) {
-            container.innerHTML = "";
-            hinweis.style.display = "";
+            container.innerHTML = '<p class="text-muted small" id="felder-leer-hinweis">Noch keine Felder. Klicke &quot;+ Feld hinzuf\u00fcgen&quot;.</p>';
             return;
         }
-        hinweis.style.display = "none";
 
         var TYP_LABEL = {
-            text: "Text", mehrzeil: "Mehrzeilig", zahl: "Zahl", datum: "Datum", datei: "Datei-Upload", signatur: "Signatur",
-            uhrzeit: "Uhrzeit", email: "E-Mail", bool: "Ja/Nein", iban: "IBAN",
+            text: "Text", mehrzeil: "Mehrzeilig", zahl: "Zahl", datum: "Datum",
+            datei: "Datei-Upload", signatur: "Signatur", uhrzeit: "Uhrzeit",
+            email: "E-Mail", bool: "Ja/Nein", iban: "IBAN",
             auswahl: "Auswahl", radio: "Multiple Choice", checkboxen: "Checkboxen",
             berechnung: "Berechnung", textblock: "Fliesstext", abschnitt: "Abschnitt",
-            trennlinie: "—", leerblock: "Leerblock", zusammenfassung: "Zusammenfassung",
+            link: "Link", trennlinie: "—", leerblock: "Leerblock",
+            zusammenfassung: "Zusammenfassung", gruppe: "Wiederholungsgruppe",
         };
 
-        var html = '<ul class="list-group list-group-flush">';
+        var html = '<ul class="list-group list-group-flush" id="felder-sortable">';
         schritteFelder.forEach(function (feld, idx) {
-            html += '<li class="list-group-item px-2 py-1 d-flex justify-content-between align-items-center">';
-            html += '<span>';
-            html += '<span class="badge bg-secondary me-1 small">' + (TYP_LABEL[feld.typ] || feld.typ) + '</span>';
+            html += '<li class="list-group-item px-2 py-1 d-flex justify-content-between align-items-center" data-feld-idx="' + idx + '">';
+            html += '<span class="d-flex align-items-center gap-1">';
+            html += '<span class="drag-handle text-muted" style="cursor:grab; padding:0 4px; font-size:1rem;" title="Ziehen zum Sortieren">&#8942;</span>';
+            html += '<span class="badge bg-secondary small">' + (TYP_LABEL[feld.typ] || feld.typ) + '</span> ';
             html += esc(feld.label || "");
             if (feld.pflicht) html += ' <span class="text-danger small">*</span>';
             html += '</span>';
             html += '<span class="d-flex gap-1">';
-            html += '<button type="button" class="btn btn-xs btn-outline-secondary px-1 py-0" style="font-size:0.7rem;" data-feld-action="hoch" data-idx="' + idx + '" ' + (idx === 0 ? "disabled" : "") + '>&#9650;</button>';
-            html += '<button type="button" class="btn btn-xs btn-outline-secondary px-1 py-0" style="font-size:0.7rem;" data-feld-action="runter" data-idx="' + idx + '" ' + (idx === schritteFelder.length - 1 ? "disabled" : "") + '>&#9660;</button>';
             html += '<button type="button" class="btn btn-xs btn-outline-primary px-1 py-0" style="font-size:0.7rem;" data-feld-action="bearbeiten" data-idx="' + idx + '">Bearb.</button>';
             html += '<button type="button" class="btn btn-xs btn-outline-danger px-1 py-0" style="font-size:0.7rem;" data-feld-action="loeschen" data-idx="' + idx + '">&#10005;</button>';
             html += '</span></li>';
         });
         html += '</ul>';
         container.innerHTML = html;
+
+        // SortableJS: Drag & Drop Reihenfolge
+        if (typeof Sortable !== "undefined") {
+            var ulEl = document.getElementById("felder-sortable");
+            if (ulEl) {
+                Sortable.create(ulEl, {
+                    handle: ".drag-handle",
+                    animation: 150,
+                    onEnd: function (evt) {
+                        var item = schritteFelder.splice(evt.oldIndex, 1)[0];
+                        schritteFelder.splice(evt.newIndex, 0, item);
+                        // Indizes im DOM aktualisieren (fuer Bearbeiten/Loeschen)
+                        ulEl.querySelectorAll("li[data-feld-idx]").forEach(function (li, i) {
+                            li.dataset.feldIdx = i;
+                            li.querySelectorAll("[data-idx]").forEach(function (btn) {
+                                btn.dataset.idx = i;
+                            });
+                        });
+                    },
+                });
+            }
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -492,7 +597,6 @@
         document.getElementById("feld-label").value = feld ? (feld.label || feld.text || "") : "";
         document.getElementById("feld-hilfetext").value = feld ? (feld.hilfetext || "") : "";
         document.getElementById("feld-pflicht").checked = feld ? !!feld.pflicht : false;
-        document.getElementById("feld-optionen").value = (feld && feld.optionen) ? feld.optionen.join("\n") : "";
         document.getElementById("feld-id-vorschau").textContent = feld ? (feld.id || "") : "";
         document.getElementById("feld-formel").value = feld ? (feld.formel || "") : "";
         document.getElementById("feld-einheit").value = feld ? (feld.einheit || "") : "";
@@ -501,11 +605,62 @@
         document.getElementById("feld-abschnitt-groesse").value = feld ? (feld.groesse || "mittel") : "mittel";
         document.getElementById("feld-abschnitt-ausrichtung").value = feld ? (feld.ausrichtung || "links") : "links";
         document.getElementById("feld-abschnitt-stil").value = feld ? (feld.stil || "normal") : "normal";
+        document.getElementById("feld-link-url").value = feld ? (feld.url || "") : "";
+        document.getElementById("feld-link-ziel").value = feld ? (feld.ziel || "_blank") : "_blank";
+        // Optionen: visuelle Liste aufbauen
+        renderOptionenListe((feld && feld.optionen) ? feld.optionen : []);
+        // Gruppe: Unterfelder laden
+        gruppeUnterfelder = (feld && feld.unterfelder) ? JSON.parse(JSON.stringify(feld.unterfelder)) : [];
+        document.getElementById("feld-singular").value = feld ? (feld.singular || "") : "";
+        renderGruppeUnterfelder();
         toggleOptionenRow(typ);
         feldModal.show();
     }
 
-    var STRUKTUR_TYPEN = ["textblock", "abschnitt", "trennlinie", "leerblock", "zusammenfassung"];
+    // -----------------------------------------------------------------------
+    // Optionen: visuelle Liste
+    // -----------------------------------------------------------------------
+
+    function renderOptionenListe(optionen) {
+        var container = document.getElementById("optionen-liste");
+        if (!optionen || optionen.length === 0) {
+            container.innerHTML = '<p class="text-muted small mb-1" id="optionen-leer-hinweis">Noch keine Optionen. Klicke "+ Option hinzufügen".</p>';
+            return;
+        }
+        var html = "";
+        optionen.forEach(function (opt) {
+            html += '<div class="d-flex gap-1 mb-1 optionen-item">'
+                + '<span class="drag-handle text-muted px-1" style="cursor:grab; line-height:2;">&#8942;&#8942;</span>'
+                + '<input type="text" class="form-control form-control-sm optionen-wert" value="' + esc(opt) + '" placeholder="Option">'
+                + '<button type="button" class="btn btn-sm btn-outline-danger px-2 optionen-loeschen" title="Entfernen">&times;</button>'
+                + '</div>';
+        });
+        container.innerHTML = html;
+        // SortableJS fuer Optionen-Liste
+        if (typeof Sortable !== "undefined") {
+            Sortable.create(container, {
+                handle: ".drag-handle",
+                animation: 100,
+            });
+        }
+        // Loeschen-Events
+        container.addEventListener("click", function (e) {
+            if (e.target.classList.contains("optionen-loeschen")) {
+                e.target.closest(".optionen-item").remove();
+                if (!container.querySelector(".optionen-item")) {
+                    container.innerHTML = '<p class="text-muted small mb-1" id="optionen-leer-hinweis">Noch keine Optionen. Klicke "+ Option hinzuf\u00fcgen".</p>';
+                }
+            }
+        });
+    }
+
+    function leseOptionen() {
+        return Array.from(document.querySelectorAll("#optionen-liste .optionen-wert"))
+            .map(function (inp) { return inp.value.trim(); })
+            .filter(Boolean);
+    }
+
+    var STRUKTUR_TYPEN = ["textblock", "abschnitt", "trennlinie", "leerblock", "zusammenfassung", "link"];
 
     function toggleOptionenRow(typ) {
         var mitOptionen = ["auswahl", "radio", "checkboxen"];
@@ -513,9 +668,11 @@
         var mitDatei = ["datei"];
         var mitTextblock = ["textblock"];
         var mitAbschnitt = ["abschnitt"];
+        var mitGruppe = ["gruppe"];
+        var mitLink = ["link"];
         var ohneLabel = ["trennlinie", "leerblock", "zusammenfassung"];
-        var ohneHilfe = ["trennlinie", "leerblock", "bool", "abschnitt", "textblock", "berechnung", "zusammenfassung", "signatur"];
-        var ohnePflicht = STRUKTUR_TYPEN.concat(["berechnung"]);
+        var ohneHilfe = ["trennlinie", "leerblock", "bool", "abschnitt", "textblock", "berechnung", "zusammenfassung", "signatur", "gruppe", "link"];
+        var ohnePflicht = STRUKTUR_TYPEN.concat(["berechnung", "signatur"]);
 
         document.getElementById("optionen-row").style.display = mitOptionen.indexOf(typ) >= 0 ? "" : "none";
         document.getElementById("formel-row").style.display = mitFormel.indexOf(typ) >= 0 ? "" : "none";
@@ -523,6 +680,8 @@
         document.getElementById("akzeptieren-row").style.display = mitDatei.indexOf(typ) >= 0 ? "" : "none";
         document.getElementById("textblock-row").style.display = mitTextblock.indexOf(typ) >= 0 ? "" : "none";
         document.getElementById("abschnitt-row").style.display = mitAbschnitt.indexOf(typ) >= 0 ? "" : "none";
+        document.getElementById("gruppe-row").style.display = mitGruppe.indexOf(typ) >= 0 ? "" : "none";
+        document.getElementById("link-row").style.display = mitLink.indexOf(typ) >= 0 ? "" : "none";
         document.getElementById("pflicht-row").style.display = ohnePflicht.indexOf(typ) >= 0 ? "none" : "";
 
         var labelRow = document.getElementById("feld-label").closest(".mb-3");
@@ -549,8 +708,11 @@
         var hilfetext = document.getElementById("feld-hilfetext").value.trim();
         if (hilfetext) feld.hilfetext = hilfetext;
         if (typ === "auswahl" || typ === "radio" || typ === "checkboxen") {
-            feld.optionen = document.getElementById("feld-optionen").value
-                .split("\n").map(function (o) { return o.trim(); }).filter(Boolean);
+            feld.optionen = leseOptionen();
+        }
+        if (typ === "link") {
+            feld.url = document.getElementById("feld-link-url").value.trim();
+            feld.ziel = document.getElementById("feld-link-ziel").value;
         }
         if (typ === "berechnung") {
             feld.formel = document.getElementById("feld-formel").value.trim();
@@ -573,6 +735,22 @@
         if (typ === "trennlinie" || typ === "leerblock" || typ === "zusammenfassung") {
             feld.label = "";
         }
+        if (typ === "gruppe") {
+            feld.singular = document.getElementById("feld-singular").value.trim() || "Eintrag";
+            // Unterfeld-IDs aus Label ableiten (falls noch keine vorhanden)
+            var vorhandeneUfIds = [];
+            feld.unterfelder = gruppeUnterfelder.map(function (uf, ufIdx) {
+                var uf2 = JSON.parse(JSON.stringify(uf));
+                if (!uf2.id) {
+                    var basis = labelZuId(uf2.label || ("uf" + ufIdx), uf2.typ);
+                    var ufId = basis; var z = 2;
+                    while (vorhandeneUfIds.indexOf(ufId) !== -1) { ufId = basis + "_" + z++; }
+                    uf2.id = ufId;
+                }
+                vorhandeneUfIds.push(uf2.id);
+                return uf2;
+            });
+        }
 
         if (editFeldIndex !== null) {
             feld.id = schritteFelder[editFeldIndex].id || labelZuId(label, typ);
@@ -594,6 +772,112 @@
         schrittModal.show();
         renderFelderListe();
     }
+
+    // -----------------------------------------------------------------------
+    // Gruppe: Unterfelder-Editor (im Feld-Modal)
+    // -----------------------------------------------------------------------
+
+    var UNTERFELD_TYPEN = [
+        ["text", "Text"],
+        ["mehrzeil", "Mehrzeilig"],
+        ["zahl", "Zahl"],
+        ["datum", "Datum"],
+        ["uhrzeit", "Uhrzeit"],
+        ["bool", "Ja/Nein"],
+        ["auswahl", "Auswahl (Dropdown)"],
+        ["radio", "Multiple Choice"],
+        ["checkboxen", "Checkboxen"],
+    ];
+
+    function renderGruppeUnterfelder() {
+        var container = document.getElementById("gruppe-unterfelder-liste");
+        if (!container) return;
+        if (gruppeUnterfelder.length === 0) {
+            container.innerHTML = '<p class="text-muted small mb-0" id="gruppe-unterfelder-leer">Noch keine Unterfelder.</p>';
+            return;
+        }
+        var typOptionen = UNTERFELD_TYPEN.map(function (t) {
+            return '<option value="' + t[0] + '">' + t[1] + '</option>';
+        }).join("");
+        var html = "";
+        gruppeUnterfelder.forEach(function (uf, idx) {
+            var mitOptionen = ["auswahl", "radio", "checkboxen"].indexOf(uf.typ) >= 0;
+            html += '<div class="border rounded p-2 mb-1 bg-white">';
+            html += '<div class="d-flex gap-2 align-items-start">';
+            // Typ-Auswahl
+            html += '<select class="form-select form-select-sm" style="width:160px; flex-shrink:0;" data-uf-action="typ" data-uf-idx="' + idx + '">';
+            UNTERFELD_TYPEN.forEach(function (t) {
+                html += '<option value="' + t[0] + '"' + (uf.typ === t[0] ? " selected" : "") + '>' + t[1] + '</option>';
+            });
+            html += '</select>';
+            // Label
+            html += '<input type="text" class="form-control form-control-sm" placeholder="Bezeichnung *"';
+            html += ' value="' + esc(uf.label || "") + '" data-uf-action="label" data-uf-idx="' + idx + '">';
+            // Pflicht
+            html += '<div class="form-check mt-1 flex-shrink-0">';
+            html += '<input class="form-check-input" type="checkbox" title="Pflichtfeld"';
+            html += ' data-uf-action="pflicht" data-uf-idx="' + idx + '"' + (uf.pflicht ? " checked" : "") + '>';
+            html += '<label class="form-check-label small">Pflicht</label></div>';
+            // Loeschen
+            html += '<button type="button" class="btn btn-xs btn-outline-danger px-1 py-0 flex-shrink-0"';
+            html += ' style="font-size:0.75rem;" data-uf-action="loeschen" data-uf-idx="' + idx + '">&#10005;</button>';
+            html += '</div>';
+            // Optionen (nur bei auswahl/radio/checkboxen)
+            html += '<div class="mt-1"' + (mitOptionen ? "" : ' style="display:none;"') + ' data-uf-optionen-idx="' + idx + '">';
+            html += '<textarea class="form-control form-control-sm" rows="2" placeholder="Eine Option pro Zeile"';
+            html += ' data-uf-action="optionen" data-uf-idx="' + idx + '">' + esc((uf.optionen || []).join("\n")) + '</textarea>';
+            html += '</div>';
+            html += '</div>';
+        });
+        container.innerHTML = html;
+    }
+
+    // Event-Delegation fuer Unterfeld-Aktionen
+    document.addEventListener("DOMContentLoaded", function () {
+        var gruppeContainer = document.getElementById("gruppe-unterfelder-liste");
+        if (gruppeContainer) {
+            gruppeContainer.addEventListener("input", function (e) {
+                var el = e.target;
+                var idx = parseInt(el.dataset.ufIdx);
+                if (isNaN(idx)) return;
+                var action = el.dataset.ufAction;
+                if (action === "label") {
+                    gruppeUnterfelder[idx].label = el.value;
+                } else if (action === "optionen") {
+                    gruppeUnterfelder[idx].optionen = el.value.split("\n").map(function (o) { return o.trim(); }).filter(Boolean);
+                }
+            });
+            gruppeContainer.addEventListener("change", function (e) {
+                var el = e.target;
+                var idx = parseInt(el.dataset.ufIdx);
+                if (isNaN(idx)) return;
+                var action = el.dataset.ufAction;
+                if (action === "typ") {
+                    gruppeUnterfelder[idx].typ = el.value;
+                    var mitOptionen = ["auswahl", "radio", "checkboxen"].indexOf(el.value) >= 0;
+                    var optDiv = gruppeContainer.querySelector('[data-uf-optionen-idx="' + idx + '"]');
+                    if (optDiv) optDiv.style.display = mitOptionen ? "" : "none";
+                } else if (action === "pflicht") {
+                    gruppeUnterfelder[idx].pflicht = el.checked;
+                }
+            });
+            gruppeContainer.addEventListener("click", function (e) {
+                var btn = e.target.closest("[data-uf-action='loeschen']");
+                if (!btn) return;
+                var idx = parseInt(btn.dataset.ufIdx);
+                if (isNaN(idx)) return;
+                gruppeUnterfelder.splice(idx, 1);
+                renderGruppeUnterfelder();
+            });
+        }
+        var btnUnterfeldHinzu = document.getElementById("btn-unterfeld-hinzu");
+        if (btnUnterfeldHinzu) {
+            btnUnterfeldHinzu.addEventListener("click", function () {
+                gruppeUnterfelder.push({ typ: "text", id: "", label: "", pflicht: false });
+                renderGruppeUnterfelder();
+            });
+        }
+    });
 
     // -----------------------------------------------------------------------
     // Kante hinzufuegen
@@ -627,9 +911,44 @@
         uhrzeit:     [["==","gleich"], [">","nach"], ["<","vor"]],
     };
 
+    // -----------------------------------------------------------------------
+    // Feld-Bausteine (vorgefertigte Feldgruppen)
+    // -----------------------------------------------------------------------
+
+    var FELD_BAUSTEINE = {
+        personalien: [
+            { typ: "text",  label: "Familienname",  pflicht: true  },
+            { typ: "text",  label: "Geburtsname",   pflicht: false },
+            { typ: "text",  label: "Vorname",        pflicht: true  },
+            { typ: "datum", label: "Geburtsdatum",   pflicht: true  },
+            { typ: "text",  label: "Geburtsort",     pflicht: false },
+        ],
+        adresse: [
+            { typ: "text", label: "Straße und Hausnummer", pflicht: true  },
+            { typ: "text", label: "PLZ",                   pflicht: true  },
+            { typ: "text", label: "Wohnort",               pflicht: true  },
+        ],
+        kontakt: [
+            { typ: "text",  label: "Telefonnummer",  pflicht: false },
+            { typ: "email", label: "E-Mail-Adresse", pflicht: false },
+        ],
+        antragsteller: [
+            { typ: "text",  label: "Familienname",          pflicht: true  },
+            { typ: "text",  label: "Geburtsname",           pflicht: false },
+            { typ: "text",  label: "Vorname",               pflicht: true  },
+            { typ: "datum", label: "Geburtsdatum",          pflicht: true  },
+            { typ: "text",  label: "Geburtsort",            pflicht: false },
+            { typ: "text",  label: "Straße und Hausnummer", pflicht: true  },
+            { typ: "text",  label: "PLZ",                   pflicht: true  },
+            { typ: "text",  label: "Wohnort",               pflicht: true  },
+            { typ: "text",  label: "Telefonnummer",         pflicht: false },
+            { typ: "email", label: "E-Mail-Adresse",        pflicht: false },
+        ],
+    };
+
     function _alleInputFelder() {
         var felder = [];
-        var KEINE = ["textblock", "abschnitt", "trennlinie", "leerblock", "zusammenfassung"];
+        var KEINE = ["textblock", "abschnitt", "trennlinie", "leerblock", "zusammenfassung", "link", "signatur"];
         Object.values(schritte).forEach(function (s) {
             (s.felder_json || []).forEach(function (f) {
                 if (f.id && KEINE.indexOf(f.typ) === -1) felder.push(f);
@@ -1029,7 +1348,10 @@
 
     function knotenLabel(schritt) {
         var prefix = schritt.ist_start ? "[S] " : (schritt.ist_ende ? "[E] " : "");
-        var anzahl = (schritt.felder_json || []).length;
+        var KEINE_EINGABE = ["textblock", "abschnitt", "trennlinie", "leerblock", "zusammenfassung", "link"];
+        var anzahl = (schritt.felder_json || []).filter(function (f) {
+            return KEINE_EINGABE.indexOf(f.typ) === -1;
+        }).length;
         var suffix = anzahl > 0 ? "\n(" + anzahl + " Feld" + (anzahl !== 1 ? "er" : "") + ")" : "";
         return prefix + schritt.titel + suffix;
     }

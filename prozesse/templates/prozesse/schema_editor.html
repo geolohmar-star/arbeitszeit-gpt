@@ -14,7 +14,7 @@
         </div>
         {% if schema %}
         <form method="post" action="{% url 'prozesse:schema_loeschen' schema.pk %}"
-              onsubmit="return confirm('Schema wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')">
+              data-confirm="Schema wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.">
             {% csrf_token %}
             <button type="submit" class="btn btn-sm btn-outline-danger">Schema löschen</button>
         </form>

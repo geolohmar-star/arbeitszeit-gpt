@@ -211,6 +211,14 @@
                     {% endif %}
                 </div>
 
+                {% elif typ == "link" %}
+                <div class="col-12">
+                    <a href="{{ feld.url }}" target="{{ feld.ziel|default:'_blank' }}"
+                       class="btn btn-outline-secondary btn-sm">
+                        &#128196; {{ feld.label }}
+                    </a>
+                </div>
+
                 {% elif typ == "textblock" %}
                 <div class="col-12">
                     <div class="alert alert-light border" id="textblock-{{ id }}">{{ feld.text }}</div>
@@ -218,6 +226,21 @@
 
                 {% elif typ == "leerblock" %}
                 <div class="col-12" style="height:1rem;"></div>
+
+                {% elif typ == "gruppe" %}
+                <div class="col-12">
+                    <label class="form-label fw-semibold">
+                        {{ label }}{% if pflicht %} <span class="text-danger">*</span>{% endif %}
+                    </label>
+                    {% if feld.hilfetext %}<div class="form-text mb-2">{{ feld.hilfetext }}</div>{% endif %}
+                    <div id="gruppe-eintraege-{{ id }}"></div>
+                    <input type="hidden" name="{{ id }}__count" id="gruppe-count-{{ id }}" value="0">
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2"
+                            data-gruppe-add="{{ id }}"
+                            data-singular="{{ feld.singular|default:'Eintrag' }}">
+                        + {{ feld.singular|default:"Eintrag" }} hinzufügen
+                    </button>
+                </div>
 
                 {% elif typ == "zusammenfassung" %}
                 <div class="col-12">
@@ -229,6 +252,11 @@
                         <div class="card-body p-0">
                             <dl class="mb-0">
                             {% for eintrag in zusammenfassung %}
+                            {% if eintrag.typ == "_abschnitt" %}
+                            <div class="px-3 py-2 bg-light border-bottom">
+                                <span class="fw-bold small" style="color:#1a4d2e;">{{ eintrag.label }}</span>
+                            </div>
+                            {% else %}
                             <div class="px-3 py-2 {% if not forloop.last %}border-bottom{% endif %}">
                                 <dt class="text-muted small fw-semibold">{{ eintrag.label }}</dt>
                                 <dd class="mb-0 mt-1">
@@ -246,6 +274,7 @@
                                     {% else %}{{ eintrag.wert }}{% endif %}
                                 </dd>
                             </div>
+                            {% endif %}
                             {% endfor %}
                             </dl>
                         </div>
@@ -300,6 +329,7 @@
 {% block extra_js %}
 {% load static %}
 {{ gesammelte_daten_json|json_script:"gesammelte-daten" }}
+{{ schritt.felder_json|json_script:"schritt-felder" }}
 <script src="{% static 'js/pfad_schritt.js' %}"></script>
 {% endblock %}
 {% endblock %}

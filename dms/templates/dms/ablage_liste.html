@@ -73,7 +73,7 @@
                                            class="btn btn-sm btn-outline-secondary"
                                            style="font-size:0.75rem;">Bearbeiten</a>
                                         <form method="post" action="{% url 'dms:ablage_loeschen' kat.pk %}"
-                                              onsubmit="return confirm('Ablage \'{{ kat.name }}\' wirklich löschen?');">
+                                              data-confirm="Ablage '{{ kat.name }}' wirklich löschen?">
                                             {% csrf_token %}
                                             <button type="submit"
                                                     class="btn btn-sm btn-outline-danger"

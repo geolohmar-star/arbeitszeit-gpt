@@ -541,7 +541,7 @@
                                                 <a href="{% url 'arbeitszeit:zeiterfassung_erstellen' %}?datum={{ tag.datum|date:'Y-m-d' }}"
                                                    class="btn-icon btn-icon-edit" title="Bearbeiten">&#9998;</a>
                                                 <form method="post" action="{% url 'arbeitszeit:zeiterfassung_loeschen' tag.erfassung.pk %}"
-                                                      style="margin:0;" onsubmit="return confirm('Eintrag loeschen?');">
+                                                      style="margin:0;" data-confirm="Eintrag loeschen?">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn-icon btn-icon-delete" title="Loeschen">&times;</button>
                                                 </form>

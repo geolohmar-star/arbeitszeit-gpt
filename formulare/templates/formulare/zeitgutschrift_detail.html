@@ -32,7 +32,7 @@
             </a>
             <form method="post" action="{% url 'formulare:wf_task_erledigen' queue_task.pk %}"
                   style="display:inline;"
-                  onsubmit="return confirm('Zeitgutschrift als erledigt markieren?')">
+                  data-confirm="Zeitgutschrift als erledigt markieren?">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-sm btn-success">
                     Erledigen

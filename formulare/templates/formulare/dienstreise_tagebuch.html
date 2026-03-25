@@ -172,7 +172,7 @@
                             {% if ist_antragsteller %}
                             <form method="post"
                                   action="{% url 'formulare:dienstreise_tagebuch_eintrag_loeschen' info.eintrag.pk %}"
-                                  onsubmit="return confirm('Eintrag loeschen?')"
+                                  data-confirm="Eintrag loeschen?"
                                   style="display:inline;">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-sm btn-outline-danger">&times;</button>

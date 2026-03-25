@@ -44,12 +44,15 @@
                         &middot;
                         {{ pfad.sitzungen.filter_laufend }} {{ pfad.sitzungen.count }} Einreichung{{ pfad.sitzungen.count|pluralize:"en" }}
                     </div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 flex-wrap">
                         {% if pfad.aktiv %}
                         <a href="{% url 'antraege:pfad_starten' pfad.pk %}" class="btn btn-success btn-sm">
                             Antrag stellen
                         </a>
                         {% endif %}
+                        <a href="{% url 'antraege:pfad_blockansicht' pfad.pk %}" class="btn btn-outline-primary btn-sm">
+                            Blockansicht
+                        </a>
                         {% if ist_editor %}
                         <a href="{% url 'antraege:pfad_editor' pfad.pk %}" class="btn btn-outline-secondary btn-sm">
                             Bearbeiten

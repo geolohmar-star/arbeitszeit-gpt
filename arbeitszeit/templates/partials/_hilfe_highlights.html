@@ -1788,4 +1788,122 @@ curl -X POST https://matrix.firma.de/_matrix/client/v3/login \
                 </div>
               </div>
 
+              <!-- ===================== ANTRAGS-PFADE ===================== -->
+              <div style="border:1px solid #dbeafe; border-top:3px solid #1d4ed8; border-radius:8px; padding:1rem; margin-top:1rem; background:#eff6ff; position:relative;">
+                <div style="position:absolute; top:-1px; right:10px; background:#1d4ed8; color:white; font-size:0.65rem; font-weight:700; padding:2px 8px; border-radius:0 0 6px 6px; letter-spacing:0.5px;">
+                  NEU
+                </div>
+                <div class="fw-bold mb-2" style="color:#1e3a8a; font-size:1rem;">Antrags-Pfade &ndash; Intelligente Vorgangssteuerung</div>
+                <div class="text-muted mb-3" style="font-size:0.83rem; line-height:1.7;">
+                  <strong>Was ist ein Antrags-Pfad?</strong> Ein verzweigtes, schrittweises Formular mit Logik &mdash; kein starres PDF, sondern ein
+                  geführter Dialog. Abhängig von Antworten werden unterschiedliche Folgefragen gestellt.
+                  Jeder Antragsteller sieht nur das, was für ihn relevant ist.<br><br>
+                  <strong>Unterschied zum Formular-Builder:</strong> Der Formular-Builder erzeugt ein flaches Formular (alle Felder auf einer Seite ohne Logik).
+                  Antrags-Pfade kennen Verzweigungen, Schleifen und Bedingungen &mdash; geeignet für komplexe Vorgänge wie z.&nbsp;B. Hundeanmeldung nach §&nbsp;10&nbsp;LHundG&nbsp;NRW,
+                  bei der zunächst der Hunde-Typ bestimmt und danach typspezifische Felder abgefragt werden.
+                </div>
+
+                <!-- Anleitung -->
+                <div class="mb-3">
+                  <div class="fw-semibold mb-2" style="color:#1e3a8a; font-size:0.9rem;">&#128213; Anleitung: Hundeanmeldung §&nbsp;10 LHundG NRW händisch nachbauen</div>
+                  <div style="font-size:0.8rem; line-height:1.8;">
+
+                    <div class="fw-semibold mt-2 mb-1" style="color:#1e3a8a;">1 &ndash; Neuen Pfad anlegen</div>
+                    <div style="display:grid; grid-template-columns:20px 1fr; gap:3px 8px; align-items:start;">
+                      <div style="background:#1d4ed8;color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.6rem;">&#9679;</div>
+                      <div><em>Prozesse &rarr; Antrags-Pfade &rarr; + Neuer Pfad</em></div>
+                      <div style="background:#1d4ed8;color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.6rem;">&#9679;</div>
+                      <div>Name: <code>Erlaubnis Listenhundehaltung § 10 LHundG NRW</code>, Aktiv: &#10003;, dann Modus <strong>+ Schritt</strong> wählen</div>
+                    </div>
+
+                    <div class="fw-semibold mt-3 mb-1" style="color:#1e3a8a;">2 &ndash; Start-Knoten: Angaben zur Halterin / zum Halter</div>
+                    <div style="background:#e0f2fe; border:1px solid #bae6fd; border-radius:6px; padding:0.5rem 0.75rem; margin-bottom:0.4rem;">
+                      Auf Zeichenfläche klicken &rarr; Titel: <code>Angaben zur Halterin / zum Halter</code> &mdash; &#9745; <strong>Start-Knoten</strong><br>
+                      <strong>Bausteine &rarr; Antragsteller komplett</strong> &rarr; 10 Felder werden sofort eingefügt.<br>
+                      Familienname, Vorname, Geburtsdatum, Straße, PLZ, Wohnort als <em>Pflichtfeld</em> prüfen. Speichern.
+                    </div>
+
+                    <div class="fw-semibold mt-3 mb-1" style="color:#1e3a8a;">3 &ndash; Verzweigung: Art des Hundes</div>
+                    <div style="background:#e0f2fe; border:1px solid #bae6fd; border-radius:6px; padding:0.5rem 0.75rem; margin-bottom:0.4rem;">
+                      Neuer Schritt &rarr; Titel: <code>Art des Hundes</code><br>
+                      Feld: Typ <strong>Multiple Choice</strong> &rarr; Label: <code>Hunde-Kategorie</code> &rarr; Pflicht: &#10003;<br>
+                      Optionen (+ klicken): <code>Kein Listenhund</code> / <code>Kategorie 1 (§ 3)</code> / <code>Kategorie 2 (§ 10)</code><br>
+                      Speichern. Modus <strong>&rarr; Verbinden</strong>: Start &rarr; dieser Schritt (Transition: <em>Immer</em>).
+                    </div>
+
+                    <div class="fw-semibold mt-3 mb-1" style="color:#1e3a8a;">4 &ndash; Hunde-Angaben (für alle Typen gleich)</div>
+                    <div style="background:#e0f2fe; border:1px solid #bae6fd; border-radius:6px; padding:0.5rem 0.75rem; margin-bottom:0.4rem;">
+                      Neuer Schritt &rarr; Titel: <code>Angaben zum Hund</code><br>
+                      Felder anlegen: <code>Name des Hundes</code> (Text·Pflicht), <code>Rasse</code> (Text·Pflicht),
+                      <code>Geschlecht</code> (Radio: männlich/weiblich), <code>Kastriert</code> (Ja/Nein),
+                      <code>Farbe / Merkmale</code> (Text), <code>Geburtsdatum</code> (Datum),
+                      <code>Gewicht (kg)</code> (Zahl), <code>Chip-Nummer</code> (Text),
+                      <code>Herkunftsnachweis</code> (Datei-Upload, Typen: <code>.pdf,.jpg,.png</code>)<br>
+                      Verbinden: Schritt 3 &rarr; Schritt 4 (<em>Immer</em>).
+                    </div>
+
+                    <div class="fw-semibold mt-3 mb-1" style="color:#1e3a8a;">5 &ndash; Drei pfadspezifische Folgeschritte mit Bedingungen</div>
+                    <div style="background:#e0f2fe; border:1px solid #bae6fd; border-radius:6px; padding:0.5rem 0.75rem; margin-bottom:0.4rem;">
+                      Drei neue Schritte erstellen:<br>
+                      <strong>A)</strong> <code>Kein Listenhund &ndash; Standardanmeldung</code> (Haltungsort, Zweck)<br>
+                      <strong>B)</strong> <code>Kat. 1 &ndash; Zusätzliche Nachweise</code> (Sachkundenachweis, Haftpflicht)<br>
+                      <strong>C)</strong> <code>Kat. 2 &ndash; Erlaubnisantrag § 10</code> (Wohnsituation, Einzäunung, Wesenstest)<br><br>
+                      Schritt 4 &rarr; A verbinden &rarr; Kante klicken &rarr; <em>Bedingung aufbauen</em>: <code>Hunde-Kategorie == Kein Listenhund</code>, Priorität: 0<br>
+                      Schritt 4 &rarr; B: <code>Hunde-Kategorie == Kategorie 1</code>, Priorität: 1<br>
+                      Schritt 4 &rarr; C: <code>Hunde-Kategorie == Kategorie 2</code>, Priorität: 2
+                    </div>
+
+                    <div class="fw-semibold mt-3 mb-1" style="color:#1e3a8a;">6 &ndash; Loop: Weiteren Hund anmelden?</div>
+                    <div style="background:#e0f2fe; border:1px solid #bae6fd; border-radius:6px; padding:0.5rem 0.75rem; margin-bottom:0.4rem;">
+                      Neuer Schritt &rarr; Titel: <code>Weiteren Hund anmelden?</code><br>
+                      Feld: Multiple Choice &rarr; Label: <code>Weiterer Hund</code> &rarr; Pflicht: &#10003;<br>
+                      Optionen: <code>Ja, weiteren Hund anmelden</code> / <code>Nein, weiter zur Einreichung</code><br>
+                      Alle drei Pfad-Schritte (A, B, C) mit diesem Loop-Schritt verbinden (<em>Immer</em>).<br><br>
+                      <strong>Loop-Kante zurück:</strong> Modus Verbinden &rarr; Loop-Schritt &rarr; <em>Art des Hundes</em>.<br>
+                      Kante klicken &rarr; Bedingung: <code>Weiterer Hund == "Ja, weiteren Hund anmelden"</code><br>
+                      <span style="background:#fef3c7; border:1px solid #fcd34d; border-radius:4px; padding:1px 6px;">&#9888; Beschriftung (Label): <strong>LOOP</strong> &mdash; Grossbuchstaben, exakt so</span>
+                    </div>
+
+                    <div class="fw-semibold mt-3 mb-1" style="color:#1e3a8a;">7 &ndash; End-Knoten: Einreichen</div>
+                    <div style="background:#e0f2fe; border:1px solid #bae6fd; border-radius:6px; padding:0.5rem 0.75rem; margin-bottom:0.4rem;">
+                      Neuer Schritt &rarr; Titel: <code>Antrag einreichen</code> &mdash; &#9745; <strong>End-Knoten</strong><br>
+                      Felder: <em>Zusammenfassung aller Angaben</em> + optional <em>Signatur</em> (Pflicht)<br>
+                      Loop-Schritt &rarr; Einreichen verbinden: Bedingung <code>Weiterer Hund == "Nein, weiter zur Einreichung"</code>, Priorität: 10
+                    </div>
+
+                    <div class="fw-semibold mt-3 mb-1" style="color:#1e3a8a;">8 &ndash; Speichern &amp; Testen</div>
+                    <div style="display:grid; grid-template-columns:20px 1fr; gap:3px 8px; align-items:start;">
+                      <div style="background:#1d4ed8;color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.6rem;">&#9679;</div>
+                      <div><strong>Speichern</strong> &rarr; <strong>&#9707; Blockansicht</strong>: Flussdiagramm prüfen (Start grün, Verzweigungen orange, Loop-Kante lila gestrichelt)</div>
+                      <div style="background:#1d4ed8;color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.6rem;">&#9679;</div>
+                      <div><strong>Antrag starten</strong> &rarr; Testdurchlauf mit 2 Hunden (Loop zweimal durchlaufen)</div>
+                      <div style="background:#1d4ed8;color:white;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.6rem;">&#9679;</div>
+                      <div>Nach Einreichung: <strong>PDF herunterladen</strong> &mdash; Hund 1 und Hund 2 als eigene Abschnitte sichtbar</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-2 rounded mb-3" style="background:#eff6ff; border:1px solid #bfdbfe; font-size:0.8rem;">
+                  <strong>&#9888; LOOP-Label ist Pflicht:</strong> Die Rückwärts-Kante muss exakt das Label <code>LOOP</code> (Grossbuchstaben) tragen.
+                  Nur dann archiviert das System die bisherigen Hunde-Daten und setzt die Felder für den nächsten Durchlauf zurück.
+                  Ohne dieses Label werden die Daten des ersten Hundes beim zweiten Durchlauf überschrieben.
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:0.5rem;">
+                  <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+                    <span style="background:#dbeafe; border:1px solid #93c5fd; color:#1e3a8a; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Verzweigungslogik</span>
+                    <span style="background:#dbeafe; border:1px solid #93c5fd; color:#1e3a8a; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Loop-Mechanismus</span>
+                    <span style="background:#dbeafe; border:1px solid #93c5fd; color:#1e3a8a; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Feld-Bausteine</span>
+                    <span style="background:#dbeafe; border:1px solid #93c5fd; color:#1e3a8a; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">Blockansicht / Flussdiagramm</span>
+                    <span style="background:#dbeafe; border:1px solid #93c5fd; color:#1e3a8a; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">PDF mit Briefkopf</span>
+                    <span style="background:#dbeafe; border:1px solid #93c5fd; color:#1e3a8a; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">kein Doppeleintrag</span>
+                    <span style="background:#dbeafe; border:1px solid #93c5fd; color:#1e3a8a; font-size:0.7rem; font-weight:600; padding:2px 8px; border-radius:10px;">100 % offline</span>
+                  </div>
+                  <a href="{% url 'arbeitszeit:anleitung_antragspfade_pdf' %}"
+                     style="display:inline-flex; align-items:center; gap:5px; background:#1d4ed8; color:white; font-size:0.78rem; font-weight:600; padding:5px 14px; border-radius:6px; text-decoration:none; white-space:nowrap;">
+                    &#128196; Anleitung als PDF
+                  </a>
+                </div>
+              </div>
+
             </div>

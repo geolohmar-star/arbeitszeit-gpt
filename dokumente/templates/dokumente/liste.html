@@ -126,7 +126,7 @@
                                     Download
                                 </a>
                                 <form method="post" action="{% url 'dokumente:loeschen' dok.pk %}"
-                                      onsubmit="return confirm('&quot;{{ dok.dateiname }}&quot; wirklich loeschen? Dieser Vorgang kann nicht rueckgaengig gemacht werden.');">
+                                      data-confirm="&quot;{{ dok.dateiname }}&quot; wirklich loeschen? Dieser Vorgang kann nicht rueckgaengig gemacht werden.">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-outline-danger"
                                             style="font-size:0.78rem;">

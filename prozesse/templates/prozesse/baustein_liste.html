@@ -42,7 +42,7 @@
                     <a href="{% url 'prozesse:baustein_bearbeiten' baustein.pk %}"
                        class="btn btn-sm btn-outline-secondary">Bearbeiten</a>
                     <form method="post" action="{% url 'prozesse:baustein_loeschen' baustein.pk %}"
-                          onsubmit="return confirm('Baustein wirklich löschen?')">
+                          data-confirm="Baustein wirklich löschen?">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
                     </form>

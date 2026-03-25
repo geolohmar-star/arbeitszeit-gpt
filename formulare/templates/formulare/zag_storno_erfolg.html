@@ -28,7 +28,7 @@
             </a>
             <form method="post" action="{% url 'formulare:wf_task_erledigen' queue_task.pk %}"
                   style="display:inline;"
-                  onsubmit="return confirm('Antrag als erledigt markieren?')">
+                  data-confirm="Antrag als erledigt markieren?">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-sm btn-success">Erledigen</button>
             </form>

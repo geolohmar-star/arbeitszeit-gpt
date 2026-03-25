@@ -67,4 +67,5 @@ urlpatterns = [
 
     # Hilfeseiten
     path('hilfe/workflow-editor/', views.hilfe_workflow_editor, name='hilfe_workflow_editor'),
+    path('hilfe/antragspfade/pdf/', views.anleitung_antragspfade_pdf, name='anleitung_antragspfade_pdf'),
 ]

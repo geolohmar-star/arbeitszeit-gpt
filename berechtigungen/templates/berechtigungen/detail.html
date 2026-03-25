@@ -79,7 +79,7 @@
                             <form method="post"
                                   action="{% url 'berechtigungen:entziehen' mitarbeiter.pk %}"
                                   class="d-inline"
-                                  onsubmit="return confirm('Berechtigung entziehen?');">
+                                  data-confirm="Berechtigung entziehen?">
                                 {% csrf_token %}
                                 <input type="hidden" name="user_id" value="{{ user.pk }}">
                                 <input type="hidden" name="permission" value="{{ perm }}">

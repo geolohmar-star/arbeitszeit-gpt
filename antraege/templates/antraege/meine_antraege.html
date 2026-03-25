@@ -34,12 +34,20 @@
                 </td>
                 <td class="text-muted small">{{ s.gestartet_am|date:"d.m.Y H:i" }}</td>
                 <td class="text-muted small">{{ s.abgeschlossen_am|date:"d.m.Y H:i"|default:"–" }}</td>
-                <td>
+                <td class="d-flex gap-2 flex-wrap">
                     {% if s.status == "laufend" %}
                     <a href="{% url 'antraege:pfad_schritt' s.pk %}" class="btn btn-sm btn-outline-primary">Weiter</a>
                     {% elif s.status == "abgeschlossen" %}
                     <a href="{% url 'antraege:pfad_abgeschlossen' s.pk %}" class="btn btn-sm btn-outline-secondary">Ansehen</a>
+                    <a href="{% url 'antraege:sitzung_pdf' s.pk %}" class="btn btn-sm btn-outline-success">&#128196; PDF</a>
                     {% endif %}
+                    <form method="post" action="{% url 'antraege:sitzung_loeschen' s.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                data-confirm="Antrag &quot;{{ s.pfad.name }}&quot; wirklich löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.">
+                            Löschen
+                        </button>
+                    </form>
                 </td>
             </tr>
             {% endfor %}
@@ -50,4 +58,9 @@
     <div class="alert alert-info">Noch keine Anträge gestellt.</div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/meine_antraege.js' %}"></script>
 {% endblock %}

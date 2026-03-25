@@ -88,7 +88,7 @@
                 </button>
               </form>
               <form method="post" action="{% url 'stellenportal:bewerbung_aktion' b.pk %}"
-                    onsubmit="return confirm('Bewerbung wirklich absagen?')">
+                    data-confirm="Bewerbung wirklich absagen?">
                 {% csrf_token %}
                 <input type="hidden" name="aktion" value="absagen">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Absagen</button>
@@ -104,7 +104,7 @@
                 </button>
               </form>
               <form method="post" action="{% url 'stellenportal:bewerbung_aktion' b.pk %}"
-                    onsubmit="return confirm('Bewerbung wirklich absagen?')">
+                    data-confirm="Bewerbung wirklich absagen?">
                 {% csrf_token %}
                 <input type="hidden" name="aktion" value="absagen">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Absagen</button>
@@ -120,7 +120,7 @@
                 </button>
               </form>
               <form method="post" action="{% url 'stellenportal:bewerbung_aktion' b.pk %}"
-                    onsubmit="return confirm('Bewerbung wirklich absagen?')">
+                    data-confirm="Bewerbung wirklich absagen?">
                 {% csrf_token %}
                 <input type="hidden" name="aktion" value="absagen">
                 <button type="submit" class="btn btn-sm btn-outline-danger">Absagen</button>

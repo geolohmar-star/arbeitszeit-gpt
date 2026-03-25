@@ -3,8 +3,15 @@
 
 {% block title %}Pfad-Editor{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Editor braucht feste Hoehe – kein Seitenscroll */
+html, body { overflow: hidden; height: 100%; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="d-flex flex-column" style="height:calc(100vh - 60px);">
+<div class="d-flex flex-column" style="height:calc(100vh - 60px); overflow:hidden;">
 
     <!-- Toolbar -->
     <div class="bg-white border-bottom px-3 py-2 d-flex align-items-center gap-2 flex-shrink-0">
@@ -32,6 +39,10 @@
             <button id="btn-schema-import" class="btn btn-sm btn-outline-primary" title="Felder aus bestehendem Formular als Schritt importieren">
                 &#8659; Formular importieren
             </button>
+            {% endif %}
+            {% if pfad %}
+            <a id="btn-blockansicht" href="{% url 'antraege:pfad_blockansicht' pfad.pk %}"
+               class="btn btn-sm btn-outline-primary" target="_blank">&#9707; Blockansicht</a>
             {% endif %}
             <button id="btn-speichern" class="btn btn-sm btn-success">Speichern</button>
             <span id="speicher-status" class="text-muted small align-self-center"></span>
@@ -107,9 +118,25 @@
                 <hr>
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <strong>Felder dieses Schritts</strong>
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-feld-hinzufuegen-schritt">
-                        + Feld hinzufügen
-                    </button>
+                    <div class="d-flex gap-2">
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle"
+                                    data-bs-toggle="dropdown" title="Vorgefertigte Feldgruppen einfügen">
+                                &#9670; Bausteine
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><h6 class="dropdown-header">Häufige Blöcke</h6></li>
+                                <li><button class="dropdown-item" data-baustein="personalien">Personalien (Name, Geb.-Datum, Ort)</button></li>
+                                <li><button class="dropdown-item" data-baustein="adresse">Anschrift (Straße, PLZ, Ort)</button></li>
+                                <li><button class="dropdown-item" data-baustein="kontakt">Kontaktdaten (Telefon, E-Mail)</button></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><button class="dropdown-item fw-semibold" data-baustein="antragsteller">Antragsteller komplett (alle Angaben)</button></li>
+                            </ul>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="btn-feld-hinzufuegen-schritt">
+                            + Feld hinzufügen
+                        </button>
+                    </div>
                 </div>
 
                 <div id="schritt-felder-liste" class="mb-3">
@@ -118,6 +145,10 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-outline-secondary" id="btn-schritt-duplizieren" style="display:none;"
+                        title="Erstellt eine Kopie dieses Schritts mit allen Feldern">
+                    &#10065; Duplizieren
+                </button>
                 <button type="button" class="btn btn-primary" id="btn-schritt-speichern">Speichern</button>
             </div>
         </div>
@@ -136,25 +167,37 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Typ</label>
                     <select class="form-select" id="feld-typ">
-                        <optgroup label="Eingabefelder">
+                        <optgroup label="Texteingabe">
                             <option value="text">Text (einzeilig)</option>
                             <option value="mehrzeil">Text (mehrzeilig)</option>
+                            <option value="email">E-Mail (validiert)</option>
+                            <option value="iban">IBAN (validiert)</option>
+                        </optgroup>
+                        <optgroup label="Zahlen &amp; Datum">
                             <option value="zahl">Zahl</option>
                             <option value="datum">Datum</option>
                             <option value="uhrzeit">Uhrzeit</option>
-                            <option value="email">E-Mail (validiert)</option>
-                            <option value="iban">IBAN (validiert)</option>
+                        </optgroup>
+                        <optgroup label="Auswahl">
                             <option value="bool">Ja/Nein (Checkbox)</option>
                             <option value="auswahl">Auswahl (Dropdown)</option>
                             <option value="radio">Multiple Choice</option>
                             <option value="checkboxen">Kontrollkästchen (Mehrfach)</option>
                         </optgroup>
+                        <optgroup label="Datei &amp; Signatur">
+                            <option value="datei">Datei-Upload</option>
+                            <option value="signatur">Unterschrift (Signatur-Pad)</option>
+                        </optgroup>
+                        <optgroup label="Wiederholung">
+                            <option value="gruppe">Wiederholungsgruppe (1+n Einträge)</option>
+                        </optgroup>
                         <optgroup label="Berechnung &amp; Anzeige">
                             <option value="berechnung">Berechnungsfeld (Formel)</option>
                             <option value="zusammenfassung">Zusammenfassung aller Angaben</option>
                         </optgroup>
-                        <optgroup label="Struktur">
+                        <optgroup label="Struktur &amp; Navigation">
                             <option value="textblock">Fließtext / Hinweis</option>
+                            <option value="link">Link / Dokument-Verweis</option>
                             <option value="abschnitt">Abschnitts-Überschrift</option>
                             <option value="trennlinie">Trennlinie</option>
                             <option value="leerblock">Leerblock (Abstand)</option>
@@ -172,8 +215,25 @@
                 </div>
                 <div class="mb-3" id="optionen-row" style="display:none;">
                     <label class="form-label fw-semibold">Optionen</label>
-                    <textarea class="form-control" id="feld-optionen" rows="4"
-                              placeholder="Eine Option pro Zeile"></textarea>
+                    <div id="optionen-liste" class="mb-2" style="min-height:36px;"></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-option-hinzu">
+                        + Option hinzufügen
+                    </button>
+                </div>
+
+                <div class="mb-3" id="link-row" style="display:none;">
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">URL / Pfad <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="feld-link-url"
+                               placeholder="z.B. /static/docs/merkblatt.pdf oder https://...">
+                    </div>
+                    <div>
+                        <label class="form-label fw-semibold">Öffnen in</label>
+                        <select class="form-select form-select-sm" id="feld-link-ziel" style="max-width:220px;">
+                            <option value="_blank">Neuem Tab</option>
+                            <option value="_self">Gleichem Fenster</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="mb-3" id="formel-row" style="display:none;">
@@ -231,9 +291,28 @@
                     </div>
                 </div>
 
+                <!-- Gruppe: Einzel-Bezeichnung + Unterfelder -->
+                <div id="gruppe-row" style="display:none;">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Bezeichnung eines Eintrags <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="feld-singular"
+                               placeholder="z.B. Person, Haushaltsmitglied, Kind">
+                        <small class="text-muted">Erscheint als Button-Text: „+ Person hinzufügen"</small>
+                    </div>
+                    <div class="mb-2 d-flex justify-content-between align-items-center">
+                        <label class="form-label fw-semibold mb-0">Unterfelder</label>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="btn-unterfeld-hinzu">
+                            + Unterfeld
+                        </button>
+                    </div>
+                    <div id="gruppe-unterfelder-liste" class="border rounded p-2 bg-light mb-2" style="min-height:60px;">
+                        <p class="text-muted small mb-0" id="gruppe-unterfelder-leer">Noch keine Unterfelder.</p>
+                    </div>
+                </div>
+
                 <div class="form-check" id="pflicht-row">
                     <input class="form-check-input" type="checkbox" id="feld-pflicht">
-                    <label class="form-check-label" for="feld-pflicht">Pflichtfeld</label>
+                    <label class="form-check-label" for="feld-pflicht">Pflichtfeld (mindestens 1 Eintrag erforderlich)</label>
                 </div>
             </div>
             <div class="modal-footer">
@@ -356,25 +435,24 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Formular auswählen</label>
-                    <select id="import-schema-select" class="form-select">
-                        <option value="">— bitte wählen —</option>
-                        {% for schema in formular_schemas %}
-                        <option value="{{ schema.pk }}" data-url="{% url 'antraege:schema_felder_laden' schema.pk %}">
-                            {{ schema.name }}
-                        </option>
-                        {% endfor %}
-                    </select>
+                <p class="fw-semibold mb-2">Formular auswählen:</p>
+                <div id="import-schema-liste" class="d-flex flex-column gap-2 mb-3">
+                    {% for schema in formular_schemas %}
+                    <button type="button"
+                            class="btn btn-outline-secondary text-start import-schema-btn"
+                            data-name="{{ schema.name }}"
+                            data-felder="{{ schema.felder_json|escape }}">
+                        <strong>{{ schema.name }}</strong>
+                    </button>
+                    {% endfor %}
                 </div>
                 <div id="import-vorschau" class="d-none">
                     <hr>
-                    <p class="fw-semibold mb-2">Felder die importiert werden:</p>
-                    <div id="import-felder-liste" class="border rounded p-2 bg-light" style="max-height:300px; overflow-y:auto;"></div>
-                    <p class="text-muted small mt-2 mb-0">
-                        Die Felder werden als neuer Schritt in den Pfad eingefügt.
-                        Danach können einzelne Felder im Schritt-Editor angepasst werden.
-                    </p>
+                    <p class="fw-semibold mb-2">Enthaltene Felder (werden alle importiert):</p>
+                    <div id="import-felder-liste" class="border rounded p-2 bg-light" style="max-height:250px; overflow-y:auto;"></div>
+                    <div class="alert alert-success mt-3 mb-0 py-2">
+                        Klicke <strong>"Als Schritt importieren"</strong> um alle Felder als neuen Schritt hinzuzufügen.
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -388,5 +466,6 @@
 
 {% block extra_js %}
 <script src="{% static 'js/vis-network.min.js' %}"></script>
+<script src="{% static 'js/sortable.min.js' %}"></script>
 <script src="{% static 'js/antraege_editor.js' %}"></script>
 {% endblock %}

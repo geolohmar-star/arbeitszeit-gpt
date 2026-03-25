@@ -14,7 +14,7 @@
         </div>
         {% if baustein %}
         <form method="post" action="{% url 'prozesse:baustein_loeschen' baustein.pk %}"
-              onsubmit="return confirm('Baustein wirklich löschen?')">
+              data-confirm="Baustein wirklich löschen?">
             {% csrf_token %}
             <button type="submit" class="btn btn-sm btn-outline-danger">Baustein löschen</button>
         </form>

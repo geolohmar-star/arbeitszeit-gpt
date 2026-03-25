@@ -89,6 +89,154 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // ---------------------------------------------------------------------------
+    // Wiederholungsgruppen (1+n Eintraege – HTML wird per JS aus JSON gebaut)
+    // ---------------------------------------------------------------------------
+
+    // Schritt-Felder aus JSON laden (enthaelt gruppe.unterfelder)
+    var schrittFelder = {};
+    var schrittFelderEl = document.getElementById("schritt-felder");
+    if (schrittFelderEl) {
+        try {
+            JSON.parse(schrittFelderEl.textContent).forEach(function (f) {
+                schrittFelder[f.id] = f;
+            });
+        } catch (e) {}
+    }
+
+    function escHtml(str) {
+        return String(str || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+
+    function bauEintragHtml(gruppeId, idx, unterfelder, singular) {
+        var felderHtml = "";
+        unterfelder.forEach(function (uf) {
+            var ufId   = uf.id  || "";
+            var ufTyp  = uf.typ || "text";
+            var lbl    = escHtml(uf.label || "");
+            var pfl    = uf.pflicht ? ' <span class="text-danger">*</span>' : "";
+            var name   = gruppeId + "__" + idx + "__" + ufId;
+            var elId   = "f-" + gruppeId + "-" + idx + "-" + ufId;
+            var inner  = "";
+
+            if (ufTyp === "bool") {
+                inner = '<div class="form-check mt-2">' +
+                    '<input class="form-check-input" type="checkbox" name="' + name + '" id="' + elId + '" value="1">' +
+                    '<label class="form-check-label small" for="' + elId + '">' + lbl + pfl + '</label></div>';
+            } else if (ufTyp === "mehrzeil") {
+                inner = '<label class="form-label small fw-semibold mb-1">' + lbl + pfl + '</label>' +
+                    '<textarea class="form-control form-control-sm" rows="2" name="' + name + '"></textarea>';
+            } else if (ufTyp === "datum") {
+                inner = '<label class="form-label small fw-semibold mb-1">' + lbl + pfl + '</label>' +
+                    '<input type="date" class="form-control form-control-sm" name="' + name + '">';
+            } else if (ufTyp === "zahl") {
+                inner = '<label class="form-label small fw-semibold mb-1">' + lbl + pfl + '</label>' +
+                    '<input type="number" step="any" class="form-control form-control-sm" name="' + name + '">';
+            } else if (ufTyp === "uhrzeit") {
+                inner = '<label class="form-label small fw-semibold mb-1">' + lbl + pfl + '</label>' +
+                    '<input type="text" class="form-control form-control-sm" placeholder="14:30" maxlength="5" name="' + name + '">';
+            } else if (ufTyp === "auswahl") {
+                var opts = '<option value="">— bitte wählen —</option>';
+                (uf.optionen || []).forEach(function (o) {
+                    opts += '<option value="' + escHtml(o) + '">' + escHtml(o) + '</option>';
+                });
+                inner = '<label class="form-label small fw-semibold mb-1">' + lbl + pfl + '</label>' +
+                    '<select class="form-select form-select-sm" name="' + name + '">' + opts + '</select>';
+            } else if (ufTyp === "radio" || ufTyp === "checkboxen") {
+                var typ2 = ufTyp === "radio" ? "radio" : "checkbox";
+                var items = "";
+                (uf.optionen || []).forEach(function (o, i) {
+                    var oId = elId + "-" + i;
+                    items += '<div class="form-check"><input class="form-check-input" type="' + typ2 + '" name="' + name +
+                        '" id="' + oId + '" value="' + escHtml(o) + '">' +
+                        '<label class="form-check-label small" for="' + oId + '">' + escHtml(o) + '</label></div>';
+                });
+                inner = '<label class="form-label small fw-semibold mb-1">' + lbl + pfl + '</label>' + items;
+            } else {
+                inner = '<label class="form-label small fw-semibold mb-1">' + lbl + pfl + '</label>' +
+                    '<input type="text" class="form-control form-control-sm" name="' + name + '">';
+            }
+            felderHtml += '<div class="col-md-6">' + inner + '</div>';
+        });
+
+        return '<div class="card mb-2 gruppe-eintrag">' +
+            '<div class="card-body py-2 px-3">' +
+            '<div class="d-flex justify-content-between align-items-center mb-2">' +
+            '<small class="fw-semibold text-muted gruppe-eintrag-titel">' +
+            escHtml(singular) + ' ' + (idx + 1) + '</small>' +
+            '<button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" ' +
+            'style="font-size:0.75rem;" data-gruppe-remove="' + gruppeId + '">&#10005; Entfernen</button>' +
+            '</div><div class="row g-2">' + felderHtml + '</div></div></div>';
+    }
+
+    function reindexGruppe(gruppeId, container, singular, unterfelder) {
+        var eintraege = container.querySelectorAll(".gruppe-eintrag");
+        eintraege.forEach(function (entry, newIdx) {
+            entry.querySelectorAll("[name]").forEach(function (el) {
+                el.name = el.name.replace(
+                    new RegExp(gruppeId + "__\\d+__"),
+                    gruppeId + "__" + newIdx + "__"
+                );
+            });
+            entry.querySelectorAll("[id]").forEach(function (el) {
+                el.id = el.id.replace(
+                    new RegExp("f-" + gruppeId + "-\\d+-"),
+                    "f-" + gruppeId + "-" + newIdx + "-"
+                );
+            });
+            entry.querySelectorAll("[for]").forEach(function (el) {
+                el.htmlFor = el.htmlFor.replace(
+                    new RegExp("f-" + gruppeId + "-\\d+-"),
+                    "f-" + gruppeId + "-" + newIdx + "-"
+                );
+            });
+            var titelEl = entry.querySelector(".gruppe-eintrag-titel");
+            if (titelEl) titelEl.textContent = singular + " " + (newIdx + 1);
+        });
+        var countInput = document.getElementById("gruppe-count-" + gruppeId);
+        if (countInput) countInput.value = eintraege.length;
+    }
+
+    function gruppeEintragHinzufuegen(gruppeId) {
+        var singular   = (document.querySelector("[data-gruppe-add='" + gruppeId + "']") || {}).dataset.singular || "Eintrag";
+        var container  = document.getElementById("gruppe-eintraege-" + gruppeId);
+        var countInput = document.getElementById("gruppe-count-" + gruppeId);
+        if (!container || !countInput) return;
+        var unterfelder = (schrittFelder[gruppeId] && schrittFelder[gruppeId].unterfelder) || [];
+        var idx = parseInt(countInput.value) || 0;
+        container.insertAdjacentHTML("beforeend", bauEintragHtml(gruppeId, idx, unterfelder, singular));
+        countInput.value = idx + 1;
+    }
+
+    // Direkte Listener auf alle statischen Hinzufuegen-Buttons (kein Event Delegation)
+    document.querySelectorAll("[data-gruppe-add]").forEach(function (btn) {
+        btn.addEventListener("click", function (e) {
+            e.stopImmediatePropagation();
+            gruppeEintragHinzufuegen(btn.dataset.gruppeAdd);
+        });
+    });
+
+    // Event Delegation nur fuer dynamisch erzeugte Entfernen-Buttons
+    document.body.addEventListener("click", function (e) {
+        var removeBtn = e.target.closest("[data-gruppe-remove]");
+        if (removeBtn) {
+            var gruppeId2    = removeBtn.dataset.gruppeRemove;
+            var eintrag      = removeBtn.closest(".gruppe-eintrag");
+            var container2   = document.getElementById("gruppe-eintraege-" + gruppeId2);
+            var addBtnRef    = document.querySelector("[data-gruppe-add='" + gruppeId2 + "']");
+            var singular2    = addBtnRef ? addBtnRef.dataset.singular : "Eintrag";
+            var unterfelder2 = (schrittFelder[gruppeId2] && schrittFelder[gruppeId2].unterfelder) || [];
+            if (eintrag && container2) {
+                eintrag.remove();
+                reindexGruppe(gruppeId2, container2, singular2, unterfelder2);
+            }
+        }
+    });
+
+    // ---------------------------------------------------------------------------
     // Signatur-Pad (Handschrift-Canvas)
     // ---------------------------------------------------------------------------
 

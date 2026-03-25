@@ -43,7 +43,7 @@
             <td>
               {% if z.status == "aktiv" %}
               <form method="post" action="{% url 'signatur:zertifikat_sperren' pk=z.pk %}"
-                    onsubmit="return confirm('Zertifikat von {{ z.user.get_full_name }} sperren?')">
+                    data-confirm="Zertifikat von {{ z.user.get_full_name }} sperren?">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-sm btn-outline-danger">Sperren</button>
               </form>

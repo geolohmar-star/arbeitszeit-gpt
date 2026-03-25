@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Anleitung: Antrags-Pfade</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm 2cm 2.5cm 2cm;
+            @bottom-center {
+                content: "Anleitung Antrags-Pfade  ·  PRIMA  ·  Seite " counter(page) " von " counter(pages);
+                font-size: 7pt;
+                color: #aaa;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: DejaVu Sans, Arial, sans-serif;
+            font-size: 10pt;
+            color: #1a1a1a;
+            margin: 0;
+        }
+
+        /* Kopfzeile */
+        .kopf {
+            border-bottom: 3px solid #1a4d2e;
+            padding-bottom: 0.4cm;
+            margin-bottom: 0.5cm;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .kopf-titel { font-size: 16pt; font-weight: bold; color: #1a4d2e; }
+        .kopf-sub   { font-size: 9pt; color: #555; margin-top: 2px; }
+        .kopf-meta  { font-size: 8pt; color: #888; text-align: right; line-height: 1.5; }
+
+        /* Abschnitte */
+        h2 {
+            font-size: 11pt;
+            color: #1a4d2e;
+            border-left: 4px solid #1a4d2e;
+            padding: 3px 8px;
+            background: #f0f7f0;
+            margin: 0.5cm 0 0.2cm 0;
+            page-break-after: avoid;
+        }
+        h3 {
+            font-size: 10pt;
+            color: #1d4ed8;
+            margin: 0.35cm 0 0.1cm 0;
+            page-break-after: avoid;
+        }
+
+        /* Schritt-Box */
+        .schritt {
+            border: 1px solid #bfdbfe;
+            border-radius: 5px;
+            background: #eff6ff;
+            padding: 0.3cm 0.4cm;
+            margin-bottom: 0.3cm;
+            page-break-inside: avoid;
+        }
+        .schritt-nr {
+            display: inline-block;
+            background: #1d4ed8;
+            color: white;
+            font-weight: bold;
+            font-size: 8pt;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 18px;
+            margin-right: 5px;
+        }
+        .schritt-titel {
+            font-weight: bold;
+            font-size: 10pt;
+            color: #1e3a8a;
+        }
+
+        /* Code */
+        code {
+            font-family: DejaVu Sans Mono, monospace;
+            font-size: 8.5pt;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 3px;
+            padding: 0 3px;
+        }
+
+        /* Warnung */
+        .warnung {
+            background: #fef9c3;
+            border: 1px solid #fde047;
+            border-radius: 5px;
+            padding: 0.25cm 0.4cm;
+            margin: 0.3cm 0;
+            font-size: 9pt;
+        }
+
+        /* Hinweis-Box */
+        .hinweis {
+            background: #f0f7f0;
+            border: 1px solid #6ee7b7;
+            border-radius: 5px;
+            padding: 0.25cm 0.4cm;
+            margin: 0.3cm 0;
+            font-size: 9pt;
+        }
+
+        /* Felder-Tabelle */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.15cm 0 0.25cm 0;
+            font-size: 9pt;
+        }
+        th {
+            background: #1d4ed8;
+            color: white;
+            padding: 3px 6px;
+            text-align: left;
+            font-size: 8.5pt;
+        }
+        td {
+            padding: 3px 6px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+        }
+        tr:nth-child(even) td { background: #f8faff; }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            color: #1e3a8a;
+            font-size: 7.5pt;
+            font-weight: bold;
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin: 1px 2px;
+        }
+
+        p { margin: 0 0 0.2cm 0; line-height: 1.6; }
+        ul { margin: 0.1cm 0 0.2cm 0.4cm; padding: 0; }
+        li { margin-bottom: 2px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+    <div class="kopf">
+        <div>
+            <div class="kopf-titel">Antrags-Pfade &ndash; Bedienungsanleitung</div>
+            <div class="kopf-sub">Intelligente Vorgangssteuerung in PRIMA &nbsp;&middot;&nbsp; Verzweigungen, Schleifen, bedingte Logik</div>
+        </div>
+        <div class="kopf-meta">
+            PRIMA Intranet-System<br>
+            Stand: {{ datum }}<br>
+            Vertraulich / intern
+        </div>
+    </div>
+
+    <!-- Was sind Antrags-Pfade -->
+    <h2>Was sind Antrags-Pfade?</h2>
+    <p>
+        Ein Antrags-Pfad ist ein <strong>geführter, mehrstufiger Dialog</strong> &ndash; kein starres PDF-Formular.
+        Je nach Antwort des Antragstellers werden unterschiedliche Folgeschritte angezeigt.
+        So sieht jeder Nutzer nur das, was für ihn relevant ist.
+    </p>
+    <div class="hinweis">
+        <strong>Unterschied zum Formular-Builder:</strong> Der Formular-Builder erzeugt flache Formulare (alle Felder auf einer Seite, keine Logik).
+        Antrags-Pfade kennen <em>Verzweigungen</em>, <em>Schleifen</em> und <em>Bedingungen</em> &ndash;
+        geeignet für komplexe Vorgänge wie Anmeldungen, Genehmigungsverfahren oder mehrstufige Anträge.
+    </div>
+
+    <!-- Oberflächen-Überblick -->
+    <h2>Oberfläche des Editors</h2>
+    <table>
+        <tr><th>Element</th><th>Funktion</th></tr>
+        <tr><td><strong>Modus &quot;+ Schritt&quot;</strong></td><td>Auf die Zeichenfläche klicken &rarr; neuer Schritt wird angelegt</td></tr>
+        <tr><td><strong>Modus &quot;&rarr; Verbinden&quot;</strong></td><td>Quell-Knoten klicken, dann Ziel-Knoten &rarr; Pfeil (Transition) wird gezogen</td></tr>
+        <tr><td><strong>Modus &quot;Normal&quot;</strong></td><td>Knoten anklicken = bearbeiten, Kante anklicken = Bedingung setzen</td></tr>
+        <tr><td><strong>Modus &quot;&#10005; Löschen&quot;</strong></td><td>Element anklicken &rarr; wird sofort entfernt</td></tr>
+        <tr><td><strong>Bausteine-Dropdown</strong></td><td>Vorgefertigte Feldgruppen (Personalien, Adresse, Kontakt, Antragsteller komplett) in einen Schritt einfügen</td></tr>
+        <tr><td><strong>Duplizieren</strong></td><td>Bestehenden Schritt mit allen Feldern kopieren</td></tr>
+        <tr><td><strong>&#9707; Blockansicht</strong></td><td>Schreibgeschütztes Flussdiagramm des Pfads (für Planer und Antragsteller)</td></tr>
+    </table>
+
+    <!-- Schritt-Farben -->
+    <h2>Bedeutung der Farben in der Blockansicht</h2>
+    <table>
+        <tr><th>Farbe</th><th>Bedeutung</th></tr>
+        <tr><td>Grün (Raute / Ellipse)</td><td>Start- oder End-Knoten</td></tr>
+        <tr><td>Blau (Rechteck)</td><td>Normaler Schritt</td></tr>
+        <tr><td>Orange (Rechteck)</td><td>Verzweigter Schritt (mindestens eine Bedingung auf eingehender Kante)</td></tr>
+        <tr><td>Lila / gestrichelt</td><td>Loop-Anker / Loop-Kante</td></tr>
+    </table>
+
+    <!-- Anleitung Hundeanmeldung -->
+    <h2>Schritt-für-Schritt: Hundeanmeldung § 10 LHundG NRW nachbauen</h2>
+
+    <div class="schritt">
+        <div><span class="schritt-nr">1</span><span class="schritt-titel">Neuen Pfad anlegen</span></div>
+        <p style="margin-top:0.2cm;">
+            <em>Prozesse &rarr; Antrags-Pfade &rarr; + Neuer Pfad</em><br>
+            Name: <code>Erlaubnis Listenhundehaltung § 10 LHundG NRW</code> &nbsp;&middot;&nbsp; Aktiv: &#10003;<br>
+            Modus <strong>+ Schritt</strong> wählen.
+        </p>
+    </div>
+
+    <div class="schritt">
+        <div><span class="schritt-nr">2</span><span class="schritt-titel">Start-Knoten: Angaben zur Halterin / zum Halter</span></div>
+        <p style="margin-top:0.2cm;">
+            Auf Zeichenfläche klicken &rarr; Titel: <code>Angaben zur Halterin / zum Halter</code><br>
+            &#9745; <strong>Start-Knoten</strong> aktivieren<br>
+            <strong>Bausteine &rarr; Antragsteller komplett</strong> &rarr; 10 Felder werden sofort eingefügt.
+        </p>
+        <table>
+            <tr><th>Feld</th><th>Typ</th><th>Pflicht</th></tr>
+            <tr><td>Familienname</td><td>Text</td><td>&#10003;</td></tr>
+            <tr><td>Geburtsname</td><td>Text</td><td>&ndash;</td></tr>
+            <tr><td>Vorname</td><td>Text</td><td>&#10003;</td></tr>
+            <tr><td>Geburtsdatum</td><td>Datum</td><td>&#10003;</td></tr>
+            <tr><td>Geburtsort</td><td>Text</td><td>&ndash;</td></tr>
+            <tr><td>Straße und Hausnummer</td><td>Text</td><td>&#10003;</td></tr>
+            <tr><td>PLZ</td><td>Text</td><td>&#10003;</td></tr>
+            <tr><td>Wohnort</td><td>Text</td><td>&#10003;</td></tr>
+            <tr><td>Telefonnummer</td><td>Text</td><td>&ndash;</td></tr>
+            <tr><td>E-Mail-Adresse</td><td>E-Mail</td><td>&ndash;</td></tr>
+        </table>
+    </div>
+
+    <div class="schritt">
+        <div><span class="schritt-nr">3</span><span class="schritt-titel">Verzweigung: Art des Hundes</span></div>
+        <p style="margin-top:0.2cm;">
+            Neuer Schritt &rarr; Titel: <code>Art des Hundes</code><br>
+            Feld hinzufügen &rarr; Typ: <strong>Multiple Choice</strong> &rarr; Label: <code>Hunde-Kategorie</code> &rarr; Pflicht: &#10003;
+        </p>
+        <table>
+            <tr><th>Option</th></tr>
+            <tr><td><code>Kein Listenhund</code></td></tr>
+            <tr><td><code>Kategorie 1 (gefährlich nach § 3)</code></td></tr>
+            <tr><td><code>Kategorie 2 (Rasse nach § 10)</code></td></tr>
+        </table>
+        <p>Modus <strong>&rarr; Verbinden</strong>: Schritt 2 &rarr; Schritt 3, Transition: <em>Immer</em>.</p>
+    </div>
+
+    <div class="schritt">
+        <div><span class="schritt-nr">4</span><span class="schritt-titel">Hunde-Angaben (für alle Typen gleich)</span></div>
+        <p style="margin-top:0.2cm;">Neuer Schritt &rarr; Titel: <code>Angaben zum Hund</code></p>
+        <table>
+            <tr><th>Feld</th><th>Typ</th><th>Besonderheit</th></tr>
+            <tr><td>Name des Hundes</td><td>Text</td><td>Pflicht</td></tr>
+            <tr><td>Rasse / Bezeichnung</td><td>Text</td><td>Pflicht</td></tr>
+            <tr><td>Geschlecht</td><td>Multiple Choice</td><td>Optionen: männlich / weiblich</td></tr>
+            <tr><td>Kastriert</td><td>Ja/Nein</td><td>&ndash;</td></tr>
+            <tr><td>Farbe / Besondere Merkmale</td><td>Text</td><td>&ndash;</td></tr>
+            <tr><td>Geburtsdatum</td><td>Datum</td><td>&ndash;</td></tr>
+            <tr><td>Gewicht (kg)</td><td>Zahl</td><td>&ndash;</td></tr>
+            <tr><td>Chip-Nummer (Transponder)</td><td>Text</td><td>&ndash;</td></tr>
+            <tr><td>Herkunftsnachweis</td><td>Datei-Upload</td><td>Typen: <code>.pdf,.jpg,.png</code></td></tr>
+        </table>
+        <p>Verbinden: Schritt 3 &rarr; Schritt 4, Transition: <em>Immer</em>.</p>
+    </div>
+
+    <div class="schritt">
+        <div><span class="schritt-nr">5</span><span class="schritt-titel">Drei pfadspezifische Folgeschritte mit Bedingungen</span></div>
+        <p style="margin-top:0.2cm;">Drei neue Schritte anlegen:</p>
+        <table>
+            <tr><th>Schritt</th><th>Titel</th><th>Beispielfelder</th></tr>
+            <tr><td>A</td><td><code>Kein Listenhund &ndash; Standardanmeldung</code></td><td>Haltungsort, Verwendungszweck</td></tr>
+            <tr><td>B</td><td><code>Kat. 1 &ndash; Zusätzliche Nachweise</code></td><td>Sachkundenachweis, Haftpflichtversicherung</td></tr>
+            <tr><td>C</td><td><code>Kat. 2 &ndash; Erlaubnisantrag § 10</code></td><td>Wohnsituation, Einzäunung, Wesenstest</td></tr>
+        </table>
+        <p>Kanten von Schritt 4 zu A, B, C mit folgenden Bedingungen:</p>
+        <table>
+            <tr><th>Kante</th><th>Bedingung</th><th>Priorität</th></tr>
+            <tr><td>4 &rarr; A</td><td><code>Hunde-Kategorie == "Kein Listenhund"</code></td><td>0</td></tr>
+            <tr><td>4 &rarr; B</td><td><code>Hunde-Kategorie == "Kategorie 1 ..."</code></td><td>1</td></tr>
+            <tr><td>4 &rarr; C</td><td><code>Hunde-Kategorie == "Kategorie 2 ..."</code></td><td>2</td></tr>
+        </table>
+        <p style="font-size:8.5pt; color:#555;">Bedingungen im Kanten-Dialog unter <em>&bdquo;Bedingung aufbauen&ldquo;</em> visuell zusammenklicken &ndash; kein Code erforderlich.</p>
+    </div>
+
+    <div class="schritt">
+        <div><span class="schritt-nr">6</span><span class="schritt-titel">Loop: Weiteren Hund anmelden?</span></div>
+        <p style="margin-top:0.2cm;">
+            Neuer Schritt &rarr; Titel: <code>Weiteren Hund anmelden?</code><br>
+            Feld: Multiple Choice &rarr; Label: <code>Weiterer Hund</code> &rarr; Pflicht: &#10003;
+        </p>
+        <table>
+            <tr><th>Option</th></tr>
+            <tr><td><code>Ja, weiteren Hund anmelden</code></td></tr>
+            <tr><td><code>Nein, weiter zur Einreichung</code></td></tr>
+        </table>
+        <p>Schritte A, B, C &rarr; Loop-Schritt verbinden (jeweils <em>Immer</em>).</p>
+        <p><strong>Loop-Kante (Rückwärtspfeil):</strong> Loop-Schritt &rarr; <em>Art des Hundes</em> (Schritt 3)<br>
+        Bedingung: <code>Weiterer Hund == "Ja, weiteren Hund anmelden"</code></p>
+        <div class="warnung">
+            <strong>&#9888; Pflicht-Label:</strong> Die Beschriftung dieser Kante muss exakt <code>LOOP</code> lauten (Grossbuchstaben).
+            Nur so erkennt das System die Schleife und archiviert die Hunde-Daten des aktuellen Durchlaufs,
+            bevor die Felder für den nächsten Hund zurückgesetzt werden.
+            Fehlt <code>LOOP</code>, werden die Daten des ersten Hundes beim zweiten Durchlauf überschrieben.
+        </div>
+    </div>
+
+    <div class="schritt">
+        <div><span class="schritt-nr">7</span><span class="schritt-titel">End-Knoten: Antrag einreichen</span></div>
+        <p style="margin-top:0.2cm;">
+            Neuer Schritt &rarr; Titel: <code>Antrag einreichen</code> &nbsp;&middot;&nbsp; &#9745; <strong>End-Knoten</strong><br>
+            Felder: <em>Zusammenfassung aller Angaben</em> (zeigt alles zur Prüfung) + optional <em>Signatur</em> (Pflicht)<br>
+            Loop-Schritt &rarr; Einreichen: Bedingung <code>Weiterer Hund == "Nein, weiter zur Einreichung"</code>, Priorität: 10
+        </p>
+    </div>
+
+    <div class="schritt">
+        <div><span class="schritt-nr">8</span><span class="schritt-titel">Speichern und Testen</span></div>
+        <ul style="margin-top:0.2cm;">
+            <li><strong>Speichern</strong> (oben rechts)</li>
+            <li><strong>&#9707; Blockansicht</strong> öffnen &ndash; Flussdiagramm prüfen: Start (grün), Verzweigungen (orange), Loop-Kante (lila gestrichelt)</li>
+            <li><strong>Antrag starten</strong> &ndash; Testdurchlauf mit 2 Hunden (Loop zweimal durchlaufen)</li>
+            <li>Nach Einreichung: <strong>PDF herunterladen</strong> &ndash; Hund 1 und Hund 2 erscheinen als eigene Abschnitte</li>
+        </ul>
+    </div>
+
+    <!-- Tipps -->
+    <h2>Tipps &amp; häufige Fehler</h2>
+    <table>
+        <tr><th>Problem</th><th>Ursache / Lösung</th></tr>
+        <tr><td>Zweiter Hund überschreibt ersten</td><td>Loop-Kante hat nicht das Label <code>LOOP</code> &ndash; exakt so setzen</td></tr>
+        <tr><td>Bedingung greift nie</td><td>Optionstext stimmt nicht exakt überein &ndash; Gross-/Kleinschreibung beachten</td></tr>
+        <tr><td>Kein Weiter-Button am Ende</td><td>End-Knoten ist nicht als &#9745; End-Knoten markiert</td></tr>
+        <tr><td>Alle Pfade führen zum selben Schritt</td><td>Priorität prüfen: niedrigste Zahl = erste Auswertung</td></tr>
+        <tr><td>Feld taucht in Zusammenfassung nicht auf</td><td>Feld-Typ ist Textblock / Trennlinie &ndash; diese werden nicht als Eingabe gezählt</td></tr>
+        <tr><td>Loop-Schritt erscheint im Flussdiagramm nicht lila</td><td>Normal &ndash; lila = Ziel der LOOP-Kante, nicht der Loop-Schritt selbst</td></tr>
+    </table>
+
+    <!-- Feature-Tags -->
+    <h2>Funktionsüberblick</h2>
+    <p>
+        <span class="tag">Verzweigungslogik</span>
+        <span class="tag">Loop-Mechanismus</span>
+        <span class="tag">Feld-Bausteine</span>
+        <span class="tag">Drag &amp; Drop Felder</span>
+        <span class="tag">Schritt duplizieren</span>
+        <span class="tag">Blockansicht / Flussdiagramm</span>
+        <span class="tag">PDF mit Briefkopf</span>
+        <span class="tag">Visueller Bedingungsbuilder</span>
+        <span class="tag">kein Doppeleintrag</span>
+        <span class="tag">100 % offline</span>
+    </p>
+
+</body>
+</html>

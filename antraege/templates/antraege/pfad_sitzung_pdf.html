@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ sitzung.pfad.name }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: DejaVu Sans, Arial, sans-serif;
+            font-size: 10pt;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ---- Briefkopf (DIN 5008 Typ A) ---- */
+        .briefkopf {
+            padding: 1.5cm 2cm 0 2cm;
+            border-bottom: 3px solid #1a4d2e;
+            padding-bottom: 0.4cm;
+            margin-bottom: 0.6cm;
+        }
+        .briefkopf-zeile {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .firma-name {
+            font-size: 14pt;
+            font-weight: bold;
+            color: #1a4d2e;
+            margin: 0 0 2px 0;
+        }
+        .firma-adresse {
+            font-size: 8pt;
+            color: #555;
+            margin: 0;
+            line-height: 1.4;
+        }
+        .kontakt-rechts {
+            text-align: right;
+            font-size: 8pt;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        /* ---- Dokumenten-Kopf ---- */
+        .seite {
+            padding: 0 2cm 2cm 2cm;
+        }
+        .doc-titel {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #1a4d2e;
+            margin: 0.5cm 0 0.2cm 0;
+        }
+        .doc-meta {
+            font-size: 8pt;
+            color: #666;
+            margin-bottom: 0.5cm;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 0.3cm;
+        }
+
+        /* ---- Abschnitte ---- */
+        .abschnitt {
+            margin-bottom: 0.5cm;
+        }
+        .abschnitt-titel {
+            font-size: 10pt;
+            font-weight: bold;
+            color: #1a4d2e;
+            background: #f0f7f0;
+            border-left: 3px solid #1a4d2e;
+            padding: 3px 8px;
+            margin-bottom: 4px;
+        }
+        table.daten {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table.daten tr:nth-child(even) td {
+            background: #fafafa;
+        }
+        table.daten td {
+            padding: 4px 6px;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+        table.daten td.label {
+            color: #555;
+            font-size: 9pt;
+            width: 38%;
+            white-space: nowrap;
+        }
+        table.daten td.wert {
+            font-size: 10pt;
+        }
+        .bool-ja  { color: #1a4d2e; font-weight: bold; }
+        .bool-nein { color: #888; }
+        .datei-link { color: #1976d2; text-decoration: none; font-size: 9pt; }
+
+        /* ---- Fußzeile ---- */
+        .fusszeile {
+            position: fixed;
+            bottom: 0.8cm;
+            left: 2cm;
+            right: 2cm;
+            font-size: 7pt;
+            color: #aaa;
+            border-top: 1px solid #ddd;
+            padding-top: 3px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Briefkopf -->
+    <div class="briefkopf">
+        <div class="briefkopf-zeile">
+            <div>
+                <div class="firma-name">{{ briefkopf.name }}</div>
+                <div class="firma-adresse">
+                    {{ briefkopf.strasse }}<br>
+                    {{ briefkopf.ort }}
+                </div>
+            </div>
+            <div class="kontakt-rechts">
+                {% if briefkopf.telefon %}Tel: {{ briefkopf.telefon }}<br>{% endif %}
+                {% if briefkopf.email %}{{ briefkopf.email }}{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="seite">
+        <div class="doc-titel">{{ sitzung.pfad.name }}</div>
+        <div class="doc-meta">
+            Eingereicht am: {{ sitzung.abgeschlossen_am|date:"d.m.Y" }} um {{ sitzung.abgeschlossen_am|date:"H:i" }} Uhr
+            &nbsp;&middot;&nbsp;
+            Antragsteller: {{ sitzung.user.get_full_name|default:sitzung.user.username }}
+            &nbsp;&middot;&nbsp;
+            Vorgang-Nr.: {{ sitzung.pk }}
+        </div>
+
+        {% for eintrag in zusammenfassung %}
+            {% if eintrag.typ == "_abschnitt" %}
+            <!-- Loop-Trennzeile wird zum PDF-Abschnitt -->
+            <div class="abschnitt-titel" style="margin-top:0.4cm;">{{ eintrag.label }}</div>
+            {% else %}
+            <div class="abschnitt" style="margin-bottom:0.1cm;">
+                <table class="daten">
+                    <tr>
+                        <td class="label">{{ eintrag.label }}</td>
+                        <td class="wert">
+                            {% if eintrag.typ == "bool" %}
+                                {% if eintrag.wert %}<span class="bool-ja">Ja</span>
+                                {% else %}<span class="bool-nein">Nein</span>{% endif %}
+                            {% elif eintrag.typ == "signatur" %}
+                                {% if eintrag.dms_pk %}
+                                    Unterschrift geleistet (DMS-Dok. {{ eintrag.dms_pk }})
+                                {% else %}
+                                    Unterschrift geleistet
+                                {% endif %}
+                            {% elif eintrag.typ == "datei" %}
+                                {% if eintrag.wert %}{{ eintrag.wert }}{% else %}(Datei hochgeladen){% endif %}
+                            {% else %}
+                                {{ eintrag.wert|default:"–" }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            {% endif %}
+        {% empty %}
+            <p style="color:#888; font-style:italic;">Keine Angaben vorhanden.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Fußzeile -->
+    <div class="fusszeile">
+        <span>{{ briefkopf.name }}</span>
+        <span>{{ sitzung.pfad.name }} &mdash; Vorgang {{ sitzung.pk }} &mdash; {{ sitzung.abgeschlossen_am|date:"d.m.Y" }}</span>
+    </div>
+
+</body>
+</html>

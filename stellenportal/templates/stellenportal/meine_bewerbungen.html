@@ -49,7 +49,7 @@
               <td>
                 {% if b.status == "eingegangen" or b.status == "sichtung" %}
                   <form method="post" action="{% url 'stellenportal:bewerbung_zurueckziehen' b.pk %}"
-                        onsubmit="return confirm('Bewerbung wirklich zurueckziehen?')">
+                        data-confirm="Bewerbung wirklich zurueckziehen?">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-sm btn-outline-warning">
                       Zurueckziehen

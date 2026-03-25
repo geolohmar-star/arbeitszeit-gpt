@@ -278,7 +278,7 @@
                             {% if not forloop.first %}
                             <form method="post" action="{% url 'dms:version_restore' dok.pk v.version_nr %}"
                                   style="display:inline;"
-                                  onsubmit="return confirm('Version {{ v.version_nr }} wiederherstellen?')">
+                                  data-confirm="Version {{ v.version_nr }} wiederherstellen?">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-xs btn-outline-warning"
                                         style="font-size:0.72rem; padding:2px 8px;">

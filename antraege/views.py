@@ -206,35 +206,108 @@ def _anzeigefelder(schritt):
     return [f for f in schritt.felder() if f.get("typ") not in _KEINE_ANZEIGE]
 
 
+def _loop_iterationen(gesammelte_daten):
+    """Gibt alle archivierten Loop-Iterationen als Liste von Daten-Dicts zurueck.
+
+    Iterationen werden unter __loop_0__, __loop_1__ usw. gespeichert.
+    Der letzte (aktuelle) Durchlauf ist nicht archiviert und wird separat
+    als letztes Element angehaengt.
+    """
+    iterationen = []
+    i = 0
+    while True:
+        praeffix = f"__loop_{i}__"
+        iteration = {
+            k[len(praeffix):]: v
+            for k, v in gesammelte_daten.items()
+            if k.startswith(praeffix)
+        }
+        if not iteration:
+            break
+        iterationen.append(iteration)
+        i += 1
+    # Aktueller Durchlauf: alle Felder ohne System-Praeffix
+    aktuell = {k: v for k, v in gesammelte_daten.items() if not k.startswith("__")}
+    iterationen.append(aktuell)
+    return iterationen
+
+
 def _baue_zusammenfassung(sitzung):
-    """Baut Label+Wert-Liste aus allen bisher gesammelten Daten."""
-    zusammenfassung = []
-    for schritt_node_id in sitzung.besuchte_schritte:
-        try:
-            schritt = sitzung.pfad.schritte.get(node_id=schritt_node_id)
-        except AntragsPfadSchritt.DoesNotExist:
-            continue
-        for feld in _anzeigefelder(schritt):
-            feld_id = feld.get("id", "")
-            wert = sitzung.gesammelte_daten.get(feld_id, "")
-            if wert != "" and wert is not None:
+    """Baut Label+Wert-Liste aus allen bisher gesammelten Daten.
+
+    Bei Loop-Pfaden werden archivierte Iterationen als eigene Abschnitte
+    mit Durchlauf-Ueberschrift angezeigt.
+    """
+    gesammelte = sitzung.gesammelte_daten
+    durchlauf_count = gesammelte.get("__loop_durchlauf", 0)
+
+    # Hilfsfunktion: einen einzelnen Datensatz in Zeilen umwandeln
+    def _zeilen(daten_dict, besuchte):
+        zeilen = []
+        for schritt_node_id in besuchte:
+            try:
+                schritt = sitzung.pfad.schritte.get(node_id=schritt_node_id)
+            except AntragsPfadSchritt.DoesNotExist:
+                continue
+            for feld in _anzeigefelder(schritt):
+                feld_id = feld.get("id", "")
+                if feld_id.startswith("__"):
+                    continue
+                wert = daten_dict.get(feld_id, "")
+                if wert == "" or wert is None:
+                    continue
                 typ = feld.get("typ", "text")
-                # Berechnungsfeld: Einheit anhaengen wenn vorhanden
+                if typ == "gruppe" and isinstance(wert, list):
+                    singular = feld.get("singular", "Eintrag")
+                    unterfelder = feld.get("unterfelder", [])
+                    for i, eintrag_dict in enumerate(wert):
+                        for uf in unterfelder:
+                            uf_id = uf.get("id", "")
+                            uf_wert = eintrag_dict.get(uf_id, "")
+                            if uf_wert == "" or uf_wert is None:
+                                continue
+                            zeilen.append({
+                                "label": f"{feld.get('label', feld_id)} {i + 1} – {uf.get('label', uf_id)}",
+                                "wert": uf_wert,
+                                "typ": uf.get("typ", "text"),
+                            })
+                    continue
                 if typ == "berechnung" and feld.get("einheit"):
                     wert = f"{wert} {feld['einheit']}"
-                # Dateifeld: DMS-Referenz in (dok_pk, dateiname) aufloesen
                 dms_pk = None
                 if typ == "datei":
                     dms_pk, dateiname = dms_referenz_parsen(wert)
                     wert = dateiname or wert
-                eintrag = {
-                    "label": feld.get("label", feld_id),
-                    "wert": wert,
-                    "typ": typ,
-                }
+                eintrag = {"label": feld.get("label", feld_id), "wert": wert, "typ": typ}
                 if dms_pk:
                     eintrag["dms_pk"] = dms_pk
-                zusammenfassung.append(eintrag)
+                zeilen.append(eintrag)
+        return zeilen
+
+    if durchlauf_count == 0:
+        # Kein Loop: einfache Zusammenfassung
+        zusammenfassung = []
+        for schritt_node_id in sitzung.besuchte_schritte:
+            try:
+                schritt = sitzung.pfad.schritte.get(node_id=schritt_node_id)
+            except AntragsPfadSchritt.DoesNotExist:
+                continue
+            for feld in _anzeigefelder(schritt):
+                feld_id = feld.get("id", "")
+                wert = gesammelte.get(feld_id, "")
+        zusammenfassung = _zeilen(gesammelte, sitzung.besuchte_schritte)
+        return zusammenfassung
+
+    # Loop-Pfad: archivierte Iterationen + aktuellen Durchlauf anzeigen
+    zusammenfassung = []
+    iterationen = _loop_iterationen(gesammelte)
+    for nr, iteration_daten in enumerate(iterationen, start=1):
+        zusammenfassung.append({
+            "label": f"── Hund {nr} ──",
+            "wert": "",
+            "typ": "_abschnitt",
+        })
+        zusammenfassung.extend(_zeilen(iteration_daten, sitzung.besuchte_schritte))
     return zusammenfassung
 
 
@@ -303,6 +376,35 @@ def _validiere_schritt(schritt, post_data, vorige_daten=None, files_data=None, u
             if pflicht and not wert:
                 fehler.append(f'"{feld.get("label", feld_id)}" ist ein Pflichtfeld.')
             daten[feld_id] = wert
+            continue
+        elif typ == "gruppe":
+            # Wiederholungsgruppe: n Eintraege mit Unterfeldern
+            count_key = f"{feld_id}__count"
+            try:
+                count = max(0, int(post_data.get(count_key, "0") or "0"))
+            except (ValueError, TypeError):
+                count = 0
+            eintraege = []
+            for i in range(count):
+                eintrag = {}
+                for uf in feld.get("unterfelder", []):
+                    uf_id = uf.get("id", "")
+                    uf_typ = uf.get("typ", "text")
+                    schluessel = f"{feld_id}__{i}__{uf_id}"
+                    if uf_typ == "bool":
+                        eintrag[uf_id] = schluessel in post_data
+                    elif uf_typ == "checkboxen":
+                        eintrag[uf_id] = ", ".join(post_data.getlist(schluessel))
+                    else:
+                        eintrag[uf_id] = post_data.get(schluessel, "").strip()
+                    if uf.get("pflicht") and not eintrag.get(uf_id):
+                        fehler.append(
+                            f'"{uf.get("label", uf_id)}" ({feld.get("label", feld_id)} {i + 1}) ist ein Pflichtfeld.'
+                        )
+                eintraege.append(eintrag)
+            if pflicht and count == 0:
+                fehler.append(f'"{feld.get("label", feld_id)}" erfordert mindestens einen Eintrag.')
+            daten[feld_id] = eintraege
             continue
         else:
             wert = post_data.get(feld_id, "").strip()
@@ -506,6 +608,52 @@ def pfad_liste(request):
 # ---------------------------------------------------------------------------
 
 @login_required
+def pfad_blockansicht(request, pk):
+    """Schreibgeschuetzte Blockdiagramm-Ansicht eines Pfads (Planer + Antragsteller)."""
+    pfad = get_object_or_404(AntragsPfad, pk=pk)
+    if not pfad.aktiv and not _ist_editor(request.user):
+        messages.error(request, "Kein Zugriff.")
+        return redirect("antraege:pfad_liste")
+
+    schritte = []
+    for s in pfad.schritte.all():
+        schritte.append({
+            "id": s.pk,
+            "node_id": s.node_id,
+            "titel": s.titel,
+            "ist_start": s.ist_start,
+            "ist_ende": s.ist_ende,
+            "felder": [
+                {
+                    "id": f.get("id", ""),
+                    "label": f.get("label") or f.get("text", "")[:60],
+                    "typ": f.get("typ", "text"),
+                    "pflicht": f.get("pflicht", False),
+                }
+                for f in (s.felder_json if isinstance(s.felder_json, list) else [])
+            ],
+            "pos_x": s.pos_x,
+            "pos_y": s.pos_y,
+        })
+
+    transitionen = []
+    for t in pfad.transitionen.all():
+        transitionen.append({
+            "von": t.von_schritt.node_id,
+            "zu": t.zu_schritt.node_id,
+            "bedingung": t.bedingung or "",
+            "label": t.label or "",
+        })
+
+    return render(request, "antraege/pfad_blockansicht.html", {
+        "pfad": pfad,
+        "ist_editor": _ist_editor(request.user),
+        "schritte_json": schritte,
+        "transitionen_json": transitionen,
+    })
+
+
+@login_required
 def pfad_editor(request, pk=None):
     """Visueller Pfad-Editor (vis.js). Neuer oder bestehender Pfad."""
     if not _ist_editor(request.user):
@@ -513,7 +661,17 @@ def pfad_editor(request, pk=None):
         return redirect("antraege:pfad_liste")
     pfad = get_object_or_404(AntragsPfad, pk=pk) if pk else None
     workflow_templates = WorkflowTemplate.objects.filter(ist_aktiv=True).order_by("name")
-    formular_schemas = FormularSchema.objects.order_by("name")
+    # Felder direkt als JSON ins Template einbetten – kein separater AJAX-Aufruf noetig
+    formular_schemas = [
+        {
+            "pk": s.pk,
+            "name": s.name,
+            "felder_json": json.dumps(
+                s.schema_json.get("felder", []) if isinstance(s.schema_json, dict) else []
+            ),
+        }
+        for s in FormularSchema.objects.order_by("name")
+    ]
     return render(request, "antraege/pfad_editor.html", {
         "pfad": pfad,
         "workflow_templates": workflow_templates,
@@ -717,6 +875,21 @@ def pfad_schritt(request, sitzung_pk):
             })
 
         naechster = transition.zu_schritt
+
+        # Loop erkennen: Transition mit Label "LOOP" loest Archivierung aus.
+        # So koennen Loops im Editor explizit markiert werden, unabhaengig von ist_start.
+        if transition.label == "LOOP" and naechster.node_id in sitzung.besuchte_schritte:
+            durchlauf = sitzung.gesammelte_daten.get("__loop_durchlauf", 0)
+            praeffix = f"__loop_{durchlauf}__"
+            # Alle nicht-System-Felder mit Praeffix archivieren
+            for k, v in list(sitzung.gesammelte_daten.items()):
+                if not k.startswith("__"):
+                    sitzung.gesammelte_daten[praeffix + k] = v
+            # Nicht-System-Felder loeschen (Durchlauf zuruecksetzen)
+            for k in [k for k in sitzung.gesammelte_daten if not k.startswith("__")]:
+                del sitzung.gesammelte_daten[k]
+            sitzung.gesammelte_daten["__loop_durchlauf"] = durchlauf + 1
+
         besucht_liste = sitzung.besuchte_schritte + [naechster.node_id]
         sitzung.aktueller_schritt = naechster
         sitzung.besuchte_schritte = besucht_liste
@@ -762,3 +935,55 @@ def meine_antraege(request):
     """Alle eigenen Sitzungen des Nutzers."""
     sitzungen = AntragsPfadSitzung.objects.filter(user=request.user).select_related("pfad")
     return render(request, "antraege/meine_antraege.html", {"sitzungen": sitzungen})
+
+
+@login_required
+def sitzung_pdf(request, pk):
+    """Erzeugt ein PDF der abgeschlossenen Antragssitzung mit Briefkopf."""
+    from weasyprint import HTML
+    from django.template.loader import render_to_string
+    from django.http import HttpResponse
+
+    sitzung = get_object_or_404(
+        AntragsPfadSitzung,
+        pk=pk,
+        user=request.user,
+        status=AntragsPfadSitzung.STATUS_ABGESCHLOSSEN,
+    )
+
+    # Briefkopf aus der ersten Briefvorlage (Fallback: leere Werte)
+    briefkopf = {"name": "", "strasse": "", "ort": "", "telefon": "", "email": ""}
+    try:
+        from korrespondenz.models import Briefvorlage
+        vorlage = Briefvorlage.objects.first()
+        if vorlage:
+            briefkopf = {
+                "name":    vorlage.default_absender_name,
+                "strasse": vorlage.default_absender_strasse,
+                "ort":     vorlage.default_absender_ort,
+                "telefon": vorlage.default_absender_telefon,
+                "email":   vorlage.default_absender_email,
+            }
+    except Exception:
+        pass
+
+    html_string = render_to_string("antraege/pfad_sitzung_pdf.html", {
+        "sitzung": sitzung,
+        "zusammenfassung": _baue_zusammenfassung(sitzung),
+        "briefkopf": briefkopf,
+    })
+
+    pdf = HTML(string=html_string).write_pdf()
+    dateiname = f"antrag_{sitzung.pfad.name}_{sitzung.pk}.pdf".replace(" ", "_")
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{dateiname}"'
+    return response
+
+
+@login_required
+def sitzung_loeschen(request, pk):
+    """Loescht eine eigene Antragssitzung nach Bestaetigung (POST)."""
+    sitzung = get_object_or_404(AntragsPfadSitzung, pk=pk, user=request.user)
+    if request.method == "POST":
+        sitzung.delete()
+    return redirect("antraege:meine_antraege")
